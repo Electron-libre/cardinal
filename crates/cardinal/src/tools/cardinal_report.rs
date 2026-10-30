@@ -297,8 +297,10 @@ fn input_sum(row: &Row) -> u64 {
 fn cache_read_share(sessions: &[&Row]) -> String {
     let mut shares: Vec<f64> = sessions
         .iter()
-        .filter(|r| input_sum(r) > 0)
-        .map(|r| number(r, "cache_read_tokens") as f64 * 100.0 / input_sum(r) as f64)
+        .filter_map(|r| match input_sum(r) {
+            0 => None,
+            sum => Some(number(r, "cache_read_tokens") as f64 * 100.0 / sum as f64),
+        })
         .collect();
     shares.sort_by(f64::total_cmp);
     let n = shares.len();
@@ -535,8 +537,8 @@ fn fixed_context(groups: &[Group], context: &[Row]) -> Table {
 }
 
 /// The value of `metric` for group `g` in the table VRD-1 takes it from, as printed and as a number
-/// (`breached_share` of the rule's row, its `%` dropped); `None` when that table is not printed or the cell is not a
-/// finite number.
+/// (a percent, as `breached_share` of the rule's row or `cache_read_share`, with its `%` dropped); `None` when that
+/// table is not printed or the cell is not a finite number.
 fn metric_value(tables: &[Table], g: usize, metric: &str) -> Option<(String, f64)> {
     let (title, column, key) = match metric {
         "fixes_after_per_issue" | "findings_per_review" | "doc_lines_per_spec_line" => {

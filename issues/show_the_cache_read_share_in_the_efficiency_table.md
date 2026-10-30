@@ -54,6 +54,7 @@ scope: the three columns apart (2) and a cost-weighted input (3). The verdicts r
    evaluate-harness skill names it; verified by the efficiency checks of `tests/cardinal_report.rs` (fixture share
    2/6 = `33%`, a group without input empty) and the metric accepted by `commit-check`; makes true REP-12, VRD-1
    (amended), REP-9 (moved after the new column). ~150 lines.
+2. [x] Fixes of the `high` review of the whole issue; verified by `just check`.
 
 ## Decisions
 - Mode: autonomous
@@ -68,4 +69,16 @@ scope: the three columns apart (2) and a cost-weighted input (3). The verdicts r
   input`, `FAIL - the cache read share is the median of the shares of the sessions, empty with no input`;
   `assertion failed: cache read share` (commit-check).
 - Code review: no findings
+- not verified: the column on the real transcripts of this machine.
+
+## Summary of deliverable 2
+- done: update-docs over the issue (nothing else to change: `docs/architecture.md` does not list the report's columns);
+  fixes of the `high` review: a verdict check on `cache_read_share`, the `%` of an efficiency cell named in the doc of
+  `metric_value`, the share computed with one input sum per session, fixture comments corrected.
+- red: none (the fixes add a check of a path the first deliverable already made work).
+- Code review (high): 8 findings; fixed 2 to 5, 7, 8. Not fixed: 1, no `too few` for a verdict on
+  `cache_read_share` from its sessions with input, as decided at the plan (a session with no input is marginal); 6, the
+  share rounded in floating point while `breached_share` uses integers: a median of ratios needs fractions, and f64
+  is exact far below a whole percent.
+- Code review: no findings (low, on the fixes)
 - not verified: the column on the real transcripts of this machine.

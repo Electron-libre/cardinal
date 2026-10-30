@@ -13,8 +13,8 @@ const CHANGES: &str = "change\tmetric\tdirection\trevisions";
 const SELF: &str = "self:1111111111111111111111111111111111111111";
 
 /// A session row: the columns that vary, the others fixed (output 10); `input` holds the uncached input, cache read and
-/// cache creation tokens; the main context peak is 100 per turn unless `peak` is `None` (an archived row written before the column); with an
-/// `advisor` set, `calls` calls of 1,000 input and 10 output tokens each, else empty advisor cells.
+/// cache creation tokens; the main context peak is 100 per turn unless `peak` is `None` (an archived row written before
+/// the column); with an `advisor` set, `calls` calls of 1,000 input and 10 output tokens each, else empty advisor cells.
 #[derive(Clone)]
 struct S<'a> {
     project: &'a str,
@@ -94,7 +94,7 @@ fn base<'a>(project: &'a str, revision: &'a str, day: u32, turns: u64) -> S<'a> 
 }
 
 /// The sessions: `SELF` 6 (p1, issue i1, turns 1 to 6), `r-b` 5 (3 of p2 on i1 with two models, 2 of p1; turns 7 to
-/// 11, the 2 of p1 with no peak, no input; the 4 first of `SELF` with an advisor called 0, 1, 3 and 6 times), `r-c` 4
+/// 11, the 2 of p1 with no peak, none with input; the 4 first of `SELF` with an advisor called 0, 1, 3 and 6 times), `r-c` 4
 /// (turns 1 to 4, other messages 0, 0, 1, 1, no peak, input sums 0, 10, 100 and 100 whose cache reads are 0, 9, 10
 /// and 50), and one with no revision, the earliest, left out. `r-c` is written first: the order is the order of use.
 /// The other sessions read 2 of their 6 input tokens from the cache.
@@ -280,7 +280,7 @@ fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 && cell(eff, first, "input_tokens") == "6",
         ),
         (
-            "the median share of the input read from the cache leaves out the sessions with no input",
+            "the median share of the input read from the cache",
             cell(eff, first, "cache_read_share") == "33%",
         ),
         (
@@ -858,6 +858,22 @@ fn verdict_edge_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         (
             "a group with no main context peak at all gives no data",
             one(no_peak_before, &[change('a', "main_context_peak", "rb")]) == ["no data"],
+        ),
+        (
+            "the cache read share gets a verdict, its `%` dropped",
+            one(
+                pair(
+                    two("p1", "ra", 1, 5),
+                    vec![
+                        S {
+                            input: [90, 10, 0],
+                            ..base("p1", "rb", 2, 5)
+                        };
+                        2
+                    ],
+                ),
+                &[change('a', "cache_read_share", "rb")],
+            ) == ["helped"],
         ),
         (
             "an unchanged value is no observed effect",

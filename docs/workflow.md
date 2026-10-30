@@ -63,6 +63,9 @@ flowchart TD
   and the tests of step 3.2 carry their `// spec: ID` ([specs/README.md](../specs/README.md)). A capability older than its spec gets one
   read back from its code and tests (`skill:write-spec`, "Bootstrap the spec of an existing capability"), picked from
   `just spec-coverage`.
+- **Advisor**: when an advisor is configured, the agent consults it on the written plan before the stop of step 2,
+  on a check still red after a fix, and before the `high` review; it never replaces a review or a stop.
+  `advisor_calls` in `cardinal-report` measures the effect.
 - **Docs over the issue**: after the last deliverable, `update-docs` reads the user pages and the `architecture`
   document the issue touched whole, so the patches of each deliverable add up to a consistent page;
   `doc_lines_per_spec_line` in `cardinal-report` measures the effect.

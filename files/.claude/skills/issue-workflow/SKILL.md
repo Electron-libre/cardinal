@@ -145,6 +145,18 @@ can switch it at any time.
   settle, a failing check you can't fix (never commit or build on a red base). After the last deliverable, give the
   final summary: a table `deliverable | commit`, then `left` (what remains, if anything); ask whether to close the issue.
 
+## Advisor
+
+When an advisor tool is available, consult it at these moments, and only there:
+
+- the plan written in `# Tracking`, before the stop of step 2;
+- a check still red after a fix (step 3.5), before trying another approach;
+- before the `high` review of the whole issue.
+
+Follow the advice unless a step fails empirically or primary evidence (code, test output, the spec) contradicts it;
+then consult once more to reconcile. The advisor never replaces a review or a stop: the `low` and `high` reviews and
+the stop of step 2 stay as they are. No minimum number of calls. Skip this section when no advisor tool is available.
+
 ## Merge back
 
 In the main worktree, the issue is closed as the Rules below say (`just close-issue`). In a linked worktree the issue is closed at the merge, which is

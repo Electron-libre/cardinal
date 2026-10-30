@@ -161,6 +161,21 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "the red line names the traced ids delivered-quality reads",
     ),
     (
+        "issue-workflow",
+        "## Advisor",
+        "the moments where an advisor's advice pays are named",
+    ),
+    (
+        "issue-workflow",
+        "no advisor tool is available",
+        "the advisor section stays neutral when none is configured",
+    ),
+    (
+        "issue-workflow",
+        "never replaces a review or a stop",
+        "the advisor never lifts the reviews nor the stop of step 2",
+    ),
+    (
         "write-spec",
         "just spec-coverage",
         "the bootstrap of a spec starts from the report of the uncovered test files",

@@ -40,3 +40,34 @@ Advisor
 # Hints
 * The advisor never replaces the `low` and `high` reviews nor the stop of step 2: they stay never lifted.
 * Opus executors lost pass rate when nudged to call more: no "call it at least N times" rule.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Add to `skill:issue-workflow` an "Advisor" section: consult at the three moments (plan written before the stop of step
+2, a check still red after a fix in step 3.5, before the `high` review of the issue), follow the advice unless a step or
+primary evidence contradicts it then consult once to reconcile, never instead of a review or a stop, no minimum count,
+skip it when no advisor tool is available. Out of scope: an always-on rule in `.claude/rules/` (fixed context on every
+session, no other skill needs it yet). No spec: harness content.
+
+## Plan
+1. [x] Advisor section of `skill:issue-workflow` (~15 lines in `files/`, synced copy): verified by new required phrases
+   in `crates/cardinal/tests/skills.rs` (section, the skip when absent, the never-replaces line); commit with
+   `Expected-effect: advisor_calls up` and `Expected-effect: fixes_after_per_issue down`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 48b8623ca0e2e09c95dece4462b4a313e84b8f02
+- Placement: a section of `issue-workflow`, not an always-on rule (1 a).
+
+## Summary of deliverable 1
+- done: "Advisor" section in `skill:issue-workflow` (three moments, weighing rule, never replaces a review or a stop,
+  skipped without an advisor); `docs/workflow.md` and `docs/architecture.md` mention it.
+- red: none (no spec; the required phrases of `tests/skills.rs` failed: missing '## Advisor', 'no advisor tool is
+  available', 'never replaces a review or a stop').
+- check | result: just check ok (fmt, clippy, tests, specs); docs updated; code review `low` run.
+- Code review: no findings
+- not verified: that an agent actually consults the advisor at these moments (`advisor_calls` will tell).
+- decisions needed: none.

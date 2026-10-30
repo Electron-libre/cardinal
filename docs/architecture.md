@@ -334,4 +334,5 @@ and 2: preparation in the files, single validation stop; the final `high` review
 code, docs, the `low` review, the commit). Switch with `/model` after the plan is validated; `/model opusplan`
 does not fit, since plan mode is read-only and step 1 writes the issue. Forked
 skills and sub-agents follow the session model unless the user sets `CLAUDE_CODE_SUBAGENT_MODEL` in their own
-settings.
+settings. An advisor (`/advisor`) is the same split within a turn: a cheaper executor consults a stronger model
+at the moments the skill names (section "Advisor").

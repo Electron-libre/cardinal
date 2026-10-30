@@ -35,7 +35,7 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [count_the_advisor_calls_of_each_session](issues/done/count_the_advisor_calls_of_each_session.md)
   - [measure_the_main_context_peak_of_an_advised_message](issues/done/measure_the_main_context_peak_of_an_advised_message.md)
-  - [tell_the_issue_workflow_when_to_consult_the_advisor](issues/tell_the_issue_workflow_when_to_consult_the_advisor.md)
+  - [tell_the_issue_workflow_when_to_consult_the_advisor](issues/done/tell_the_issue_workflow_when_to_consult_the_advisor.md)
   - [compare_an_advised_executor_with_a_solo_model](issues/compare_an_advised_executor_with_a_solo_model.md)
 
 ## Lean agent loop

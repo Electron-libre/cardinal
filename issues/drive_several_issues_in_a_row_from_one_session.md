@@ -47,7 +47,7 @@ Candidate forms: a new skill (e.g. `drive-queue`) or a mode of `skill:issue-work
 
 Alternative to weigh at step 1, no orchestrator: one loop chains the issues itself, compacting its context between two
 issues, and the stale plan check of point 4, a judgment, becomes an advisor call that may answer stop
-(`issues/tell_the_issue_workflow_when_to_consult_the_advisor.md`). If subagents stay, their answer is the 3.6 summary
+(`issues/done/tell_the_issue_workflow_when_to_consult_the_advisor.md`). If subagents stay, their answer is the 3.6 summary
 schema, and the orchestrator checks it against `just check`, `git log` and the ticked `# Tracking`.
 
 Non-goal: parallel issues driven by the agent; parallelism stays one session per worktree opened by the user.

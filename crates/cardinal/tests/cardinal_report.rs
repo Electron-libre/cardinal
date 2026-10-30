@@ -12,8 +12,8 @@ const CONTEXT: &str =
 const CHANGES: &str = "change\tmetric\tdirection\trevisions";
 const SELF: &str = "self:1111111111111111111111111111111111111111";
 
-/// A session row: the columns that vary, the others fixed (input 1, output 10, cache read 2, cache creation 3); the
-/// main context peak is 100 per turn unless `peak` is `None` (an archived row written before the column); with an
+/// A session row: the columns that vary, the others fixed (output 10); `input` holds the uncached input, cache read and
+/// cache creation tokens; the main context peak is 100 per turn unless `peak` is `None` (an archived row written before the column); with an
 /// `advisor` set, `calls` calls of 1,000 input and 10 output tokens each, else empty advisor cells.
 #[derive(Clone)]
 struct S<'a> {
@@ -23,6 +23,7 @@ struct S<'a> {
     models: &'a str,
     day: u32,
     turns: u64,
+    input: [u64; 3],
     peak: Option<u64>,
     advisor: &'a str,
     calls: u64,
@@ -52,11 +53,11 @@ impl S<'_> {
             "60".into(),
             self.turns.to_string(),
             "2".into(),
-            "1".into(),
+            self.input[0].to_string(),
             "10".into(),
             "0".into(),
-            "2".into(),
-            "3".into(),
+            self.input[1].to_string(),
+            self.input[2].to_string(),
             self.peak.map(|p| p.to_string()).unwrap_or_default(),
             self.advisor.into(),
             advised(self.calls),
@@ -82,6 +83,7 @@ fn base<'a>(project: &'a str, revision: &'a str, day: u32, turns: u64) -> S<'a> 
         models: "m1",
         day,
         turns,
+        input: [1, 2, 3],
         peak: Some(turns * 100),
         advisor: "",
         calls: 0,
@@ -92,12 +94,17 @@ fn base<'a>(project: &'a str, revision: &'a str, day: u32, turns: u64) -> S<'a> 
 }
 
 /// The sessions: `SELF` 6 (p1, issue i1, turns 1 to 6), `r-b` 5 (3 of p2 on i1 with two models, 2 of p1; turns 7 to
-/// 11, the 2 of p1 with no peak; the 4 first of `SELF` with an advisor called 0, 1, 3 and 6 times), `r-c` 4 (turns 1 to 4, other messages 0, 0, 1, 1, no peak), and one with no
-/// revision, the earliest, left out. `r-c` is written first: the order is the order of use.
+/// 11, the 2 of p1 with no peak, no input; the 4 first of `SELF` with an advisor called 0, 1, 3 and 6 times), `r-c` 4
+/// (turns 1 to 4, other messages 0, 0, 1, 1, no peak, input sums 0, 10, 100 and 100 whose cache reads are 0, 9, 10
+/// and 50), and one with no revision, the earliest, left out. `r-c` is written first: the order is the order of use.
+/// The other sessions read 2 of their 6 input tokens from the cache.
 fn sessions() -> Vec<S<'static>> {
+    let inputs = [[0, 0, 0], [1, 9, 0], [90, 10, 0], [40, 50, 10]];
     let mut list: Vec<S> = (1..=4)
-        .map(|t| S {
+        .zip(inputs)
+        .map(|(t, input)| S {
             others: u64::from(t > 2),
+            input,
             peak: None,
             ..base("p1", "r-c", 20, t)
         })
@@ -120,10 +127,12 @@ fn sessions() -> Vec<S<'static>> {
         issues: "i1",
         models: "m1,m2",
         skills: "files:commit-message=1",
+        input: [0, 0, 0],
         ..base("p2", "r-b", 10, t)
     }));
     list.extend((10..=11).map(|t| S {
         peak: None,
+        input: [0, 0, 0],
         ..base("p1", "r-b", 11, t)
     }));
     list
@@ -192,7 +201,7 @@ fn cell(table: Option<&Vec<Vec<String>>>, group: &str, column: &str) -> String {
         .unwrap_or_default()
 }
 
-// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11
+// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11, REP-12
 fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let rows: Vec<String> = sessions()
         .iter()
@@ -218,6 +227,7 @@ fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         "tool_calls",
         "output_tokens",
         "input_tokens",
+        "cache_read_share",
         "main_context_peak",
         "peak_sessions",
         "advisor_models",
@@ -270,6 +280,10 @@ fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 && cell(eff, first, "input_tokens") == "6",
         ),
         (
+            "the median share of the input read from the cache leaves out the sessions with no input",
+            cell(eff, first, "cache_read_share") == "33%",
+        ),
+        (
             "the median main context peak leaves out the sessions with no peak",
             cell(eff, first, "main_context_peak") == "500",
         ),
@@ -291,7 +305,7 @@ fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
-// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11
+// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11, REP-12
 fn option_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let rows: Vec<String> = sessions()
         .iter()
@@ -332,6 +346,11 @@ fn option_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 && cell(small.get("Efficiency"), "r-c", "advisor_sessions") == "0"
                 && cell(small.get("Efficiency"), "r-c", "advisor_calls").is_empty()
                 && cell(small.get("Efficiency"), "r-c", "advisor_output_tokens").is_empty(),
+        ),
+        (
+            "the cache read share is the median of the shares of the sessions, empty with no input",
+            cell(small.get("Efficiency"), "r-c", "cache_read_share") == "50%"
+                && cell(small.get("Efficiency"), "r-b", "cache_read_share").is_empty(),
         ),
         (
             "an even count takes the mean of the middle values, rounded half up",

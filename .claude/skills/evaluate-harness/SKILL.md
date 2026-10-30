@@ -35,6 +35,8 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
    - A `too few` group supports no conclusion; say how many sessions it lacks. The same holds for a
      `main_context_peak` whose `peak_sessions` is under the threshold, and for the advisor calls and tokens whose
      `advisor_sessions` is.
+   - Read `input_tokens` with `cache_read_share`: a cache read costs about a tenth of an uncached input, so input
+     that grows while the share rises may cost less, and a share that falls points to a prompt prefix that changes.
    - A skill `unused` over the last groups may be dropped or described better; a hook whose refusals grow, or a
      rule whose `breached_share` stays high, goes to `skill:audit-instructions` with its counts.
    - With no trend, say so: no change is a valid conclusion.

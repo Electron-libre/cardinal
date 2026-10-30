@@ -39,3 +39,33 @@ Lean agent loop
 
 # Hints
 * A ratio of medians is not the median of ratios: say which one the column is.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Approach 1: a `cache_read_share` column right after `input_tokens`, the median over the group's sessions of each
+session's cache reads over its input sum (median of ratios), as a whole percent; `input_tokens` unchanged. Out of
+scope: the three columns apart (2) and a cost-weighted input (3). The verdicts read it as an `Expected-effect:` metric.
+
+## Plan
+1. [x] Cache read share: the column in `cardinal-report`, the metric in `cardinal-changes` and the verdicts, the
+   evaluate-harness skill names it; verified by the efficiency checks of `tests/cardinal_report.rs` (fixture share
+   2/6 = `33%`, a group without input empty) and the metric accepted by `commit-check`; makes true REP-12, VRD-1
+   (amended), REP-9 (moved after the new column). ~150 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f6f53eb4dcc114fea41f24df9d16e3600acf549b
+- No count of the sessions with input next to the share: a session without input is left out of the median.
+
+## Summary of deliverable 1
+- done: `cache_read_share` after `input_tokens` in the efficiency table; `cache_read_share` accepted by
+  `Expected-effect:` and read by the verdicts (its `%` dropped as for `breached_share`); evaluate-harness reads
+  `input_tokens` with it.
+- red: REP-12, VRD-1: `FAIL - the median share of the input read from the cache leaves out the sessions with no
+  input`, `FAIL - the cache read share is the median of the shares of the sessions, empty with no input`;
+  `assertion failed: cache read share` (commit-check).
+- Code review: no findings
+- not verified: the column on the real transcripts of this machine.

@@ -222,6 +222,7 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
         "tool_calls",
         "output_tokens",
         "input_tokens",
+        "cache_read_share",
         "main_context_peak",
         "peak_sessions",
         "advisor_models",
@@ -268,11 +269,8 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
             column("turns"),
             column("tool_calls"),
             column("output_tokens"),
-            per_session(&|r: &Row| {
-                number(r, "input_tokens")
-                    + number(r, "cache_read_tokens")
-                    + number(r, "cache_creation_tokens")
-            }),
+            per_session(&input_sum),
+            cache_read_share(&g.sessions),
             median_or_empty(peaks),
             peak_sessions,
             mix(&g.sessions, "advisor_models"),
@@ -284,6 +282,32 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
             column("other_messages"),
         ]]
     })
+}
+
+/// The input of a session: its uncached input, cache read and cache creation tokens (REP-5).
+fn input_sum(row: &Row) -> u64 {
+    number(row, "input_tokens")
+        + number(row, "cache_read_tokens")
+        + number(row, "cache_creation_tokens")
+}
+
+/// The median over the sessions with input of their share read from the cache, as a whole percent rounded half up;
+/// empty when no session has input (REP-12). The median of the ratios, not the ratio of the medians.
+#[allow(clippy::cast_precision_loss)] // counts far below 2^52
+fn cache_read_share(sessions: &[&Row]) -> String {
+    let mut shares: Vec<f64> = sessions
+        .iter()
+        .filter(|r| input_sum(r) > 0)
+        .map(|r| number(r, "cache_read_tokens") as f64 * 100.0 / input_sum(r) as f64)
+        .collect();
+    shares.sort_by(f64::total_cmp);
+    let n = shares.len();
+    let middle = match n {
+        0 => return String::new(),
+        _ if n % 2 == 1 => shares[n / 2],
+        _ => f64::midpoint(shares[n / 2 - 1], shares[n / 2]),
+    };
+    format!("{}%", (middle + 0.5).floor())
 }
 
 /// The `main_context_peak` of the sessions that have one (REP-9, REP-10): an archived row written before the column

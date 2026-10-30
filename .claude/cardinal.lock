@@ -5,7 +5,7 @@ ae32a54ad3e59066328e1a2f7f5afff0ca4b13bf194272c376e23280e4a7ce4e  .claude/rules/
 1d2bf3d7bff67ca46c8acf257355e0cf535c610eea8a1d3a875c8bc1a16c8feb  .claude/skills/audit-instructions/SKILL.md
 62e77f126f444e4c4e85623d044235473d36db43bd61877acdaf7bab565a7fb0  .claude/skills/commit-message/SKILL.md
 1184e89b1eace01436dd4aea7f0a206bdcbb57c4079c0d61654d276da94459e0  .claude/skills/create-issue/SKILL.md
-97760d2842937522d76ed33b967b8777f5ba077d4c1df6c9083f748a00d0a082  .claude/skills/evaluate-harness/SKILL.md
+10ba49dbdfe4b19bbba47de149792a28d58d73c79d9261b64feedb9107b796d9  .claude/skills/evaluate-harness/SKILL.md
 988be73f4cc802a86b4134bdf7bf32303b79171189797c1c8eda1ea243bd002c  .claude/skills/issue-workflow/SKILL.md
 b4cae6711c864e0ab1b8cc3551c3d9100217d096c4b1f9986a0566d5fb4a70cc  .claude/skills/issue-workflow/details.md
 b85fc9ba93557217e925be696424f3881d66d9ac4ced70aba8643949a08cdc0d  .claude/skills/prioritize-issues/SKILL.md

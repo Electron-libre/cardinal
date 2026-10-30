@@ -185,6 +185,11 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
     let cases: Vec<(&str, String, &str)> = vec![
         ("median metric", message("Expected-effect: turns down"), ""),
         (
+            "cache read share",
+            message("Expected-effect: cache_read_share up"),
+            "",
+        ),
+        (
             "main context peak",
             message("Expected-effect: main_context_peak down"),
             "",

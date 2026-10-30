@@ -167,8 +167,13 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
-        "no advisor tool is available",
+        "When an advisor tool is available",
         "the advisor section stays neutral when none is configured",
+    ),
+    (
+        "issue-workflow",
+        "still red after a fix",
+        "the advisor is consulted when stuck, not only on the plan",
     ),
     (
         "issue-workflow",

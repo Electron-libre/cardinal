@@ -56,6 +56,9 @@ session, no other skill needs it yet). No spec: harness content.
 1. [x] Advisor section of `skill:issue-workflow` (~15 lines in `files/`, synced copy): verified by new required phrases
    in `crates/cardinal/tests/skills.rs` (section, the skip when absent, the never-replaces line); commit with
    `Expected-effect: advisor_calls up` and `Expected-effect: fixes_after_per_issue down`.
+2. [x] Fixes of the `high` review on base..HEAD: the moments include a red test of 3.3, the plan call is not repeated
+   on an unchanged plan, the last call comes after the issue's `update-docs`; "only there" and the duplicate skip
+   sentence dropped; `docs/workflow.md` points to the skill instead of copying the moments; one more required phrase.
 
 ## Decisions
 - Mode: autonomous
@@ -70,4 +73,15 @@ session, no other skill needs it yet). No spec: harness content.
 - check | result: just check ok (fmt, clippy, tests, specs); docs updated; code review `low` run.
 - Code review: no findings
 - not verified: that an agent actually consults the advisor at these moments (`advisor_calls` will tell).
+- decisions needed: none.
+
+## Summary of deliverable 2
+- done: fixes of the `high` review (findings 1, 2, 4, 5, 6, 8, 10).
+- check | result: just check ok; docs updated; code review `low` run.
+- red: none (wording fixes; the new required phrases already held in the text written by deliverable 1).
+- High review: 10 findings; not fixed: 3 (pointers at steps 2 and 3.5 would repeat the section in a skill read whole),
+  7 (moving the section to details.md: ~120 tokens, and the issue chose the skill), 9 (the diagram stays at step
+  level, the advisor is not a step).
+- Code review: no findings
+- not verified: that an agent consults the advisor at these moments (`advisor_calls` will tell).
 - decisions needed: none.

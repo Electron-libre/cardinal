@@ -147,15 +147,15 @@ can switch it at any time.
 
 ## Advisor
 
-When an advisor tool is available, consult it at these moments, and only there:
+When an advisor tool is available, consult it at these moments:
 
-- the plan written in `# Tracking`, before the stop of step 2;
-- a check still red after a fix (step 3.5), before trying another approach;
-- before the `high` review of the whole issue.
+- the plan written in `# Tracking`, before the stop of step 2 (on a resume or a re-stop, only if the plan changed);
+- a test or a check still red after a fix (step 3.3 or 3.5), before trying another approach;
+- after the `update-docs` of the whole issue, before its `high` review.
 
 Follow the advice unless a step fails empirically or primary evidence (code, test output, the spec) contradicts it;
 then consult once more to reconcile. The advisor never replaces a review or a stop: the `low` and `high` reviews and
-the stop of step 2 stay as they are. No minimum number of calls. Skip this section when no advisor tool is available.
+the stop of step 2 stay as they are. No minimum number of calls.
 
 ## Merge back
 

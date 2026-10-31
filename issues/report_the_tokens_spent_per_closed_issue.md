@@ -55,12 +55,16 @@ and make them `Expected-effect:` metrics. Out of scope: abandoned issues, sessio
 2. [x] Ratios and verdicts: `input_tokens_per_issue`, `output_tokens_per_issue` in the quality table and accepted
    by `commit-check` and the `## Verdicts` table; verified by the report and commit-check tests; makes true REP-6,
    VRD-1 (~120 lines).
+3. [x] Fixes of the `high` review.
+4. [x] Unknown tokens: empty token cells for an issue with no session, `token_issues` in the summary and as the
+   divisor of the per-issue ratios; verified by an issue closed outside any session in the fixtures; makes true
+   QUA-9, QUA-15, REP-6 (~150 lines).
 
 ## Decisions
 - Mode: autonomous
 - Base commit: 37098daa408e7593fe0b8864f51ea812138e86c8
 - Quality table sums keep the names of the output (`input_tokens`...), no `issue_` prefix.
-- The per-issue ratios are means (sum over `issues`), as the other REP-6 ratios.
+- The per-issue ratios are means, as the other REP-6 ratios, over `token_issues` (the issues with a session; answer `a` to the decision of deliverable 3).
 
 ## Deliverable 1
 - done: `delivered-quality` sums the input, cache read and output tokens of the messages that count for each issue,
@@ -117,4 +121,21 @@ and make them `Expected-effect:` metrics. Out of scope: abandoned issues, sessio
   tokens awaits a decision.
 - Code review (low): 1 finding (a line without timestamp marked its id as counted): fixed, the timestamp is read first, on assistant lines only.
 - not verified: a real run over the transcripts of this machine.
-- decisions needed: an issue whose transcripts are gone reads 0 tokens (see the final report).
+- decisions needed: an issue whose transcripts are gone reads 0 tokens: answered `a`, deliverable 4.
+
+## Deliverable 4
+- done: an issue with no session has empty token cells; the summary sums the known tokens and ends with
+  `token_issues`, the divisor of the per-issue ratios of the report.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass, `delivered-quality.md` and `cardinal-report.md` accepted |
+| docs | none to change |
+| code review | low |
+
+- red: QUA-9, QUA-15: `delta`, closed outside any session, read 0 tokens and the summary had no `token_issues`.
+- Code review: no findings.
+- not verified: a real run over the transcripts of this machine.
+- decisions needed: none.

@@ -877,7 +877,7 @@ fn write(path: &Path, lines: &[String]) {
     std::fs::write(path, lines.concat()).unwrap();
 }
 
-// spec: QUA-7, QUA-8, QUA-15
+// spec: QUA-7, QUA-8, QUA-9, QUA-15
 fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("sessions");
     let repo = fixture(&tmp);
@@ -925,8 +925,27 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             usage(&repo, "2026-01-02T23:40:00Z", "u3", [5, 0, 0, 7]),
         ],
     );
+    // delta, closed after every session ended, has no session: its tokens are unknown
+    commit_at(
+        &repo,
+        "2026-03-01T00:00:00Z",
+        "docs: close delta",
+        &[("issues/done/delta.md", Some("# delta\n\n# Tracking\n"))],
+    );
     let (ok, out) = run(dir, &repo, &["--projects", projects.to_str().unwrap()]);
     let r = rows(&out);
+    let (_, summed) = run(
+        dir,
+        &repo,
+        &["--projects", projects.to_str().unwrap(), "--summary"],
+    );
+    let tail = |revision: &str| {
+        summed
+            .lines()
+            .find(|l| l.starts_with(&format!("{revision}\t")))
+            .map(|l| l.split('\t').rev().take(4).collect::<Vec<_>>().join(" "))
+            .unwrap_or_default()
+    };
     let (_, none) = run(dir, &repo, &[]);
     let n = rows(&none);
     vec![
@@ -935,6 +954,8 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ("the failed just checks of its span are counted, not other commands nor sub-agents".to_string(), has(&r, "alpha", "failed_checks", "3") && has(&r, "beta", "failed_checks", "1")),
         ("the typed messages of its span are split into validations and the rest".to_string(), has(&r, "alpha", "validations", "1") && has(&r, "alpha", "other_messages", "2") && has(&r, "beta", "validations", "1") && has(&r, "beta", "other_messages", "0")),
         ("the top-level tokens of its span are summed once per message, sub-agents included, not the iterations".to_string(), has(&r, "alpha", "input_tokens", "1216") && has(&r, "alpha", "cache_read_tokens", "1000") && has(&r, "alpha", "output_tokens", "58") && has(&r, "beta", "input_tokens", "0")),
+        ("the tokens of an issue with no session are empty, not 0".to_string(), has(&r, "delta", "sessions", "0") && ["input_tokens", "cache_read_tokens", "output_tokens"].iter().all(|c| has(&r, "delta", c, ""))),
+        ("the summary sums the known tokens and counts their issues".to_string(), tail("r1") == "1 58 1000 1216" && tail("r3") == "0 0 0 0"),
         ("the transcript columns are empty when the projects cannot be read".to_string(), ["sessions", "failed_checks", "validations", "other_messages", "input_tokens", "cache_read_tokens", "output_tokens"].iter().all(|c| has(&n, "alpha", c, ""))),
         ("no text of a message is printed".to_string(), !out.contains("SECRET")),
     ]
@@ -982,10 +1003,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens",
-        "r1\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t\t\t",
-        "r2\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t\t\t",
-        "a0\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t\t\t",
+        "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
+        "r1\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
+        "r2\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "a0\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {

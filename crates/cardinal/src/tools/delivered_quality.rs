@@ -21,7 +21,7 @@ use transcripts::{
     revision, sessions, sorted_entries, subagents, typed_text, Place,
 };
 
-pub(super) const SUMMARY_HEADER: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
 const HEADER: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
@@ -736,7 +736,9 @@ fn issue_row(
         cell(lines.map(|l| l.0)),
         cell(lines.map(|l| l.1)),
     ];
-    cells.extend((0..7).map(|k| cell(transcript.map(|t| t[k]))));
+    // the tokens of an issue no session holds are unknown, not 0 (QUA-15)
+    let known = |k: usize| k < TOKENS || transcript.is_some_and(|t| t[0] > 0);
+    cells.extend((0..7).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));
     Some(Row {
         issue: stem,
         first: log[first].date,
@@ -745,34 +747,44 @@ fn issue_row(
     })
 }
 
+/// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
+const TOKENS: usize = 4;
+
 /// Per revision: when it was first used, its count of issues and the sum of each numeric column.
-type RevisionSums = (DateTime<FixedOffset>, usize, Vec<Option<u64>>);
+type RevisionSums = (DateTime<FixedOffset>, usize, Vec<Option<u64>>, u64);
 
 /// The rows summed per revision (QUA-9), in the order the revisions were first used: the count of issues, then the
-/// sum of each numeric column, empty when one of its values is.
+/// sum of each numeric column, empty when one of its values is, but the token columns, summed over the issues whose
+/// tokens are known and followed by the count of those issues.
 fn summary(rows: &[Row]) -> Vec<String> {
     let mut by_revision: HashMap<&str, RevisionSums> = HashMap::new();
     for row in rows {
         let values: Vec<Option<u64>> = row.cells[2..].iter().map(|v| v.parse().ok()).collect();
-        let (first, count, sums) = by_revision
+        let tokens = values.len() - 3;
+        let (first, count, sums, known) = by_revision
             .entry(&row.cells[0])
-            .or_insert_with(|| (row.first, 0, vec![Some(0); values.len()]));
+            .or_insert_with(|| (row.first, 0, vec![Some(0); values.len()], 0));
         *first = (*first).min(row.first);
         *count += 1;
-        for (sum, value) in sums.iter_mut().zip(values) {
-            *sum = sum.zip(value).map(|(a, b)| a + b);
+        *known += u64::from(values[tokens].is_some());
+        for (k, (sum, value)) in sums.iter_mut().zip(values).enumerate() {
+            *sum = if k >= tokens {
+                sum.map(|a| a + value.unwrap_or(0))
+            } else {
+                sum.zip(value).map(|(a, b)| a + b)
+            };
         }
     }
     let mut ordered: Vec<_> = by_revision.into_iter().collect();
     ordered.sort_by(|a, b| (a.1 .0, a.0).cmp(&(b.1 .0, b.0)));
     ordered
         .into_iter()
-        .map(|(revision, (_, count, sums))| {
+        .map(|(revision, (_, count, sums, known))| {
             let sums: Vec<String> = sums
                 .iter()
                 .map(|s| s.map(|n| n.to_string()).unwrap_or_default())
                 .collect();
-            format!("{revision}\t{count}\t{}", sums.join("\t"))
+            format!("{revision}\t{count}\t{}\t{known}", sums.join("\t"))
         })
         .collect()
 }

@@ -410,6 +410,7 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         "input_tokens",
         "cache_read_tokens",
         "output_tokens",
+        "token_issues",
     ];
     let mut columns: Vec<&str> = summed
         .iter()
@@ -438,8 +439,8 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         cells.push(ratio(total("fixes_after"), total("issues")));
         cells.push(ratio(total("review_findings"), total("reviews")));
         cells.push(ratio(total("doc_lines"), total("spec_lines")));
-        cells.push(per_unit(total("input_tokens"), total("issues")));
-        cells.push(per_unit(total("output_tokens"), total("issues")));
+        cells.push(per_unit(total("input_tokens"), total("token_issues")));
+        cells.push(per_unit(total("output_tokens"), total("token_issues")));
         vec![cells]
     })
 }

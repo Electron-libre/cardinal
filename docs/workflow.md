@@ -55,7 +55,8 @@ flowchart TD
 - **Autonomous mode** (the default) lifts the stop of step 3.6: the summary of each deliverable is written in the
   issue instead and the agent chains into the next one, until a question, a finding or a check it cannot settle.
   What it never lifts is in the skill, section "Autonomous mode".
-- **Size limit**: an issue too large for one session is split at step 2 (the limits are in step 1 of the skill).
+- **Size limit**: an issue too large for one session is split at step 2 (the limits are in step 1 of the skill);
+  `cardinal run deliverable-size` counts a deliverable at step 3.5 and what the issue changed since its base commit.
 - **Delegated exploration**: only a wide search (the git history, many files of a large repository) at step 1 or 3.1
   goes to a read-only `Explore` subagent, which returns its conclusion with the paths and lines behind it;
   `main_context_peak` in `cardinal-report` measures the effect.

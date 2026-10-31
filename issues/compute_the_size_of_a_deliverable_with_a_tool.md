@@ -49,7 +49,8 @@ Out of scope: counting deliverables, estimating a plan before its code exists (s
 ## Plan
 1. [x] Tool: `deliverable-size` with its spec, the limits `deliverable_size_limit` / `issue_size_limit` in the seed;
    verified by `tests/deliverable_size.rs` driving the binary in temp repos; makes true SIZ-1 to SIZ-10.
-2. [ ] Skill: `issue-workflow` steps 0, 1 and 3.5, `details.md` and `docs/workflow.md` name the tool instead of the
+2. [x] Skill: `issue-workflow` steps 0, 1 and 3.5 and `docs/workflow.md` name the tool (`details.md` cites only the
+   limit of step 1, no counting rule: unchanged) instead of the
    counting rules; verified by `just check` (skills tests, specs) and a run of the tool on this issue's range.
 
 ## Decisions
@@ -76,3 +77,24 @@ Out of scope: counting deliverables, estimating a plan before its code exists (s
 - Code review: no findings
 - not verified: a path that is not UTF-8 (read lossily, then not found on disk for an untracked file).
 - decisions needed: none.
+
+## Deliverable 2
+
+- done: `issue-workflow` steps 0, 1 and 3.5 call `cardinal run deliverable-size` instead of `git diff --shortstat`
+  and the counting rules; `docs/workflow.md` names the tool; `just sync` updated the copy.
+
+| check | result |
+|---|---|
+| tests | `just check`: all passed |
+| lint | clippy clean |
+| specs | `just check-specs` ok |
+| docs | `docs/workflow.md` |
+| code review | `/code-review low`: 1 finding, fixed |
+
+- red: none (wording of a skill, no test).
+- Code review: 1 finding: the plan named `details.md`, left unchanged since it holds no counting rule; the plan
+  line now says so.
+- not verified: none.
+- decisions needed: none.
+- follow-up: in this repository the copies under `.claude/` of a changed `files/` count a second time (491 lines
+  for the issue, 19 of them the copy of the skill); not a problem below the limit.

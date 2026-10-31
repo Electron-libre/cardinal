@@ -1,0 +1,7 @@
+# The format 6 orders the issues by the `priority` and `depends_on` of each issue file instead of its `rank` (ADR 0021).
+names = [
+  { old = "rank:", new = "`priority:` and `depends_on:` (run `skill:prioritize-issues` once to convert the ranks)" },
+]
+rewrite = [
+  { path = "ROADMAP.md", old = "A milestone becomes issues once it is shaped (`skill:create-issue`); the `rank` of each issue file orders them (`just next-issue`).", new = "A milestone becomes issues once it is shaped (`skill:create-issue`); the `priority` and `depends_on` of each issue file order them within a milestone (`just next-issue`)." },
+]

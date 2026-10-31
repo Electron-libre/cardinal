@@ -1,5 +1,7 @@
-//! Print the next issue to work on: the open issue of lowest `rank` in its front matter, with its title, its `why`
-//! and the rest of the order (ADR 0019). Reports (stderr) the issues without a rank and the shared ranks.
+//! Print the next issue to work on and the order of the others (ADR 0021): the ready issues (every `depends_on` of
+//! their front matter in `issues/done/`) by the order of their milestone in the `roadmap` documents, then `priority`,
+//! then age, then the blocked ones with what blocks them. Reports (stderr) a missing priority, an unknown dependency,
+//! a cycle and an unknown milestone.
 //! An issue is taken, and skipped, when a git worktree has a branch named after its stem checked out, or when such
 //! a branch holds work that is not on the branch of the main worktree (patch-equivalent commits and a squash of any
 //! number of commits count as on it: merging the branch would change no file). A branch with neither (left over after a merge, empty) is reported `Stale:` and takes nothing. The mark
@@ -170,7 +172,7 @@ fn unquote(value: &str) -> String {
 }
 
 /// The value of `key` in the front matter of `text`, unquoted.
-fn front_matter(text: &str, key: &str) -> Option<String> {
+pub(super) fn front_matter(text: &str, key: &str) -> Option<String> {
     let (matter, _, _) = split_front_matter(text)?;
     matter
         .iter()
@@ -178,48 +180,206 @@ fn front_matter(text: &str, key: &str) -> Option<String> {
         .map(|v| unquote(v.trim()))
 }
 
-/// The order of the `rank` of each issue file (NXT-1): ranked first, by rank then stem, then the unranked ones,
-/// reported (NXT-2); a shared rank is reported without drift (NXT-3).
-fn from_ranks(dir: &Path) -> (Vec<(String, String)>, bool) {
-    let mut ranked: Vec<(u64, String, String)> = Vec::new();
-    let mut unranked = Vec::new();
-    for stem in issue_stems(dir) {
-        let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).unwrap_or_default();
-        let why = front_matter(&text, "why").unwrap_or_default();
-        match front_matter(&text, "rank").and_then(|r| r.parse().ok()) {
-            Some(rank) => ranked.push((rank, stem, why)),
-            None => unranked.push((stem, why)),
-        }
+/// The place of a `priority` in the order: `high` first; `None` for a missing or unknown one (NXT-2).
+pub(super) fn priority(text: &str) -> Option<u8> {
+    match front_matter(text, "priority")?.as_str() {
+        "high" => Some(0),
+        "medium" => Some(1),
+        "low" => Some(2),
+        _ => None,
     }
-    ranked.sort();
-    for group in ranked.chunk_by(|a, b| a.0 == b.0).filter(|g| g.len() > 1) {
-        let stems: Vec<&str> = group.iter().map(|(_, s, _)| s.as_str()).collect();
-        eprintln!("same rank {}: {}", group[0].0, stems.join(", "));
-    }
-    for (stem, _) in &unranked {
-        eprintln!("issue without a rank: {stem}");
-    }
-    let drift = !unranked.is_empty();
-    let entries = ranked
-        .into_iter()
-        .map(|(_, s, w)| (s, w))
-        .chain(unranked)
-        .collect();
-    (entries, drift)
 }
 
-/// The open issues of a directory in order, with their `why`, and the branches that may take them.
+/// The stems of the `depends_on` of the front matter of `text`, `[<stem>, ...]` on one line (NXT-7): empty when the
+/// key is absent, `None` when its value is not such a list (NXT-8).
+pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
+    let Some(value) = front_matter(text, "depends_on") else {
+        return Some(Vec::new());
+    };
+    let inner = value.strip_prefix('[')?.strip_suffix(']')?;
+    if inner.trim().is_empty() {
+        return Some(Vec::new());
+    }
+    inner
+        .split(',')
+        .map(|s| Some(unquote(s.trim())).filter(|s| !s.is_empty() && !s.contains([' ', '/', '['])))
+        .collect()
+}
+
+/// The milestone named by the first non-empty line of the `# Milestone` section of `text` (NXT-10).
+fn milestone(text: &str) -> Option<String> {
+    let mut lines = text.lines();
+    lines.by_ref().find(|l| l.trim_end() == "# Milestone")?;
+    lines
+        .take_while(|l| !l.starts_with("# "))
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .map(str::to_string)
+}
+
+/// The `## ` headings of the `roadmap` documents of the configuration of `root`, in order; `None` when no document
+/// can be read (NXT-14).
+fn milestones(root: &Path) -> Option<Vec<String>> {
+    let texts: Vec<String> = super::config_list(root, "roadmap")
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|rel| std::fs::read_to_string(root.join(rel)).ok())
+        .collect();
+    (!texts.is_empty()).then(|| {
+        texts
+            .iter()
+            .flat_map(|t| t.lines())
+            .filter_map(|l| l.strip_prefix("## ").map(|n| n.trim().to_string()))
+            .collect()
+    })
+}
+
+/// The stems of the issue files `git` added under `dir`, oldest first: the place of each in the tie-breaker (NXT-1).
+fn ages(dir: &Path) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for line in git_lines(
+        dir,
+        &[
+            "log",
+            "--reverse",
+            "--diff-filter=A",
+            "--relative",
+            "--format=",
+            "--name-only",
+            "--",
+            ".",
+        ],
+    ) {
+        if let Some(stem) = line.strip_suffix(".md").filter(|s| !s.contains('/')) {
+            if !out.iter().any(|s| s == stem) {
+                out.push(stem.to_string());
+            }
+        }
+    }
+    out
+}
+
+/// The groups of open issues whose dependencies (`deps`, to open issues only) form a cycle, each group once, its
+/// stems sorted (NXT-9).
+fn cycles(deps: &[(String, Vec<String>)]) -> Vec<Vec<String>> {
+    let reach = |from: &str| {
+        let mut seen: Vec<&str> = Vec::new();
+        let mut todo: Vec<&str> = vec![from];
+        while let Some(s) = todo.pop() {
+            for d in deps.iter().filter(|(x, _)| x == s).flat_map(|(_, d)| d) {
+                if !seen.contains(&d.as_str()) {
+                    seen.push(d);
+                    todo.push(d);
+                }
+            }
+        }
+        seen.into_iter().map(str::to_string).collect::<Vec<_>>()
+    };
+    let reached: Vec<(String, Vec<String>)> =
+        deps.iter().map(|(s, _)| (s.clone(), reach(s))).collect();
+    let mut groups: Vec<Vec<String>> = Vec::new();
+    for (stem, from) in &reached {
+        if !from.contains(stem) || groups.iter().any(|g| g.contains(stem)) {
+            continue;
+        }
+        let mut group: Vec<String> = reached
+            .iter()
+            .filter(|(other, back)| from.contains(other) && back.contains(stem))
+            .map(|(other, _)| other.clone())
+            .collect();
+        group.sort();
+        groups.push(group);
+    }
+    groups.sort();
+    groups
+}
+
+/// An open issue: its `why` and what blocks it (empty when it is ready, NXT-7).
+struct Entry {
+    stem: String,
+    why: String,
+    blockers: Vec<String>,
+}
+
+/// The order of the open issues of `dir` (NXT-1, NXT-7, NXT-10), each problem reported on stderr (NXT-2, NXT-8, NXT-9,
+/// NXT-13); the flag is set when one was.
+fn order(dir: &Path) -> (Vec<Entry>, bool) {
+    let stems = issue_stems(dir);
+    let done = issue_stems(&dir.join("done"));
+    let root = dir.parent().unwrap_or(Path::new(""));
+    let roadmap = milestones(root);
+    let ages = ages(dir);
+    let mut drift = false;
+    let mut report = |line: String| {
+        eprintln!("{line}");
+        drift = true;
+    };
+    let mut keyed = Vec::new();
+    let mut open_deps = Vec::new();
+    for stem in &stems {
+        let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).unwrap_or_default();
+        let why = front_matter(&text, "why").unwrap_or_default();
+        let rank = priority(&text).unwrap_or_else(|| {
+            report(format!("issue without a priority: {stem}"));
+            3
+        });
+        let place = match (milestone(&text), &roadmap) {
+            (Some(name), Some(names)) => {
+                names.iter().position(|n| *n == name).unwrap_or_else(|| {
+                    report(format!("unknown milestone of {stem}: {name}"));
+                    usize::MAX
+                })
+            }
+            _ => usize::MAX,
+        };
+        let blockers = match depends_on(&text) {
+            None => {
+                report(format!("invalid depends_on: {stem}"));
+                vec!["an invalid depends_on".to_string()]
+            }
+            Some(deps) => {
+                for dep in deps
+                    .iter()
+                    .filter(|d| !stems.contains(d) && !done.contains(d))
+                {
+                    report(format!("unknown dependency of {stem}: {dep}"));
+                }
+                open_deps.push((
+                    stem.clone(),
+                    deps.iter().filter(|d| stems.contains(d)).cloned().collect(),
+                ));
+                deps.into_iter().filter(|d| !done.contains(d)).collect()
+            }
+        };
+        let age = ages.iter().position(|s| s == stem).unwrap_or(usize::MAX);
+        keyed.push((
+            (!blockers.is_empty(), place, rank, age, stem.clone()),
+            Entry {
+                stem: stem.clone(),
+                why,
+                blockers,
+            },
+        ));
+    }
+    for group in cycles(&open_deps) {
+        report(format!("dependency cycle: {}", group.join(", ")));
+    }
+    keyed.sort_by(|a, b| a.0.cmp(&b.0));
+    (keyed.into_iter().map(|(_, e)| e).collect(), drift)
+}
+
+/// The open issues of a directory in order, and the branches that may take them.
 struct Queue {
-    entries: Vec<(String, String)>,
+    entries: Vec<Entry>,
     drift: bool,
     branches: Vec<Branch>,
 }
 
 impl Queue {
-    /// The order of the ranks (NXT-1); the drift is reported on stderr.
+    /// The order of the issues (NXT-1); the problems are reported on stderr.
     fn read(dir: &Path) -> Self {
-        let (entries, drift) = from_ranks(dir);
-        let stems: Vec<&str> = entries.iter().map(|(s, _)| s.as_str()).collect();
+        let (entries, drift) = order(dir);
+        let stems: Vec<&str> = entries.iter().map(|e| e.stem.as_str()).collect();
         let branches = branches(dir, &stems);
         Queue {
             entries,
@@ -233,23 +393,29 @@ impl Queue {
         self.branches.iter().find(|b| b.name == stem && b.taken)
     }
 
-    /// The issues no branch takes, with their position in the order: `(index, stem, why)`.
-    fn free(&self) -> Vec<(usize, &str, &str)> {
+    /// The ready issues no branch takes, with their position in the order: `(index, entry)` (PAR-4, NXT-7).
+    fn free(&self) -> Vec<(usize, &Entry)> {
         self.entries
             .iter()
             .enumerate()
-            .filter(|(_, (s, _))| self.taken_by(s).is_none())
-            .map(|(i, (s, w))| (i, s.as_str(), w.as_str()))
+            .filter(|(_, e)| e.blockers.is_empty() && self.taken_by(&e.stem).is_none())
             .collect()
     }
 
-    /// What `next-issue` offers first: `Next: issues/<stem>.md` and the title of the first free issue, else the line
-    /// saying there is none.
+    /// What `next-issue` offers first: `Next: issues/<stem>.md` and the title of the first free ready issue, else the
+    /// line saying there is none (NXT-12).
     fn offer(&self, dir: &Path) -> String {
         match self.free().first() {
             None if self.entries.is_empty() => "No open issue.".to_string(),
-            None => "Every open issue is taken.".to_string(),
-            Some((_, stem, _)) => format!("Next: issues/{stem}.md\n  {}", title(dir, stem)),
+            None if self
+                .entries
+                .iter()
+                .all(|e| self.taken_by(&e.stem).is_some()) =>
+            {
+                "Every open issue is taken.".to_string()
+            }
+            None => "No ready issue: every free one waits on another.".to_string(),
+            Some((_, e)) => format!("Next: issues/{}.md\n  {}", e.stem, title(dir, &e.stem)),
         }
     }
 }
@@ -269,25 +435,29 @@ pub(super) fn main(args: &[String]) -> u8 {
     let queue = Queue::read(dir);
     let free = queue.free();
     println!("{}", queue.offer(dir));
-    if let Some((_, _, why)) = free.first() {
-        println!("  why here: {why}");
-        for (i, s, _) in free.iter().skip(1) {
-            println!("{:>3}. {s}", i + 1);
+    if let Some((_, first)) = free.first() {
+        println!("  why: {}", first.why);
+        for (i, e) in free.iter().skip(1) {
+            println!("{:>3}. {}", i + 1, e.stem);
         }
+    }
+    for e in queue.entries.iter().filter(|e| !e.blockers.is_empty()) {
+        println!("Blocked: {} (by {})", e.stem, e.blockers.join(", "));
     }
     let taken = |stem: &str| queue.taken_by(stem).map(|b| b.worktree.as_deref());
     let stale = |stem: &str| queue.branches.iter().any(|b| b.name == stem && !b.taken);
-    for (stem, _) in &queue.entries {
-        if let Some(path) = taken(stem) {
+    for e in &queue.entries {
+        if let Some(path) = taken(&e.stem) {
             println!(
-                "Taken: {stem}{}",
+                "Taken: {}{}",
+                e.stem,
                 path.map_or(String::new(), |p| format!(" (worktree {p})"))
             );
         }
     }
-    for (stem, _) in &queue.entries {
-        if stale(stem) {
-            println!("Stale: {stem} (branch with no worktree and nothing off the main branch; run `just finish-issue {stem}`)");
+    for e in &queue.entries {
+        if stale(&e.stem) {
+            println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `just finish-issue {0}`)", e.stem);
         }
     }
     std::process::exit(i32::from(queue.drift));

@@ -1,5 +1,5 @@
 ---
-rank: 225
+priority: low
 why: 'waits for ~10 issue sessions with an Explore call on the largest project before the new measure'
 ---
 # Judge the delegated exploration before keeping it

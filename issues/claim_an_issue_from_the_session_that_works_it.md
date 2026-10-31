@@ -1,6 +1,7 @@
 ---
-rank: 150
-why: 'after the queue drop, which empties next_issue.rs of the format 4 first; before the two others, which wait on the user''s choice or on sessions'
+priority: medium
+depends_on: [order_the_issues_by_priority_and_dependencies]
+why: 'claims among the ready issues that the new order lists; before driving several issues in a row, which waits on the user''s choice'
 ---
 # Claim an issue from the session that works it
 

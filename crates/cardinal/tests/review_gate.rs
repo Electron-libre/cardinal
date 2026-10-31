@@ -924,10 +924,14 @@ fn close_passes(hook: &Path, edit: impl Fn(&Path)) -> bool {
         fs::create_dir_all(project.join(dir)).unwrap();
     }
     sh(&project, &["init", "-q", "."]);
-    fs::write(project.join("issues/foo.md"), "---\nrank: 1\n---\n# Foo\n").unwrap();
+    fs::write(
+        project.join("issues/foo.md"),
+        "---\npriority: high\n---\n# Foo\n",
+    )
+    .unwrap();
     fs::write(
         project.join("issues/bar.md"),
-        "---\nrank: 2\n---\n# Bar\nAfter [foo](foo.md).\n",
+        "---\npriority: low\n---\n# Bar\nAfter [foo](foo.md).\n",
     )
     .unwrap();
     fs::write(

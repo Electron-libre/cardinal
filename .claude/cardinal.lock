@@ -1,5 +1,5 @@
 # Written by `cardinal sync`: hashes of the managed files, then the managed settings entries. Do not edit.
-format 5
+format 6
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
 91958f3e7f8c7f43daca214cd32bf3e29fdd76c39279a9ba36888edb9522e2a7  .claude/rules/reports-to-the-user.md
 c99d044e7f4a777bb6cdb1ca8f84e559cfec3b669cac5d7c6eb9f4062f8e8bb3  .claude/skills/audit-instructions/SKILL.md

@@ -1,6 +1,6 @@
 # 0019. Each issue file carries its rank
 
-Status: Accepted, partly superseded by 0020 (no `--convert`, `issues/queue.md` is no longer read)
+Status: Accepted, partly superseded by 0020 (no `--convert`, `issues/queue.md` is no longer read) and 0021 (the `rank` gives way to `priority` and `depends_on`)
 Date: 2026-10-30
 
 ## Context

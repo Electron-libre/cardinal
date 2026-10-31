@@ -34,7 +34,7 @@ const MIN_FORMAT: u32 = 5;
 pub const NOT_A_REFUSAL: u8 = 3;
 /// The format of the managed content this `cardinal` reads, and every lower one down to `MIN_FORMAT` (SYN-40): equal
 /// to the `cardinal-format` of its revision (SYN-43).
-pub const FORMAT: u32 = 5;
+pub const FORMAT: u32 = 6;
 /// The file of the source that declares the format its content needs, relative to the source.
 const SOURCE_FORMAT: &str = "cardinal-format";
 

@@ -1,6 +1,7 @@
 ---
-rank: 200
-why: 'last: low priority by the user''s choice; a comfort, one session per issue works today'
+priority: low
+depends_on: [order_the_issues_by_priority_and_dependencies]
+why: 'low by the user''s choice: a comfort, one session per issue works today'
 ---
 # Drive several issues in a row from one session
 

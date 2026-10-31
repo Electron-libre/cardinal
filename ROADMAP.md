@@ -1,7 +1,7 @@
 # Roadmap
 
 The planned work of Cardinal, grouped into milestones, in the order they are meant to land. A milestone becomes
-issues once it is shaped; the `rank` of each issue file orders those issues. States: `idea`, `shaped`, `in issues`, `done`;
+issues once it is shaped; the `priority` and `depends_on` of each issue file order those issues within a milestone (`just next-issue`). States: `idea`, `shaped`, `in issues`, `done`;
 `just release` adds `- Released: v<version>` to a `done` one.
 The work done before this file existed is in `issues/done/`.
 
@@ -39,6 +39,17 @@ The work done before this file existed is in `issues/done/`.
   - [tell_the_issue_workflow_when_to_consult_the_advisor](issues/done/tell_the_issue_workflow_when_to_consult_the_advisor.md)
   - [compare_an_advised_executor_with_a_solo_model](issues/done/compare_an_advised_executor_with_a_solo_model.md)
 
+## Longer autonomy
+
+- Goal: let one session drive several issues in a row, stopping the user once for the plans of the batch.
+- Why: one session per issue works today; chaining them saves the user the restarts.
+- State: in issues
+- Issues:
+  - [let_the_close_of_an_issue_commit_without_a_review](issues/done/let_the_close_of_an_issue_commit_without_a_review.md)
+  - [drive_several_issues_in_a_row_from_one_session](issues/drive_several_issues_in_a_row_from_one_session.md)
+  - [order_the_issues_by_priority_and_dependencies](issues/order_the_issues_by_priority_and_dependencies.md)
+  - [link_the_next_issue_when_closing_one](issues/done/link_the_next_issue_when_closing_one.md)
+
 ## Lean agent loop
 
 - Goal: keep one agent loop driven by skills and tools, with a subagent only where a measure justifies it, and judge
@@ -59,14 +70,3 @@ The work done before this file existed is in `issues/done/`.
   - [compute_the_size_of_a_deliverable_with_a_tool](issues/done/compute_the_size_of_a_deliverable_with_a_tool.md)
   - [refuse_staging_every_file_before_a_commit](issues/done/refuse_staging_every_file_before_a_commit.md)
   - [replay_a_reference_task_set_to_compare_two_harness_variants](issues/done/replay_a_reference_task_set_to_compare_two_harness_variants.md)
-
-## Longer autonomy
-
-- Goal: let one session drive several issues in a row, stopping the user once for the plans of the batch.
-- Why: one session per issue works today; chaining them saves the user the restarts.
-- State: in issues
-- Issues:
-  - [let_the_close_of_an_issue_commit_without_a_review](issues/done/let_the_close_of_an_issue_commit_without_a_review.md)
-  - [drive_several_issues_in_a_row_from_one_session](issues/drive_several_issues_in_a_row_from_one_session.md)
-  - [order_the_issues_by_priority_and_dependencies](issues/order_the_issues_by_priority_and_dependencies.md)
-  - [link_the_next_issue_when_closing_one](issues/done/link_the_next_issue_when_closing_one.md)

@@ -17,10 +17,10 @@ use tempfile::{tempdir, TempDir};
 /// The configuration and the lock of a project.
 pub const CONFIG: &str = ".claude/cardinal.toml";
 pub const LOCK: &str = ".claude/cardinal.lock";
-/// The file of a source that declares its format, and the format the fixtures declare: the lowest one `cardinal`
-/// syncs with the names above.
+/// The file of a source that declares its format, and the format the fixtures declare: the one this `cardinal` reads,
+/// with the names above.
 pub const SOURCE_FORMAT: &str = "cardinal-format";
-pub const FORMAT: &str = "5\n";
+pub const FORMAT: &str = "6\n";
 
 /// A new empty source of the format `FORMAT`.
 pub fn source() -> TempDir {

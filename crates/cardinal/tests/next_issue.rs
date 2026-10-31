@@ -42,7 +42,10 @@ fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
     for (i, s) in ["a", "b", "c", "d"].into_iter().enumerate() {
         std::fs::write(
             repo.join(format!("issues/{s}.md")),
-            format!("---\nrank: {}\n---\n# Title {s}\n", 100 * (i + 1)),
+            format!(
+                "---\npriority: {}\n---\n# Title {s}\n",
+                ["high", "medium", "low", "low", "low"][i]
+            ),
         )
         .unwrap();
     }
@@ -144,7 +147,10 @@ fn stale_checks(script: &Path) -> Vec<(&'static str, bool)> {
     for (i, s) in ["a", "b", "c", "d", "e"].into_iter().enumerate() {
         std::fs::write(
             repo.join(format!("issues/{s}.md")),
-            format!("---\nrank: {}\n---\n# Title {s}\n", 100 * (i + 1)),
+            format!(
+                "---\npriority: {}\n---\n# Title {s}\n",
+                ["high", "medium", "low", "low", "low"][i]
+            ),
         )
         .unwrap();
     }
@@ -214,8 +220,8 @@ fn next_issue() {
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(tmp.join("issues")).unwrap();
     let w = |f: &str, t: &str| std::fs::write(tmp.join("issues").join(f), t).unwrap();
-    w("a.md", "---\nrank: 200\n---\n# Title A\n");
-    w("b.md", "---\nrank: 100\n---\n# Title B\n");
+    w("a.md", "---\npriority: low\n---\n# Title A\n");
+    w("b.md", "---\npriority: high\n---\n# Title B\n");
     let run = |script: &str, arg: &str| {
         let out = tool_command(dir.join(script))
             .arg(arg)
@@ -270,51 +276,96 @@ fn next_in(root: &Path) -> (Option<i32>, String, String) {
     )
 }
 
-/// A directory `issues/` holding the given files, outside any git repository.
+/// A directory `issues/` holding the given files (a name under `done/` goes to `issues/done/`), outside any git
+/// repository.
 fn issues_dir(files: &[(&str, &str)]) -> tempfile::TempDir {
     let root = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(root.path().join("issues")).unwrap();
+    std::fs::create_dir_all(root.path().join("issues/done")).unwrap();
     for (name, text) in files {
         std::fs::write(root.path().join("issues").join(name), text).unwrap();
     }
     root
 }
 
+/// The roadmap `ROADMAP.md` with the milestones `names` in that order, named in `.claude/cardinal.toml` of `root`.
+fn roadmap(root: &Path, names: &[&str]) {
+    std::fs::create_dir_all(root.join(".claude")).unwrap();
+    std::fs::write(
+        root.join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    let text = names.join("\n\n- State: idea\n\n## ");
+    std::fs::write(root.join("ROADMAP.md"), format!("# Roadmap\n\n## {text}\n")).unwrap();
+}
+
 // spec: NXT-1
-/// The order comes from the `rank` of each issue file, lowest first, a tie broken by the stem.
+/// The priority orders the ready issues, `high` first, and the `why` is printed with the title.
 #[test]
-fn the_rank_of_each_file_orders_the_issues() {
+fn the_priority_orders_the_issues() {
     let root = issues_dir(&[
-        ("a.md", "---\nrank: 200\nwhy: later\n---\n# Title A\n"),
+        ("a.md", "---\npriority: low\nwhy: later\n---\n# Title A\n"),
         (
             "b.md",
-            "---\nrank: 100\nwhy: needed first\n---\n# Title B\n",
+            "---\npriority: high\nwhy: needed first\n---\n# Title B\n",
         ),
-        ("c.md", "---\nrank: 1000\n---\n# Title C\n"),
+        ("c.md", "---\npriority: medium\n---\n# Title C\n"),
     ]);
     let (code, out, err) = next_in(root.path());
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(
-        out.contains("Next: issues/b.md\n  Title B\n  why here: needed first\n"),
+        out.contains("Next: issues/b.md\n  Title B\n  why: needed first\n"),
         "{out}"
     );
-    assert!(out.contains("  2. a\n  3. c\n"), "{out}");
+    assert!(out.contains("  2. c\n  3. a\n"), "{out}");
+    assert!(err.is_empty(), "{err}");
+}
+
+// spec: NXT-1
+/// Issues of the same milestone and priority come oldest first, by the commit that added them, the ones git does not
+/// track after them; outside git, by stem.
+#[test]
+fn the_oldest_issue_breaks_a_tie() {
+    let root = issues_dir(&[("b.md", "---\npriority: medium\n---\n# Title B\n")]);
+    let (_, out, _) = {
+        let repo = root.path();
+        git(repo, &["init", "-q", "-b", "trunk", "."]);
+        git(repo, &["add", "-A"]);
+        git(repo, &["commit", "-qm", "b", "--no-verify"]);
+        std::fs::write(
+            repo.join("issues/a.md"),
+            "---\npriority: medium\n---\n# Title A\n",
+        )
+        .unwrap();
+        git(repo, &["add", "-A"]);
+        git(repo, &["commit", "-qm", "a", "--no-verify"]);
+        std::fs::write(
+            repo.join("issues/0.md"),
+            "---\npriority: medium\n---\n# Title 0\n",
+        )
+        .unwrap();
+        next_in(repo)
+    };
+    assert!(
+        out.contains("Next: issues/b.md") && out.contains("  2. a\n  3. 0\n"),
+        "{out}"
+    );
 
     let root = issues_dir(&[
-        ("b.md", "---\nrank: 100\n---\n# Title B\n"),
-        ("a.md", "---\nrank: 100\n---\n# Title A\n"),
+        ("b.md", "---\npriority: medium\n---\n# Title B\n"),
+        ("a.md", "---\npriority: medium\n---\n# Title A\n"),
     ]);
     let (_, out, _) = next_in(root.path());
     assert!(out.contains("Next: issues/a.md"), "{out}");
 }
 
 // spec: NXT-2
-/// An issue with no rank, or a rank that is not a number, comes after the ranked ones and is reported.
+/// An issue with no priority, or an unknown one, comes after the `low` ones and is reported.
 #[test]
-fn an_issue_without_a_rank_comes_last_and_is_reported() {
+fn an_issue_without_a_priority_comes_last_and_is_reported() {
     let root = issues_dir(&[
-        ("a.md", "---\nrank: 100\n---\n# Title A\n"),
-        ("b.md", "---\nrank: soon\n---\n# Title B\n"),
+        ("a.md", "---\npriority: low\n---\n# Title A\n"),
+        ("b.md", "---\npriority: urgent\n---\n# Title B\n"),
         ("c.md", "# Title C\n"),
     ]);
     let (code, out, err) = next_in(root.path());
@@ -324,24 +375,9 @@ fn an_issue_without_a_rank_comes_last_and_is_reported() {
         "{out}"
     );
     assert!(
-        err.contains("issue without a rank: b") && err.contains("issue without a rank: c"),
+        err.contains("issue without a priority: b") && err.contains("issue without a priority: c"),
         "{err}"
     );
-}
-
-// spec: NXT-3
-/// Two issues of the same rank (two branches picked it) are reported, without failing.
-#[test]
-fn a_shared_rank_is_reported() {
-    let root = issues_dir(&[
-        ("a.md", "---\nrank: 100\n---\n# Title A\n"),
-        ("b.md", "---\nrank: 100\n---\n# Title B\n"),
-        ("c.md", "---\nrank: 200\n---\n# Title C\n"),
-    ]);
-    let (code, out, err) = next_in(root.path());
-    assert_eq!(code, Some(0), "{out}{err}");
-    assert!(err.contains("same rank 100: a, b"), "{err}");
-    assert!(!err.contains("same rank 200"), "{err}");
 }
 
 // spec: NXT-1
@@ -349,11 +385,11 @@ fn a_shared_rank_is_reported() {
 /// heading after it.
 #[test]
 fn the_front_matter_is_read_as_a_block() {
-    let a = "---\n# a comment\nrank: '200'\nwhy: \"later\"\n---\n# Title A\n";
+    let a = "---\n# a comment\npriority: 'low'\nwhy: \"later\"\n---\n# Title A\n";
     let root = issues_dir(&[
         ("a.md", a),
-        ("b.md", "---\nrank: 100\n---\n# Title B\n"),
-        ("c.md", "---\nnot closed\n\n# Title C\n\nrank: 1\n"),
+        ("b.md", "---\npriority: high\n---\n# Title B\n"),
+        ("c.md", "---\nnot closed\n\n# Title C\n\npriority: high\n"),
     ]);
     let (code, out, err) = next_in(root.path());
     assert_eq!(code, Some(1), "{out}{err}");
@@ -362,12 +398,221 @@ fn the_front_matter_is_read_as_a_block() {
         "{out}"
     );
     assert!(
-        err.contains("issue without a rank: c") && !err.contains("rank: a"),
+        err.contains("issue without a priority: c") && !err.contains("priority: a"),
         "{err}"
     );
     let root = issues_dir(&[("a.md", a)]);
     let (_, out, _) = next_in(root.path());
-    assert!(out.contains("  Title A\n  why here: later\n"), "{out}");
+    assert!(out.contains("  Title A\n  why: later\n"), "{out}");
+}
+
+// spec: NXT-7, NXT-11
+/// An issue whose dependencies are not all done is never offered: it is listed after the ready ones with what blocks
+/// it, and offered once they are done.
+#[test]
+fn a_blocked_issue_waits_for_its_dependencies() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\ndepends_on: [b, old]\n---\n# Title A\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\ndepends_on: []\n---\n# Title B\n",
+        ),
+        (
+            "c.md",
+            "---\npriority: medium\ndepends_on: [old]\n---\n# Title C\n",
+        ),
+        ("done/old.md", "# Old\n"),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/c.md") && out.contains("  2. b\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("Blocked: a (by b)\n") && !out.contains(". a\n"),
+        "{out}"
+    );
+    std::fs::rename(
+        root.path().join("issues/b.md"),
+        root.path().join("issues/done/b.md"),
+    )
+    .unwrap();
+    let (_, out, _) = next_in(root.path());
+    assert!(
+        out.contains("Next: issues/a.md") && !out.contains("Blocked"),
+        "{out}"
+    );
+}
+
+// spec: NXT-12
+/// When every free issue is blocked, none is offered.
+#[test]
+fn no_issue_is_offered_when_every_free_one_is_blocked() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\ndepends_on: [b]\n---\n# Title A\n",
+        ),
+        ("b.md", "---\npriority: low\n---\n# Title B\n"),
+    ]);
+    let repo = root.path();
+    git(repo, &["init", "-q", "-b", "trunk", "."]);
+    git(repo, &["add", "-A"]);
+    git(repo, &["commit", "-qm", "init", "--no-verify"]);
+    branch_with_commit(repo, "b");
+    let (code, out, err) = next_in(repo);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.starts_with("No ready issue: every free one waits on another.\n")
+            && out.contains("Blocked: a (by b)")
+            && out.contains("Taken: b"),
+        "{out}"
+    );
+}
+
+// spec: NXT-8
+/// A dependency on no known issue, or a `depends_on` that is not a list, is reported and blocks the issue.
+#[test]
+fn an_unknown_or_invalid_dependency_is_reported() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\ndepends_on: [gone]\n---\n# Title A\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: high\ndepends_on: c\n---\n# Title B\n",
+        ),
+        ("c.md", "---\npriority: low\n---\n# Title C\n"),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert!(err.contains("unknown dependency of a: gone"), "{err}");
+    assert!(err.contains("invalid depends_on: b"), "{err}");
+    assert!(
+        out.contains("Next: issues/c.md")
+            && out.contains("Blocked: a (by gone)")
+            && out.contains("Blocked: b (by an invalid depends_on)"),
+        "{out}"
+    );
+}
+
+// spec: NXT-9
+/// Issues that depend on each other are reported once as a cycle, and stay blocked.
+#[test]
+fn a_dependency_cycle_is_reported_once() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\ndepends_on: [b]\n---\n# Title A\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: high\ndepends_on: [a]\n---\n# Title B\n",
+        ),
+        (
+            "c.md",
+            "---\npriority: low\ndepends_on: [c]\n---\n# Title C\n",
+        ),
+        (
+            "d.md",
+            "---\npriority: low\ndepends_on: [a]\n---\n# Title D\n",
+        ),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert_eq!(err.matches("dependency cycle: a, b\n").count(), 1, "{err}");
+    assert!(
+        err.contains("dependency cycle: c\n") && !err.contains("cycle: a, b, d"),
+        "{err}"
+    );
+    assert!(
+        out.contains("Blocked: a (by b)")
+            && out.contains("Blocked: b (by a)")
+            && out.contains("Blocked: d (by a)"),
+        "{out}"
+    );
+}
+
+// spec: NXT-10
+/// An issue of an earlier milestone of the roadmap comes first whatever its priority; an issue with no milestone after
+/// those with one.
+#[test]
+fn the_milestone_order_comes_before_the_priority() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\n---\n# Title A\n\n# Milestone\n\nTwo\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nOne\n\n# Resources\n",
+        ),
+        ("c.md", "---\npriority: high\n---\n# Title C\n"),
+    ]);
+    roadmap(root.path(), &["One", "Two"]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/b.md") && out.contains("  2. a\n  3. c\n"),
+        "{out}"
+    );
+}
+
+// spec: NXT-13
+/// A milestone the roadmap does not name is reported, the issue ordered as one with no milestone.
+#[test]
+fn an_unknown_milestone_is_reported() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\n---\n# Title A\n\n# Milestone\nGone\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nOne\n",
+        ),
+    ]);
+    roadmap(root.path(), &["One"]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert!(err.contains("unknown milestone of a: Gone"), "{err}");
+    assert!(out.contains("Next: issues/b.md"), "{out}");
+}
+
+// spec: NXT-14
+/// With no roadmap, the milestones are ignored and nothing is reported.
+#[test]
+fn without_a_roadmap_the_priority_orders_alone() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: low\n---\n# Title A\n\n# Milestone\nOne\n",
+        ),
+        ("b.md", "---\npriority: high\n---\n# Title B\n"),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/b.md") && err.is_empty(),
+        "{out}{err}"
+    );
+    std::fs::create_dir_all(root.path().join(".claude")).unwrap();
+    std::fs::write(
+        root.path().join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"MISSING.md\"]\n",
+    )
+    .unwrap();
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/b.md") && err.is_empty(),
+        "{out}{err}"
+    );
 }
 
 /// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).

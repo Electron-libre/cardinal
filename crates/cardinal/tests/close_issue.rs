@@ -317,9 +317,21 @@ fn prints_the_next_issue(script: &Path) -> Vec<(&'static str, bool)> {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
     std::fs::create_dir_all(root.join("issues")).unwrap();
-    std::fs::write(root.join("issues/foo.md"), "---\nrank: 1\n---\n# Foo\n").unwrap();
-    std::fs::write(root.join("issues/bar.md"), "---\nrank: 2\n---\n# Bar\n").unwrap();
-    std::fs::write(root.join("issues/baz.md"), "---\nrank: 3\n---\n# Baz\n").unwrap();
+    std::fs::write(
+        root.join("issues/foo.md"),
+        "---\npriority: high\n---\n# Foo\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("issues/bar.md"),
+        "---\npriority: medium\n---\n# Bar\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("issues/baz.md"),
+        "---\npriority: low\n---\n# Baz\n",
+    )
+    .unwrap();
     let git = |args: &[&str]| {
         let ok = Command::new("git")
             .args([

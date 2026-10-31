@@ -1,5 +1,5 @@
 ---
-rank: 10
+priority: medium
 why: 'the only open issue'
 ---
 # Count the frequency of each word

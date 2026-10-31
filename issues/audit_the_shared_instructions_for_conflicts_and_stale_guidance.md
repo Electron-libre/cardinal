@@ -88,7 +88,7 @@ is about a state file, not the agent's `git add`.
    `just check`; `Expected-effect: input_tokens down`.
 5. [x] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
    families, file and line, one family per fix, the `issues/done/` check); verified by `just check`.
-6. [ ] Follow-ups M1, M2: two issues through `skill:create-issue`.
+6. [x] Follow-ups M1, M2: two issues through `skill:create-issue`.
 
 Estimate: under 300 changed lines in all, each deliverable under 100.
 
@@ -210,5 +210,25 @@ red: none (no spec): `skills` reported the two required passages missing.
 Code review: no findings
 
 not verified: that a request "clean up the instructions" routes to the skill.
+
+decisions needed: none.
+
+## Deliverable 6
+
+done: [compute_the_size_of_a_deliverable_with_a_tool](compute_the_size_of_a_deliverable_with_a_tool.md) (rank 160)
+and [refuse_staging_every_file_before_a_commit](refuse_staging_every_file_before_a_commit.md) (rank 165), both in
+the milestone Lean agent loop.
+
+| check | result |
+|---|---|
+| check-issue | pass |
+| next-issue | lists both, no issue without a rank |
+| code review | low |
+
+red: none
+
+Code review: no findings
+
+not verified: none.
 
 decisions needed: none.

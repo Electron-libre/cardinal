@@ -53,7 +53,7 @@ session; then apply the user's decision (keep, narrow or fold back). Out of scop
    the `Agent` calls with `subagent_type: Explore` per issue session from the transcripts (no committed script); the
    sample size and the issues that changed outcome written in `## Measure` of this issue, anonymised; verified by the
    report tables quoted (~40 lines under `issues/` only).
-2. [ ] Decision: per the user's answer, keep (a line in `## Decisions`), narrow (rewrite the paragraph of step 1 to
+2. [x] Decision: per the user's answer, keep (a line in `## Decisions`), narrow (rewrite the paragraph of step 1 to
    the kept case) or fold back (remove the paragraph and its mention in step 3.1); `just sync`; commit with the
    opposite `Expected-effect:` when the text changes; verified by `just check` and `just check-cardinal` (~0-20 lines).
 
@@ -81,4 +81,28 @@ mostly; anonymised.
 - Mode: autonomous
 - Base commit: f42d70cbb5c778b5d4768dfb08e45dbe775a0067
 - Delegations counted once from the transcripts, no committed script or `session-metrics` column.
+- Decision: narrow the delegation to a search of the git history or over many files of a large repository (step 1
+  of `issue-workflow`); no `Expected-effect:` since no effect is shown. The issue stays open for a new measure.
 - A `confounded` sample still leads to a decision, on the delegation count and the issues that changed outcome, saying so.
+
+## Left
+- Measure again once the largest project has ~10 issue sessions with an `Explore` call since the narrowing: their
+  `main_context_peak` against sessions of the same size without one; then keep or fold back.
+
+## Deliverable 2: narrowed delegation
+
+- done: step 1 of `issue-workflow` delegates only a search of the git history or over many files of a large
+  repository; step 3.1 points to it; copies synced.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | none beyond the skill |
+| code review | low, see below |
+
+- red: none (skill text, no test).
+- Code review: no findings
+- not verified: whether the narrowed text changes how often the agent delegates.
+- decisions needed: none.

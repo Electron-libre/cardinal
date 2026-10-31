@@ -31,10 +31,10 @@ The understanding, the spec and the plan are written in the files, not in the co
 the console only shows the link and the questions.
 
 - Read the issue, plus the resources it names (docs, `git log`, the `roadmap` documents of `.claude/cardinal.toml`, memory).
-- **Delegate a broad exploration**: a search over many files, the history or the conventions goes to a read-only
-  `Explore` subagent (Agent tool), so only its conclusion stays in the main context. Ask it for the paths and lines
-  behind each conclusion; read back only the lines a decision of the plan rests on. A targeted read of a known file
-  stays in the main thread; so do the spec, the plan, the tests and the commits; the reviews keep going through
+- **Delegate only a wide search**: a search of the git history, or over many files of a large repository, goes to a
+  read-only `Explore` subagent (Agent tool), so only its conclusion stays in the main context. Ask it for the paths and
+  lines behind each conclusion; read back only the lines a decision of the plan rests on. A targeted read of a known
+  file stays in the main thread; so do the spec, the plan, the tests and the commits; the reviews keep going through
   `code-review`.
 - **Spec**, when the issue changes what a capability does (skip it for docs, harness, pure refactor, a measure): run
   `skill:write-spec` up to its format check (requirements with stable ids, `deterministic`, left `draft`, a
@@ -88,7 +88,7 @@ again. Then set `Plan: validated` and the base commit. The spec file is the reco
 
 ## 3. For each deliverable, in order
 
-1. **Gather**: read the code and docs it touches (a broad exploration delegated as in step 1); ask about missing
+1. **Gather**: read the code and docs it touches (a wide search delegated as in step 1); ask about missing
    information (one batch of questions).
 2. **Test first**: write a behavior or end-to-end test that fails for the right reason. When the capability has a
    spec, the test proves a requirement and carries `// spec: ABC-n` (placement in `specs/README.md`), through the

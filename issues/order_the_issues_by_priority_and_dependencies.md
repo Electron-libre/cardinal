@@ -89,6 +89,8 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
    `cardinal.just` and the tool's `about`, `docs/workflow.md`, `docs/architecture.md`, `README.md`, `CLAUDE.md`,
    `ROADMAP.md`, ADR 0019 status; `just sync`; verified by `just check` and `just check-cardinal`. ~500 lines (copies counted twice).
 
+4. [x] Fixes of the `high` review of the issue; verified by `tests/next_issue.rs`.
+
 ## Decisions
 - Mode: autonomous
 - Base commit: bdb358bef3239a698cf98508fd68310a2e77aa5a
@@ -112,3 +114,10 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
 ## Deliverable 3
 - done: `create-issue` writes the priority and dependencies in the template, `prioritize-issues` reviews them (rare `high`, conversion of a `rank`), `issue-workflow` and the docs name the new order; synced.
 - red: none (skills and docs; `skills.rs` keeps the commit passage of `prioritize-issues`).
+
+## Deliverable 4 (high review)
+- Code review: 10 findings.
+  - fixed: age read with `--no-renames` and `core.quotePath=false` (a renamed issue keeps an age), the template heading `# Milestone (optional; ...)` read, `depends_on` deduplicated, the `check-issue` message names the real directory, `front_matter` private and `offer` takes the free list; `drive_...` names its milestone `Longer autonomy`.
+  - not fixed: `rank:` may warn on a consumer's own `rank:` field (accepted at the stop of step 2, question 5); `No ready issue` also shown when the blocker is unknown or a cycle (stderr names it, exit 1); `claim_...` has no milestone (none in the roadmap: the user's call).
+  - new issue: `issues/warn_when_starting_a_blocked_issue.md` (`start-issue` opens a blocked issue).
+- red: NXT-1: without `--no-renames`, `the_oldest_issue_breaks_a_tie` listed the renamed `z` after the untracked `0`.

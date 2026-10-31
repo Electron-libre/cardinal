@@ -344,7 +344,16 @@ fn the_oldest_issue_breaks_a_tie() {
             "---\npriority: medium\n---\n# Title 0\n",
         )
         .unwrap();
-        next_in(repo)
+        let before = next_in(repo);
+        // a renamed issue is as old as its rename: still tracked, before the untracked `0`
+        git(repo, &["mv", "issues/b.md", "issues/z.md"]);
+        git(repo, &["commit", "-qm", "z", "--no-verify"]);
+        let (_, renamed, _) = next_in(repo);
+        assert!(
+            renamed.contains("Next: issues/a.md") && renamed.contains("  2. z\n  3. 0\n"),
+            "{renamed}"
+        );
+        before
     };
     assert!(
         out.contains("Next: issues/b.md") && out.contains("  2. a\n  3. 0\n"),
@@ -481,7 +490,7 @@ fn an_unknown_or_invalid_dependency_is_reported() {
     let root = issues_dir(&[
         (
             "a.md",
-            "---\npriority: high\ndepends_on: [gone]\n---\n# Title A\n",
+            "---\npriority: high\ndepends_on: [gone, gone]\n---\n# Title A\n",
         ),
         (
             "b.md",
@@ -491,7 +500,11 @@ fn an_unknown_or_invalid_dependency_is_reported() {
     ]);
     let (code, out, err) = next_in(root.path());
     assert_eq!(code, Some(1), "{out}{err}");
-    assert!(err.contains("unknown dependency of a: gone"), "{err}");
+    assert_eq!(
+        err.matches("unknown dependency of a: gone").count(),
+        1,
+        "{err}"
+    );
     assert!(err.contains("invalid depends_on: b"), "{err}");
     assert!(
         out.contains("Next: issues/c.md")
@@ -550,7 +563,7 @@ fn the_milestone_order_comes_before_the_priority() {
         ),
         (
             "b.md",
-            "---\npriority: low\n---\n# Title B\n\n# Milestone\nOne\n\n# Resources\n",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone (optional; when the roadmap has milestones)\nOne\n\n# Resources\n",
         ),
         ("c.md", "---\npriority: high\n---\n# Title C\n"),
     ]);

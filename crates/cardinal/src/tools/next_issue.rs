@@ -172,7 +172,7 @@ fn unquote(value: &str) -> String {
 }
 
 /// The value of `key` in the front matter of `text`, unquoted.
-pub(super) fn front_matter(text: &str, key: &str) -> Option<String> {
+fn front_matter(text: &str, key: &str) -> Option<String> {
     let (matter, _, _) = split_front_matter(text)?;
     matter
         .iter()
@@ -190,8 +190,8 @@ pub(super) fn priority(text: &str) -> Option<u8> {
     }
 }
 
-/// The stems of the `depends_on` of the front matter of `text`, `[<stem>, ...]` on one line (NXT-7): empty when the
-/// key is absent, `None` when its value is not such a list (NXT-8).
+/// The stems of the `depends_on` of the front matter of `text`, `[<stem>, ...]` on one line, each once (NXT-7): empty
+/// when the key is absent, `None` when its value is not such a list (NXT-8).
 pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
     let Some(value) = front_matter(text, "depends_on") else {
         return Some(Vec::new());
@@ -200,16 +200,27 @@ pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
     if inner.trim().is_empty() {
         return Some(Vec::new());
     }
-    inner
-        .split(',')
-        .map(|s| Some(unquote(s.trim())).filter(|s| !s.is_empty() && !s.contains([' ', '/', '['])))
-        .collect()
+    let mut stems: Vec<String> = Vec::new();
+    for stem in inner.split(',') {
+        let stem = unquote(stem.trim());
+        if stem.is_empty() || stem.contains([' ', '/', '[']) {
+            return None;
+        }
+        if !stems.contains(&stem) {
+            stems.push(stem);
+        }
+    }
+    Some(stems)
 }
 
 /// The milestone named by the first non-empty line of the `# Milestone` section of `text` (NXT-10).
 fn milestone(text: &str) -> Option<String> {
     let mut lines = text.lines();
-    lines.by_ref().find(|l| l.trim_end() == "# Milestone")?;
+    // the heading of the template of `skill:create-issue` carries a note: `# Milestone (optional; ...)`
+    lines.by_ref().find(|l| {
+        let l = l.trim_end();
+        l == "# Milestone" || l.starts_with("# Milestone ")
+    })?;
     lines
         .take_while(|l| !l.starts_with("# "))
         .map(str::trim)
@@ -240,8 +251,11 @@ fn ages(dir: &Path) -> Vec<String> {
     for line in git_lines(
         dir,
         &[
+            "-c",
+            "core.quotePath=false",
             "log",
             "--reverse",
+            "--no-renames",
             "--diff-filter=A",
             "--relative",
             "--format=",
@@ -404,8 +418,8 @@ impl Queue {
 
     /// What `next-issue` offers first: `Next: issues/<stem>.md` and the title of the first free ready issue, else the
     /// line saying there is none (NXT-12).
-    fn offer(&self, dir: &Path) -> String {
-        match self.free().first() {
+    fn offer(&self, dir: &Path, free: &[(usize, &Entry)]) -> String {
+        match free.first() {
             None if self.entries.is_empty() => "No open issue.".to_string(),
             None if self
                 .entries
@@ -422,7 +436,8 @@ impl Queue {
 
 /// The issue `next-issue` offers first in `dir` (CLS-7: `close-issue` prints it after a close).
 pub(super) fn next(dir: &Path) -> String {
-    Queue::read(dir).offer(dir)
+    let queue = Queue::read(dir);
+    queue.offer(dir, &queue.free())
 }
 
 pub(super) fn main(args: &[String]) -> u8 {
@@ -434,7 +449,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     let queue = Queue::read(dir);
     let free = queue.free();
-    println!("{}", queue.offer(dir));
+    println!("{}", queue.offer(dir, &free));
     if let Some((_, first)) = free.first() {
         println!("  why: {}", first.why);
         for (i, e) in free.iter().skip(1) {

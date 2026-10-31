@@ -39,7 +39,8 @@ fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
         .any(|p| p.is_file())
         {
             out.push(format!(
-                "`depends_on` names `{dep}`: no `issues/{dep}.md` nor `issues/done/{dep}.md`"
+                "`depends_on` names `{dep}`: no `{dep}.md` in `{0}` nor in `{0}/done`",
+                dir.display()
             ));
         }
     }

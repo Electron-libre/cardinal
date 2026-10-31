@@ -53,6 +53,9 @@ schema, and the orchestrator checks it against `just check`, `git log` and the t
 
 Non-goal: parallel issues driven by the agent; parallelism stays one session per worktree opened by the user.
 
+# Milestone
+Longer autonomy
+
 # Resources
 * `files/.claude/skills/issue-workflow/SKILL.md` (steps 2 and 3, Autonomous mode) and its `details.md`.
 * `docs/adr/0011-the-user-opens-the-issue-worktree.md`, `specs/parallel-issues.md`.

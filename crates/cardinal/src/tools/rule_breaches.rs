@@ -287,6 +287,34 @@ impl Context {
     }
 }
 
+/// What the routing rules have seen of the session's own transcript so far (BRE-15).
+#[derive(Default)]
+struct Routing {
+    /// The skills loaded.
+    loaded: HashSet<String>,
+    /// The specs written.
+    specs: HashSet<String>,
+}
+
+/// Whether the shell `words` run `git commit` with a message to write: a `git` whose subcommand, after its options, is
+/// `commit`, with no `--no-edit` before the next `git` (BRE-16).
+fn writes_commit_message(words: &[String]) -> bool {
+    let words: Vec<&str> = words.iter().map(String::as_str).collect();
+    words.split(|w| *w == "git").skip(1).any(|invocation| {
+        let mut rest = invocation.iter();
+        while let Some(&word) = rest.next() {
+            match word {
+                "-C" | "-c" => {
+                    rest.next();
+                }
+                option if option.starts_with('-') => {}
+                subcommand => return subcommand == "commit" && !invocation.contains(&"--no-edit"),
+            }
+        }
+        false
+    })
+}
+
 /// Whether an `Edit` or `Write` call proposes a plan: it puts `Plan: proposed` in a file under `issues/` (BRE-8).
 fn proposes_plan(call: &Call, relative: Option<&str>) -> bool {
     relative.is_some_and(|r| r.starts_with("issues/"))
@@ -378,14 +406,14 @@ impl Verdict {
         }
     }
 
-    /// The routing rules of a call of the session's own transcript: the skill its trigger makes due, unless `loaded`
-    /// holds it (BRE-15 to BRE-18).
+    /// The routing rules of a call of the session's own transcript: the skill its trigger makes due, unless
+    /// `routing` saw it loaded (BRE-15 to BRE-18).
     fn check_routing(
         &mut self,
         call: &Call,
         blocked: bool,
         context: &Context,
-        loaded: &HashSet<String>,
+        routing: &mut Routing,
     ) {
         let relative = context.relative(&call.cwd, call.edited_path());
         // a sentence of an issue that quotes the marker proposes no plan: only a line of its own does
@@ -394,29 +422,28 @@ impl Verdict {
                 .written_text()
                 .lines()
                 .any(|l| l.trim() == "Plan: proposed");
+        // the first write of a spec absent from the default branch at `start`: a later one amends it
         let new_spec = relative.filter(|r| {
             call.name == "Write"
                 && r.starts_with("specs/")
                 && Path::new(r).extension().is_some_and(|e| e == "md")
                 && r != "specs/README.md"
+                && context.synced("write-spec")
+                && routing.specs.insert(r.clone())
                 && committed_file(&context.repo, &context.start, &[r.as_str()]).is_none()
         });
-        let triggered = [
-            call.name == "Bash" && call.commits(),
-            plan,
-            new_spec.is_some(),
+        // the detail of each trigger of `ROUTED`, in its order; `None` when the call is not one
+        let triggers = [
+            (call.name == "Bash" && writes_commit_message(&call.words)).then(String::new),
+            plan.then(String::new),
+            new_spec,
         ];
-        for (&(skill, rule), triggered) in ROUTED.iter().zip(triggered) {
-            if !triggered || !context.synced(skill) {
+        for (&(skill, rule), detail) in ROUTED.iter().zip(triggers) {
+            let Some(detail) = detail.filter(|_| context.synced(skill)) else {
                 continue;
-            }
+            };
             self.applied.insert(rule);
-            if !loaded.contains(skill) {
-                let detail = if skill == "write-spec" {
-                    new_spec.clone().unwrap_or_default()
-                } else {
-                    String::new()
-                };
+            if !routing.loaded.contains(skill) {
                 self.add(rule, blocked, &call.location, detail);
             }
         }
@@ -427,8 +454,7 @@ impl Verdict {
         let mut flagged: HashSet<usize> = HashSet::new();
         let mut refused = false;
         let mut plan_proposed = false;
-        // the skills loaded so far in the session's own transcript (BRE-15)
-        let mut loaded: HashSet<String> = HashSet::new();
+        let mut routing = Routing::default();
         // the language breaches of the turn not yet hinted, each with whether a text block came after it, and where
         // those of the last run of text blocks start: a hint covers that run only (BRE-13)
         let mut unhinted: Vec<(usize, bool)> = Vec::new();
@@ -443,21 +469,19 @@ impl Verdict {
                     run_start = 0;
                 }
                 Event::Loaded(skill) => {
-                    loaded.insert(skill.clone());
+                    routing.loaded.insert(skill.clone());
                 }
                 Event::Call(i) => {
                     called = true;
                     let call = &t.calls[*i];
                     let blocked = call.error == Some(true);
                     if main {
-                        self.check_routing(call, blocked, context, &loaded);
+                        self.check_routing(call, blocked, context, &mut routing);
                     }
-                    if call.name == "Skill" {
-                        loaded.extend(
-                            call.input["skill"]
-                                .as_str()
-                                .map(|s| skill_name(s).to_string()),
-                        );
+                    // a call refused or failed loaded nothing; one with no result read is taken as loaded
+                    if call.name == "Skill" && call.error != Some(true) {
+                        let skill = call.input["skill"].as_str().map(skill_name);
+                        routing.loaded.extend(skill.map(str::to_string));
                     }
                     let before = self.findings.len();
                     match call.name.as_str() {

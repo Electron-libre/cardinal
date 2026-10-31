@@ -53,6 +53,9 @@ Over the local transcripts (all projects, sessions holding the trigger / of them
 ## Plan
 1. [x] Skill routing rules: the loaded skills of the main transcript, the three triggers, the lock gate; verified by
    tests of `crates/cardinal/tests/rule_breaches.rs` through the binary; makes true BRE-15, BRE-16, BRE-17, BRE-18.
+2. [x] Fixes of the `high` review: a failed `Skill` call loads nothing, the commit trigger is the `commit` subcommand
+   with a message to write, a spec counts once per session, the spec list in one block; verified by the same test;
+   makes true BRE-15, BRE-16, BRE-18.
 
 ## Decisions
 - Mode: autonomous
@@ -83,6 +86,30 @@ BRE-8 is an accepted requirement outside this deliverable (follow-up below).
 not verified: none
 
 decisions needed: none
+
+## Summary of deliverable 2
+done: fixes of 7 of the 10 findings of the `high` review of `69ba7f7..609c1b8`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a (no documented behaviour changed) |
+| code review | see below |
+
+red: BRE-15, BRE-16, BRE-18: `FAIL - a trigger is a finding until its skill is called or typed, in the session's own transcript only` (the new cases against the code of deliverable 1)
+
+Code review: 3 findings: a chained `git add && git commit`, a `--no-edit` of a later git command, a `Skill` call
+with no result read; all fixed (each `git` of the command read on its own, an unread result counts as loaded).
+
+not verified: none
+
+decisions needed: none
+
+High review, not fixed: the `blocked` kind of a failed trigger (BRE-15 says so, as BRE-4 for `no-verify`); a spec
+committed on an unmerged issue branch counts as new (the validated decision: the default branch); the two readings of
+`Plan: proposed` and the `ends_with("code-review")` match of BRE-5 (accepted requirements outside this issue).
 
 ## Follow-ups
 - BRE-8 (`validation-stop`) matches `Plan: proposed` anywhere in the written text, so a new issue quoting the marker

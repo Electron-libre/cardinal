@@ -798,6 +798,35 @@ fn language_kind_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
 /// The lock of a project that synced the three routed skills.
 const ROUTED_LOCK: &str = "# lock\nh1  .claude/skills/commit-message/SKILL.md\nh2  .claude/skills/issue-workflow/SKILL.md\nh3  .claude/skills/write-spec/SKILL.md\n";
 
+/// The sessions of the routing checks besides the main one: a typed skill, a sub-agent, a project with no routed skill.
+fn routing_other_sessions(tmp: &Path, repo: &Path, config: &str) {
+    let projects = tmp.join("projects");
+    // a skill typed with its prefix is loaded
+    let mut typed = Transcript::new(repo, "2026-02-01T11:00:00.000Z");
+    typed.push(json!({"type": "user", "message": {"role": "user", "content": "<command-name>/files:commit-message</command-name>"}}));
+    typed.run("c1", "Bash", &bash("git commit -m SECRET"), None);
+    typed.write(&projects.join("-r/u.jsonl"));
+    // a sub-agent shares neither the skills nor the triggers of the session
+    let mut sub = Transcript::new(repo, "2026-02-01T10:00:00.000Z");
+    sub.run("x1", "Bash", &bash("git commit -m SECRET"), None);
+    sub.write(&projects.join("-r/s/subagents/agent-1.jsonl"));
+    // a session that synced none of the routed skills is not due to load them
+    let bare = new_repo(&tmp.join("n"));
+    commit_at(
+        &bare,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[
+            (".claude/cardinal.toml", config),
+            (".claude/cardinal.lock", "# lock\nh1  AGENTS.md\n"),
+        ],
+    );
+    let mut n = Transcript::new(&bare, "2026-02-01T10:00:00.000Z");
+    n.typed("go");
+    n.run("c1", "Bash", &bash("git commit -m SECRET"), None);
+    n.write(&projects.join("-n/s.jsonl"));
+}
+
 // spec: BRE-15, BRE-16, BRE-17, BRE-18
 fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("routing");
@@ -819,7 +848,26 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
     t.typed("go");
     let refused = t.run("c0", "Bash", &bash("git commit -m SECRET"), Some("exit 1"));
-    let unloaded = t.run("c1", "Bash", &bash("git commit -m SECRET"), None);
+    // a call that failed loaded nothing; a command that writes no commit message triggers nothing
+    t.run(
+        "c1a",
+        "Skill",
+        &json!({"skill": "commit-message"}),
+        Some("Unknown skill"),
+    );
+    t.run(
+        "c1b",
+        "Bash",
+        &bash("git log --oneline | grep commit"),
+        None,
+    );
+    t.run("c1c", "Bash", &bash("git commit --amend --no-edit"), None);
+    let unloaded = t.run(
+        "c1",
+        "Bash",
+        &bash("git add a && git -C . commit -m SECRET && git rebase --continue --no-edit"),
+        None,
+    );
     t.run("c2", "Skill", &json!({"skill": "commit-message"}), None);
     t.run("c3", "Bash", &bash("git commit -m SECRET"), None);
     let plan = t.run(
@@ -832,30 +880,13 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     t.run("w2", "Write", &write("issues/j.md", "Plan: proposed"), None);
     let spec = t.run("w3", "Write", &write("specs/new.md", "SECRET"), None);
     t.run("w4", "Write", &write("specs/old.md", "SECRET"), None);
+    t.run("w4b", "Write", &write("specs/new.md", "SECRET again"), None);
     t.run("w5", "Write", &write("specs/README.md", "SECRET"), None);
     t.run("w6", "Write", &write("specs/notes.txt", "SECRET"), None);
     t.run("w7", "Skill", &json!({"skill": "files:write-spec"}), None);
     t.run("w8", "Write", &write("specs/other.md", "SECRET"), None);
     t.write(&projects.join("-r/s.jsonl"));
-    // a sub-agent shares neither the skills nor the triggers of the session
-    let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
-    sub.run("x1", "Bash", &bash("git commit -m SECRET"), None);
-    sub.write(&projects.join("-r/s/subagents/agent-1.jsonl"));
-    // a session that synced none of the routed skills is not due to load them
-    let bare = new_repo(&tmp.join("n"));
-    commit_at(
-        &bare,
-        "2026-01-01T00:00:00Z",
-        "chore: sync",
-        &[
-            (".claude/cardinal.toml", config),
-            (".claude/cardinal.lock", "# lock\nh1  AGENTS.md\n"),
-        ],
-    );
-    let mut n = Transcript::new(&bare, "2026-02-01T10:00:00.000Z");
-    n.typed("go");
-    n.run("c1", "Bash", &bash("git commit -m SECRET"), None);
-    n.write(&projects.join("-n/s.jsonl"));
+    routing_other_sessions(&tmp, &repo, config);
     let row = |rule: &str, kind: &str, line: usize, detail: &str| {
         format!("s\tr\tr1\tskill-routing-{rule}\t{kind}\ts.jsonl:{line}\t{detail}")
     };
@@ -877,7 +908,7 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         .filter(|l| l.starts_with("skill-routing"))
         .collect();
     let want_summary = [
-        "skill-routing-commit-message\tr1\t1\t1\t1\t1",
+        "skill-routing-commit-message\tr1\t2\t1\t1\t1",
         "skill-routing-issue-workflow\tr1\t1\t1\t1\t0",
         "skill-routing-write-spec\tr1\t1\t1\t1\t0",
     ];

@@ -80,7 +80,7 @@ is about a state file, not the agent's `git add`.
    the one "never `git add -A`", the callers say "with `skill:commit-message`"; `AGENTS.md` scopes "output only the
    message" to the user committing; `update-docs` commits through `skill:commit-message`; verified by `just check`;
    `Expected-effect: input_tokens down`, not hurting `breached_share:commit-attribution`, `commit-format`.
-3. [ ] `issue-workflow` emphasis (D5, D6, S1): one statement of the mandatory review (3.5) and of the push ban,
+3. [x] `issue-workflow` emphasis (D5, D6, S1): one statement of the mandatory review (3.5) and of the push ban,
    the Autonomous list points to 3.6, the Rules restating the system prompt dropped; verified by `just check`;
    `Expected-effect: input_tokens down`, not hurting `breached_share:review-before-commit`,
    `breached_share:validation-stop`.
@@ -145,5 +145,27 @@ Code review: 1 findings
   deliverable 3).
 
 not verified: `breached_share:commit-attribution` and `commit-format` over the next sessions.
+
+decisions needed: none.
+
+## Deliverable 3
+
+done: `issue-workflow` says the review is mandatory once (3.5), the autonomous mode points to the 3.6 summary and
+holds the one push ban, the advisor line keeps its required sentence only, and the three Rules Claude Code's prompt
+holds are gone; `skills.rs` lists the dropped passages.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no doc cites the removed lines |
+| code review | low, see below |
+
+red: none (no spec): `skills_drop_the_restated_rules` listed the 7 passages.
+
+Code review: no findings
+
+not verified: `breached_share:review-before-commit` and `validation-stop` over the next sessions.
 
 decisions needed: none.

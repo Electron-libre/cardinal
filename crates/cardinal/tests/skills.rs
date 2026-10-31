@@ -480,6 +480,60 @@ fn the_commit_rules_are_said_once() {
     assert!(failures.is_empty(), "{failures:#?}");
 }
 
+/// Passages a skill must not hold, as (skill, passage, why): a rule said elsewhere, or one Claude Code's own prompt holds.
+const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
+    (
+        "issue-workflow",
+        "never skipped",
+        "step 3.5 says the review is mandatory once, the commit gate enforces it",
+    ),
+    (
+        "issue-workflow",
+        "Step 6 cannot start before the review",
+        "step 3.5 says the review is mandatory once",
+    ),
+    (
+        "issue-workflow",
+        "If you did not invoke the review",
+        "step 3.5 says the review is mandatory once",
+    ),
+    (
+        "issue-workflow",
+        "(`done`, `check | result`",
+        "the autonomous mode points to the summary of step 3.6 instead of listing its fields",
+    ),
+    (
+        "issue-workflow",
+        "Anything outward-facing",
+        "Claude Code's prompt holds it; the autonomous mode keeps the push ban",
+    ),
+    (
+        "issue-workflow",
+        "re-litigate",
+        "Claude Code's prompt holds it",
+    ),
+    (
+        "issue-workflow",
+        "don't enumerate every option",
+        "Claude Code's prompt holds it",
+    ),
+];
+
+#[test]
+fn skills_drop_the_restated_rules() {
+    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let mut failures = Vec::new();
+    for (skill, passage, why) in DROPPED_PASSAGES {
+        let text = fs::read_to_string(root.join(".claude/skills").join(skill).join("SKILL.md"))
+            .unwrap_or_default();
+        let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
+        if flat.contains(passage) {
+            failures.push(format!("{skill}: holds '{passage}' ({why})"));
+        }
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}
+
 /// The skills read the `roadmap` documents of the seeded configuration: a new project must get them from `seed/`.
 #[test]
 fn seeded_roadmap_is_seeded() {

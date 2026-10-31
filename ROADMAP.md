@@ -68,4 +68,5 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [let_the_close_of_an_issue_commit_without_a_review](issues/done/let_the_close_of_an_issue_commit_without_a_review.md)
   - [drive_several_issues_in_a_row_from_one_session](issues/drive_several_issues_in_a_row_from_one_session.md)
+  - [order_the_issues_by_priority_and_dependencies](issues/order_the_issues_by_priority_and_dependencies.md)
   - [link_the_next_issue_when_closing_one](issues/done/link_the_next_issue_when_closing_one.md)

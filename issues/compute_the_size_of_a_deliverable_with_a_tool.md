@@ -11,7 +11,7 @@ edits counted twice, against ~1,000 lines per deliverable and ~3,000 per issue. 
 so the skill says "run the tool" instead of the rule, and the review step stops on a number, not on an estimate.
 
 # Findings
-* The audit of the shared instructions (`issues/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md`,
+* The audit of the shared instructions (`issues/done/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md`,
   row M1) found the rule in prose in steps 1 and 3.5 of `files/.claude/skills/issue-workflow/SKILL.md`, and its
   split case in `details.md`.
 * `git diff --shortstat` leaves out the untracked files and counts a pure rename as its whole content unless

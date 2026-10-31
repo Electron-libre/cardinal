@@ -10,7 +10,7 @@ or unrelated files (`settings.local.json`, another deliverable's work) stay out 
 a deny rule or a hook could refuse the command, if the agent breaks it often enough to pay for one.
 
 # Findings
-* The audit of the shared instructions (`issues/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md`,
+* The audit of the shared instructions (`issues/done/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md`,
   row M2) found the ban in four skills, now kept in `commit-message` alone.
 * `rule-breaches` has no rule for it: how often the agent runs `git add -A` or `git add .` is not measured.
 

@@ -101,7 +101,11 @@ Candidates, to combine at step 1 of `issue-workflow`:
    needs the trunk checked out by no worktree (the main worktree detached, or kept for integration and moved by the
    user), or `updateInstead` if a measure shows it works across worktrees. With a remote and pull requests instead,
    the agent pushes the branch and opens the pull request, and the merge is the host's.
-7. **Ask the user** at step 1: is there a remote, and are the issues merged by pull request or locally?
+7. **Merge by the user's way of working** (the user, 2026-10-31): in the main worktree, issues are worked directly on
+   the trunk, with no branch and no merge, as today; a workspace on another branch ends with a pull request to the
+   trunk, which the agent opens and the host merges. Candidate 6's local move of the trunk is then not needed. Still
+   to settle at step 1: whether the user picks the workspace's branch (several issues may share it) or the agent cuts
+   one per issue, and when the claim of an issue merged by pull request is freed (the branch merged on the remote).
 
 A new ADR records the choice, amending ADR 0003, 0008 and 0011. Likely over the size limit: split at step 2 (claim
 and `next-issue`, workspace lock, reusable workspace and docs).

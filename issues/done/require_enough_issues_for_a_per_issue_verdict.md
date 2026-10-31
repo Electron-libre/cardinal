@@ -65,7 +65,7 @@ when either group holds fewer issues than a floor, as VRD-9 does for the peak. O
 - Code review: no findings
 - not verified: none
 - decisions needed: none
-- follow-up: `issues/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md` (floor on `reviews`, `spec_lines`).
+- follow-up: `issues/done/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md` (floor on `reviews`, `spec_lines`).
 
 ## Deliverable 2: fixes of the `high` review
 - done: a check with the before group alone under the `issues` floor; a `floor` helper for both options

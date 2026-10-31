@@ -50,7 +50,7 @@ The work done before this file existed is in `issues/done/`.
   - [report_the_tokens_spent_per_closed_issue](issues/done/report_the_tokens_spent_per_closed_issue.md)
   - [require_enough_issues_for_a_per_issue_verdict](issues/done/require_enough_issues_for_a_per_issue_verdict.md)
   - [judge_the_delegated_exploration_before_keeping_it](issues/judge_the_delegated_exploration_before_keeping_it.md)
-  - [require_enough_reviews_and_spec_lines_for_a_ratio_verdict](issues/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md)
+  - [require_enough_reviews_and_spec_lines_for_a_ratio_verdict](issues/done/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md)
   - [count_the_skills_a_session_should_have_loaded](issues/count_the_skills_a_session_should_have_loaded.md)
   - [detect_token_waste_in_the_transcripts](issues/detect_token_waste_in_the_transcripts.md)
   - [audit_the_shared_instructions_for_conflicts_and_stale_guidance](issues/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md)

@@ -673,7 +673,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 }
 
 /// The sessions of three setups over two revisions: 12 of Sonnet advised by Opus (with a Haiku sub-agent, 2 of them on
-/// `r2`), 15 of Opus alone (5 on `r2`, 3 with an Opus advisor set), 4 of Sonnet alone, then one with no model and one with no revision, left out.
+/// `r2`), 15 of Opus alone (5 on `r2`, 3 with an Opus advisor set, 1 after a failed request), 4 of Sonnet alone, then one with no model and one with no revision, left out.
 fn setup_sessions() -> Vec<String> {
     let mut list: Vec<S> = Vec::new();
     list.extend((1..=12).map(|t| S {
@@ -682,7 +682,11 @@ fn setup_sessions() -> Vec<String> {
         ..base("p1", if t > 10 { "r2" } else { "r1" }, 2, t)
     }));
     list.extend((1..=15).map(|t| S {
-        models: "claude-opus-5-5",
+        models: if t == 1 {
+            "<synthetic>,claude-opus-5-5"
+        } else {
+            "claude-opus-5-5"
+        },
         advisor: if t > 12 { "claude-opus-5-5" } else { "" },
         ..base("p2", if t > 10 { "r2" } else { "r1" }, 3, t)
     }));
@@ -714,6 +718,7 @@ fn setup_inputs(tmp: &Path) -> [PathBuf; 5] {
             format!("r1\tclaude-opus-5-5 solo\t2{zeros}\t0"),
             format!("r2\tclaude-opus-5-5 solo\t1{zeros}\t0"),
             format!("r1\tmixed\t4{zeros}\t0"),
+            format!("\tclaude-opus-5-5 solo\t5{zeros}\t0"),
         ],
     );
     let changes = write(
@@ -789,7 +794,7 @@ fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             after_versions && cell(eff, "claude-opus-5-5 solo", "revisions") == "r1=10, r2=5",
         ),
         (
-            "the quality table sums the summary rows of the setup, over every revision",
+            "the quality table sums the summary rows of the setup, over every non-empty revision",
             cell(t.get("Quality"), "claude-opus-5-5 solo", "issues") == "3"
                 && cell(t.get("Quality"), advised, "issues").is_empty(),
         ),

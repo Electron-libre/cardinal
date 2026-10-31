@@ -529,6 +529,18 @@ fn is_check(command: &str) -> bool {
         .any(|w| w[0] == "just" && (w[1].starts_with("check") || w[1].starts_with("test")))
 }
 
+/// The model Claude Code names on the line it writes for a failed request: no model worked on it.
+pub(super) const SYNTHETIC: &str = "<synthetic>";
+
+/// The setup of a session whose main model is `main` (REP-15): alone, or advised by `advisor` when that is another
+/// model (a model never advises itself). The report groups the sessions under this same name.
+pub(super) fn setup_name(main: &str, advisor: Option<&str>) -> String {
+    match advisor {
+        Some(advisor) if advisor != main => format!("{main} advised by {advisor}"),
+        _ => format!("{main} solo"),
+    }
+}
+
 /// The first main model and advisor model of a session's assistant lines, in order of first appearance (QUA-16).
 #[derive(Default)]
 struct Models {
@@ -543,7 +555,10 @@ impl Models {
         }
         let message = &line["message"];
         if self.main.is_none() && message["id"].is_string() && message["usage"].is_object() {
-            self.main = message["model"].as_str().map(String::from);
+            self.main = message["model"]
+                .as_str()
+                .filter(|m| *m != SYNTHETIC)
+                .map(String::from);
         }
         if self.advisor.is_none() {
             self.advisor = line["advisorModel"].as_str().map(String::from);
@@ -552,12 +567,7 @@ impl Models {
 
     /// The setup as REP-15 names it, none without a main model.
     fn setup(self) -> Option<String> {
-        let main = self.main?;
-        Some(match self.advisor {
-            Some(advisor) if advisor != main => format!("{main} advised by {advisor}"),
-            // a model never advises itself
-            _ => format!("{main} solo"),
-        })
+        Some(setup_name(&self.main?, self.advisor.as_deref()))
     }
 }
 

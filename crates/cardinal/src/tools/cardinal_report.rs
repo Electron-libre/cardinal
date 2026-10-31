@@ -5,13 +5,13 @@
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
 //! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--anonymous]`. With `--by setup`, a group is a
-//! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives each recorded change
-//! of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
+//! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives
+//! each recorded change of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC, WASTE_METRIC};
-use super::delivered_quality::SUMMARY_HEADER as QUALITY;
+use super::delivered_quality::{setup_name, SUMMARY_HEADER as QUALITY, SYNTHETIC};
 use super::session_metrics::HEADER as SESSIONS;
 
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
@@ -68,6 +68,7 @@ fn short(revision: &str) -> String {
 /// setup over any revisions.
 struct Group<'a> {
     name: String,
+    /// The revisions of the group; none by setup, whose rows are matched by setup instead.
     revisions: HashSet<&'a str>,
     sessions: Vec<&'a Row>,
     too_few: bool,
@@ -91,18 +92,13 @@ fn close<'a>(open: Vec<(&'a str, Vec<&'a Row>)>, too_few: bool) -> Group<'a> {
     }
 }
 
-/// The main model of a session, alone or advised by its first advisor model, alone too when that is the main model
-/// (a model never advises itself); none without a model (REP-15).
+/// The main model of a session, alone or advised by its first advisor model; none without a model (REP-15).
 fn setup(row: &Row) -> Option<String> {
-    let first = |column: &str| value(row, column).split(',').next().unwrap_or_default();
-    let main = first("models");
-    if main.is_empty() {
-        return None;
-    }
-    Some(match first("advisor_models") {
-        advisor if advisor.is_empty() || advisor == main => format!("{main} solo"),
-        advisor => format!("{main} advised by {advisor}"),
-    })
+    let main = value(row, "models")
+        .split(',')
+        .find(|m| !m.is_empty() && *m != SYNTHETIC)?;
+    let advisor = value(row, "advisor_models").split(',').next();
+    Some(setup_name(main, advisor.filter(|a| !a.is_empty())))
 }
 
 /// The setups of the sessions of a non-empty revision, most sessions first, then by name (REP-14).
@@ -119,7 +115,7 @@ fn setup_groups(sessions: &[Row], min: usize) -> Vec<Group<'_>> {
         .into_iter()
         .map(|(name, sessions)| Group {
             name,
-            revisions: sessions.iter().map(|r| value(r, "revision")).collect(),
+            revisions: HashSet::new(),
             too_few: sessions.len() < min,
             sessions,
             by_setup: true,
@@ -252,7 +248,7 @@ fn table(
     }
 }
 
-fn efficiency(groups: &[Group], anonymous: bool, by_setup: bool) -> Table {
+fn efficiency(groups: &[Group], anonymous: bool) -> Table {
     let mut columns = vec![
         "issues",
         "projects",
@@ -273,7 +269,7 @@ fn efficiency(groups: &[Group], anonymous: bool, by_setup: bool) -> Table {
         "validations",
         "other_messages",
     ];
-    if by_setup {
+    if groups.iter().any(|g| g.by_setup) {
         columns.insert(4, "revisions");
     }
     table("Efficiency", &columns, groups, |g| {
@@ -445,12 +441,13 @@ fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec
         .collect()
 }
 
-/// The quality rows of `group`: those of its revisions, or, by setup, those of its setup over every revision (REP-16).
+/// The quality rows of `group`: those of its revisions, or, by setup, those of its setup over every non-empty revision,
+/// as its sessions (REP-16); a `mixed` row matches no setup.
 fn quality_of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec<&'a Row> {
     if group.by_setup {
         inputs
             .into_iter()
-            .filter(|r| value(r, "setup") == group.name)
+            .filter(|r| !value(r, "revision").is_empty() && value(r, "setup") == group.name)
             .collect()
     } else {
         of_group(inputs, group)
@@ -921,7 +918,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     } else {
         groups(&sessions, options.min_sessions)
     };
-    let mut tables = vec![efficiency(&groups, options.anonymous, options.by_setup)];
+    let mut tables = vec![efficiency(&groups, options.anonymous)];
     if !quality_files.is_empty() {
         tables.push(quality(&groups, &quality_files));
     }

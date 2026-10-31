@@ -1021,7 +1021,7 @@ fn setup_fixture(tmp: &Path) -> (PathBuf, PathBuf) {
             modeled(&repo, "2026-01-04T13:00:00Z", "d2", sonnet, opus),
         ],
     );
-    // in r3, epsilon has a session of Opus with an Opus advisor set, alone all the same, and delta none: two rows of the summary for one revision; gamma, left in
+    // in r3, epsilon has a session of Opus with an Opus advisor set, alone all the same, after a failed request, and delta none: two rows of the summary for one revision; gamma, left in
     // the work tree, would be closed with them.
     std::fs::remove_file(repo.join("issues/done/gamma.md")).unwrap();
     commit_at(
@@ -1033,6 +1033,7 @@ fn setup_fixture(tmp: &Path) -> (PathBuf, PathBuf) {
     write(
         &projects.join("-proj/se.jsonl"),
         &[
+            modeled(&repo, "2026-02-28T22:00:00Z", "e0", "<synthetic>", ""),
             modeled(&repo, "2026-02-28T23:00:00Z", "e1", opus, opus),
             modeled(&repo, "2026-03-01T01:00:00Z", "e2", opus, ""),
         ],

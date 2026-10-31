@@ -45,9 +45,9 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
      it to no audit.
    - With no trend, say so: no change is a valid conclusion.
    - The setups (`--by setup`) are observational, not an A/B: the user picks a setup per task, often by its
-     difficulty, so name the setups' `sessions` and `issues` and compare their `revisions`, `projects` and `versions`
-     before reading a gap between them as the effect of the setup. A `mixed` quality row is an issue made under
-     several setups, none of them alone.
+     difficulty, so name the setups' `sessions` and the `issues` of their quality table and compare their
+     `revisions`, `projects` and `versions` before reading a gap between them as the effect of the setup. An issue
+     made under several setups is in no setup's quality (`issues` of the efficiency table counts it in each).
    - `## Verdicts` ties a recorded change to its expected effect over one pair of groups: `confounded` and
      `no data` are no conclusion, and a `helped` or `hurt` is a trend only when the next groups keep it.
 3. **Report**: one table per axis (efficiency, quality, rules, skills, fixed context), a row per metric that moved or

@@ -338,4 +338,6 @@ code, docs, the `low` review, the commit). Switch with `/model` after the plan i
 does not fit, since plan mode is read-only and step 1 writes the issue. Forked
 skills and sub-agents follow the session model unless the user sets `CLAUDE_CODE_SUBAGENT_MODEL` in their own
 settings. An advisor (`/advisor`) is the same split within a turn: a cheaper executor consults a stronger model
-at the moments the skill names (section "Advisor").
+at the moments the skill names (section "Advisor"). `cardinal-report --by setup` compares the setups from the
+sessions: a session counts under its first model, so one switched with `/model` counts as the model it started with,
+and an advisor that is that model as none.

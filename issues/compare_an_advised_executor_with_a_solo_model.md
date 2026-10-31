@@ -61,6 +61,7 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
    checks of `just check`.
 4. [x] Solo when the advisor is the main model: amend REP-15, its tests and code in the report and in
    `delivered-quality`; verified by the setup tests of both; makes true REP-15, QUA-16.
+5. [x] Docs of the whole issue and fixes of its `high` review.
 
 ## Decisions
 - Mode: autonomous
@@ -68,7 +69,7 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 - Main model of a session: the first of `models` (sub-agent models would fragment the setups).
 - Under `--by setup`, the rules, fixed context and verdicts are not printed; their files are still accepted.
 - The revision mix of a setup group shows in a `revisions` column of the efficiency table.
-- An issue made under several setups is `mixed`, a group of its own.
+- An issue made under several setups is `mixed` in `delivered-quality`; the report counts it in no setup's quality.
 - An advisor that is the main model makes a `solo` setup: a model never advises itself (a real run found 184 Opus
   sessions with an Opus advisor set and no call).
 
@@ -138,6 +139,30 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 
 - red: REP-15: `--by setup groups the sessions by setup` (the Opus sessions with an Opus advisor formed a group of
   their own); QUA-16: `an issue with no session has no setup` (epsilon read as advised by itself)
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 5
+
+- done: docs of the whole issue (`docs/architecture.md`, `docs/usage.md`, `docs/workflow.md`, the intent of
+  `specs/cardinal-report.md`); fixes of the `high` review.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (REP-15, REP-16, QUA-16 amended, back to `accepted`) |
+| docs | listed above, and the skill |
+
+- red: REP-15, REP-16, QUA-16: `--by setup groups the sessions by setup` (a `<synthetic> solo` group), `the quality
+  table sums the summary rows of the setup, over every non-empty revision`, `an issue with no session has no setup`
+- High review (whole issue): 9 findings: 7 fixed: `<synthetic>` first model skipped in both readers; quality rows of
+  the empty revision left out by setup, as its sessions; the `mixed` rows said to belong to no setup (spec, skill);
+  the skill names the quality table's `issues`; one `setup_name` shared by both readers; the `revisions` column
+  gated by the groups only; no revisions kept in a setup group; QUA-16 names the lines that set the model. 2 not fixed:
+  only the first advisor is compared with the main model (REP-15 reads the first, a switch of advisor within a
+  session is rare); the efficiency `issues` counts an issue in each setup that touched it (documented in the skill).
 - Code review: no findings
 - not verified: none
 - decisions needed: none

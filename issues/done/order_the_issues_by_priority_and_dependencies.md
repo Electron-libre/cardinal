@@ -70,6 +70,8 @@ Longer autonomy
 
 Plan: validated
 
+Done: every deliverable committed; the follow-up is `issues/warn_when_starting_a_blocked_issue.md`.
+
 ## Understanding
 Replace the `rank` by `priority` and `depends_on` in each issue's front matter; `next-issue` derives the order (ready
 by milestone, priority, tie-breaker; then blocked) and `check-issue` validates the keys of a new issue. Out of scope:

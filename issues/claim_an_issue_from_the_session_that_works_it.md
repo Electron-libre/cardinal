@@ -128,6 +128,9 @@ and `next-issue`, workspace lock, reusable workspace and docs).
 * `specs/next-issue.md`: NXT-1 if a claim ref joins the branches.
 * A hook spec for the workspace lock if candidate 3 is kept.
 
+# Milestone
+Longer autonomy
+
 # Resources
 * `docs/adr/0003-one-worktree-per-issue.md`, `docs/adr/0008-issue-worktrees-nest-under-claude-worktrees.md`,
   `docs/adr/0011-the-user-opens-the-issue-worktree.md`.

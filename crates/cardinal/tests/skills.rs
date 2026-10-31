@@ -121,6 +121,16 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "numbers become targets once shown: trends only",
     ),
     (
+        "evaluate-harness",
+        "--by setup",
+        "the setups (an executor alone, advised, a strong model alone) are compared on the same harness",
+    ),
+    (
+        "evaluate-harness",
+        "observational",
+        "a setup is chosen per task, so its comparison is no A/B",
+    ),
+    (
         "issue-workflow",
         "## Autonomous mode",
         "section defining the autonomous mode",

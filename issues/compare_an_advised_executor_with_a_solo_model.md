@@ -56,7 +56,7 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 2. [x] Quality by setup: the `setup` column of `delivered-quality` per issue and per summary row, read by the quality
    table of both groupings; verified by delivered-quality tests on fixture transcripts and a report test; makes true
    QUA-16, QUA-17, the quality part of REP-16.
-3. [ ] Present it: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads it with its
+3. [x] Present it: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads it with its
    sample sizes, its confounders (revisions, projects, versions) and the observational caveat; verified by the skill
    checks of `just check`.
 
@@ -102,3 +102,21 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 - Code review: no findings
 - not verified: none
 - decisions needed: none
+
+## Deliverable 3
+
+- done: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads the setups as an
+  observational comparison, with their sample sizes and confounders; its description names the setups.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | the skill itself; `just sync` copied it |
+
+- red: none: `evaluate-harness: missing '--by setup'` and `missing 'observational'` (skill content checks, no spec)
+- Code review: no findings
+- not verified: none (a real run grouped 184 sessions as Opus advised by Opus, 18 as Sonnet advised by Opus, no
+  advisor call in either)
+- decisions needed: whether an advisor equal to the main model makes a solo setup

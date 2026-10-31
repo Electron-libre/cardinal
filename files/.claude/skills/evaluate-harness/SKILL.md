@@ -1,6 +1,6 @@
 ---
 name: evaluate-harness
-description: Report whether the recent Cardinal revisions made the agent more efficient, the delivered work better and the rules better followed, with the model, Claude Code version and project mix next to each number, plus the fixed context each revision costs and the skills nobody calls. Use when the user asks to evaluate or measure the harness (Cardinal), compare its revisions, or see what a skill, hook or rule change brought.
+description: Report whether the recent Cardinal revisions made the agent more efficient, the delivered work better and the rules better followed, with the model, Claude Code version and project mix next to each number, plus the fixed context each revision costs and the skills nobody calls. Use when the user asks to evaluate or measure the harness (Cardinal), compare its revisions or its model setups (an executor with an advisor against a model alone), or see what a skill, hook or rule change brought.
 ---
 
 # Evaluate Cardinal
@@ -27,7 +27,8 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
      checkout of the Cardinal source (the `source` of `.claude/cardinal.toml` when it is a directory), for the
      `Expected-effect` lines of its commits; skip it, and `--changes`, when there is none;
    - `cardinal run cardinal-report --sessions <dir>/sessions.tsv --breaches <dir>/breaches.tsv --quality <dir>/quality-1.tsv … --context <dir>/context.tsv --changes <dir>/changes.tsv`,
-     with `--min-sessions <n>` when the user asks for another sample size than 10, `--min-issues <n>` than 5 issues.
+     with `--min-sessions <n>` when the user asks for another sample size than 10, `--min-issues <n>` than 5 issues;
+   - the same command with `--by setup`, for the setups (the main model alone, or advised by another) side by side.
 2. **Read** each table of the report, oldest group first: the tables are the numbers, never recompute them.
    - A trend is a change kept over two groups or more; one group out of line is noise.
    - Before naming a trend, compare the `models`, `versions` and `projects` of the groups it spans: when they
@@ -43,12 +44,17 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
      `bytes` filled) is a measure, not a rule to follow: read its `bytes_per_session`, never its share, and send
      it to no audit.
    - With no trend, say so: no change is a valid conclusion.
+   - The setups (`--by setup`) are observational, not an A/B: the user picks a setup per task, often by its
+     difficulty, so name the setups' `sessions` and `issues` and compare their `revisions`, `projects` and `versions`
+     before reading a gap between them as the effect of the setup. A `mixed` quality row is an issue made under
+     several setups, none of them alone.
    - `## Verdicts` ties a recorded change to its expected effect over one pair of groups: `confounded` and
      `no data` are no conclusion, and a `helped` or `hurt` is a trend only when the next groups keep it.
 3. **Report**: one table per axis (efficiency, quality, rules, skills, fixed context), a row per metric that moved or
    matters, the columns `metric | <the last groups> | trend` (↑, ↓ or →) and a line `confounders` when the mix
-   changed; then the verdicts as `change | metric | expected | verdict`. Report the trend, never a pass or a fail, and set no target on agent behaviour: numbers become
-   targets once shown. Leave out the rules at 0% and the metrics that did not move unless asked.
+   changed; then the verdicts as `change | metric | expected | verdict`; then the setups as `metric | <each setup>`,
+   with their sample sizes and confounders. Report the trend, never a pass or a fail, and set no target on agent
+   behaviour: numbers become targets once shown. Leave out the rules at 0% and the metrics that did not move unless asked.
 4. **Keep**: the report stays in the conversation. When the user wants a copy, write it outside the repository and
    outside `/tmp` (e.g. `~/.local/state/`); anything that lands in a shared file or an issue comes from a report run
    with `--anonymous` and follows the `confidential` note of `.claude/cardinal.toml`. Never commit it.

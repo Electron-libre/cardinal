@@ -135,3 +135,5 @@ sync of a source of the format 4 was not 3)
 
 not verified: none. decisions needed: none.
 Code review: no findings
+
+Status: done (3 deliverables committed; nothing left).

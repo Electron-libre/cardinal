@@ -142,4 +142,4 @@ and `next-issue`, workspace lock, reusable workspace and docs).
 * Weak point 4 also covers a killed editor: an agent client closed with its editor may skip `SessionEnd`.
 * The agent still never creates, enters or leaves a worktree (ADR 0011): claiming checks out a branch inside the
   worktree the user opened, which is not entering another one.
-* `issues/drop_the_format_4_issue_queue.md` also edits `next_issue.rs`: land it first.
+* `issues/done/drop_the_format_4_issue_queue.md` also edits `next_issue.rs`: land it first.

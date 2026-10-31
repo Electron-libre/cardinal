@@ -10,10 +10,10 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC};
+use super::delivered_quality::SUMMARY_HEADER as QUALITY;
 use super::session_metrics::HEADER as SESSIONS;
 
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
-const QUALITY: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
 const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--anonymous]";
@@ -533,15 +533,8 @@ fn fixed_context(groups: &[Group], context: &[Row]) -> Table {
             .filter(|r| bytes.iter().all(|c| value(r, c).parse::<u64>().is_ok()))
             .collect();
         let n = rows.len() as u64;
-        let mean = |f: &dyn Fn(&Row) -> u64| {
-            if n == 0 {
-                String::new()
-            } else {
-                (rows.iter().map(|r| f(r)).sum::<u64>() * 2 + n)
-                    .div_euclid(n * 2)
-                    .to_string()
-            }
-        };
+        let mean =
+            |f: &dyn Fn(&Row) -> u64| per_unit(Some(rows.iter().map(|r| f(r)).sum()), Some(n));
         let mut cells: Vec<String> = bytes
             .iter()
             .map(|c| mean(&|r: &Row| number(r, c)))

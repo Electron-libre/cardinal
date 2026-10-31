@@ -21,7 +21,7 @@ use transcripts::{
     revision, sessions, sorted_entries, subagents, typed_text, Place,
 };
 
-const SUMMARY_HEADER: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 const HEADER: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
@@ -477,8 +477,8 @@ enum Event {
     Validation,
     Other,
     FailedCheck,
-    /// The input sum (REP-5), cache read and output tokens of an assistant message (QUA-15).
-    Tokens([u64; 3]),
+    /// The `message.id`, input sum (REP-5), cache read and output tokens of an assistant message (QUA-15).
+    Tokens(String, [u64; 3]),
 }
 
 /// The tokens of an assistant message line, once per `message.id` (EVA-2, QUA-15): the top-level usage, which adds
@@ -495,7 +495,10 @@ fn tokens(line: &Value, seen: &mut HashSet<String>) -> Option<Event> {
     let count = |key: &str| usage[key].as_u64().unwrap_or(0);
     let cache_read = count("cache_read_input_tokens");
     let input = count("input_tokens") + cache_read + count("cache_creation_input_tokens");
-    Some(Event::Tokens([input, cache_read, count("output_tokens")]))
+    Some(Event::Tokens(
+        id.to_string(),
+        [input, cache_read, count("output_tokens")],
+    ))
 }
 
 /// The timestamp of a transcript line.
@@ -581,7 +584,11 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         for sub in subagents(&path) {
             let _ = for_each_line(&sub, |line| {
                 place.observe(line, false);
-                if let Some(at) = timestamp(line) {
+                // only an assistant line can carry tokens: the others skip the parse of their timestamp
+                let at = (line["type"] == "assistant")
+                    .then(|| timestamp(line))
+                    .flatten();
+                if let Some(at) = at {
                     events.extend(tokens(line, &mut messages).map(|t| (at, t)));
                 }
             });
@@ -627,6 +634,8 @@ fn session_cells(log: &[Commit], own: &[usize], stem: &str, sessions: &[Session]
         }
     }
     let mut cells = [by_session.len() as u64, 0, 0, 0, 0, 0, 0];
+    // a resumed session copies the messages of the one it resumes, ids included: each counts once for the issue
+    let mut counted: HashSet<&str> = HashSet::new();
     for (k, dates) in &by_session {
         let session = &sessions[*k];
         let (Some(&first), Some(&last)) = (dates.iter().min(), dates.iter().max()) else {
@@ -647,9 +656,11 @@ fn session_cells(log: &[Commit], own: &[usize], stem: &str, sessions: &[Session]
                 Event::FailedCheck => cells[1] += 1,
                 Event::Validation => cells[2] += 1,
                 Event::Other => cells[3] += 1,
-                Event::Tokens(t) => {
-                    for (cell, n) in cells[4..].iter_mut().zip(t) {
-                        *cell += n;
+                Event::Tokens(id, t) => {
+                    if counted.insert(id) {
+                        for (cell, n) in cells[4..].iter_mut().zip(t) {
+                            *cell += n;
+                        }
                     }
                 }
             }
@@ -835,4 +846,68 @@ pub(super) fn main(args: &[String]) -> u8 {
         println!("{}\t{}", row.issue, row.cells.join("\t"));
     }
     0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn at(text: &str) -> DateTime<FixedOffset> {
+        DateTime::parse_from_rfc3339(text).unwrap()
+    }
+
+    fn commit(date: &str) -> Commit {
+        Commit {
+            hash: String::new(),
+            date: at(date),
+            subject: String::new(),
+            body: String::new(),
+            paths: Vec::new(),
+            added: Vec::new(),
+        }
+    }
+
+    fn session(start: &str, end: &str, events: &[(&str, &str, u64)]) -> Session {
+        Session {
+            branches: vec!["x".to_string()],
+            start: at(start),
+            end: at(end),
+            events: events
+                .iter()
+                .map(|&(ts, id, n)| (at(ts), Event::Tokens(id.to_string(), [n, 0, n])))
+                .collect(),
+        }
+    }
+
+    // a resumed session needs two transcripts sharing a message and a commit in each: shorter built from its structs
+    // spec: QUA-15 (internal: the resumed session is built from its structs)
+    #[test]
+    fn a_message_copied_into_a_resumed_session_counts_once() {
+        let log = [
+            commit("2026-01-01T02:00:00Z"),
+            commit("2026-01-02T02:00:00Z"),
+        ];
+        let first = session(
+            "2026-01-01T00:00:00Z",
+            "2026-01-01T03:00:00Z",
+            &[("2026-01-01T01:00:00Z", "m1", 10)],
+        );
+        let resumed = session(
+            "2026-01-01T00:00:00Z",
+            "2026-01-02T03:00:00Z",
+            &[
+                ("2026-01-01T01:00:00Z", "m1", 10),
+                ("2026-01-02T01:00:00Z", "m2", 5),
+            ],
+        );
+        // the copy starts the resumed session as early as the first: the first starting a second later holds the
+        // first commit, the resumed one the second
+        let first = Session {
+            start: at("2026-01-01T00:00:01Z"),
+            ..first
+        };
+        let cells = session_cells(&log, &[0, 1], "x", &[first, resumed]);
+        assert_eq!(cells[0], 2);
+        assert_eq!(cells[4..], [15, 0, 15]);
+    }
 }

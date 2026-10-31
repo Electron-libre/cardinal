@@ -860,6 +860,18 @@ fn usage(cwd: &Path, ts: &str, id: &str, tokens: [u64; 4]) -> String {
     )
 }
 
+/// An advised assistant message `id` at `ts`: a top-level usage of 1 input and 1 output token, and iterations whose
+/// tokens it already adds up (the executor's) or never holds (the advisor's).
+fn advised(cwd: &Path, ts: &str, id: &str) -> String {
+    let iteration = |kind: &str| serde_json::json!({"type": kind, "input_tokens": 500, "cache_read_input_tokens": 500, "output_tokens": 500});
+    line(
+        "assistant",
+        cwd,
+        ts,
+        &serde_json::json!({"message": {"id": id, "content": [], "usage": {"input_tokens": 1, "output_tokens": 1, "iterations": [iteration("message"), iteration("advisor_message")]}}}),
+    )
+}
+
 fn write(path: &Path, lines: &[String]) {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, lines.concat()).unwrap();
@@ -884,6 +896,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         typed(&repo, "2026-01-02T23:00:00Z", "SECRET do alpha"),
         usage(&repo, "2026-01-02T23:30:00Z", "u1", [10, 1000, 200, 50]),
         usage(&repo, "2026-01-02T23:31:00Z", "u1", [10, 1000, 200, 50]),
+        advised(&repo, "2026-01-02T23:35:00Z", "u4"),
         bash(&repo, "2026-01-03T01:00", "a1", "just check", true),
         bash(&repo, "2026-01-03T02:00", "a2", "just test-harness", false),
         bash(&repo, "2026-01-03T03:00", "a3", "cargo check", true),
@@ -921,7 +934,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ("the sessions of an issue are the latest-starting ones holding its commits, its branch first".to_string(), has(&r, "alpha", "sessions", "1") && has(&r, "beta", "sessions", "1")),
         ("the failed just checks of its span are counted, not other commands nor sub-agents".to_string(), has(&r, "alpha", "failed_checks", "3") && has(&r, "beta", "failed_checks", "1")),
         ("the typed messages of its span are split into validations and the rest".to_string(), has(&r, "alpha", "validations", "1") && has(&r, "alpha", "other_messages", "2") && has(&r, "beta", "validations", "1") && has(&r, "beta", "other_messages", "0")),
-        ("the tokens of its span are summed once per message, sub-agents included".to_string(), has(&r, "alpha", "input_tokens", "1215") && has(&r, "alpha", "cache_read_tokens", "1000") && has(&r, "alpha", "output_tokens", "57") && has(&r, "beta", "input_tokens", "0")),
+        ("the top-level tokens of its span are summed once per message, sub-agents included, not the iterations".to_string(), has(&r, "alpha", "input_tokens", "1216") && has(&r, "alpha", "cache_read_tokens", "1000") && has(&r, "alpha", "output_tokens", "58") && has(&r, "beta", "input_tokens", "0")),
         ("the transcript columns are empty when the projects cannot be read".to_string(), ["sessions", "failed_checks", "validations", "other_messages", "input_tokens", "cache_read_tokens", "output_tokens"].iter().all(|c| has(&n, "alpha", c, ""))),
         ("no text of a message is printed".to_string(), !out.contains("SECRET")),
     ]

@@ -95,3 +95,26 @@ and make them `Expected-effect:` metrics. Out of scope: abandoned issues, sessio
 - Code review: no findings.
 - not verified: a real report over the archived sessions.
 - decisions needed: none.
+
+## Deliverable 3: high review fixes
+- done: a message a resumed session repeats counts once per issue; an advised message counts its top-level usage
+  only (tested); `cardinal-report` imports the summary header and shares the half-up rounding with the fixed context.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass, QUA-15 says the dedup spans the sessions of the issue |
+| docs | none to change |
+| code review | high on `37098da..HEAD`, then low on the fixes |
+
+- red: QUA-15: the copied message counted twice (`left: [25, 0, 25]`, `right: [15, 0, 15]`).
+- Code review (high): 10 findings: fixed the double count across resumed sessions, the copied `QUALITY` header, the
+  duplicated rounding, the double timestamp parse of the sub-agent lines and the untested advised message; the
+  missing floor of the per-issue verdicts is the issue `require_enough_issues_for_a_per_issue_verdict`; left the
+  three parallel lists of a quality metric, the retained token events and the two header literals of
+  `delivered-quality` (shape kept from before the issue, no measured cost); the issue without session reading 0
+  tokens awaits a decision.
+- Code review (low): 1 finding (a line without timestamp marked its id as counted): fixed, the timestamp is read first, on assistant lines only.
+- not verified: a real run over the transcripts of this machine.
+- decisions needed: an issue whose transcripts are gone reads 0 tokens (see the final report).

@@ -666,6 +666,15 @@ fn refusal_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             ]),
         ),
         (
+            "a --min-issues out of range is refused",
+            refused(&[
+                "--sessions".as_ref(),
+                good.as_os_str(),
+                "--min-issues".as_ref(),
+                "0".as_ref(),
+            ]),
+        ),
+        (
             "an unknown option is refused",
             refused(&["--sessions".as_ref(), good.as_os_str(), "--bogus".as_ref()]),
         ),
@@ -874,7 +883,7 @@ fn token_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             change('a', "input_tokens_per_issue", "rb"),
             change('a', "output_tokens_per_issue", "rb"),
         ],
-        &["--quality", quality.to_str().unwrap()],
+        &["--quality", quality.to_str().unwrap(), "--min-issues", "2"],
     );
     let token_values: Vec<String> = tokens.iter().map(|r| r[5..].join(" ")).collect();
     vec![(
@@ -950,6 +959,46 @@ fn verdict_edge_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 pair(two("p1", "ra", 1, 5), two("p1", "rb", 2, 5)),
                 &[change('a', "turns", "rb")],
             ) == ["no observed effect"],
+        ),
+    ]
+}
+
+// spec: VRD-11
+fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    // 6 issues in each group, but the tokens of only 2 of `ra` known
+    let quality = write(
+        &tmp.join("f-quality.tsv"),
+        QUALITY,
+        &[
+            "ra\t6\t1\t1\t0\t3\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
+            "rb\t6\t1\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t6".into(),
+        ],
+    );
+    let quality = quality.to_str().unwrap();
+    let one = |extra: &[&str]| {
+        verdict(&verdicts(
+            dir,
+            tmp,
+            &pair(two("p1", "ra", 1, 10), two("p1", "rb", 2, 5)),
+            &[
+                change('a', "fixes_after_per_issue", "rb"),
+                change('a', "input_tokens_per_issue", "rb"),
+            ],
+            &[&["--quality", quality], extra].concat(),
+        ))
+    };
+    vec![
+        (
+            "a group with fewer issues of known tokens than --min-issues (5) confounds a token verdict",
+            one(&[]) == ["helped", "confounded"],
+        ),
+        (
+            "a group with fewer issues than --min-issues confounds a per-issue verdict",
+            one(&["--min-issues", "7"]) == ["confounded", "confounded"],
+        ),
+        (
+            "enough issues in both groups gives a verdict",
+            one(&["--min-issues", "2"]) == ["helped", "helped"],
         ),
     ]
 }
@@ -1042,6 +1091,7 @@ fn cardinal_report() {
         .chain(token_verdict_checks(&dir, temp.path()))
         .chain(token_quality_checks(&dir, temp.path()))
         .chain(advisor_verdict_checks(&dir, temp.path()))
+        .chain(issue_floor_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

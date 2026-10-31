@@ -4,7 +4,7 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--anonymous]`. With `--changes`, a last table gives each recorded change of Cardinal a
+//! [--min-sessions <n>] [--min-issues <n>] [--anonymous]`. With `--changes`, a last table gives each recorded change of Cardinal a
 //! verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -16,7 +16,7 @@ use super::session_metrics::HEADER as SESSIONS;
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
-const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--anonymous]";
+const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--anonymous]";
 const TOO_FEW: &str = "too few";
 
 type Row = HashMap<String, String>;
@@ -585,20 +585,46 @@ const ADVISOR_METRICS: [&str; 3] = [
     "advisor_output_tokens",
 ];
 
-/// Whether `group` holds fewer sessions with a value of `metric` than `min` (VRD-9, VRD-10): only
-/// `main_context_peak` and the advisor columns can be missing from a session row.
-fn too_few_values(group: &Group, metric: &str, min: usize) -> bool {
-    if metric == "main_context_peak" {
-        main_context_peaks(&group.sessions).len() < min
-    } else if ADVISOR_METRICS.contains(&metric) {
-        advisor_sessions(&group.sessions) < min
-    } else {
-        false
+/// The floors of the verdicts: the sessions of a group (VRD-9, VRD-10) and its issues (VRD-11).
+#[derive(Clone, Copy)]
+struct Floors {
+    sessions: usize,
+    issues: usize,
+}
+
+/// Whether group `g` holds fewer values of `metric` than its floor: sessions with a value (VRD-9, VRD-10), as only
+/// `main_context_peak` and the advisor columns can be missing from a session row, or issues in the quality table for
+/// a per-issue metric (VRD-11).
+fn too_few_values(
+    tables: &[Table],
+    groups: &[Group],
+    g: usize,
+    metric: &str,
+    floors: Floors,
+) -> bool {
+    let issues = |column: &str| {
+        tables
+            .iter()
+            .find(|t| t.title == "Quality")
+            .and_then(|t| t.cell(g, column, None))
+            .and_then(|c| c.parse::<usize>().ok())
+            .is_none_or(|n| n < floors.issues)
+    };
+    let group = &groups[g];
+    match metric {
+        "main_context_peak" => main_context_peaks(&group.sessions).len() < floors.sessions,
+        "fixes_after_per_issue" => issues("issues"),
+        "input_tokens_per_issue" | "output_tokens_per_issue" => issues("token_issues"),
+        _ if ADVISOR_METRICS.contains(&metric) => {
+            advisor_sessions(&group.sessions) < floors.sessions
+        }
+        _ => false,
     }
 }
 
-/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10), from the groups before and after its change.
-fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], min: usize) {
+/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11), from the groups before and after
+/// its change.
+fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors) {
     // Per row: the revisions holding its change, and the index of its after group.
     let placed: Vec<(HashSet<&str>, Option<usize>)> = changes
         .iter()
@@ -651,8 +677,8 @@ fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], min: usize) {
                 // Only the last group can be too few in sessions, and the before group comes earlier; either can
                 // be too few in values of the metric.
                 if after.too_few
-                    || too_few_values(before, metric, min)
-                    || too_few_values(after, metric, min)
+                    || too_few_values(tables, groups, b, metric, floors)
+                    || too_few_values(tables, groups, *a, metric, floors)
                     || after.revisions.iter().any(|r| !held.contains(r))
                     || mix_changed
                     || other_change
@@ -683,6 +709,7 @@ struct Options {
     context: Option<String>,
     changes: Option<String>,
     min_sessions: usize,
+    min_issues: usize,
     anonymous: bool,
 }
 
@@ -695,6 +722,7 @@ fn options(args: &[String]) -> Result<Options, String> {
         context: None,
         changes: None,
         min_sessions: 10,
+        min_issues: 5,
         anonymous: false,
     };
     while let Some(arg) = args.next() {
@@ -705,13 +733,17 @@ fn options(args: &[String]) -> Result<Options, String> {
             "--quality" => options.quality.push(file()?),
             "--context" => options.context = Some(file()?),
             "--changes" => options.changes = Some(file()?),
-            "--min-sessions" => {
+            "--min-sessions" | "--min-issues" => {
                 let n = args
                     .next()
                     .and_then(|n| n.parse().ok())
-                    .filter(|n| (1..=1000).contains(n));
-                options.min_sessions =
-                    n.ok_or("--min-sessions needs a whole number from 1 to 1000")?;
+                    .filter(|n| (1..=1000).contains(n))
+                    .ok_or(format!("{arg} needs a whole number from 1 to 1000"))?;
+                if arg == "--min-sessions" {
+                    options.min_sessions = n;
+                } else {
+                    options.min_issues = n;
+                }
             }
             "--anonymous" => options.anonymous = true,
             other => return Err(format!("unknown argument {other}")),
@@ -769,7 +801,15 @@ pub(super) fn main(args: &[String]) -> u8 {
         tables.push(fixed_context(&groups, context));
     }
     if let Some(changes) = &changes {
-        verdicts(&groups, &tables, changes, options.min_sessions);
+        verdicts(
+            &groups,
+            &tables,
+            changes,
+            Floors {
+                sessions: options.min_sessions,
+                issues: options.min_issues,
+            },
+        );
     }
     0
 }

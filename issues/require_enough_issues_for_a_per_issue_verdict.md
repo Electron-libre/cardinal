@@ -30,3 +30,37 @@ Lean agent loop
 # Resources
 * `specs/cardinal-verdicts.md` (VRD-6, VRD-9, VRD-10), `specs/cardinal-report.md` (REP-6).
 * `crates/cardinal/src/tools/cardinal_report.rs` (`too_few_values`, `metric_value`).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A per-issue verdict (`fixes_after_per_issue` on `issues`, the two token ratios on `token_issues`) reads `confounded`
+when either group holds fewer issues than a floor, as VRD-9 does for the peak. Out of scope: a floor on `reviews`
+(`findings_per_review`) or `spec_lines` (`doc_lines_per_spec_line`).
+
+## Plan
+1. [x] Issue floor: `too_few_values` reads the group's `issues` / `token_issues` cell of the quality table against
+   `--min-issues` (REP-3 option, refused out of 1..=1000); the token verdict test passes `--min-issues 1`; verified by
+   a new verdict test (2 issues before, 6 after: `confounded`) and a refusal check; makes true VRD-11, REP-3. Docs:
+   `docs/usage.md`, `docs/architecture.md`, `evaluate-harness` skill (`files/` then `just sync`). ~150 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 60595c6
+- Floor: a separate `--min-issues`, default 5 (an issue spans several sessions).
+- A floor on `reviews` and `spec_lines` goes to an issue of its own.
+
+## Deliverable 1
+- done: `too_few_values` reads `issues` / `token_issues` of the quality table against `--min-issues` (default 5).
+| check | result |
+|---|---|
+| tests | `just check` green |
+| specs | VRD-11 traced, `cardinal-verdicts.md` back to `accepted` |
+| docs | `docs/usage.md`, `docs/architecture.md`, `evaluate-harness` |
+- red: VRD-11, REP-3: `FAIL - a group with fewer issues of known tokens than --min-issues (5) confounds a token verdict` (`unknown argument --min-issues`)
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+- follow-up: `issues/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md` (floor on `reviews`, `spec_lines`).

@@ -27,14 +27,15 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
      checkout of the Cardinal source (the `source` of `.claude/cardinal.toml` when it is a directory), for the
      `Expected-effect` lines of its commits; skip it, and `--changes`, when there is none;
    - `cardinal run cardinal-report --sessions <dir>/sessions.tsv --breaches <dir>/breaches.tsv --quality <dir>/quality-1.tsv … --context <dir>/context.tsv --changes <dir>/changes.tsv`,
-     with `--min-sessions <n>` when the user asks for another sample size than 10.
+     with `--min-sessions <n>` when the user asks for another sample size than 10, `--min-issues <n>` than 5 issues.
 2. **Read** each table of the report, oldest group first: the tables are the numbers, never recompute them.
    - A trend is a change kept over two groups or more; one group out of line is noise.
    - Before naming a trend, compare the `models`, `versions` and `projects` of the groups it spans: when they
      changed too, say the change may come from them, not from Cardinal.
    - A `too few` group supports no conclusion; say how many sessions it lacks. The same holds for a
      `main_context_peak` whose `peak_sessions` is under the threshold, and for the advisor calls and tokens whose
-     `advisor_sessions` is.
+     `advisor_sessions` is, and for a per-issue metric whose `issues` (`token_issues` for the tokens) is under
+     `--min-issues`.
    - Read `input_tokens` with `cache_read_share`: a cache read costs about a tenth of an uncached input, so input
      that grows while the share rises may cost less, and a share that falls points to a prompt prefix that changes.
    - A skill `unused` over the last groups may be dropped or described better; a hook whose refusals grow, or a

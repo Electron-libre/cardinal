@@ -449,7 +449,11 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "review-waiver\tr2\t1\t0\t0\t0",
         "validation-stop\tr1\t1\t1\t1\t0",
     ];
-    let lines: Vec<&str> = out.lines().collect();
+    // the waste rule applies to every session with a tool result: `waste_checks` counts it
+    let lines: Vec<&str> = out
+        .lines()
+        .filter(|l| !l.starts_with("oversized-result"))
+        .collect();
     if lines != expected {
         println!("{out}");
     }
@@ -922,6 +926,67 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: BRE-19
+fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("waste");
+    let projects = tmp.join("projects");
+    let repo = new_repo(&tmp.join("w"));
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(
+            ".claude/cardinal.toml",
+            "[cardinal]\nsource = \"x\"\nrev = \"r1\"\n",
+        )],
+    );
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("go");
+    // results over 25,000 bytes, a string or parts joined by newlines, an error too
+    t.call("o1", "Bash", &bash("cat big"));
+    t.result("o1", false, &"S".repeat(25_000));
+    t.call("o2", "Bash", &bash("cat bigger"));
+    let oversized = t.result("o2", true, &"S".repeat(25_001));
+    t.call("o3", "Read", &json!({"file_path": repo.join("d.rs")}));
+    let parts = t.push(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o3", "content": [{"type": "text", "text": "S".repeat(20_000)}, {"type": "text", "text": "S".repeat(5_000)}]}]}}));
+    t.write(&projects.join("-w/s.jsonl"));
+    let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    sub.call("x1", "Bash", &bash("cat big"));
+    let sub_oversized = sub.result("x1", false, &"S".repeat(30_000));
+    sub.write(&projects.join("-w/s/subagents/agent-1.jsonl"));
+    let row = |location: String, detail: &str| {
+        format!("s\tw\tr1\toversized-result\tbreach\t{location}\t{detail}")
+    };
+    let expected = vec![
+        row(format!("s.jsonl:{oversized}"), "25001"),
+        row(format!("s.jsonl:{parts}"), "25001"),
+        row(format!("subagents/agent-1.jsonl:{sub_oversized}"), "30000"),
+    ];
+    let (ok, out) = run(dir, &projects, false);
+    let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
+    let (_, summary) = run(dir, &projects, true);
+    let summary: Vec<&str> = summary.lines().skip(1).collect();
+    let want_summary = ["oversized-result\tr1\t1\t1\t3\t0"];
+    if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
+        println!("{out}{}", summary.join("\n"));
+    }
+    vec![
+        (
+            "the waste rule succeeds".to_string(),
+            ok && !out.contains("SECRET"),
+        ),
+        (
+            "a tool result over 25,000 bytes is a breach at its line, in any transcript"
+                .to_string(),
+            sorted(rows) == sorted(expected),
+        ),
+        (
+            "the waste rule applies to the sessions with a tool result".to_string(),
+            summary == want_summary,
+        ),
+    ]
+}
+
 #[test]
 fn rule_breaches() {
     let dir = std::path::PathBuf::from("/tools");
@@ -935,6 +1000,7 @@ fn rule_breaches() {
         .chain(language_kind_checks(&dir, &tmp))
         .chain(personal_language_checks(&dir, &tmp))
         .chain(routing_checks(&dir, &tmp))
+        .chain(waste_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

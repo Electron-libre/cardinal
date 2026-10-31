@@ -12,7 +12,8 @@ adrs: [0003, 0005, 0006, 0010, 0018]
 broke a rule Cardinal states (`AGENTS.md`, the skills, the ADRs), apart from where a gate refused it, then counts
 them per rule and per Cardinal revision over the sessions where the rule applied, so `audit-instructions` can tell a
 rule broken often (a hook candidate) from a rule that rarely applies. Only the breaches a program can see are in
-scope.
+scope. It also lists the known patterns of token waste a program can see, so a change of the instructions or of a
+tool gets a verdict on the waste it removes.
 
 ## Requirements
 
@@ -34,6 +35,7 @@ scope.
 - **BRE-16** (deterministic) Rule `skill-routing-commit-message`: its trigger must be a `Bash` call with a word `git` whose subcommand, the first word after it that is not an option (`-C` and `-c` taking the next word), is `commit`, with no `--no-edit` before the next word `git`.
 - **BRE-17** (deterministic) Rule `skill-routing-issue-workflow`: its trigger must be an `Edit` or `Write` call that puts a line `Plan: proposed` (blanks around it ignored) in a file under `issues/`: a sentence that quotes the marker proposes no plan.
 - **BRE-18** (deterministic) Rule `skill-routing-write-spec`: its trigger must be a `Write` call whose path, relative to the work tree of its line (BRE-7), lies under `specs/`, ends with `.md`, is not `specs/README.md`, was not committed on the default branch at the session's `start` and no earlier call of the session wrote, with that relative path as `detail`.
+- **BRE-19** (deterministic) Rule `oversized-result`: a tool result of a transcript (the session's own or a sub-agent's) whose text (its string content, else the `text` of its parts joined by newlines) holds more than 25,000 bytes must be a `breach` located at its line, with `detail` that number of bytes. It applies to the sessions with at least one tool result.
 
 ## Scenarios
 
@@ -50,6 +52,7 @@ scope.
 - (BRE-15) Given a commit, then a `Skill` call of `commit-message`, then a second commit, when the session is read, then only the first commit is a `skill-routing-commit-message` finding; given the user's `/commit-message` command before both, neither is.
 - (BRE-15) Given a commit in a session whose lock lists no `.claude/skills/commit-message/SKILL.md`, when the session is read, then `skill-routing-commit-message` does not apply to it.
 - (BRE-18) Given a `Write` of `specs/new.md` and one of `specs/old.md`, committed before the session, when the session is read with no `write-spec` call, then only `specs/new.md` is a finding.
+- (BRE-19) Given a result of exactly the threshold and one a byte over it, when the session is read, then only the second is a breach.
 
 ## Non-goals
 
@@ -60,3 +63,5 @@ scope.
 - A command that breaks a rule only by a construction nobody would write by mistake (ADR 0005), such as `-n` for `--no-verify` or a shell variable holding the flag.
 - A skill skipped for a good reason (the user commits by hand, asks for a quick fix): the `skill-routing-<skill>` rules are a signal, never a gate; a commit or a spec the user writes is no call of the agent and no trigger.
 - A skill loaded in a sub-agent, or a trigger in a sub-agent's transcript: the sub-agent does not share the session's context.
+- A file read again unchanged (no `Bash` call, no edit of it and no compaction in between), a repeated call (same tool, same input) and a retry loop (failing calls in a row with the same error): measured on the local transcripts before this rule, a file read again unchanged occurred in no transcript of 1611, a repeated read-only call other than `Read` was rare and a `Bash` call is repeated after the state it reads changed, which a transcript cannot show; three identical failures in a row occurred in 2 transcripts of 1611.
+- Whether the agent used a large result: it takes judgment; `oversized-result` counts its size only, and the bytes of `detail` are the only estimate of the tokens a finding wastes.

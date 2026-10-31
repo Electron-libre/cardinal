@@ -1,7 +1,8 @@
 //! List where the agent broke a rule of Cardinal in the Claude Code transcripts (`specs/rule-breaches.md`): one
 //! tab-separated row per finding, `breach` when the act went through, `blocked` when a hook or a permission rule
-//! refused it. With `--summary`, count them per rule and Cardinal revision over the sessions where the rule applied,
-//! so a rule broken often (a hook candidate) stands out from one that rarely applies. The commit messages are read
+//! refused it, and the tool results over 25,000 bytes, a waste of tokens. With `--summary`, count them per rule and
+//! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
+//! from one that rarely applies. The commit messages are read
 //! from the git history of each project, a commit counting with the session whose span holds its date. No text of a
 //! message is printed.
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary]`
@@ -33,6 +34,9 @@ const EDIT_TOOLS: &[(&str, &str)] = &[
 
 /// Where the files of the validation stop go before the plan is validated (`issue-workflow`, step 1).
 const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
+
+/// The bytes of a tool result above which it is a breach of `oversized-result` (BRE-19).
+const OVERSIZED: usize = 25_000;
 
 /// The skills a session is due to load before their trigger, with their rule (BRE-15).
 const ROUTED: &[(&str, &str)] = &[
@@ -100,6 +104,11 @@ enum Event {
     },
     /// A hint of the `language-hint` hook: Stop hook feedback or added context (the session's own transcript only).
     Hint,
+    /// A tool result with the bytes of its text.
+    Result {
+        location: String,
+        bytes: usize,
+    },
 }
 
 /// The events of one transcript file, in order.
@@ -171,13 +180,18 @@ impl Transcript {
                         let call = block["tool_use_id"]
                             .as_str()
                             .and_then(|id| ids.get(id).copied());
+                        let text = result_text(block);
                         if let Some(i) = call {
                             t.calls[i].error = Some(error);
                         }
+                        t.events.push(Event::Result {
+                            location: location.clone(),
+                            bytes: text.len(),
+                        });
                         if error {
                             t.events.push(Event::Error {
                                 location: location.clone(),
-                                text: result_text(block),
+                                text,
                                 call,
                             });
                         }
@@ -516,6 +530,12 @@ impl Verdict {
                     if breach {
                         unhinted.push((self.findings.len(), false));
                         self.add("user-language", false, location, String::new());
+                    }
+                }
+                Event::Result { location, bytes } => {
+                    self.applied.insert("oversized-result");
+                    if *bytes > OVERSIZED {
+                        self.add("oversized-result", false, location, bytes.to_string());
                     }
                 }
                 Event::Hint => {

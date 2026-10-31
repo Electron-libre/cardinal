@@ -69,6 +69,8 @@ transcripts:
 ## Plan
 1. [x] Waste rule: `oversized-result` in `rule-breaches`, main and sub-agent transcripts; verified by a test of
    `crates/cardinal/tests/rule_breaches.rs` through the binary; makes true BRE-19.
+2. [x] Fixes of the `high` review: the fixture holds the text the output must not print, the summary test counts
+   the waste rule, a non-goal for the image parts; verified by the same test; makes true BRE-19.
 
 ## Decisions
 - Mode: autonomous
@@ -90,6 +92,30 @@ done: rule `oversized-result` in `rule-breaches`, a tool result over 25,000 byte
 red: BRE-19: `FAIL - a tool result over 25,000 bytes is a breach at its line, in any transcript`
 
 Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 2
+done: fixes of 4 of the 8 findings of the `high` review of `6ed7615..4f10461`; follow-up issue for 2 others.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | module doc rewrapped; non-goal of `specs/rule-breaches.md` |
+| code review | see below |
+
+red: none
+
+Code review: no findings
+
+High review, not fixed: a resumed session counting the results it copies (no tool result of the 23,662 local ones
+is in two sessions); the result text built for each result to read its length (one copy, negligible beside the
+JSON parse); the bytes not summed per revision and the rule read as a hook candidate: issue
+[weigh_the_token_waste_per_revision](weigh_the_token_waste_per_revision.md).
 
 not verified: none
 

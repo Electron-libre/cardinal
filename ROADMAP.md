@@ -53,6 +53,7 @@ The work done before this file existed is in `issues/done/`.
   - [require_enough_reviews_and_spec_lines_for_a_ratio_verdict](issues/done/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md)
   - [count_the_skills_a_session_should_have_loaded](issues/done/count_the_skills_a_session_should_have_loaded.md)
   - [detect_token_waste_in_the_transcripts](issues/detect_token_waste_in_the_transcripts.md)
+  - [weigh_the_token_waste_per_revision](issues/weigh_the_token_waste_per_revision.md)
   - [audit_the_shared_instructions_for_conflicts_and_stale_guidance](issues/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md)
   - [replay_a_reference_task_set_to_compare_two_harness_variants](issues/replay_a_reference_task_set_to_compare_two_harness_variants.md)
 

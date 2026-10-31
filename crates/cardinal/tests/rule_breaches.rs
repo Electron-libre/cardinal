@@ -443,17 +443,15 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "managed-copy\tr1\t3\t2\t2\t0",
         "no-verify\tr1\t4\t2\t2\t1",
         "no-verify\tr2\t1\t1\t1\t0",
+        "oversized-result\tr1\t4\t0\t0\t0",
+        "oversized-result\tr2\t1\t0\t0\t0",
         "review-before-commit\tr1\t4\t1\t1\t3",
         "review-before-commit\tr2\t1\t0\t0\t0",
         "review-waiver\tr1\t4\t1\t1\t2",
         "review-waiver\tr2\t1\t0\t0\t0",
         "validation-stop\tr1\t1\t1\t1\t0",
     ];
-    // the waste rule applies to every session with a tool result: `waste_checks` counts it
-    let lines: Vec<&str> = out
-        .lines()
-        .filter(|l| !l.starts_with("oversized-result"))
-        .collect();
+    let lines: Vec<&str> = out.lines().collect();
     if lines != expected {
         println!("{out}");
     }
@@ -942,17 +940,17 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
     t.typed("go");
-    // results over 25,000 bytes, a string or parts joined by newlines, an error too
+    // results over 25,000 bytes, a string or parts joined by newlines (the newline tips this one over), an error too
     t.call("o1", "Bash", &bash("cat big"));
-    t.result("o1", false, &"S".repeat(25_000));
+    t.result("o1", false, &format!("{}SECR", "SECRET".repeat(4_166)));
     t.call("o2", "Bash", &bash("cat bigger"));
-    let oversized = t.result("o2", true, &"S".repeat(25_001));
+    let oversized = t.result("o2", true, &format!("{}SECRE", "SECRET".repeat(4_166)));
     t.call("o3", "Read", &json!({"file_path": repo.join("d.rs")}));
-    let parts = t.push(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o3", "content": [{"type": "text", "text": "S".repeat(20_000)}, {"type": "text", "text": "S".repeat(5_000)}]}]}}));
+    let parts = t.push(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o3", "content": [{"type": "text", "text": "SECRET".repeat(2_500)}, {"type": "text", "text": format!("{}SECR", "SECRET".repeat(1_666))}]}]}}));
     t.write(&projects.join("-w/s.jsonl"));
     let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
     sub.call("x1", "Bash", &bash("cat big"));
-    let sub_oversized = sub.result("x1", false, &"S".repeat(30_000));
+    let sub_oversized = sub.result("x1", false, &"SECRET".repeat(5_000));
     sub.write(&projects.join("-w/s/subagents/agent-1.jsonl"));
     let row = |location: String, detail: &str| {
         format!("s\tw\tr1\toversized-result\tbreach\t{location}\t{detail}")

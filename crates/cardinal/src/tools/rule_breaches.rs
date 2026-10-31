@@ -2,9 +2,8 @@
 //! tab-separated row per finding, `breach` when the act went through, `blocked` when a hook or a permission rule
 //! refused it, and the tool results over 25,000 bytes, a waste of tokens. With `--summary`, count them per rule and
 //! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
-//! from one that rarely applies. The commit messages are read
-//! from the git history of each project, a commit counting with the session whose span holds its date. No text of a
-//! message is printed.
+//! from one that rarely applies. The commit messages are read from the git history of each project, a commit counting
+//! with the session whose span holds its date. No text of a message is printed.
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 

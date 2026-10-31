@@ -59,6 +59,8 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 3. [x] Present it: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads it with its
    sample sizes, its confounders (revisions, projects, versions) and the observational caveat; verified by the skill
    checks of `just check`.
+4. [x] Solo when the advisor is the main model: amend REP-15, its tests and code in the report and in
+   `delivered-quality`; verified by the setup tests of both; makes true REP-15, QUA-16.
 
 ## Decisions
 - Mode: autonomous
@@ -67,6 +69,8 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 - Under `--by setup`, the rules, fixed context and verdicts are not printed; their files are still accepted.
 - The revision mix of a setup group shows in a `revisions` column of the efficiency table.
 - An issue made under several setups is `mixed`, a group of its own.
+- An advisor that is the main model makes a `solo` setup: a model never advises itself (a real run found 184 Opus
+  sessions with an Opus advisor set and no call).
 
 ## Deliverable 1
 
@@ -120,3 +124,20 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 - not verified: none (a real run grouped 184 sessions as Opus advised by Opus, 18 as Sonnet advised by Opus, no
   advisor call in either)
 - decisions needed: whether an advisor equal to the main model makes a solo setup
+
+## Deliverable 4
+
+- done: an advisor that is the main model makes a `solo` setup, in `cardinal-report` and in `delivered-quality`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: `docs/usage.md` already names `<model> solo` |
+
+- red: REP-15: `--by setup groups the sessions by setup` (the Opus sessions with an Opus advisor formed a group of
+  their own); QUA-16: `an issue with no session has no setup` (epsilon read as advised by itself)
+- Code review: no findings
+- not verified: none
+- decisions needed: none

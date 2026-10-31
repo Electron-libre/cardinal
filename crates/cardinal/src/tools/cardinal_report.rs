@@ -91,7 +91,8 @@ fn close<'a>(open: Vec<(&'a str, Vec<&'a Row>)>, too_few: bool) -> Group<'a> {
     }
 }
 
-/// The main model of a session, alone or advised by its first advisor model; none without a model (REP-15).
+/// The main model of a session, alone or advised by its first advisor model, alone too when that is the main model
+/// (a model never advises itself); none without a model (REP-15).
 fn setup(row: &Row) -> Option<String> {
     let first = |column: &str| value(row, column).split(',').next().unwrap_or_default();
     let main = first("models");
@@ -99,7 +100,7 @@ fn setup(row: &Row) -> Option<String> {
         return None;
     }
     Some(match first("advisor_models") {
-        "" => format!("{main} solo"),
+        advisor if advisor.is_empty() || advisor == main => format!("{main} solo"),
         advisor => format!("{main} advised by {advisor}"),
     })
 }

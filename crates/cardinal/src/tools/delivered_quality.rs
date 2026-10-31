@@ -554,8 +554,9 @@ impl Models {
     fn setup(self) -> Option<String> {
         let main = self.main?;
         Some(match self.advisor {
-            None => format!("{main} solo"),
-            Some(advisor) => format!("{main} advised by {advisor}"),
+            Some(advisor) if advisor != main => format!("{main} advised by {advisor}"),
+            // a model never advises itself
+            _ => format!("{main} solo"),
         })
     }
 }

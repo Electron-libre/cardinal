@@ -673,7 +673,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 }
 
 /// The sessions of three setups over two revisions: 12 of Sonnet advised by Opus (with a Haiku sub-agent, 2 of them on
-/// `r2`), 15 of Opus alone (5 on `r2`), 4 of Sonnet alone, then one with no model and one with no revision, left out.
+/// `r2`), 15 of Opus alone (5 on `r2`, 3 with an Opus advisor set), 4 of Sonnet alone, then one with no model and one with no revision, left out.
 fn setup_sessions() -> Vec<String> {
     let mut list: Vec<S> = Vec::new();
     list.extend((1..=12).map(|t| S {
@@ -683,6 +683,7 @@ fn setup_sessions() -> Vec<String> {
     }));
     list.extend((1..=15).map(|t| S {
         models: "claude-opus-5-5",
+        advisor: if t > 12 { "claude-opus-5-5" } else { "" },
         ..base("p2", if t > 10 { "r2" } else { "r1" }, 3, t)
     }));
     list.extend((1..=4).map(|t| S {

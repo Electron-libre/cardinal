@@ -44,7 +44,7 @@ fn a_drift_exits_1_not_3() {
     let source = tempdir().unwrap();
     fs::create_dir_all(source.path().join("files")).unwrap();
     fs::write(source.path().join("files/managed.txt"), "managed\n").unwrap();
-    fs::write(source.path().join("cardinal-format"), "3\n").unwrap();
+    fs::write(source.path().join("cardinal-format"), "5\n").unwrap();
     let root = tempdir().unwrap();
     let source = source.path().to_str().unwrap();
     assert_eq!(harness(root.path(), &["init", source]).0, Some(0));

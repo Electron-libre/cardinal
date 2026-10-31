@@ -257,20 +257,20 @@ fn update_refuses_a_lock_of_a_newer_format_naming_the_pinned_revision() {
     assert_eq!(snapshot(root.path()), before);
 }
 
-/// The refusal of a source below the format 3 (SYN-51).
+/// The refusal of a source below the format 5 (SYN-51).
 fn too_old(source: &str, format: u32) -> String {
-    format!("{source} has the format {format}, this cardinal syncs the format 3 and higher")
+    format!("{source} has the format {format}, this cardinal syncs the format 5 and higher")
 }
 
 // spec: SYN-51
 #[test]
-fn init_and_sync_refuse_a_source_below_the_format_3_and_write_nothing() {
+fn init_and_sync_refuse_a_source_below_the_format_5_and_write_nothing() {
     let home = Home::new();
     let (source, root) = project(&home);
     home.ok(root.path(), &["sync"]);
     put(source.path(), "files/a.txt", "a2");
     let name = source.path().to_str().unwrap();
-    for (declared, format) in [(Some("2\n"), 2), (None, 1)] {
+    for (declared, format) in [(Some("4\n"), 4), (None, 1)] {
         match declared {
             Some(text) => put(source.path(), SOURCE_FORMAT, text),
             None => std::fs::remove_file(source.path().join(SOURCE_FORMAT)).unwrap(),
@@ -292,12 +292,12 @@ fn init_and_sync_refuse_a_source_below_the_format_3_and_write_nothing() {
 
 // spec: SYN-51
 #[test]
-fn update_to_a_revision_below_the_format_3_keeps_the_project_as_it_was() {
+fn update_to_a_revision_below_the_format_5_keeps_the_project_as_it_was() {
     let home = Home::new();
     let (repo, root, _) = git_project(&home, FORMAT);
     home.ok(root.path(), &["update"]);
     put(repo.path(), "files/a.txt", "a2");
-    put(repo.path(), SOURCE_FORMAT, "2\n");
+    put(repo.path(), SOURCE_FORMAT, "4\n");
     home.git(repo.path(), &["add", "."]);
     home.git(repo.path(), &["commit", "--quiet", "-m", "older format"]);
     let head = home.git(repo.path(), &["rev-parse", "HEAD"]);
@@ -306,7 +306,7 @@ fn update_to_a_revision_below_the_format_3_keeps_the_project_as_it_was() {
         let run = home.harness(root.path(), args);
         assert_eq!(run.code, Some(3), "{run:?}");
         let source = format!("{} at {head}", url(repo.path()));
-        assert!(run.stderr.contains(&too_old(&source, 2)), "{run:?}");
+        assert!(run.stderr.contains(&too_old(&source, 4)), "{run:?}");
         assert_eq!(snapshot(root.path()), before);
     }
 }

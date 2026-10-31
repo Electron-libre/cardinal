@@ -71,7 +71,7 @@ to a commit, previews the sync, and only then syncs and writes the commit to `re
 directory has no revision. `check` compares the project with its lock and never reads the source.
 
 A source declares the format of its managed content in `cardinal-format`; `cardinal` reads up to the `FORMAT` compiled
-in it and refuses a higher one, and a source below the format 3 (the names before the rename, ADR 0016). A source that
+in it and refuses a higher one, and a source below the format 5 (the issues ordered by `issues/queue.md`, ADR 0020). A source that
 raises its format declares the names and seeded texts it replaced in `migrations/<n>.toml`
 (`crates/cardinal/src/migration.rs`, ADR 0014, ADR 0017); [usage.md](usage.md#formats-and-migrations) says what each
 command does with them.

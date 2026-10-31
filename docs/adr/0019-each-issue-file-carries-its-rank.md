@@ -1,6 +1,6 @@
 # 0019. Each issue file carries its rank
 
-Status: Accepted
+Status: Accepted, partly superseded by 0020 (no `--convert`, `issues/queue.md` is no longer read)
 Date: 2026-10-30
 
 ## Context

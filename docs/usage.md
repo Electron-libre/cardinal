@@ -54,7 +54,7 @@ A source declares the format of its managed content in `cardinal-format`, a whol
 |---|---|---|
 | `sync`, `update` | the source is of a format above the one the installed `cardinal` reads | SYN-40 |
 | `check`, `sync`, `update` | the lock was synced from a source of such a format | SYN-42 |
-| `init`, `sync`, `update` | the source is below the format 3, whose tools read the names before the rename (`.claude/harness.toml`, `.claude/harness.lock`, `harness.just`) | SYN-51, ADR 0016 |
+| `init`, `sync`, `update` | the source is below the format 5, whose tools order the issues by `issues/queue.md` | SYN-51, ADR 0020 |
 
 The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just`.
 

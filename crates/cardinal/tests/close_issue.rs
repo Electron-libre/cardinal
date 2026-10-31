@@ -214,7 +214,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
     let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap();
     write(
         "issues/foo.md",
-        "[bar](bar.md) [q](bar.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
+        "[bar](bar.md) [q](gone.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
     );
     write("issues/bar.md", "[foo](foo.md)\n[f]: ./foo.md#goal\n");
     write("issues/old.md", "x");
@@ -264,7 +264,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
         (
             "the links of the moved issue still resolve from done/",
             moved
-                == "[bar](../bar.md) [q](../bar.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
+                == "[bar](../bar.md) [q](../gone.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
         ),
         (
             "--relink repairs a relative link to an issue already in done/",

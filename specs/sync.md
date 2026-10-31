@@ -1,7 +1,7 @@
 ---
 id: SYN
 status: accepted
-adrs: [0002, 0004, 0005, 0007, 0013, 0014, 0015, 0016, 0017, 0018]
+adrs: [0002, 0004, 0005, 0007, 0013, 0014, 0015, 0016, 0017, 0018, 0020]
 ---
 
 # Cardinal synchronisation
@@ -64,7 +64,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - **SYN-48** (deterministic) withdrawn: every source below the format 3 is refused (SYN-51).
 - **SYN-49** (deterministic) `init`, `sync`, `update`, `cardinal run` and the launcher must treat the source as a git repository to clone when it contains `://`, starts with `git@` or ends with `.git` (case sensitive, nothing after it), and as a local directory read in place otherwise.
 - **SYN-50** (deterministic) A git source of SYN-49 that is a path (it contains no `://` and no `:` before its first `/`, which git reads as `host:path`) must be resolved against the project root, its symlinks resolved, into an absolute `file://` URL, its `.` and `..` components removed lexically and every byte of the path outside `A-Z a-z 0-9 - . _ ~ /` percent-encoded; `init`, `sync`, `update`, `cardinal run`, the launcher and `.github/install_cardinal.sh` must clone that URL, key the cache clone by it and pass it to the `cargo install --git` they run or print, whatever the working directory; the configuration keeps the source as written.
-- **SYN-51** (deterministic) When the source declares a format below 3 (SYN-40), `init`, `sync` and `update` must fail with the error `<source> has the format <n>, this cardinal syncs the format 3 and higher` (exit 3, SYN-37) and write nothing, `--dry-run` included.
+- **SYN-51** (deterministic) When the source declares a format below 5 (SYN-40), `init`, `sync` and `update` must fail with the error `<source> has the format <n>, this cardinal syncs the format 5 and higher` (exit 3, SYN-37) and write nothing, `--dry-run` included.
 - **SYN-52** (deterministic) A migration is the file `migrations/<n>.toml` of the source, `<n>` the format it raises the content to: a list `names` of tables `{ old, new }` (a name of the managed content before the format `<n>` and the one that replaced it) and a list `rewrite` of tables `{ path, old, new }` (a text the source seeded in the project file `path` before the format `<n>`, and its replacement), each list optional. `sync` and `update` must apply, in increasing `<n>`, every migration of the source whose `<n>` is greater than the format the project's lock records and not greater than the format of the source; a project without a lock applies none. A migration file that cannot be read or does not have that shape must fail them with an error that names it (exit 3) and write nothing, `--dry-run` included.
 - **SYN-53** (deterministic) For each `rewrite` of an applied migration, `sync` and `update` must replace in the project file `path` every occurrence of `old` that starts at the start of a line and ends at the end of a line (or of the file) by `new`, and print `rewritten: <path>` once per file they change; a `path` that is a managed file, the lock, outside the project or missing, and a file that does not hold `old` so, are left untouched without an error. `--dry-run` must print the same lines and write nothing.
 - **SYN-54** (deterministic) After the rewrites, `sync` and `update` must print to stderr `warning: <path>:<line> cites <old>, named <new> since the format <n>` for each line of a project-owned file that contains the `old` of a `names` table of an applied migration as a word (no letter, digit nor `_` right before or after it) outside an occurrence of its `new`, once per line and name, `<new>` and `<n>` the name and the format of the last applied migration that renamed it (a later one may rename the `new` of an earlier one), in the order of the paths then of the lines, and must not change the file nor fail because of it. The project-owned files are the files git tracks in the project, other than the managed files, the lock and the files under `issues/done/` or `docs/adr/` (they record the history), that are valid UTF-8; a project that is not a git repository gets no such warning. They judge the files as the run leaves them, and under `--dry-run` as it would.
@@ -102,12 +102,12 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - (SYN-40) Given an `update` to a revision whose format is too new, then the project keeps its `rev` and its files, and the error names the commit of that revision in the install command.
 - (SYN-41) Given a lock without a format, then the next `sync` rewrites it with the format of its source.
 - (SYN-41) Given a `cardinal` of a higher format syncing a source of a lower one, then the lock records the format of the source: a `cardinal` pinned on that source reads it.
-- (SYN-51) Given an `update` to a revision of the format 2, then the project keeps its `rev` and its files.
+- (SYN-51) Given an `update` to a revision of the format 4, then the project keeps its `rev` and its files.
 - (SYN-51) Given a source that declares no format, then it has the format 1 and is refused.
 - (SYN-49) Given the source `/x/.git`, then it is cloned; given `../x.git/` (trailing slash) or `/x/X.GIT`, then it is read as a local directory.
 - (SYN-50) Given two projects whose source is `../x.git`, each next to a different repository, when `sync` runs in each, then each gets its own repository; given `cardinal run` started from a subdirectory of such a project, then it clones the repository next to the project root.
 - (SYN-50) Given the source `git@host:x.git` or `host:x.git`, then it is passed to git as written.
-- (SYN-52) Given a project whose lock records no format (1) and a source of the format 3 with `migrations/2.toml` and `migrations/3.toml`, when `update` runs, then both apply, the one of the format 2 first; a later `sync` of the same source applies none.
+- (SYN-52) Given a project whose lock records no format (1) and a source with `migrations/2.toml` and `migrations/3.toml`, when `update` runs, then both apply, the one of the format 2 first; a later `sync` of the same source applies none.
 - (SYN-52) Given a source whose migration names a format not above the one of the lock, then it does not apply: the project already moved past it.
 - (SYN-53) Given a justfile line `check: check-old fmt` and the rewrite of the line `check: check-old`, then the line is left as it is: the project changed it.
 - (SYN-53) Given an `update` that stops on a conflict (SYN-13), then nothing is rewritten.
@@ -133,7 +133,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - Guaranteeing that a host serves an unreferenced commit: it depends on the host.
 - Managing the keys of the settings other than `permissions.allow`, `permissions.deny` and `hooks` (the attribution stays a warning, SYN-26).
 - A separate settings file read by Claude Code: it reads one shared file per project (`.claude/settings.json`) besides the personal `settings.local.json`.
-- Refusing a source of the format 3 or higher but lower than the running `cardinal`'s: each format reads the ones before it, down to 3.
+- Refusing a source of the format 5 or higher but lower than the running `cardinal`'s: each format reads the ones before it, down to 5.
 - Telling whether a change of the managed content needed a new format: the ADR 0014 rule says when to raise it, a review checks it.
 - Making a `cardinal` released before SYN-40 refuse anything: it cannot be changed.
 - Reading or migrating a project of the old names (`.claude/harness.toml`, `.claude/harness.lock`, `harness.just`): the `cardinal` of its revision does (ADR 0016).

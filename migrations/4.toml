@@ -1,5 +1,0 @@
-# The format 4 names the code hooks after what they do, not after the Rust tools they used to run only.
-names = [
-  { old = "clippy-gate", new = "lint-gate" },
-  { old = "format-rust", new = "format-code" },
-]

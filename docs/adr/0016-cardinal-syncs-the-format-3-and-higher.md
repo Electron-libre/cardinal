@@ -1,6 +1,6 @@
 # 0016. Cardinal syncs the format 3 and higher
 
-Status: Accepted
+Status: Superseded by 0020 (the minimum format is 5)
 Date: 2026-10-29
 
 ## Context

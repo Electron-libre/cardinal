@@ -25,8 +25,9 @@ pub const PERSONAL_CONFIG: &str = ".claude/cardinal.local.toml";
 pub const LOCK: &str = ".claude/cardinal.lock";
 /// The table of the configuration that names the source and its pinned revision.
 const TABLE: &str = "cardinal";
-/// The lowest format this `cardinal` syncs: the first whose project files carry the names above (SYN-51, ADR 0016).
-const MIN_FORMAT: u32 = 3;
+/// The lowest format this `cardinal` syncs: the first whose issues are ordered by the rank of each file alone (SYN-51,
+/// ADR 0020).
+const MIN_FORMAT: u32 = 5;
 /// The exit code of a failure that is not the verdict of a hook: `run` that cannot get the tool or does not know it,
 /// the launcher that cannot parse its arguments, an error of the other subcommands. Not 2, which Claude Code reads as
 /// the refusal of a hook (BIN-7, BIN-14, BIN-17, SYN-37).

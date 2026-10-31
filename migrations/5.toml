@@ -1,7 +1,0 @@
-# The format 5 orders the issues by the `rank` of each issue file instead of the lines of `issues/queue.md` (ADR 0019).
-names = [
-  { old = "issues/queue.md", new = "the `rank` of each issue file (run `just next-issue --convert` once)" },
-]
-rewrite = [
-  { path = "ROADMAP.md", old = "A milestone becomes issues once it is shaped (`skill:create-issue`); `issues/queue.md` orders those issues.", new = "A milestone becomes issues once it is shaped (`skill:create-issue`); the `rank` of each issue file orders them (`just next-issue`)." },
-]

@@ -66,12 +66,17 @@ history (`issues/done/`, `CHANGELOG.md`, the ADRs) and the other meanings of "qu
 2. [x] `close-issue` and `issue-worktree` without the queue: remove `drop_from_queue` and the `queue` skip, their
    tests (`queue_checks`, the queue of the PAR-8 test); verified by `just check`; makes true CLS-4 and PAR-8 as reworded
    (~250 lines).
+3. [x] `cardinal` syncs the format 5 and higher: `MIN_FORMAT` 5, ADR 0020 (supersedes the minimum of ADR 0016 and the
+   queue part of ADR 0019), `migrations/4.toml` and `5.toml` removed, SYN-51 amended; the high review of the whole
+   issue (PAR-4 citation, CLS-4 fixture) fixed in it; verified by the SYN-51 tests at the format 4; makes true SYN-51
+   (~150 lines).
 
 ## Decisions
 - Mode: autonomous
 - Base commit: be60fe270285d7d916178dc8ff92f5f4d0cbb02e
 - No format raise (ADR 0014): the managed content keeps its meaning, only the binary stops reading a project file.
-- `migrations/5.toml` keeps its text as history: it applies once, to a lock of the format 4.
+- `migrations/5.toml` keeps its text as history: it applies once, to a lock of the format 4. Superseded after the
+  high review: the minimum format rises to 5 (ADR 0016 foresaw it), so `migrations/4.toml` and `5.toml` go.
 
 ## Deliverable 1
 done: `next-issue` reads only the ranks; `--convert`, the queue reading and its hint are gone, with their tests and docs.
@@ -102,6 +107,31 @@ issue files alone, the CLS-4 test cites `bar.md#top` like its reworded scenario.
 | code review | no findings |
 
 red: none (a removal)
+
+not verified: none. decisions needed: none.
+Code review: no findings
+
+## Deliverable 3
+done: `MIN_FORMAT` is 5 (ADR 0020, ADR 0016 superseded, ADR 0019 partly), `migrations/4.toml` and `5.toml` removed,
+SYN-51 and its docs at the format 5; the high review's PAR-4 citation and CLS-4 fixture (a link to a missing
+`gone.md#top`) fixed.
+
+High review of `be60fe2..HEAD`: 8 findings. Fixed: the migration naming `--convert` (removed), `MIN_FORMAT` (5),
+ADR 0019 (partly superseded), PAR-4 citing NXT-4, the CLS-4 fixture. Not fixed: a leftover `queue.md` read as an
+issue and `start-issue queue` accepted (`next-issue` reports it as `issue without a rank: queue`), `--convert` read
+as a directory (as any unknown argument).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`check-specs --strict`) |
+| docs | `docs/usage.md`, `docs/architecture.md`, ADR 0016, 0019, 0020 |
+| code review | no findings |
+
+red: SYN-51: `init_and_sync_refuse_a_source_below_the_format_5_and_write_nothing` panicked at `format_cli.rs:281`
+(the exit code of a
+sync of a source of the format 4 was not 3)
 
 not verified: none. decisions needed: none.
 Code review: no findings

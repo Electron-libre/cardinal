@@ -48,7 +48,7 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [show_the_cache_read_share_in_the_efficiency_table](issues/done/show_the_cache_read_share_in_the_efficiency_table.md)
   - [report_the_tokens_spent_per_closed_issue](issues/done/report_the_tokens_spent_per_closed_issue.md)
-  - [require_enough_issues_for_a_per_issue_verdict](issues/require_enough_issues_for_a_per_issue_verdict.md)
+  - [require_enough_issues_for_a_per_issue_verdict](issues/done/require_enough_issues_for_a_per_issue_verdict.md)
   - [judge_the_delegated_exploration_before_keeping_it](issues/judge_the_delegated_exploration_before_keeping_it.md)
   - [require_enough_reviews_and_spec_lines_for_a_ratio_verdict](issues/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md)
   - [count_the_skills_a_session_should_have_loaded](issues/count_the_skills_a_session_should_have_loaded.md)

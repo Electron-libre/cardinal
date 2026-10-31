@@ -53,7 +53,7 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 1. [x] Group by setup: `--by setup` in `cardinal-report`, the setup of a session, the `revisions` column, the
    revision-keyed tables left out; verified by report tests on fixture rows; makes true REP-14, REP-15, REP-16 (but
    its quality part).
-2. [ ] Quality by setup: the `setup` column of `delivered-quality` per issue and per summary row, read by the quality
+2. [x] Quality by setup: the `setup` column of `delivered-quality` per issue and per summary row, read by the quality
    table of both groupings; verified by delivered-quality tests on fixture transcripts and a report test; makes true
    QUA-16, QUA-17, the quality part of REP-16.
 3. [ ] Present it: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads it with its
@@ -82,5 +82,23 @@ setup (kept per revision), a controlled A/B (the reference task set issue).
 
 - red: REP-14, REP-15, REP-16: `unknown argument --by`
 - Code review: 1 findings, none fixed: "`--by setup` returns before the tables print" is false, `table()` prints each table as it is built (the setup test reads them)
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+
+- done: `delivered-quality` gives each issue the setup of its sessions (`mixed` when they differ) and sums its summary
+  per revision and setup; the quality table of `cardinal-report --by setup` sums the rows of each setup.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`cardinal-report.md` and `delivered-quality.md` back to `accepted`) |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+
+- red: QUA-16, QUA-17: `alpha.closed: expected "2026-01-05T00:00:00+00:00", got Some("2")` (no `setup` column); the
+  quality part of REP-16 was written with its code, its red not observed
+- Code review: no findings
 - not verified: none
 - decisions needed: none

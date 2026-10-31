@@ -2,7 +2,7 @@
 //! tab-separated row per file of `issues/done/`, with the commits of the issue, the fixes inside it, and the fixes
 //! and reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
-//! span, the tokens of its messages, and the lines it changed in the specs and in the docs. With `--summary`, the columns are summed per Cardinal revision. No text of a commit, an issue or a message
+//! span, the tokens of its messages, and the lines it changed in the specs and in the docs. With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
 //! is printed.
 //! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` (default the
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
@@ -21,8 +21,8 @@ use transcripts::{
     revision, sessions, sorted_entries, subagents, typed_text, Place,
 };
 
-pub(super) const SUMMARY_HEADER: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
-const HEADER: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
+const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
 const UNRELATED_PREFIXES: &[&str] = &["issues/", "docs/"];
@@ -508,10 +508,11 @@ fn timestamp(line: &Value) -> Option<DateTime<FixedOffset>> {
         .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
 }
 
-/// A session of the repository: its span, sub-agents included, its branches other than the default ones, and the
-/// events of its own transcript.
+/// A session of the repository: its span, sub-agents included, its branches other than the default ones, its setup, and
+/// the events of its own transcript.
 struct Session {
     branches: Vec<String>,
+    setup: Option<String>,
     start: DateTime<FixedOffset>,
     end: DateTime<FixedOffset>,
     events: Vec<(DateTime<FixedOffset>, Event)>,
@@ -528,6 +529,37 @@ fn is_check(command: &str) -> bool {
         .any(|w| w[0] == "just" && (w[1].starts_with("check") || w[1].starts_with("test")))
 }
 
+/// The first main model and advisor model of a session's assistant lines, in order of first appearance (QUA-16).
+#[derive(Default)]
+struct Models {
+    main: Option<String>,
+    advisor: Option<String>,
+}
+
+impl Models {
+    fn observe(&mut self, line: &Value) {
+        if line["type"] != "assistant" {
+            return;
+        }
+        let message = &line["message"];
+        if self.main.is_none() && message["id"].is_string() && message["usage"].is_object() {
+            self.main = message["model"].as_str().map(String::from);
+        }
+        if self.advisor.is_none() {
+            self.advisor = line["advisorModel"].as_str().map(String::from);
+        }
+    }
+
+    /// The setup as REP-15 names it, none without a main model.
+    fn setup(self) -> Option<String> {
+        let main = self.main?;
+        Some(match self.advisor {
+            None => format!("{main} solo"),
+            Some(advisor) => format!("{main} advised by {advisor}"),
+        })
+    }
+}
+
 /// The sessions of the projects directory `root` whose repository is `repo` (QUA-7); `None` when `root` cannot be read.
 fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
     std::fs::read_dir(root).ok()?;
@@ -539,8 +571,10 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         let mut events = Vec::new();
         let mut checks: HashMap<String, bool> = HashMap::new();
         let mut messages = HashSet::new();
+        let mut models = Models::default();
         let read = for_each_line(&path, |line| {
             place.observe(line, true);
+            models.observe(line);
             let Some(at) = timestamp(line) else {
                 return;
             };
@@ -584,6 +618,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         for sub in subagents(&path) {
             let _ = for_each_line(&sub, |line| {
                 place.observe(line, false);
+                models.observe(line);
                 // only an assistant line can carry tokens: the others skip the parse of their timestamp
                 let at = (line["type"] == "assistant")
                     .then(|| timestamp(line))
@@ -604,6 +639,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         if repo.is_some() && *resolved == repo {
             found.push(Session {
                 branches: place.issues,
+                setup: models.setup(),
                 start,
                 end,
                 events,
@@ -614,8 +650,14 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
 }
 
 /// The transcript columns of an issue (QUA-7, QUA-8, QUA-15): its sessions, then the failed checks, validations and
-/// other typed messages of their spans that belong to it, and the input, cache read and output tokens of their messages.
-fn session_cells(log: &[Commit], own: &[usize], stem: &str, sessions: &[Session]) -> [u64; 7] {
+/// other typed messages of their spans that belong to it, and the input, cache read and output tokens of their messages;
+/// with the setup of its sessions, `mixed` when they differ (QUA-16).
+fn session_cells(
+    log: &[Commit],
+    own: &[usize],
+    stem: &str,
+    sessions: &[Session],
+) -> ([u64; 7], Option<String>) {
     let on_branch = |s: &Session| s.branches.iter().any(|b| b == stem);
     let mut by_session: BTreeMap<usize, Vec<DateTime<FixedOffset>>> = BTreeMap::new();
     for &i in own {
@@ -633,6 +675,15 @@ fn session_cells(log: &[Commit], own: &[usize], stem: &str, sessions: &[Session]
             by_session.entry(*k).or_default().push(at);
         }
     }
+    let setups: BTreeSet<&str> = by_session
+        .keys()
+        .filter_map(|&k| sessions[k].setup.as_deref())
+        .collect();
+    let setup = match setups.len() {
+        0 => None,
+        1 => setups.first().map(|s| (*s).to_string()),
+        _ => Some("mixed".to_string()),
+    };
     let mut cells = [by_session.len() as u64, 0, 0, 0, 0, 0, 0];
     // a resumed session copies the messages of the one it resumes, ids included: each counts once for the issue
     let mut counted: HashSet<&str> = HashSet::new();
@@ -666,7 +717,7 @@ fn session_cells(log: &[Commit], own: &[usize], stem: &str, sessions: &[Session]
             }
         }
     }
-    cells
+    (cells, setup)
 }
 
 struct Row {
@@ -720,9 +771,10 @@ fn issue_row(
         .zip(red_ids(&text))
         .map(|(t, red)| t.difference(&red).count());
     let lines = doc_spec_lines(repo, &mine, docs);
-    let transcript = sessions.map(|s| session_cells(log, &own, &stem, s));
+    let (transcript, setup) = sessions.map(|s| session_cells(log, &own, &stem, s)).unzip();
     let mut cells = vec![
         revision(repo, &(log[first].date - Duration::seconds(1)).to_rfc3339()),
+        setup.flatten().unwrap_or_default(),
         log[close].date.to_rfc3339(),
         cell(deliverables(&text)),
         own.len().to_string(),
@@ -750,21 +802,23 @@ fn issue_row(
 /// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
 const TOKENS: usize = 4;
 
-/// Per revision: when it was first used, its count of issues and the sum of each numeric column.
-type RevisionSums = (DateTime<FixedOffset>, usize, Vec<Option<u64>>, u64);
+/// Per revision and setup: its count of issues, the sum of each numeric column and the count of issues of known tokens.
+type SetupSums = (usize, Vec<Option<u64>>, u64);
 
-/// The rows summed per revision (QUA-9), in the order the revisions were first used: the count of issues, then the
-/// sum of each numeric column, empty when one of its values is, but the token columns, summed over the issues whose
-/// tokens are known and followed by the count of those issues.
+/// The rows summed per revision and setup (QUA-9, QUA-17), in the order the revisions were first used, then by setup:
+/// the count of issues, then the sum of each numeric column, empty when one of its values is, but the token columns,
+/// summed over the issues whose tokens are known and followed by the count of those issues.
 fn summary(rows: &[Row]) -> Vec<String> {
-    let mut by_revision: HashMap<&str, RevisionSums> = HashMap::new();
+    let mut first_use: HashMap<&str, DateTime<FixedOffset>> = HashMap::new();
+    let mut by_pair: BTreeMap<(&str, &str), SetupSums> = BTreeMap::new();
     for row in rows {
-        let values: Vec<Option<u64>> = row.cells[2..].iter().map(|v| v.parse().ok()).collect();
+        let values: Vec<Option<u64>> = row.cells[3..].iter().map(|v| v.parse().ok()).collect();
         let tokens = values.len() - 3;
-        let (first, count, sums, known) = by_revision
-            .entry(&row.cells[0])
-            .or_insert_with(|| (row.first, 0, vec![Some(0); values.len()], 0));
+        let first = first_use.entry(&row.cells[0]).or_insert(row.first);
         *first = (*first).min(row.first);
+        let (count, sums, known) = by_pair
+            .entry((&row.cells[0], &row.cells[1]))
+            .or_insert_with(|| (0, vec![Some(0); values.len()], 0));
         *count += 1;
         *known += u64::from(values[tokens].is_some());
         for (k, (sum, value)) in sums.iter_mut().zip(values).enumerate() {
@@ -775,16 +829,16 @@ fn summary(rows: &[Row]) -> Vec<String> {
             };
         }
     }
-    let mut ordered: Vec<_> = by_revision.into_iter().collect();
-    ordered.sort_by(|a, b| (a.1 .0, a.0).cmp(&(b.1 .0, b.0)));
+    let mut ordered: Vec<_> = by_pair.into_iter().collect();
+    ordered.sort_by_key(|((revision, setup), _)| (first_use[revision], *revision, *setup));
     ordered
         .into_iter()
-        .map(|(revision, (_, count, sums, known))| {
+        .map(|((revision, setup), (count, sums, known))| {
             let sums: Vec<String> = sums
                 .iter()
                 .map(|s| s.map(|n| n.to_string()).unwrap_or_default())
                 .collect();
-            format!("{revision}\t{count}\t{}\t{known}", sums.join("\t"))
+            format!("{revision}\t{setup}\t{count}\t{}\t{known}", sums.join("\t"))
         })
         .collect()
 }
@@ -882,6 +936,7 @@ mod tests {
     fn session(start: &str, end: &str, events: &[(&str, &str, u64)]) -> Session {
         Session {
             branches: vec!["x".to_string()],
+            setup: None,
             start: at(start),
             end: at(end),
             events: events
@@ -918,7 +973,7 @@ mod tests {
             start: at("2026-01-01T00:00:01Z"),
             ..first
         };
-        let cells = session_cells(&log, &[0, 1], "x", &[first, resumed]);
+        let (cells, _) = session_cells(&log, &[0, 1], "x", &[first, resumed]);
         assert_eq!(cells[0], 2);
         assert_eq!(cells[4..], [15, 0, 15]);
     }

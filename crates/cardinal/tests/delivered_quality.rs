@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -961,6 +961,140 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+/// An assistant message `id` at `ts` of `model`, with `advisor` set as its advisor model when not empty.
+fn modeled(cwd: &Path, ts: &str, id: &str, model: &str, advisor: &str) -> String {
+    let mut fields = serde_json::json!({"message": {"id": id, "model": model, "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}});
+    if !advisor.is_empty() {
+        fields["advisorModel"] = advisor.into();
+    }
+    line("assistant", cwd, ts, &fields)
+}
+
+/// The repository of `fixture` and its sessions under several setups, with two more issues closed in `r3`.
+fn setup_fixture(tmp: &Path) -> (PathBuf, PathBuf) {
+    let repo = fixture(tmp);
+    let projects = tmp.join("projects");
+    let (sonnet, opus) = ("claude-sonnet-5-5", "claude-opus-5-5");
+    let on_alpha = |lines: Vec<String>| -> Vec<String> {
+        lines
+            .iter()
+            .map(|l| l.replace("\"gitBranch\":\"main\"", "\"gitBranch\":\"alpha\""))
+            .collect()
+    };
+    // alpha: two sessions of Sonnet advised by Opus, one with a Haiku sub-agent, then one of Opus alone: mixed.
+    write(
+        &projects.join("-proj/sa.jsonl"),
+        &on_alpha(vec![
+            modeled(&repo, "2026-01-02T22:00:00Z", "a1", sonnet, opus),
+            modeled(&repo, "2026-01-03T01:00:00Z", "a2", sonnet, opus),
+        ]),
+    );
+    write(
+        &projects.join("-proj/sb.jsonl"),
+        &on_alpha(vec![
+            modeled(&repo, "2026-01-03T22:00:00Z", "b1", sonnet, opus),
+            modeled(&repo, "2026-01-04T01:00:00Z", "b2", sonnet, opus),
+        ]),
+    );
+    write(
+        &projects.join("-proj/sb/subagents/agent-1.jsonl"),
+        &[modeled(
+            &repo,
+            "2026-01-03T23:00:00Z",
+            "b3",
+            "claude-haiku-5-5",
+            "",
+        )],
+    );
+    write(
+        &projects.join("-proj/sc.jsonl"),
+        &on_alpha(vec![
+            modeled(&repo, "2026-01-04T23:00:00Z", "c1", opus, ""),
+            modeled(&repo, "2026-01-05T01:00:00Z", "c2", opus, ""),
+        ]),
+    );
+    // beta: one session of Sonnet advised by Opus holds its close commit.
+    write(
+        &projects.join("-proj/sd.jsonl"),
+        &[
+            modeled(&repo, "2026-01-04T11:00:00Z", "d1", sonnet, opus),
+            modeled(&repo, "2026-01-04T13:00:00Z", "d2", sonnet, opus),
+        ],
+    );
+    // in r3, epsilon has a session of Opus alone and delta none: two rows of the summary for one revision; gamma, left in
+    // the work tree, would be closed with them.
+    std::fs::remove_file(repo.join("issues/done/gamma.md")).unwrap();
+    commit_at(
+        &repo,
+        "2026-03-01T00:00:00Z",
+        "docs: close epsilon",
+        &[("issues/done/epsilon.md", Some("# epsilon\n\n# Tracking\n"))],
+    );
+    write(
+        &projects.join("-proj/se.jsonl"),
+        &[
+            modeled(&repo, "2026-02-28T23:00:00Z", "e1", opus, ""),
+            modeled(&repo, "2026-03-01T01:00:00Z", "e2", opus, ""),
+        ],
+    );
+    commit_at(
+        &repo,
+        "2026-03-02T00:00:00Z",
+        "docs: close delta",
+        &[("issues/done/delta.md", Some("# delta\n\n# Tracking\n"))],
+    );
+    (repo, projects)
+}
+
+// spec: QUA-16, QUA-17
+fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let (repo, projects) = setup_fixture(&tmp.join("setups"));
+    let projects_arg = projects.to_str().unwrap();
+    let (ok, out) = run(dir, &repo, &["--projects", projects_arg]);
+    let r = rows(&out);
+    let (_, summed) = run(dir, &repo, &["--projects", projects_arg, "--summary"]);
+    let heads: Vec<String> = summed
+        .lines()
+        .map(|l| l.split('\t').take(3).collect::<Vec<_>>().join("|"))
+        .collect();
+    let (_, none) = run(dir, &repo, &[]);
+    vec![
+        ("the setups are read".to_string(), ok),
+        (
+            "an issue made under several setups is mixed".to_string(),
+            has(&r, "alpha", "setup", "mixed") && has(&r, "alpha", "sessions", "3"),
+        ),
+        (
+            "an issue made under one setup gives it, the main model first".to_string(),
+            has(
+                &r,
+                "beta",
+                "setup",
+                "claude-sonnet-5-5 advised by claude-opus-5-5",
+            ),
+        ),
+        (
+            "an issue with no session has no setup".to_string(),
+            has(&r, "delta", "setup", "") && has(&r, "epsilon", "setup", "claude-opus-5-5 solo"),
+        ),
+        (
+            "the setup is empty when the projects cannot be read".to_string(),
+            has(&rows(&none), "beta", "setup", ""),
+        ),
+        (
+            "the summary has one row per revision and setup, the empty setup first".to_string(),
+            heads
+                == [
+                    "revision|setup|issues",
+                    "r1|mixed|1",
+                    "r2|claude-sonnet-5-5 advised by claude-opus-5-5|1",
+                    "r3||1",
+                    "r3|claude-opus-5-5 solo|1",
+                ],
+        ),
+    ]
+}
+
 // spec: QUA-9
 fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("summary");
@@ -1003,10 +1137,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
-        "r1\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
-        "r2\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
-        "a0\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
+        "r1\t\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
+        "r2\t\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {
@@ -1031,6 +1165,7 @@ fn delivered_quality() {
         .chain(lines_checks(&dir, &tmp))
         .chain(session_checks(&dir, &tmp))
         .chain(summary_checks(&dir, &tmp))
+        .chain(setup_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

@@ -444,6 +444,18 @@ fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec
         .collect()
 }
 
+/// The quality rows of `group`: those of its revisions, or, by setup, those of its setup over every revision (REP-16).
+fn quality_of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec<&'a Row> {
+    if group.by_setup {
+        inputs
+            .into_iter()
+            .filter(|r| value(r, "setup") == group.name)
+            .collect()
+    } else {
+        of_group(inputs, group)
+    }
+}
+
 /// A ratio of the quality table (REP-6): its column, the summed columns it divides, how it divides them (`ratio` to two
 /// decimals, `per_unit` to the unit), and the summed columns that must reach `--min-issues` for a verdict on it
 /// (VRD-11, VRD-12).
@@ -532,7 +544,7 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         .collect();
     columns.extend(QUALITY_RATIOS.iter().map(|r| r.metric));
     table("Quality", &columns, groups, |g| {
-        let rows = of_group(files.iter().flatten(), g);
+        let rows = quality_of_group(files.iter().flatten(), g);
         let total = |c: &str| sum(&rows, c);
         let mut cells: Vec<String> = summed
             .iter()
@@ -909,8 +921,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         groups(&sessions, options.min_sessions)
     };
     let mut tables = vec![efficiency(&groups, options.anonymous, options.by_setup)];
-    // The quality summaries name no setup yet: by setup, their table waits for it (REP-16).
-    if !quality_files.is_empty() && !options.by_setup {
+    if !quality_files.is_empty() {
         tables.push(quality(&groups, &quality_files));
     }
     if options.by_setup {

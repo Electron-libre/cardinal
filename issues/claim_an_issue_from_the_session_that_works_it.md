@@ -112,9 +112,11 @@ Candidates, to combine at step 1 of `issue-workflow`:
    candidate 3 can write it in the workspace lock, where the claim tool reads it.
 9. **The claim is freed at `close-issue`** (the user, 2026-10-31), the one end every issue has, with or without a pull
    request. Trap: on a workspace branch the close is a commit of that branch, so until the pull request is merged the
-   trunk still holds the issue in `issues/`, unclaimed, and `next-issue` would offer it again. Candidate: `close-issue`
-   turns the claim into "closed on <branch>" instead of deleting it, `next-issue` lists it as waiting for its merge,
-   and drops the claim once the trunk has the issue in `issues/done/`.
+   trunk still holds the issue in `issues/`, unclaimed, and `next-issue` would offer it again. Candidate: on a branch
+   other than the trunk, `close-issue` turns the claim into the state `merge pending` (the user's name, 2026-10-31:
+   what is true of the issue, the branch kept as a detail) instead of deleting it; `next-issue` lists it as
+   `merge pending (<branch>)` and never offers it, and drops the claim once the trunk has the issue in `issues/done/`.
+   On the trunk the close is the merge: the claim is deleted at once.
 
 A new ADR records the choice, amending ADR 0003, 0008 and 0011. Likely over the size limit: split at step 2 (claim
 and `next-issue`, workspace lock, reusable workspace and docs).

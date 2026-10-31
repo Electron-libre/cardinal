@@ -11,7 +11,8 @@ commit_scopes = ["sync", "files"]
 # their lines as docs).
 root_docs = ["README.md"]
 # Directories that scripts do not scan besides .git, node_modules and the build output (target).
-skipped_dirs = []
+# `fixtures/` holds the projects of the replay runs: their specs and citations are their own.
+skipped_dirs = ["fixtures"]
 # The release tool (`just release`): the recipe that writes the version into the crate and its lock, and the file
 # whose change makes a commit breaking: a raised format is one an older `cardinal` cannot read (ADR 0014).
 release_version_command = "just set-version"

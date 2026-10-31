@@ -15,6 +15,8 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - `entries/.claude/settings.json`: the hooks and allow and deny rules `sync` keeps in each project's `.claude/settings.json`
   (declare a new hook here).
 - `crates/cardinal/`: the `cardinal` binary (`init`, `sync`, `check`, `run` for the tools of `src/tools/`).
+- `fixtures/replay/`: the project the replay runs copy, its issue handed with a validated plan and its held-out
+  grading test in `grade/` (skipped by the scanners: `skipped_dirs`).
 - `specs/`: what the tool and its shared hooks must do (one file per capability, see `specs/README.md`), traced to
   its tests by `// spec: ID`.
 - `issues/`: open issues, ordered by the `rank` of their front matter (`just next-issue`); `docs/adr/`: decisions.

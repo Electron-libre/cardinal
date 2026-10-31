@@ -1,7 +1,10 @@
-//! Validate a new issue file against the template of `skill:create-issue`.
+//! Validate a new issue file against the template of `skill:create-issue`, its `priority` and `depends_on` included
+//! (`specs/check-issue.md`).
 //! Usage: `just check-issue issues/foo.md`. Prints one line per problem, exit 1 if any.
 
 use std::path::Path;
+
+use super::next_issue;
 
 /// True when the section exists and has no text before the next `# ` heading.
 fn section_is_empty(text: &str, heading: &str) -> bool {
@@ -10,6 +13,37 @@ fn section_is_empty(text: &str, heading: &str) -> bool {
         && lines
             .take_while(|l| !l.starts_with("# "))
             .all(|l| l.trim().is_empty())
+}
+
+/// The problems of the keys that order the issue (CKI-1, CKI-2): its `priority` and its `depends_on`.
+fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    if next_issue::priority(text).is_none() {
+        out.push(
+            "no priority: set `priority: high`, `medium` or `low` in the front matter".to_string(),
+        );
+    }
+    let Some(deps) = next_issue::depends_on(text) else {
+        out.push("`depends_on` is not a list `[<stem>, <stem>...]` on one line".to_string());
+        return out;
+    };
+    let dir = path.parent().unwrap_or(Path::new(""));
+    for dep in deps {
+        if dep == stem {
+            out.push("`depends_on` names the issue itself".to_string());
+        } else if ![
+            dir.join(format!("{dep}.md")),
+            dir.join("done").join(format!("{dep}.md")),
+        ]
+        .iter()
+        .any(|p| p.is_file())
+        {
+            out.push(format!(
+                "`depends_on` names `{dep}`: no `issues/{dep}.md` nor `issues/done/{dep}.md`"
+            ));
+        }
+    }
+    out
 }
 
 fn problems(path: &Path, text: &str) -> Vec<String> {
@@ -49,6 +83,7 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
             out.push(format!("missing section `{required}`"));
         }
     }
+    out.extend(front_matter_problems(path, stem, text));
     if headings.iter().any(|h| h.trim() == "# Tracking") {
         out.push("`# Tracking` is written by issue-workflow".to_string());
     }

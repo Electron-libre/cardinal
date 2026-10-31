@@ -1,6 +1,6 @@
 //! Behavior test for `cardinal tool check-issue`: accepts a good issue, flags each template violation.
 
-const GOOD: &str = "# Fix the thing\n\n# Goal\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+const GOOD: &str = "---\npriority: medium\n---\n# Fix the thing\n\n# Goal\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
 
 #[test]
 fn check_issue() {
@@ -84,6 +84,75 @@ fn check_issue() {
 
     let _ = std::fs::remove_dir_all(&tmp);
     assert!(!failed, "a check failed: see the FAIL lines");
+}
+
+/// Runs `check-issue issues/a.md` on `text` in a directory holding the open issue `b` and the closed one `old`:
+/// (success, stdout).
+fn check_front_matter(text: &str) -> (bool, String) {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join("issues/done")).unwrap();
+    std::fs::write(tmp.path().join("issues/b.md"), "# B\n").unwrap();
+    std::fs::write(tmp.path().join("issues/done/old.md"), "# Old\n").unwrap();
+    std::fs::write(tmp.path().join("issues/a.md"), text).unwrap();
+    let out = tool_command("check_issue.rs")
+        .arg("issues/a.md")
+        .current_dir(tmp.path())
+        .output()
+        .unwrap();
+    (
+        out.status.success(),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+    )
+}
+
+// spec: CKI-1
+/// A new issue needs one of the three priorities.
+#[test]
+fn a_missing_or_unknown_priority_is_flagged() {
+    let body = GOOD
+        .split_once("---\n# ")
+        .map(|(_, b)| format!("# {b}"))
+        .unwrap();
+    for text in [body.clone(), format!("---\npriority: urgent\n---\n{body}")] {
+        let (ok, out) = check_front_matter(&text);
+        assert!(
+            !ok && out.contains("no priority: set `priority: high`"),
+            "{out}"
+        );
+    }
+}
+
+// spec: CKI-2
+/// `depends_on` must be a list of known issues other than the issue itself.
+#[test]
+fn a_wrong_dependency_is_flagged() {
+    let with = |deps: &str| {
+        GOOD.replace(
+            "priority: medium\n",
+            &format!("priority: medium\ndepends_on: {deps}\n"),
+        )
+    };
+    let (ok, out) = check_front_matter(&with("[b, gone]"));
+    assert!(
+        !ok && out.contains("`gone`") && !out.contains("`b`"),
+        "{out}"
+    );
+    let (ok, out) = check_front_matter(&with("[a]"));
+    assert!(!ok && out.contains("names the issue itself"), "{out}");
+    let (ok, out) = check_front_matter(&with("b"));
+    assert!(!ok && out.contains("not a list"), "{out}");
+}
+
+// spec: CKI-3
+/// A priority with no dependency, an empty list, or dependencies on open and closed issues pass.
+#[test]
+fn valid_keys_pass() {
+    for deps in ["", "depends_on: []\n", "depends_on: [b, old]\n"] {
+        let (ok, out) = check_front_matter(
+            &GOOD.replace("priority: medium\n", &format!("priority: medium\n{deps}")),
+        );
+        assert!(ok && out.is_empty(), "{deps}: {out}");
+    }
 }
 
 /// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).

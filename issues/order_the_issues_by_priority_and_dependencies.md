@@ -82,7 +82,7 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
    offers among the ready ones; format 6 (`cardinal-format`, `FORMAT`), `migrations/6.toml` (`rank:` name, seeded
    `ROADMAP.md` line), `seed/ROADMAP.md`, ADR 0021, the open issues of this repo converted; verified by
    `tests/next_issue.rs` and the CLS-7 test; makes true NXT-1, NXT-2, NXT-7 to NXT-14, PAR-4, CLS-7. ~900 lines.
-2. [ ] `check-issue` validates the keys: priority, `depends_on` syntax, self and unknown stems, sharing the
+2. [x] `check-issue` validates the keys: priority, `depends_on` syntax, self and unknown stems, sharing the
    front matter reader of `next_issue.rs`; verified by `tests/check_issue.rs`; makes true CKI-1 to CKI-3. ~250 lines.
 3. [ ] Skills and docs: `create-issue` sets a priority and the dependencies, `prioritize-issues` reviews them (guard
    against all `high`, one-time conversion of the ranks), `issue-workflow` (`next-issue` rule, "Split an issue"),
@@ -104,3 +104,7 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
 - red: NXT-1, NXT-2, NXT-7, NXT-8, NXT-9, NXT-10, NXT-11, NXT-12, NXT-13, NXT-14: `the_priority_orders_the_issues` printed `Next: issues/a.md` (the stem order of unranked issues).
 - NXT-9 reworded at implementation: a cycle is reported once per group of issues that depend on each other, its stems sorted.
 - The test fixtures declare the format 6 (`tests/common/mod.rs`), as at the format 5.
+
+## Deliverable 2
+- done: `check-issue` reports a missing or unknown priority, a `depends_on` that is not a list, names the issue itself or an unknown stem, reusing the reader of `next_issue.rs`.
+- red: CKI-1, CKI-2: `check-issue` printed nothing and exited 0 on an issue with no priority and on `depends_on: [b, gone]`.

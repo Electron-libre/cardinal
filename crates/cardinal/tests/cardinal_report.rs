@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 const SESSIONS: &str = "session\tproject\tissues\trevision\tmodels\tversions\tstart\tduration_s\tturns\ttool_calls\tinput_tokens\toutput_tokens\tthinking_tokens\tcache_read_tokens\tcache_creation_tokens\tmain_context_peak\tadvisor_models\tadvisor_calls\tadvisor_input_tokens\tadvisor_output_tokens\thook_refusals\tskills\tvalidations\tother_messages\tunreadable_lines\tunknown_lines\tmissing_fields";
-const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
+const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const QUALITY: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
@@ -383,10 +383,12 @@ fn axes_inputs(tmp: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
         &tmp.join("breaches.tsv"),
         BREACHES,
         &[
-            format!("x-rule\t{SELF}\t8\t1\t3\t0"),
-            "x-rule\tr-b\t4\t1\t1\t2".into(),
-            "a-rule\tr-b\t2\t0\t0\t0".into(),
-            "x-rule\tr-c\t1\t1\t1\t0".into(),
+            format!("x-rule\t{SELF}\t8\t1\t3\t0\t"),
+            "x-rule\tr-b\t4\t1\t1\t2\t".into(),
+            "a-rule\tr-b\t2\t0\t0\t0\t".into(),
+            "x-rule\tr-c\t1\t1\t1\t0\t".into(),
+            format!("oversized-result\t{SELF}\t3\t1\t2\t0\t70000"),
+            "oversized-result\tr-b\t2\t1\t1\t0\t30001".into(),
         ],
     );
     let quality_a = write(
@@ -453,6 +455,10 @@ fn axes_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 .collect()
         })
         .unwrap_or_default();
+    let rule_rows: Vec<String> = rule_rows
+        .into_iter()
+        .filter(|r| !r.starts_with("oversized-result"))
+        .collect();
     let few = |table: Option<&Vec<Vec<String>>>| {
         table.is_some_and(|r| {
             r.iter().filter(|c| c[0] == "r-c").count() == 1
@@ -487,7 +493,7 @@ fn axes_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         ),
         (
             "one rules row per rule of the group, sorted, sums and share",
-            rule_rows == ["a-rule 2 0 0 0 0%", "x-rule 12 2 4 2 17%"],
+            rule_rows == ["a-rule 2 0 0 0 0%  ", "x-rule 12 2 4 2 17%  "],
         ),
         (
             "skill calls and hook refusals summed, most frequent first",
@@ -544,6 +550,40 @@ fn token_quality_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     )]
 }
 
+// spec: REP-13
+fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let (sessions, breaches, ..) = axes_inputs(tmp);
+    let arg = |s: &'static str| std::ffi::OsStr::new(s);
+    let (_, out, _) = run(
+        dir,
+        &[
+            arg("--sessions"),
+            sessions.as_os_str(),
+            arg("--breaches"),
+            breaches.as_os_str(),
+        ],
+    );
+    let rows: Vec<String> = tables(&out)
+        .get("Rules")
+        .map(|r| {
+            r.iter()
+                .filter(|c| c[0] == "self:1111111..r-b")
+                .map(|c| c[2..].join(" "))
+                .collect()
+        })
+        .unwrap_or_default();
+    vec![
+        (
+            "a waste rule sums its bytes and their mean per applied session",
+            rows.contains(&"oversized-result 5 2 3 0 40% 100001 20000".to_string()),
+        ),
+        (
+            "a rule that is no waste has empty bytes",
+            rows.contains(&"x-rule 12 2 4 2 17%  ".to_string()),
+        ),
+    ]
+}
+
 // spec: REP-6, REP-7
 fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (sessions, _, quality_a, _, _) = axes_inputs(tmp);
@@ -551,7 +591,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let only_b = write(
         &tmp.join("breaches-b.tsv"),
         BREACHES,
-        &["x-rule\tr-b\t4\t1\t1\t2".into()],
+        &["x-rule\tr-b\t4\t1\t1\t2\t".into()],
     );
     let (_, small, _) = run(
         dir,
@@ -570,7 +610,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let no_rule = small
         .get("Rules")
         .and_then(|r| r.iter().find(|c| c[0] == "self:1111111"))
-        .is_some_and(|c| c.len() == 8 && c[2..].iter().all(String::is_empty));
+        .is_some_and(|c| c.len() == 10 && c[2..].iter().all(String::is_empty));
     let no_spec = write(
         &tmp.join("quality-no-spec.tsv"),
         QUALITY,
@@ -716,8 +756,8 @@ fn verdicts(
         &tmp.join(format!("v-breaches-{n}.tsv")),
         BREACHES,
         &[
-            "x-rule\tra\t4\t2\t2\t0".into(),
-            "x-rule\trb\t4\t1\t1\t0".into(),
+            "x-rule\tra\t4\t2\t2\t0\t".into(),
+            "x-rule\trb\t4\t1\t1\t0\t".into(),
         ],
     );
     let mut args: Vec<&std::ffi::OsStr> = vec![
@@ -1123,6 +1163,7 @@ fn cardinal_report() {
         .into_iter()
         .chain(option_checks(&dir, temp.path()))
         .chain(axes_checks(&dir, temp.path()))
+        .chain(waste_checks(&dir, temp.path()))
         .chain(axes_threshold_checks(&dir, temp.path()))
         .chain(refusal_checks(&dir, temp.path()))
         .chain(verdict_checks(&dir, temp.path()))

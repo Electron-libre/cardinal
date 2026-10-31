@@ -36,6 +36,7 @@ tool gets a verdict on the waste it removes.
 - **BRE-17** (deterministic) Rule `skill-routing-issue-workflow`: its trigger must be an `Edit` or `Write` call that puts a line `Plan: proposed` (blanks around it ignored) in a file under `issues/`: a sentence that quotes the marker proposes no plan.
 - **BRE-18** (deterministic) Rule `skill-routing-write-spec`: its trigger must be a `Write` call whose path, relative to the work tree of its line (BRE-7), lies under `specs/`, ends with `.md`, is not `specs/README.md`, was not committed on the default branch at the session's `start` and no earlier call of the session wrote, with that relative path as `detail`.
 - **BRE-19** (deterministic) Rule `oversized-result`: a tool result of a transcript (the session's own or a sub-agent's) whose text (its string content, else the `text` of its parts joined by newlines) holds more than 25,000 bytes must be a `breach` located at its line, with `detail` that number of bytes. It applies to the sessions with at least one tool result.
+- **BRE-20** (deterministic) The summary of BRE-3 must end with a column `bytes`: for a waste rule (a rule whose `detail` is a number of bytes, `oversized-result` of BRE-19), the sum of the `detail` of its findings in the row's sessions (0 when none); for any other rule, empty. A rule is a waste rule or not whatever its findings, so a summary tells the measures from the instructions by this column alone.
 
 ## Scenarios
 
@@ -53,6 +54,7 @@ tool gets a verdict on the waste it removes.
 - (BRE-15) Given a commit in a session whose lock lists no `.claude/skills/commit-message/SKILL.md`, when the session is read, then `skill-routing-commit-message` does not apply to it.
 - (BRE-18) Given a `Write` of `specs/new.md` and one of `specs/old.md`, committed before the session, when the session is read with no `write-spec` call, then only `specs/new.md` is a finding.
 - (BRE-19) Given a result of exactly the threshold and one a byte over it, when the session is read, then only the second is a breach.
+- (BRE-20) Given two sessions of a revision, one with results of 30,000 and 40,000 bytes and one with no result over the threshold, when the summary is printed, then the row of `oversized-result` reads `bytes` 70000, and the row of `no-verify` an empty `bytes`.
 
 ## Non-goals
 

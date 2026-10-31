@@ -40,3 +40,36 @@ Lean agent loop
 
 # Hints
 * Approach 2 changes the columns of `session-metrics`, which `cardinal-report` reads by header: check REP-3.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Approach 1: the waste stays a rule of `rule-breaches`, whose summary gains a `bytes` column filled for the waste
+rules only; the rules table of `cardinal-report` sums it and gives `bytes_per_session` (a mean: the median is 0), which
+an expectation names as `bytes_per_session:<rule>`. The skills read a filled `bytes` as a measure, not a hook
+candidate. Out of scope: moving the waste to `session-metrics` (approach 2), other waste patterns.
+
+## Plan
+1. [x] Bytes per rule: `bytes` in the `--summary` of `rule-breaches`, `bytes` and `bytes_per_session` in the rules
+   table of `cardinal-report`; verified by unit tests of both tools; makes true BRE-20, REP-13.
+2. [ ] Waste metric: `bytes_per_session:<rule>` accepted by `commit-check` and `cardinal-changes`, given a verdict by
+   `cardinal-report --changes`; verified by tests of the three; makes true VRD-13.
+3. [ ] Skills: `audit-instructions` and `evaluate-harness` name a rule with a filled `bytes` a waste measure, read
+   through `bytes_per_session`, never a hook or rewording candidate; `just sync`; verified by `just check-cardinal`.
+
+## Decisions
+- Mode: autonomous
+- Question 1: a (a `bytes` column in `rule-breaches`).
+- Base commit: 4d941fb68312e21f929c41b47990c6d3d4c8a45d
+
+## Deliverable 1
+
+- done: `bytes` closes the `--summary` of `rule-breaches` (filled for `oversized-result` only); the rules table of
+  `cardinal-report` adds `bytes` and `bytes_per_session`; `rule-breaches` and `cardinal-report` specs back to
+  `accepted`.
+- red: BRE-20, REP-13: the summary had no `bytes` column (`oversized-result	r1	1	1	3	0`), and `cardinal-report`
+  refused the new summary header.
+- Code review: no findings.
+- not verified: the summary on the local transcripts (the tests use fixtures).

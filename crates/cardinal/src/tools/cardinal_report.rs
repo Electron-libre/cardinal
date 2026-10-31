@@ -13,7 +13,7 @@ use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC};
 use super::delivered_quality::SUMMARY_HEADER as QUALITY;
 use super::session_metrics::HEADER as SESSIONS;
 
-const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
+const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
 const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--anonymous]";
@@ -500,6 +500,8 @@ fn rules(groups: &[Group], breach_rows: &[Row]) -> Table {
         "breaches",
         "blocked",
         "breached_share",
+        "bytes",
+        "bytes_per_session",
     ];
     table("Rules", &columns, groups, |g| {
         let mut by_rule: BTreeMap<&str, Vec<&Row>> = BTreeMap::new();
@@ -513,6 +515,7 @@ fn rules(groups: &[Group], breach_rows: &[Row]) -> Table {
             .into_iter()
             .map(|(rule, rows)| {
                 let total = |c: &str| rows.iter().map(|r| number(r, c)).sum::<u64>();
+                let bytes = sum(&rows, "bytes");
                 let (applied, breached) = (total("applied"), total("breached"));
                 let share = if applied > 0 {
                     format!("{}%", (breached * 200 + applied).div_euclid(applied * 2))
@@ -526,6 +529,8 @@ fn rules(groups: &[Group], breach_rows: &[Row]) -> Table {
                     total("breaches").to_string(),
                     total("blocked").to_string(),
                     share,
+                    bytes.map(|b| b.to_string()).unwrap_or_default(),
+                    per_unit(bytes, Some(applied)),
                 ]
             })
             .collect()

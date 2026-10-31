@@ -28,6 +28,7 @@ it. It reports trends, never a pass or a fail.
 - **REP-10** (deterministic) The efficiency table must give, right after `main_context_peak`, `peak_sessions`: the count of the group's sessions whose `main_context_peak` cell is not empty, the sample its median is computed from (0 when none is).
 - **REP-11** (deterministic) The efficiency table must give, right after `peak_sessions`, `advisor_models` (as `models`, from the `advisor_models` of EVA-18), `advisor_sessions` (the count of the group's sessions whose `advisor_calls` cell is not empty, 0 when none is), then `advisor_calls`, `advisor_input_tokens` and `advisor_output_tokens` (EVA-19): each the median (as REP-5) over those sessions, empty when there is none.
 - **REP-12** (deterministic) The efficiency table must give, right after `input_tokens`, `cache_read_share`: the median (as REP-5, on the shares before rounding) of the share of each session of the group whose input sum of REP-5 is not 0, that session's `cache_read_tokens` over that sum (the median of the ratios, not the ratio of the medians), written as a whole percent rounded half up (`33%`), empty when no session of the group has input.
+- **REP-13** (deterministic) The rules table (REP-6) must give, after `breached_share`, `bytes`: the sum of the `bytes` (BRE-20) of the rule's rows in the group, empty when one of them is empty; then `bytes_per_session`: that sum over the rule's `applied`, rounded half up to the unit, empty when `bytes` is empty or `applied` is 0 (a mean over the sessions where the rule applied, not a median: most sessions waste nothing, so a median stays at 0).
 
 ## Scenarios
 
@@ -42,6 +43,7 @@ it. It reports trends, never a pass or a fail.
 - (REP-6) Given a group whose quality rows sum 5 `issues`, 4 `token_issues`, `input_tokens` 3,000,002 and `output_tokens` 10,002, then its `input_tokens_per_issue` is `750001` and `output_tokens_per_issue` `2501`; with one row whose `input_tokens` is empty, its `input_tokens` sum and `input_tokens_per_issue` are empty.
 - (REP-12) Given a group of 3 sessions with input sums of 10, 100 and 1,000 tokens, of which 9, 10 and 500 were cache reads, when the report is printed, then `cache_read_share` is `50%`: the median of 90%, 10% and 50%, whatever the sizes of the sessions.
 
+- (REP-13) Given an `oversized-result` that applied in 3 sessions of `a` with `bytes` 70000 and 2 of `b` with `bytes` 30001, when `a..b` is a group, then its row reads `bytes` 100001 and `bytes_per_session` 20000.
 - (REP-11) Given a group of 10 sessions, 4 with an Opus advisor set that called it 0, 1, 3 and 6 times, when the report is printed, then `advisor_models` is `claude-opus-5-5=4`, `advisor_sessions` 4 and `advisor_calls` 2.
 
 ## Non-goals

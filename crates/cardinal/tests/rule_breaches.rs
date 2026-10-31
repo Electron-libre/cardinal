@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const COLUMNS: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
-const SUMMARY: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
+const SUMMARY: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -440,16 +440,16 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (ok, out) = run(dir, &projects, true);
     let expected = [
         SUMMARY,
-        "managed-copy\tr1\t3\t2\t2\t0",
-        "no-verify\tr1\t4\t2\t2\t1",
-        "no-verify\tr2\t1\t1\t1\t0",
-        "oversized-result\tr1\t4\t0\t0\t0",
-        "oversized-result\tr2\t1\t0\t0\t0",
-        "review-before-commit\tr1\t4\t1\t1\t3",
-        "review-before-commit\tr2\t1\t0\t0\t0",
-        "review-waiver\tr1\t4\t1\t1\t2",
-        "review-waiver\tr2\t1\t0\t0\t0",
-        "validation-stop\tr1\t1\t1\t1\t0",
+        "managed-copy\tr1\t3\t2\t2\t0\t",
+        "no-verify\tr1\t4\t2\t2\t1\t",
+        "no-verify\tr2\t1\t1\t1\t0\t",
+        "oversized-result\tr1\t4\t0\t0\t0\t0",
+        "oversized-result\tr2\t1\t0\t0\t0\t0",
+        "review-before-commit\tr1\t4\t1\t1\t3\t",
+        "review-before-commit\tr2\t1\t0\t0\t0\t",
+        "review-waiver\tr1\t4\t1\t1\t2\t",
+        "review-waiver\tr2\t1\t0\t0\t0\t",
+        "validation-stop\tr1\t1\t1\t1\t0\t",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {
@@ -593,8 +593,8 @@ fn commit_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let summary: Vec<&str> = summary.lines().collect();
     let want_summary = [
         SUMMARY,
-        "commit-attribution\tr1\t2\t2\t2\t0",
-        "commit-format\tr1\t2\t2\t3\t0",
+        "commit-attribution\tr1\t2\t2\t2\t0\t",
+        "commit-format\tr1\t2\t2\t3\t0\t",
     ];
     if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
@@ -662,7 +662,7 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
     let (_, summary) = run(dir, &projects, true);
     let summary: Vec<&str> = summary.lines().collect();
-    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t1\t0"];
+    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t1\t0\t"];
     if rows != expected || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
     }
@@ -710,7 +710,7 @@ fn personal_language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
     let (_, summary) = run(dir, &projects, true);
     let summary: Vec<&str> = summary.lines().collect();
-    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t1\t0"];
+    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t1\t0\t"];
     if rows != expected || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
     }
@@ -910,9 +910,9 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         .filter(|l| l.starts_with("skill-routing"))
         .collect();
     let want_summary = [
-        "skill-routing-commit-message\tr1\t2\t1\t1\t1",
-        "skill-routing-issue-workflow\tr1\t1\t1\t1\t0",
-        "skill-routing-write-spec\tr1\t1\t1\t1\t0",
+        "skill-routing-commit-message\tr1\t2\t1\t1\t1\t",
+        "skill-routing-issue-workflow\tr1\t1\t1\t1\t0\t",
+        "skill-routing-write-spec\tr1\t1\t1\t1\t0\t",
     ];
     if rows != expected || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
@@ -924,7 +924,7 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
-// spec: BRE-19
+// spec: BRE-19, BRE-20
 fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("waste");
     let projects = tmp.join("projects");
@@ -964,7 +964,7 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
     let (_, summary) = run(dir, &projects, true);
     let summary: Vec<&str> = summary.lines().skip(1).collect();
-    let want_summary = ["oversized-result\tr1\t1\t1\t3\t0"];
+    let want_summary = ["oversized-result\tr1\t1\t1\t3\t0\t80002"];
     if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
     }
@@ -979,7 +979,8 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             sorted(rows) == sorted(expected),
         ),
         (
-            "the waste rule applies to the sessions with a tool result".to_string(),
+            "the waste rule applies to the sessions with a tool result and sums its bytes"
+                .to_string(),
             summary == want_summary,
         ),
     ]

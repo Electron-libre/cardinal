@@ -2,8 +2,9 @@
 //! tab-separated row per finding, `breach` when the act went through, `blocked` when a hook or a permission rule
 //! refused it, and the tool results over 25,000 bytes, a waste of tokens. With `--summary`, count them per rule and
 //! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
-//! from one that rarely applies. The commit messages are read from the git history of each project, a commit counting
-//! with the session whose span holds its date. No text of a message is printed.
+//! from one that rarely applies, and sum the bytes of the waste rules. The commit messages are read from the git
+//! history of each project, a commit counting with the session whose span holds its date. No text of a message is
+//! printed.
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 
@@ -22,7 +23,7 @@ use transcripts::{
 };
 
 const HEADER: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
-const SUMMARY_HEADER: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
+const SUMMARY_HEADER: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 
 /// The tools that write a file, with the input key of its path.
 const EDIT_TOOLS: &[(&str, &str)] = &[
@@ -36,6 +37,9 @@ const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
 
 /// The bytes of a tool result above which it is a breach of `oversized-result` (BRE-19).
 const OVERSIZED: usize = 25_000;
+
+/// The waste rules, whose `detail` is a number of bytes the summary sums (BRE-20).
+const WASTE_RULES: &[&str] = &["oversized-result"];
 
 /// The skills a session is due to load before their trigger, with their rule (BRE-15).
 const ROUTED: &[(&str, &str)] = &[
@@ -789,8 +793,8 @@ pub(super) fn main(args: &[String]) -> u8 {
         check_commits(&repo, &mut of_repo);
     }
     let mut rows = Vec::new();
-    // (rule, revision) -> [applied, breached, breaches, blocked]
-    let mut counts: BTreeMap<(&str, String), [u64; 4]> = BTreeMap::new();
+    // (rule, revision) -> [applied, breached, breaches, blocked, bytes]
+    let mut counts: BTreeMap<(&str, String), [u64; 5]> = BTreeMap::new();
     for Record {
         id,
         project,
@@ -811,6 +815,10 @@ pub(super) fn main(args: &[String]) -> u8 {
             entry[1] += u64::from(breaches > 0);
             entry[2] += breaches;
             entry[3] += found.len() as u64 - breaches;
+            entry[4] += found
+                .iter()
+                .filter_map(|f| f.detail.parse::<u64>().ok())
+                .sum::<u64>();
         }
         for f in verdict.findings {
             let kind = if f.blocked { "blocked" } else { "breach" };
@@ -822,8 +830,13 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     if summary {
         println!("{SUMMARY_HEADER}");
-        for ((rule, revision), [applied, breached, breaches, blocked]) in counts {
-            println!("{rule}\t{revision}\t{applied}\t{breached}\t{breaches}\t{blocked}");
+        for ((rule, revision), [applied, breached, breaches, blocked, bytes]) in counts {
+            let bytes = if WASTE_RULES.contains(&rule) {
+                bytes.to_string()
+            } else {
+                String::new()
+            };
+            println!("{rule}\t{revision}\t{applied}\t{breached}\t{breaches}\t{blocked}\t{bytes}");
         }
     } else {
         println!("{HEADER}");

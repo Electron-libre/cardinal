@@ -38,8 +38,11 @@ const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
 /// The bytes of a tool result above which it is a breach of `oversized-result` (BRE-19).
 const OVERSIZED: usize = 25_000;
 
+/// The rule of the tool results over `OVERSIZED` bytes (BRE-19).
+const OVERSIZED_RULE: &str = "oversized-result";
+
 /// The waste rules, whose `detail` is a number of bytes the summary sums (BRE-20).
-const WASTE_RULES: &[&str] = &["oversized-result"];
+pub(super) const WASTE_RULES: &[&str] = &[OVERSIZED_RULE];
 
 /// The skills a session is due to load before their trigger, with their rule (BRE-15).
 const ROUTED: &[(&str, &str)] = &[
@@ -536,9 +539,9 @@ impl Verdict {
                     }
                 }
                 Event::Result { location, bytes } => {
-                    self.applied.insert("oversized-result");
+                    self.applied.insert(OVERSIZED_RULE);
                     if *bytes > OVERSIZED {
-                        self.add("oversized-result", false, location, bytes.to_string());
+                        self.add(OVERSIZED_RULE, false, location, bytes.to_string());
                     }
                 }
                 Event::Hint => {
@@ -815,10 +818,12 @@ pub(super) fn main(args: &[String]) -> u8 {
             entry[1] += u64::from(breaches > 0);
             entry[2] += breaches;
             entry[3] += found.len() as u64 - breaches;
-            entry[4] += found
-                .iter()
-                .filter_map(|f| f.detail.parse::<u64>().ok())
-                .sum::<u64>();
+            if WASTE_RULES.contains(rule) {
+                entry[4] += found
+                    .iter()
+                    .filter_map(|f| f.detail.parse::<u64>().ok())
+                    .sum::<u64>();
+            }
         }
         for f in verdict.findings {
             let kind = if f.blocked { "blocked" } else { "breach" };

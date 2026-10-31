@@ -58,6 +58,7 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
    `cardinal-report --changes`; verified by tests of the three; makes true VRD-13.
 3. [x] Skills: `audit-instructions` and `evaluate-harness` name a rule with a filled `bytes` a waste measure, read
    through `bytes_per_session`, never a hook or rewording candidate; `just sync`; verified by `just check-cardinal`.
+4. [x] Docs and `high` review fixes of the whole issue.
 
 ## Decisions
 - Mode: autonomous
@@ -87,4 +88,17 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
 - done: `audit-instructions` and `evaluate-harness` take a rule whose `bytes` is filled for a waste measure, read
   through `bytes_per_session`, never a hook or rewording candidate; synced.
 - red: none (skill wording, verified by `just check-cardinal`).
+- Code review: no findings.
+
+## Deliverable 4
+
+- done: `docs/usage.md` and `docs/architecture.md` name the waste bytes; `bytes_per_session:<rule>` accepted for a
+  waste rule only (VRD-13); VRD-1 and VRD-5 name the metric; the waste rule name is one constant, its bytes summed
+  only for the waste rules.
+- red: VRD-13: `commit-check` accepted `Expected-effect: bytes_per_session:no-verify down`.
+- High review: 8 findings; fixed: a non-waste rule accepted, VRD-1 and VRD-5 silent, bytes summed for every rule,
+  the rule name repeated, `docs/usage.md` stale. Not fixed: no floor for the mean of the bytes (each group already
+  holds `--min-sessions` sessions, and `evaluate-harness` takes a verdict for a trend only when the next groups keep
+  it); an older 6-column summary refused (the summaries are written afresh by each evaluation, as REP-3 wants); an
+  empty `bytes` row emptying the group's sum (REP-13, the same rule as the quality sums).
 - Code review: no findings.

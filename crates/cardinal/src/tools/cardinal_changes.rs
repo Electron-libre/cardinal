@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use super::rule_breaches::WASTE_RULES;
 use super::session_metrics::HEADER as SESSIONS;
 use super::transcripts::{default_branch, git};
 
@@ -34,7 +35,7 @@ pub(super) const METRICS: [&str; 17] = [
     "total_bytes",
 ];
 pub(super) const RULE_METRIC: &str = "breached_share:";
-/// The metric of the bytes of a waste rule per session (VRD-13).
+/// The metric of the bytes of a waste rule per session, for the rules of `WASTE_RULES` only (VRD-13).
 pub(super) const WASTE_METRIC: &str = "bytes_per_session:";
 
 /// The metric and direction of an `Expected-effect:` line; `None` for another line, `Some(Err(()))` for one that
@@ -44,15 +45,15 @@ pub(super) fn expectation(line: &str) -> Option<Result<(&str, &str), ()>> {
     let words: Vec<&str> = rest.split_whitespace().collect();
     let known = |metric: &str| {
         METRICS.contains(&metric)
-            || [RULE_METRIC, WASTE_METRIC]
-                .iter()
-                .filter_map(|prefix| metric.strip_prefix(prefix))
-                .any(|rule| {
-                    !rule.is_empty()
-                        && rule
-                            .chars()
-                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-                })
+            || metric.strip_prefix(RULE_METRIC).is_some_and(|rule| {
+                !rule.is_empty()
+                    && rule
+                        .chars()
+                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+            })
+            || metric
+                .strip_prefix(WASTE_METRIC)
+                .is_some_and(|rule| WASTE_RULES.contains(&rule))
     };
     Some(match words[..] {
         [metric, direction @ ("up" | "down")] if rest.starts_with(' ') && known(metric) => {

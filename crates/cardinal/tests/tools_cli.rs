@@ -235,6 +235,11 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
             "Expected-effect",
         ),
         (
+            "waste bytes of a rule that is no waste",
+            message("Expected-effect: bytes_per_session:no-verify down"),
+            "Expected-effect",
+        ),
+        (
             "unknown metric",
             message("Expected-effect: speed up"),
             "Expected-effect",

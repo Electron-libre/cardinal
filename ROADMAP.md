@@ -57,7 +57,7 @@ The work done before this file existed is in `issues/done/`.
   - [weigh_the_token_waste_per_revision](issues/done/weigh_the_token_waste_per_revision.md)
   - [audit_the_shared_instructions_for_conflicts_and_stale_guidance](issues/done/audit_the_shared_instructions_for_conflicts_and_stale_guidance.md)
   - [compute_the_size_of_a_deliverable_with_a_tool](issues/done/compute_the_size_of_a_deliverable_with_a_tool.md)
-  - [refuse_staging_every_file_before_a_commit](issues/refuse_staging_every_file_before_a_commit.md)
+  - [refuse_staging_every_file_before_a_commit](issues/done/refuse_staging_every_file_before_a_commit.md)
   - [replay_a_reference_task_set_to_compare_two_harness_variants](issues/replay_a_reference_task_set_to_compare_two_harness_variants.md)
 
 ## Longer autonomy

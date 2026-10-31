@@ -217,7 +217,7 @@ decisions needed: none.
 ## Deliverable 6
 
 done: [compute_the_size_of_a_deliverable_with_a_tool](compute_the_size_of_a_deliverable_with_a_tool.md) (rank 160)
-and [refuse_staging_every_file_before_a_commit](../refuse_staging_every_file_before_a_commit.md) (rank 165), both in
+and [refuse_staging_every_file_before_a_commit](refuse_staging_every_file_before_a_commit.md) (rank 165), both in
 the milestone Lean agent loop.
 
 | check | result |

@@ -103,9 +103,18 @@ Candidates, to combine at step 1 of `issue-workflow`:
    the agent pushes the branch and opens the pull request, and the merge is the host's.
 7. **Merge by the user's way of working** (the user, 2026-10-31): in the main worktree, issues are worked directly on
    the trunk, with no branch and no merge, as today; a workspace on another branch ends with a pull request to the
-   trunk, which the agent opens and the host merges. Candidate 6's local move of the trunk is then not needed. Still
-   to settle at step 1: whether the user picks the workspace's branch (several issues may share it) or the agent cuts
-   one per issue, and when the claim of an issue merged by pull request is freed (the branch merged on the remote).
+   trunk, which the agent opens and the host merges. Candidate 6's local move of the trunk is then not needed.
+8. **The user picks the workspace's branch** when opening the worktree (the user, 2026-10-31): several issues may share
+   it, so the branch name cannot be the claim and candidate 2 (a claim ref) is needed. The user suggests the session id
+   as the ref. A compare-and-swap only collides on the same ref name, so the name must stay the issue
+   (`refs/cardinal/claims/<stem>`) and the session id goes in what it points at, with the worktree: a resumed session
+   is then recognized as the owner. The agent's commands get no session id; the hooks do, so the `SessionStart` hook of
+   candidate 3 can write it in the workspace lock, where the claim tool reads it.
+9. **The claim is freed at `close-issue`** (the user, 2026-10-31), the one end every issue has, with or without a pull
+   request. Trap: on a workspace branch the close is a commit of that branch, so until the pull request is merged the
+   trunk still holds the issue in `issues/`, unclaimed, and `next-issue` would offer it again. Candidate: `close-issue`
+   turns the claim into "closed on <branch>" instead of deleting it, `next-issue` lists it as waiting for its merge,
+   and drops the claim once the trunk has the issue in `issues/done/`.
 
 A new ADR records the choice, amending ADR 0003, 0008 and 0011. Likely over the size limit: split at step 2 (claim
 and `next-issue`, workspace lock, reusable workspace and docs).

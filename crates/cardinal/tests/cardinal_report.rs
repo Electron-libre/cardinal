@@ -1003,6 +1003,45 @@ fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: VRD-12
+fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    // `ra`: 6 issues, 2 reviews with 4 findings, 200 doc lines on 100 spec lines; `rb`: `issues` of the row, 12
+    // reviews with 6 findings, 100 doc lines on 100 spec lines
+    let one = |rb_issues: u64, extra: &[&str]| {
+        let quality = write(
+            &tmp.join("r-quality.tsv"),
+            QUALITY,
+            &[
+                "ra\t6\t1\t1\t0\t0\t0\t2\t4\t0\t0\t100\t200\t1\t0\t0\t0\t0\t0\t0\t0".into(),
+                format!(
+                    "rb\t{rb_issues}\t1\t1\t0\t0\t0\t12\t6\t0\t0\t100\t100\t1\t0\t0\t0\t0\t0\t0\t0"
+                ),
+            ],
+        );
+        verdict(&verdicts(
+            dir,
+            tmp,
+            &pair(two("p1", "ra", 1, 10), two("p1", "rb", 2, 5)),
+            &[
+                change('a', "findings_per_review", "rb"),
+                change('a', "doc_lines_per_spec_line", "rb"),
+            ],
+            &[&["--quality", quality.to_str().unwrap()], extra].concat(),
+        ))
+    };
+    vec![
+        (
+            "a before group with fewer reviews than --min-issues confounds a findings verdict",
+            one(6, &[]) == ["confounded", "helped"],
+        ),
+        (
+            "an after group with fewer issues than --min-issues confounds both ratio verdicts",
+            one(3, &["--min-issues", "2"]) == ["helped", "helped"]
+                && one(3, &["--min-issues", "4"]) == ["confounded", "confounded"],
+        ),
+    ]
+}
+
 // spec: VRD-10
 fn advisor_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let one = |sessions: Vec<S<'static>>, changes: &[String]| {
@@ -1092,6 +1131,7 @@ fn cardinal_report() {
         .chain(token_quality_checks(&dir, temp.path()))
         .chain(advisor_verdict_checks(&dir, temp.path()))
         .chain(issue_floor_checks(&dir, temp.path()))
+        .chain(ratio_floor_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

@@ -389,6 +389,59 @@ fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec
         .collect()
 }
 
+/// A ratio of the quality table (REP-6): its column, the summed columns it divides, whether it is rounded to the unit
+/// rather than to two decimals, and the summed columns that must reach `--min-issues` for a verdict on it (VRD-11,
+/// VRD-12).
+struct QualityRatio {
+    metric: &'static str,
+    numerator: &'static str,
+    divisor: &'static str,
+    per_unit: bool,
+    floored: &'static [&'static str],
+}
+
+const QUALITY_RATIOS: [QualityRatio; 5] = [
+    QualityRatio {
+        metric: "fixes_after_per_issue",
+        numerator: "fixes_after",
+        divisor: "issues",
+        per_unit: false,
+        floored: &["issues"],
+    },
+    QualityRatio {
+        metric: "findings_per_review",
+        numerator: "review_findings",
+        divisor: "reviews",
+        per_unit: false,
+        floored: &["issues", "reviews"],
+    },
+    QualityRatio {
+        metric: "doc_lines_per_spec_line",
+        numerator: "doc_lines",
+        divisor: "spec_lines",
+        per_unit: false,
+        floored: &["issues"],
+    },
+    QualityRatio {
+        metric: "input_tokens_per_issue",
+        numerator: "input_tokens",
+        divisor: "token_issues",
+        per_unit: true,
+        floored: &["token_issues"],
+    },
+    QualityRatio {
+        metric: "output_tokens_per_issue",
+        numerator: "output_tokens",
+        divisor: "token_issues",
+        per_unit: true,
+        floored: &["token_issues"],
+    },
+];
+
+fn quality_ratio(metric: &str) -> Option<&'static QualityRatio> {
+    QUALITY_RATIOS.iter().find(|r| r.metric == metric)
+}
+
 fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
     let summed = [
         "issues",
@@ -422,13 +475,7 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
             }
         })
         .collect();
-    columns.extend([
-        "fixes_after_per_issue",
-        "findings_per_review",
-        "doc_lines_per_spec_line",
-        "input_tokens_per_issue",
-        "output_tokens_per_issue",
-    ]);
+    columns.extend(QUALITY_RATIOS.iter().map(|r| r.metric));
     table("Quality", &columns, groups, |g| {
         let rows = of_group(files.iter().flatten(), g);
         let total = |c: &str| sum(&rows, c);
@@ -436,11 +483,10 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
             .iter()
             .map(|c| total(c).map(|n| n.to_string()).unwrap_or_default())
             .collect();
-        cells.push(ratio(total("fixes_after"), total("issues")));
-        cells.push(ratio(total("review_findings"), total("reviews")));
-        cells.push(ratio(total("doc_lines"), total("spec_lines")));
-        cells.push(per_unit(total("input_tokens"), total("token_issues")));
-        cells.push(per_unit(total("output_tokens"), total("token_issues")));
+        cells.extend(QUALITY_RATIOS.iter().map(|r| {
+            let divide = if r.per_unit { per_unit } else { ratio };
+            divide(total(r.numerator), total(r.divisor))
+        }));
         vec![cells]
     })
 }
@@ -550,11 +596,7 @@ fn fixed_context(groups: &[Group], context: &[Row]) -> Table {
 /// table is not printed or the cell is not a finite number.
 fn metric_value(tables: &[Table], g: usize, metric: &str) -> Option<(String, f64)> {
     let (title, column, key) = match metric {
-        "fixes_after_per_issue"
-        | "findings_per_review"
-        | "doc_lines_per_spec_line"
-        | "input_tokens_per_issue"
-        | "output_tokens_per_issue" => ("Quality", metric, None),
+        _ if quality_ratio(metric).is_some() => ("Quality", metric, None),
         "total_bytes" => ("Fixed context", metric, None),
         _ => match metric.strip_prefix(RULE_METRIC) {
             Some(rule) => ("Rules", "breached_share", Some(("rule", rule))),
@@ -585,7 +627,7 @@ const ADVISOR_METRICS: [&str; 3] = [
     "advisor_output_tokens",
 ];
 
-/// The floors of the verdicts: the sessions of a group (VRD-9, VRD-10) and its issues (VRD-11).
+/// The floors of the verdicts: the sessions of a group (VRD-9, VRD-10) and its issues (VRD-11, VRD-12).
 #[derive(Clone, Copy)]
 struct Floors {
     sessions: usize,
@@ -593,8 +635,8 @@ struct Floors {
 }
 
 /// Whether group `g` holds fewer values of `metric` than its floor: sessions with a value (VRD-9, VRD-10), as only
-/// `main_context_peak` and the advisor columns can be missing from a session row, or issues in the quality table for
-/// a per-issue metric (VRD-11).
+/// `main_context_peak` and the advisor columns can be missing from a session row, or issues (and reviews) in the
+/// quality table for one of its ratios (VRD-11, VRD-12).
 fn too_few_values(
     tables: &[Table],
     groups: &[Group],
@@ -602,7 +644,7 @@ fn too_few_values(
     metric: &str,
     floors: Floors,
 ) -> bool {
-    let issues = |column: &str| {
+    let too_few = |column: &str| {
         tables
             .iter()
             .find(|t| t.title == "Quality")
@@ -611,10 +653,11 @@ fn too_few_values(
             .is_none_or(|n| n < floors.issues)
     };
     let group = &groups[g];
+    if let Some(ratio) = quality_ratio(metric) {
+        return ratio.floored.iter().any(|c| too_few(c));
+    }
     match metric {
         "main_context_peak" => main_context_peaks(&group.sessions).len() < floors.sessions,
-        "fixes_after_per_issue" => issues("issues"),
-        "input_tokens_per_issue" | "output_tokens_per_issue" => issues("token_issues"),
         _ if ADVISOR_METRICS.contains(&metric) => {
             advisor_sessions(&group.sessions) < floors.sessions
         }
@@ -622,7 +665,7 @@ fn too_few_values(
     }
 }
 
-/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11), from the groups before and after
+/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11, VRD-12), from the groups before and after
 /// its change.
 fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors) {
     // Per row: the revisions holding its change, and the index of its after group.

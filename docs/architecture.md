@@ -274,8 +274,9 @@ The choices behind them:
   counting next to it the sessions it rests on (`peak_sessions`, `advisor_sessions`); a verdict on one of these
   metrics is `confounded` when they are fewer than `--min-sessions` (`no data` when there are none) (EVA-17, EVA-19,
   EVA-20, REP-9, REP-10, REP-11, VRD-9, VRD-10), and a verdict on an advisor metric also when the advisor set changed.
-  A verdict on a per-issue metric is `confounded` when a group closed fewer issues (of known tokens, for the
-  tokens) than `--min-issues` (5): an issue spans several sessions (VRD-11).
+  A verdict on a ratio of the quality table is `confounded` when a group closed fewer issues (of known tokens, for the
+  tokens; and also held fewer reviews, for the findings per review) than `--min-issues` (5): an issue spans several
+  sessions, and its reviews and lines are not independent (VRD-11, VRD-12).
 - **Signals, not verdicts**: medians per session, so one long session does not weigh as ten; groups of consecutive
   revisions of at least `--min-sessions` (10) sessions, since a `self:` revision often covers one issue; the sample
   size and the mix of models, versions and projects next to each number (REP-4, REP-5). The numbers are never turned

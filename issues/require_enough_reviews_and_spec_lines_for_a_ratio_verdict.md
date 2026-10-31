@@ -34,3 +34,31 @@ Lean agent loop
 * `too_few_values` repeats the divisor of each ratio that `quality()` computes and the metric names of
   `metric_value`: one table of (metric, numerator, divisor) read by the three would keep the floor on the right
   column (raised by the `high` review of `require_enough_issues_for_a_per_issue_verdict`).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A verdict on `findings_per_review` or `doc_lines_per_spec_line` reads `confounded` when its group holds fewer issues
+than `--min-issues` (the issue is the sample unit: its reviews and lines are not independent), and for
+`findings_per_review` also fewer reviews than that floor. No new option, no new column of `delivered-quality`.
+
+## Plan
+1. [x] Ratio floors: one table of the quality ratios (metric, numerator, divisor, floor columns) read by `quality()`,
+   `metric_value` and `too_few_values`; verified by a binary test of `cardinal-report --changes` per ratio; makes true
+   VRD-12.
+
+## Decisions
+- Mode: autonomous
+- Floors: 1 a (`issues` under `--min-issues` for both ratios, plus `reviews` under it for `findings_per_review`).
+- Base commit: 944a32164b35a1c5f49188f613a35e3bdfd696a7
+
+## Deliverable 1
+- done: `QUALITY_RATIOS` drives the quality ratios, their verdict values and their floors; `findings_per_review` and
+  `doc_lines_per_spec_line` now need `--min-issues` issues (and reviews, for the first).
+- red: VRD-12: `FAIL - a before group with fewer reviews than --min-issues confounds a findings verdict` (and the
+  after-group check), the verdicts read `helped`.
+- Code review: 1 finding, not fixed: no floor on `spec_lines` for `doc_lines_per_spec_line`, left out by decision 1 a (the issue is the sample unit).
+- not verified: none.
+- decisions needed: none.

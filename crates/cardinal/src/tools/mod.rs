@@ -12,6 +12,7 @@ mod check_issue;
 mod check_specs;
 mod close_issue;
 mod commit_check;
+mod deliverable_size;
 mod delivered_quality;
 mod fixed_context;
 mod format_code;
@@ -78,6 +79,11 @@ pub const TOOLS: &[Tool] = &[
         name: "commit-check",
         about: "validate a commit message read from stdin against AGENTS.md",
         main: commit_check::main,
+    },
+    Tool {
+        name: "deliverable-size",
+        about: "[<rev> | <a>..<b>]: the changed lines of a deliverable or an issue against the size limit",
+        main: deliverable_size::main,
     },
     Tool {
         name: "delivered-quality",

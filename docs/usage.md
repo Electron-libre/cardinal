@@ -85,6 +85,15 @@ that applies the migration is the only one to print it (SYN-54). Until a project
 its lock is of a lower format than the installed `cardinal` reads and its source is a git one (SYN-55). A migration that cannot be read fails them, writing
 nothing.
 
+## Size of a deliverable
+
+`cardinal run deliverable-size [<rev> | <a>..<b>]` ([specs/deliverable-size.md](../specs/deliverable-size.md)) counts
+the added plus removed lines, untracked files included, outside `issues/` and the lock files: with no argument the
+working tree against `HEAD`, against `deliverable_size_limit` (1000); with a revision or a range, against
+`issue_size_limit` (3000), both in the `[project]` table of `.claude/cardinal.toml`. A rename counts 0 unless the file
+also changed: then its whole old and new content count. It exits 1 over the limit; `issue-workflow` cuts the
+deliverable then.
+
 ## Releases
 
 `just release` (`cardinal run release`, [specs/release.md](../specs/release.md)) numbers the versions of a project

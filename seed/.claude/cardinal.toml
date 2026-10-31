@@ -26,6 +26,9 @@ skipped_dirs = []
 # the root with the version as last argument, and the files whose change makes a commit breaking (a major version).
 # release_version_command = "npm version --no-git-tag-version"
 # release_breaking_files = []
+# The size limit `deliverable-size` checks, in changed lines (issue-workflow): of a deliverable, and of a whole issue.
+# deliverable_size_limit = 1000
+# issue_size_limit = 3000
 # Where the agent finds the context of the project (issue-workflow, create-issue, prioritize-issues).
 roadmap = ["ROADMAP.md"]
 architecture = "docs/architecture.md"

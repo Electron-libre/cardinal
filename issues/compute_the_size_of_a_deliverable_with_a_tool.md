@@ -36,3 +36,43 @@ Lean agent loop
 
 # Hints
 * The issue total counts a moved file edited later twice: the tool reads the range, not only the last diff.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A tool `cardinal run deliverable-size [<rev> | <a>..<b>]` counts the changed lines (renames detected only when exact,
+so a moved-then-edited file counts twice) and exits 1 over the limit; the skill calls it at step 3.5 and on a resume.
+Out of scope: counting deliverables, estimating a plan before its code exists (step 1 keeps the estimate).
+
+## Plan
+1. [x] Tool: `deliverable-size` with its spec, the limits `deliverable_size_limit` / `issue_size_limit` in the seed;
+   verified by `tests/deliverable_size.rs` driving the binary in temp repos; makes true SIZ-1 to SIZ-10.
+2. [ ] Skill: `issue-workflow` steps 0, 1 and 3.5, `details.md` and `docs/workflow.md` name the tool instead of the
+   counting rules; verified by `just check` (skills tests, specs) and a run of the tool on this issue's range.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 7121eb25d5d035e62c71540528209089bf1e6b86
+- Limit by argument: none → `deliverable_size_limit`, a `<rev>` or a range → `issue_size_limit` (1 a).
+- Left-out files: a fixed list, no configuration key (2 a).
+
+## Deliverable 1
+
+- done: `cardinal run deliverable-size` with `specs/deliverable-size.md` (accepted), the limits in the seed,
+  `docs/usage.md` and `docs/architecture.md`; 450 changed lines by its own count.
+
+| check | result |
+|---|---|
+| tests | `tests/deliverable_size.rs`: 10 passed |
+| lint | clippy clean |
+| specs | `just check-specs` ok, SIZ-1 to SIZ-10 traced |
+| docs | `docs/usage.md` (new section), `docs/architecture.md` (config keys), seed |
+| code review | `/code-review low`: clean |
+
+- red: SIZ-1, SIZ-2, SIZ-3, SIZ-4, SIZ-5, SIZ-6, SIZ-7, SIZ-8, SIZ-9, SIZ-10: `cardinal: unknown tool
+  \`deliverable-size\``, exit 3 instead of 0.
+- Code review: no findings
+- not verified: a path that is not UTF-8 (read lossily, then not found on disk for an untracked file).
+- decisions needed: none.

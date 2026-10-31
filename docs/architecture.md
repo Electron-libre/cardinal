@@ -41,7 +41,8 @@ The fix belongs in this repository, then `sync` everywhere; there is deliberatel
 Everything that differs between projects is a value, not code. The tools read lists from `.claude/cardinal.toml`
 (`commit_scopes`, `root_docs`, `skipped_dirs`, `spec_files`, `internal_dirs`, `release_breaking_files`), the hooks and
 `release` the project's commands (`lint_command`, `lint_files`, `format_command`, `format_files`,
-`release_version_command`), and `cardinal` its `fixed_context_budget`; the skills tell the agent
+`release_version_command`), `deliverable-size` its limits (`deliverable_size_limit`, `issue_size_limit`), and
+`cardinal` its `fixed_context_budget`; the skills tell the agent
 which key to read (`roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language`); the
 change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else project-specific (a quality benchmark, a smoke test, the
 language-specific recipes of the `justfile`) stays in the project.

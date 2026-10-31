@@ -84,7 +84,7 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
    `tests/next_issue.rs` and the CLS-7 test; makes true NXT-1, NXT-2, NXT-7 to NXT-14, PAR-4, CLS-7. ~900 lines.
 2. [x] `check-issue` validates the keys: priority, `depends_on` syntax, self and unknown stems, sharing the
    front matter reader of `next_issue.rs`; verified by `tests/check_issue.rs`; makes true CKI-1 to CKI-3. ~250 lines.
-3. [ ] Skills and docs: `create-issue` sets a priority and the dependencies, `prioritize-issues` reviews them (guard
+3. [x] Skills and docs: `create-issue` sets a priority and the dependencies, `prioritize-issues` reviews them (guard
    against all `high`, one-time conversion of the ranks), `issue-workflow` (`next-issue` rule, "Split an issue"),
    `cardinal.just` and the tool's `about`, `docs/workflow.md`, `docs/architecture.md`, `README.md`, `CLAUDE.md`,
    `ROADMAP.md`, ADR 0019 status; `just sync`; verified by `just check` and `just check-cardinal`. ~500 lines (copies counted twice).
@@ -108,3 +108,7 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
 ## Deliverable 2
 - done: `check-issue` reports a missing or unknown priority, a `depends_on` that is not a list, names the issue itself or an unknown stem, reusing the reader of `next_issue.rs`.
 - red: CKI-1, CKI-2: `check-issue` printed nothing and exited 0 on an issue with no priority and on `depends_on: [b, gone]`.
+
+## Deliverable 3
+- done: `create-issue` writes the priority and dependencies in the template, `prioritize-issues` reviews them (rare `high`, conversion of a `rank`), `issue-workflow` and the docs name the new order; synced.
+- red: none (skills and docs; `skills.rs` keeps the commit passage of `prioritize-issues`).

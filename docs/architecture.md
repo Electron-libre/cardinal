@@ -193,7 +193,7 @@ separate working tree and index, shared object store ([ADR 0003](adr/0003-one-wo
   `cardinal.toml` it finds from the `cwd`; the review marker and waiver are per worktree (PAR-9). `.claude/` is
   tracked, so each worktree holds its own copy of Cardinal's files (a project that does not track it gets bare
   worktrees).
-- **Order**: each issue carries its `rank` (ADR 0019), so a branch edits only its own issues; closing happens at
+- **Order**: each issue carries its `priority` and `depends_on` (ADR 0021), so a branch edits only its own issues; closing happens at
   merge time, in the main worktree (PAR-8).
 - **Cost**: each worktree has its own `target/` (measured once, on this repository and a 24-core machine: 239 MB and a
   cold build in 4 s; a larger project may want a shared `CARGO_TARGET_DIR`, which is then the project's choice).

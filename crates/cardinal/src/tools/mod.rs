@@ -118,7 +118,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "next-issue",
-        about: "the open issue of lowest rank no branch or worktree has taken",
+        about: "the first ready issue no branch or worktree has taken, and the blocked ones",
         main: next_issue::main,
     },
     Tool {

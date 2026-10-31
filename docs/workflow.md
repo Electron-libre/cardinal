@@ -9,7 +9,7 @@ procedure (`.claude/skills/<name>/SKILL.md`); this page shows how they fit toget
 flowchart LR
   roadmap["ROADMAP.md<br/>milestones"] -->|create-issue| file["issues/NAME.md"]
   idea["idea, smoke run,<br/>review finding"] -->|create-issue| file
-  file -->|ranked| queue["rank in<br/>its front matter"]
+  file -->|prioritized| queue["priority and depends_on<br/>in its front matter"]
   queue -.->|prioritize-issues| queue
   queue -->|just next-issue| work["issue-workflow"]
   work -->|deliverables committed| close["just close-issue"]
@@ -20,8 +20,8 @@ flowchart LR
 |---|---|---|
 | Plan the milestones | user orders them, agent drafts | the `roadmap` documents of `.claude/cardinal.toml` (`ROADMAP.md` when seeded); `skill:create-issue` cuts a shaped one into issues |
 | Write the issue (Goal, Findings, Approach, Resources) | agent, attached to a milestone | `skill:create-issue`, checked by `just check-issue` |
-| Rank it | agent proposes, user decides | `rank` and `why` in the front matter of the issue (ADR 0019), `skill:prioritize-issues` to re-rank all |
-| Pick the next one | anyone | `just next-issue`: the open issue of lowest rank no branch or worktree has taken |
+| Prioritize it | agent proposes, user decides | `priority`, `depends_on` and `why` in the front matter of the issue (ADR 0021), `skill:prioritize-issues` to review them all |
+| Pick the next one | anyone | `just next-issue`: the first ready issue (by milestone, priority, age) no branch or worktree has taken, then the blocked ones |
 | Drive it to done | agent, with one validation stop | `skill:issue-workflow` |
 | Close it | agent in the main worktree, on the user's agreement; the user after a parallel issue | `just close-issue issues/NAME.md`: moves it to `issues/done/` and prints the next issue; the agent sets its milestone `done` when it was the last |
 | Release | user, on the agent's proposal when a milestone becomes `done` | `just release <version>` writes the `CHANGELOG.md` section and marks the milestone `Released:`; reread, commit, `just release <version> --tag`; the user pushes the tag |
@@ -83,7 +83,7 @@ the files, index and `target/` of one session never reach the other
 sequenceDiagram
   participant U as user, main worktree
   participant W as agent, issue worktree
-  U->>U: commit issues/NAME.md with its rank
+  U->>U: commit issues/NAME.md with its priority
   U->>U: just start-issue issues/NAME.md
   Note over U: .claude/worktrees/NAME on branch NAME
   U->>W: launch claude in the worktree
@@ -98,8 +98,8 @@ sequenceDiagram
 - The agent never creates, enters or leaves a worktree: a session entered with `EnterWorktree` or `claude --worktree`
   is isolated by Claude Code, which refuses every command it cannot prove stays there.
 - While the branch or the worktree exists, `just next-issue` skips the issue for every other session.
-- An issue is closed only in the main worktree: `close-issue` refuses in a linked one. A branch ranks only its own
-  issues, so two branches never conflict over the order.
+- An issue is closed only in the main worktree: `close-issue` refuses in a linked one. A branch prioritizes only
+  its own issues, so two branches never conflict over the order.
 - `just check-cardinal` before the merge catches a hook the installed `cardinal` would refuse once merged; run the
   `cargo install` it prints first.
 - The project's own tools run on `.` may read the nested worktrees: [usage.md](usage.md#parallel-issues-in-worktrees)

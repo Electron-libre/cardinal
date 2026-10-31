@@ -287,7 +287,8 @@ files under the `projects/` of the configuration directory and its user-level on
 and the summary of `rule-breaches`, whose rules broken often are hook candidates, its waste rules (a `bytes` column filled) apart. It only proposes what more than one session shows, in the cheapest form that holds it (skill,
 script or `cardinal` tool, hook, always-on rule last); its report holds private content, so it stays in the
 conversation and each validated proposal becomes an issue in generic wording. It is a skill rather than a tool because
-telling a repeated procedure from a rule needs judgment.
+telling a repeated procedure from a rule needs judgment. Its second mode reads only the repository: it reviews the shipped instructions
+for contradictions, duplicates, stale and mechanical rules, and fixes the accepted ones one family per deliverable.
 
 ## Parallel issues
 

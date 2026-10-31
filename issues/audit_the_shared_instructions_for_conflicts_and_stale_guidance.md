@@ -86,9 +86,10 @@ is about a state file, not the agent's `git add`.
    `breached_share:validation-stop`.
 4. [x] Legacy queue (S2): drop the format 4 conversion from `create-issue` and `prioritize-issues`; verified by
    `just check`; `Expected-effect: input_tokens down`.
-5. [x] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
+5. [x] Audit mode: a "Review the existing instructions" section in `skill:audit-instructions` (this audit's four
    families, file and line, one family per fix, the `issues/done/` check); verified by `just check`.
 6. [x] Follow-ups M1, M2: two issues through `skill:create-issue`.
+7. [x] Docs of the whole issue and fixes of its `high` review.
 
 Estimate: under 300 changed lines in all, each deliverable under 100.
 
@@ -228,6 +229,41 @@ the milestone Lean agent loop.
 red: none
 
 Code review: no findings
+
+not verified: none.
+
+decisions needed: none.
+
+## Deliverable 7
+
+done: `docs/architecture.md` names the review mode of `audit-instructions`; fixes of the `high` review below; the
+new checks of `skills.rs` are entries of the passage tables, on a shared `repo_root` and `skill_dirs`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/architecture.md` |
+| code review | high on `2a957a6..HEAD`, low on this fix |
+
+red: none (no spec, review fixes).
+
+Code review: 10 findings (high)
+- the always-on rule imposed English on every consumer: fixed, it keeps the language the project requires.
+- `create-issue` without the queue conversion ranks files a format 4 queue hides: not fixed, the `next-issue` run
+  of its step 5 after the write prints the NXT-6 hint, and a format 5 source no longer seeds a queue.
+- "Propose only: create nothing here" against the review mode's fixes: fixed, "create only what the user validates".
+- the pointer of `AGENTS.md` to the rule: not fixed, `AGENTS.md` serves the agents that do not load `.claude/rules/`
+  and Claude Code does not load it at launch.
+- "in the Cardinal source … `files/`" in a shared skill: fixed, worded for any managed copy.
+- the checker's setup exit codes: fixed, one clause (2 or 3, not 1).
+- `unwrap` on a stray file of `.claude/skills/`: fixed, `skill_dirs` keeps the directories.
+- a dropped passage of a missing skill passed: fixed, it fails "skill missing".
+- hand-coded checks duplicating the tables: fixed, entries of `DROPPED_PASSAGES` and `REQUIRED_PASSAGES`.
+- the tracking named the section "Review the managed instructions": fixed.
+
+Low review of the fixes: no findings.
 
 not verified: none.
 

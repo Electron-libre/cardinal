@@ -23,8 +23,8 @@ skill is the procedure; `cardinal run commit-check` enforces the mechanical rule
    printf '%s\n' "$msg" | cardinal run commit-check
    ```
 
-   It reads the scopes from `.claude/cardinal.toml` at the repository root. When it fails on the setup (that
-   file missing or invalid, not a git repository), fix the setup: the message was not checked.
+   It reads the scopes from `.claude/cardinal.toml` at the repository root. A setup error (that file missing or
+   invalid, not a git repository) exits 2 or 3, not 1: fix the setup, the message was not checked.
 
 5. **Deliver**:
    - If the user commits themselves: output **only the message**, with no preamble, no summary, no code

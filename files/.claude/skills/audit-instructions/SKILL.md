@@ -5,7 +5,7 @@ description: Read the instructions the user gave the agent over time (CLAUDE.md,
 
 # Audit the instructions
 
-Propose only: create nothing here. What an adopted proposal brought is measured by `skill:evaluate-harness`.
+Propose first: create only what the user validates. What an adopted proposal brought is measured by `skill:evaluate-harness`.
 
 ## Procedure
 
@@ -49,7 +49,7 @@ Propose only: create nothing here. What an adopted proposal brought is measured 
 When the user asks to review the instructions themselves rather than to find new ones:
 
 1. **Read whole** what the project ships to the agent: every markdown file of `.claude/skills/`, the `.claude/rules/`,
-   `AGENTS.md` and `CLAUDE.md` (in the Cardinal source, their originals under `files/`).
+   `AGENTS.md` and `CLAUDE.md` (a managed copy is read, and fixed, at its source).
 2. **List**, with file and line, four families:
    - a contradiction: two rules that ask opposite things, or a text that says not to restate a source and restates it;
    - a duplicate: one rule in several files, or a pointer to a rule with no `paths` (every session loads it already);

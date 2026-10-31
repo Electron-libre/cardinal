@@ -201,6 +201,11 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "the advisor never lifts the reviews nor the stop of step 2",
     ),
     (
+        "update-docs",
+        "skill:commit-message",
+        "a commit of the docs goes through the checker of commit-message",
+    ),
+    (
         "write-spec",
         "just spec-coverage",
         "the bootstrap of a spec starts from the report of the uncovered test files",
@@ -291,7 +296,7 @@ fn reference_failures(
 
 #[test]
 fn skills() {
-    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let root = repo_root();
     let skills = root.join(".claude/skills");
     let root_docs = config_list(&root, "root_docs");
     let mut failures = Vec::new();
@@ -421,15 +426,31 @@ fn always_on_rules(root: &Path) -> Vec<String> {
     rules
 }
 
+fn repo_root() -> std::path::PathBuf {
+    fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap()
+}
+
+/// The skill directories of `.claude/skills/`, as (name, path), sorted; a stray file is not a skill.
+fn skill_dirs(root: &Path) -> Vec<(String, std::path::PathBuf)> {
+    let mut dirs: Vec<_> = fs::read_dir(root.join(".claude/skills"))
+        .unwrap()
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+        .collect();
+    dirs.sort();
+    dirs
+}
+
 /// An always-on rule is already in the context of every session: a skill that points to it pays its line for nothing.
 #[test]
 fn skills_do_not_point_to_an_always_on_rule() {
-    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let root = repo_root();
     let rules = always_on_rules(&root);
     assert!(!rules.is_empty(), "no always-on rule in .claude/rules/");
     let mut failures = Vec::new();
-    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
-        for file in fs::read_dir(entry.path()).unwrap().flatten() {
+    for (_, dir) in skill_dirs(&root) {
+        for file in fs::read_dir(dir).unwrap().flatten() {
             let text = fs::read_to_string(file.path()).unwrap_or_default();
             for rule in rules
                 .iter()
@@ -445,49 +466,25 @@ fn skills_do_not_point_to_an_always_on_rule() {
 /// The language of the conversation is said once, in the always-on rule, not in each skill.
 #[test]
 fn the_user_language_is_said_once_in_the_always_on_rule() {
-    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let root = repo_root();
     let rule = fs::read_to_string(root.join(".claude/rules/reports-to-the-user.md")).unwrap();
     assert!(
         rule.contains("`user_language`"),
         "the rule names no `user_language`"
     );
-    let mut copies = Vec::new();
-    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
-        let text = fs::read_to_string(entry.path().join("SKILL.md")).unwrap_or_default();
-        if text.contains("`user_language`") {
-            copies.push(entry.file_name().to_string_lossy().into_owned());
-        }
-    }
-    copies.sort();
+    let copies: Vec<String> = skill_dirs(&root)
+        .into_iter()
+        .filter(|(_, dir)| {
+            fs::read_to_string(dir.join("SKILL.md"))
+                .unwrap_or_default()
+                .contains("`user_language`")
+        })
+        .map(|(name, _)| name)
+        .collect();
     assert!(
         copies.is_empty(),
         "skills restating the language: {copies:?}"
     );
-}
-
-/// The commit rules live in `AGENTS.md` and the commit procedure in `commit-message`: the other skills point to it.
-#[test]
-fn the_commit_rules_are_said_once() {
-    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
-    let skill = |name: &str| {
-        fs::read_to_string(root.join(".claude/skills").join(name).join("SKILL.md")).unwrap()
-    };
-    let mut failures = Vec::new();
-    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
-        let name = entry.file_name().to_string_lossy().into_owned();
-        if name != "commit-message" && skill(&name).contains("git add -A") {
-            failures.push(format!(
-                "{name}: restates the `git add -A` ban of commit-message"
-            ));
-        }
-    }
-    if skill("commit-message").contains("Co-Authored-By") {
-        failures.push("commit-message: restates the attribution rule of AGENTS.md".into());
-    }
-    if !skill("update-docs").contains("skill:commit-message") {
-        failures.push("update-docs: commits without skill:commit-message".into());
-    }
-    assert!(failures.is_empty(), "{failures:#?}");
 }
 
 /// Passages a skill must not hold, as (skill, passage, why): a rule said elsewhere, or one Claude Code's own prompt holds.
@@ -528,6 +525,26 @@ const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
         "Claude Code's prompt holds it",
     ),
     (
+        "commit-message",
+        "Co-Authored-By",
+        "`AGENTS.md` holds the attribution rule, the checker enforces it",
+    ),
+    (
+        "issue-workflow",
+        "git add -A",
+        "commit-message holds the ban, the callers commit through it",
+    ),
+    (
+        "create-issue",
+        "git add -A",
+        "commit-message holds the ban, the callers commit through it",
+    ),
+    (
+        "prioritize-issues",
+        "git add -A",
+        "commit-message holds the ban, the callers commit through it",
+    ),
+    (
         "create-issue",
         "issues/queue.md",
         "next-issue reads a format 4 queue and prints its own hint to convert it (NXT-6)",
@@ -541,11 +558,14 @@ const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
 
 #[test]
 fn skills_drop_the_restated_rules() {
-    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let root = repo_root();
     let mut failures = Vec::new();
     for (skill, passage, why) in DROPPED_PASSAGES {
-        let text = fs::read_to_string(root.join(".claude/skills").join(skill).join("SKILL.md"))
-            .unwrap_or_default();
+        let Ok(text) = fs::read_to_string(root.join(".claude/skills").join(skill).join("SKILL.md"))
+        else {
+            failures.push(format!("{skill}: skill missing, cannot drop '{passage}'"));
+            continue;
+        };
         let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
         if flat.contains(passage) {
             failures.push(format!("{skill}: holds '{passage}' ({why})"));

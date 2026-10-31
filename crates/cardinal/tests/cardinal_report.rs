@@ -672,6 +672,122 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+/// The sessions of three setups over two revisions: 12 of Sonnet advised by Opus (with a Haiku sub-agent, 2 of them on
+/// `r2`), 15 of Opus alone (5 on `r2`), 4 of Sonnet alone, then one with no model and one with no revision, left out.
+fn setup_sessions() -> Vec<String> {
+    let mut list: Vec<S> = Vec::new();
+    list.extend((1..=12).map(|t| S {
+        models: "claude-sonnet-5-5,claude-haiku-5-5",
+        advisor: "claude-opus-5-5,claude-fable-5-1",
+        ..base("p1", if t > 10 { "r2" } else { "r1" }, 2, t)
+    }));
+    list.extend((1..=15).map(|t| S {
+        models: "claude-opus-5-5",
+        ..base("p2", if t > 10 { "r2" } else { "r1" }, 3, t)
+    }));
+    list.extend((1..=4).map(|t| S {
+        models: "claude-sonnet-5-5",
+        ..base("p1", "r1", 4, t)
+    }));
+    list.push(S {
+        models: "",
+        ..base("p1", "r1", 5, 1)
+    });
+    list.push(S {
+        models: "claude-opus-5-5",
+        ..base("p1", "", 5, 1)
+    });
+    list.iter().enumerate().map(|(i, s)| s.row(i)).collect()
+}
+
+// spec: REP-14, REP-15, REP-16
+fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let file = write(&tmp.join("setup-sessions.tsv"), SESSIONS, &setup_sessions());
+    let (_, breaches, _, _, context) = axes_inputs(tmp);
+    let changes = write(
+        &tmp.join("setup-changes.tsv"),
+        CHANGES,
+        &["c1\tturns\tdown\tr1..r2".into()],
+    );
+    let by = |value: &str| {
+        run(
+            dir,
+            &[
+                "--sessions".as_ref(),
+                file.as_os_str(),
+                "--breaches".as_ref(),
+                breaches.as_os_str(),
+                "--context".as_ref(),
+                context.as_os_str(),
+                "--changes".as_ref(),
+                changes.as_os_str(),
+                "--by".as_ref(),
+                value.as_ref(),
+            ],
+        )
+    };
+    let (ok, out, err) = by("setup");
+    if !ok {
+        println!("{err}");
+    }
+    let t = tables(&out);
+    let eff = t.get("Efficiency");
+    let groups: Vec<String> = eff
+        .map(|r| r.iter().skip(1).map(|c| c[0].clone()).collect())
+        .unwrap_or_default();
+    let advised = "claude-sonnet-5-5 advised by claude-opus-5-5";
+    let too_few = eff
+        .and_then(|r| r.iter().find(|c| c[0] == "claude-sonnet-5-5 solo"))
+        .is_some_and(|c| c[1] == "4" && c[2..].iter().all(|v| v == "too few"));
+    let header = eff.and_then(|r| r.first());
+    let after_versions = header.is_some_and(|h| {
+        h.iter()
+            .position(|c| c == "versions")
+            .is_some_and(|i| h.get(i + 1).is_some_and(|c| c == "revisions"))
+    });
+    let skills_header = t.get("Skills").and_then(|r| r.first());
+    vec![
+        (
+            "--by setup groups the sessions by setup, most sessions first, the unknown ones left out",
+            ok && groups
+                == [
+                    "claude-opus-5-5 solo",
+                    advised,
+                    "claude-sonnet-5-5 solo",
+                ],
+        ),
+        (
+            "a setup group counts its sessions",
+            cell(eff, advised, "sessions") == "12",
+        ),
+        (
+            "a setup group under the threshold is too few",
+            too_few,
+        ),
+        (
+            "the efficiency table gives the revisions of a setup after the versions",
+            after_versions && cell(eff, "claude-opus-5-5 solo", "revisions") == "r1=10, r2=5",
+        ),
+        (
+            "the skills table leaves out the unused skills by setup",
+            skills_header.is_some_and(|h| !h.iter().any(|c| c == "unused")),
+        ),
+        (
+            "the revision-keyed tables are not printed by setup",
+            !t.contains_key("Rules") && !t.contains_key("Fixed context") && !out.contains("## Verdicts"),
+        ),
+        (
+            "--by revision keeps the groups of revisions",
+            by("revision").0 && tables(&by("revision").1).contains_key("Rules"),
+        ),
+        ("an unknown --by value is refused", !by("model").0),
+        (
+            "a --by with no value is refused",
+            !run(dir, &["--sessions".as_ref(), file.as_os_str(), "--by".as_ref()]).0,
+        ),
+    ]
+}
+
 // spec: REP-3
 fn refusal_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let good = write(
@@ -1195,6 +1311,7 @@ fn cardinal_report() {
         .chain(advisor_verdict_checks(&dir, temp.path()))
         .chain(issue_floor_checks(&dir, temp.path()))
         .chain(ratio_floor_checks(&dir, temp.path()))
+        .chain(setup_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

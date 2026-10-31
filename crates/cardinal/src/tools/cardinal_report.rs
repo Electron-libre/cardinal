@@ -4,7 +4,8 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--min-issues <n>] [--anonymous]`. With `--changes`, a last table gives each recorded change
+//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--anonymous]`. With `--by setup`, a group is a
+//! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives each recorded change
 //! of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -16,7 +17,7 @@ use super::session_metrics::HEADER as SESSIONS;
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
-const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--anonymous]";
+const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--anonymous]";
 const TOO_FEW: &str = "too few";
 
 type Row = HashMap<String, String>;
@@ -63,12 +64,14 @@ fn short(revision: &str) -> String {
     }
 }
 
-/// Consecutive revisions read together, so a comparison rests on enough sessions.
+/// Consecutive revisions read together, so a comparison rests on enough sessions; or, by setup, the sessions of one
+/// setup over any revisions.
 struct Group<'a> {
     name: String,
     revisions: HashSet<&'a str>,
     sessions: Vec<&'a Row>,
     too_few: bool,
+    by_setup: bool,
 }
 
 /// The group of the revisions of `open`, in order, with their sessions.
@@ -84,7 +87,43 @@ fn close<'a>(open: Vec<(&'a str, Vec<&'a Row>)>, too_few: bool) -> Group<'a> {
         revisions: open.iter().map(|(r, _)| *r).collect(),
         sessions: open.into_iter().flat_map(|(_, s)| s).collect(),
         too_few,
+        by_setup: false,
     }
+}
+
+/// The main model of a session, alone or advised by its first advisor model; none without a model (REP-15).
+fn setup(row: &Row) -> Option<String> {
+    let first = |column: &str| value(row, column).split(',').next().unwrap_or_default();
+    let main = first("models");
+    if main.is_empty() {
+        return None;
+    }
+    Some(match first("advisor_models") {
+        "" => format!("{main} solo"),
+        advisor => format!("{main} advised by {advisor}"),
+    })
+}
+
+/// The setups of the sessions of a non-empty revision, most sessions first, then by name (REP-14).
+fn setup_groups(sessions: &[Row], min: usize) -> Vec<Group<'_>> {
+    let mut by_setup: BTreeMap<String, Vec<&Row>> = BTreeMap::new();
+    for row in sessions.iter().filter(|r| !value(r, "revision").is_empty()) {
+        if let Some(setup) = setup(row) {
+            by_setup.entry(setup).or_default().push(row);
+        }
+    }
+    let mut ordered: Vec<_> = by_setup.into_iter().collect();
+    ordered.sort_by(|a, b| b.1.len().cmp(&a.1.len()).then(a.0.cmp(&b.0)));
+    ordered
+        .into_iter()
+        .map(|(name, sessions)| Group {
+            name,
+            revisions: sessions.iter().map(|r| value(r, "revision")).collect(),
+            too_few: sessions.len() < min,
+            sessions,
+            by_setup: true,
+        })
+        .collect()
 }
 
 /// The revisions in the order of their first session, cut into groups closed at `min` sessions (REP-4).
@@ -212,8 +251,8 @@ fn table(
     }
 }
 
-fn efficiency(groups: &[Group], anonymous: bool) -> Table {
-    let columns = [
+fn efficiency(groups: &[Group], anonymous: bool, by_setup: bool) -> Table {
+    let mut columns = vec![
         "issues",
         "projects",
         "models",
@@ -233,6 +272,9 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
         "validations",
         "other_messages",
     ];
+    if by_setup {
+        columns.insert(4, "revisions");
+    }
     table("Efficiency", &columns, groups, |g| {
         let issues: HashSet<(&str, &str)> = g
             .sessions
@@ -261,7 +303,7 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
         let peak_sessions = peaks.len().to_string();
         let calls = filled(&g.sessions, "advisor_calls");
         let advised = |c: &str| median_or_empty(filled(&g.sessions, c));
-        vec![vec![
+        let mut row = vec![
             issues.len().to_string(),
             projects,
             mix(&g.sessions, "models"),
@@ -280,8 +322,21 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
             advised("advisor_output_tokens"),
             column("validations"),
             column("other_messages"),
-        ]]
+        ];
+        if g.by_setup {
+            row.insert(4, revision_mix(&g.sessions));
+        }
+        vec![row]
     })
+}
+
+/// `revision=n` for the revisions of `sessions`, named as REP-4 names them (REP-16).
+fn revision_mix(sessions: &[&Row]) -> String {
+    let mut counts: BTreeMap<String, u64> = BTreeMap::new();
+    for row in sessions {
+        *counts.entry(short(value(row, "revision"))).or_default() += 1;
+    }
+    sorted_pairs(counts.iter().map(|(name, n)| (name.as_str(), *n)).collect())
 }
 
 /// The input of a session: its uncached input, cache read and cache creation tokens (REP-5).
@@ -763,6 +818,7 @@ struct Options {
     changes: Option<String>,
     min_sessions: usize,
     min_issues: usize,
+    by_setup: bool,
     anonymous: bool,
 }
 
@@ -784,6 +840,7 @@ fn options(args: &[String]) -> Result<Options, String> {
         changes: None,
         min_sessions: 10,
         min_issues: 5,
+        by_setup: false,
         anonymous: false,
     };
     while let Some(arg) = args.next() {
@@ -796,6 +853,13 @@ fn options(args: &[String]) -> Result<Options, String> {
             "--changes" => options.changes = Some(file()?),
             "--min-sessions" => options.min_sessions = floor(&mut args, &arg)?,
             "--min-issues" => options.min_issues = floor(&mut args, &arg)?,
+            "--by" => {
+                options.by_setup = match args.next().as_deref() {
+                    Some("revision") => false,
+                    Some("setup") => true,
+                    _ => return Err("--by needs revision or setup".to_string()),
+                }
+            }
             "--anonymous" => options.anonymous = true,
             other => return Err(format!("unknown argument {other}")),
         }
@@ -839,10 +903,20 @@ pub(super) fn main(args: &[String]) -> u8 {
         .map(|f| read(f, CHANGES))
         .transpose()
         .unwrap_or_else(|e| fail(e));
-    let groups = groups(&sessions, options.min_sessions);
-    let mut tables = vec![efficiency(&groups, options.anonymous)];
-    if !quality_files.is_empty() {
+    let groups = if options.by_setup {
+        setup_groups(&sessions, options.min_sessions)
+    } else {
+        groups(&sessions, options.min_sessions)
+    };
+    let mut tables = vec![efficiency(&groups, options.anonymous, options.by_setup)];
+    // The quality summaries name no setup yet: by setup, their table waits for it (REP-16).
+    if !quality_files.is_empty() && !options.by_setup {
         tables.push(quality(&groups, &quality_files));
+    }
+    if options.by_setup {
+        // The rules, the fixed context and the verdicts are kept per revision: no setup reads them (REP-16).
+        skills(&groups, None);
+        return 0;
     }
     if let Some(breaches) = &breaches {
         tables.push(rules(&groups, breaches));

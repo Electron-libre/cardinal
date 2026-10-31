@@ -1,6 +1,6 @@
 ---
 id: QUA
-status: accepted
+status: draft
 adrs: [0003, 0006, 0010]
 ---
 
@@ -30,6 +30,8 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - **QUA-13** (deterministic) The citation lines of QUA-11 must be those `check-specs` reads: in the files whose name matches the test-file patterns (TRC-11, at the revision the report runs on), the lines it reads as citations for their extension (TRC-12), so that a `# spec:` line of a `.py` test file counts and one of a `.rs` file or of a non-test file does not.
 - **QUA-14** (deterministic) `spec_lines` must sum, over the commits of the issue, the added and removed lines (as `git diff --numstat` counts them against the commit's first parent, renames detected) of the `.md` files under `specs/` other than `specs/README.md` and `specs/TEMPLATE.md`; `doc_lines` the same of the doc files: the `.md` files under `docs/` outside `docs/adr/`, the files the `root_docs` of `.claude/cardinal.toml` lists (`README.md` when it lists none or cannot be read) and the file its `architecture` names, all read at the revision the report runs on, less the files its `roadmap` lists. A binary file counts 0; both are empty when the diffs of the issue cannot be read.
 - **QUA-15** (deterministic) An assistant message of a session of the issue, sub-agents included (EVA-3), counted once per `message.id` over the sessions of the issue (EVA-2; a resumed session repeats the messages of the one it resumes) at the timestamp of its first line, is an event of QUA-8; `input_tokens` must sum over these messages the `input_tokens`, `cache_read_input_tokens` and `cache_creation_input_tokens` of their `message.usage` (the input sum of REP-5), `cache_read_tokens` their `cache_read_input_tokens` and `output_tokens` their `output_tokens`, the top-level usage only: that of an advised message already adds up its executor iterations and holds none of the advisor's tokens (EVA-19); the three cells are empty, not 0, when the issue has no session (`sessions` 0: its transcripts are gone or its commits were made outside a session).
+- **QUA-16** (deterministic) The rows must give, right after `revision`, `setup`: the setup (REP-15) of each session of the issue (QUA-7), read from its transcript (the first `message.model` of its assistant lines and the first `advisorModel` of its lines, sub-agents included, in order of first appearance as EVA-6 and EVA-18 read them), when they are all the same, `mixed` when they differ, and empty when the issue has no session with a model or the projects directory cannot be read.
+- **QUA-17** (deterministic) With `--summary`, the rows must be one per `revision` and `setup` (QUA-16) of the issues, the column `setup` right after `revision`, sorted as QUA-9 sorts the revisions, then by setup name (the empty one first); each row sums the issues of its pair only.
 
 ## Scenarios
 
@@ -55,6 +57,7 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - (QUA-14) Given an issue whose commit only renames `docs/a.md` to `docs/b.md`, when the row is printed, then `doc_lines` is 0.
 - (QUA-15) Given an issue whose one session holds an assistant message split over two lines with the same `message.id` and a usage of 10 input, 1,000 cache read, 200 cache creation and 50 output tokens, a sub-agent message of 5 input and 7 output tokens, and a message after the issue's last commit, when the row is printed, then `input_tokens` is 1215, `cache_read_tokens` 1000 and `output_tokens` 57.
 - (QUA-9) Given a revision of two issues, one whose session spent 1,000 input tokens and one closed outside any session, when the summary is printed, then its `input_tokens` is 1000 and its `token_issues` 1.
+- (QUA-16) Given an issue made in two sessions of `claude-sonnet-5-5` with an Opus advisor set, then a third of `claude-opus-5-5` with none, when the row is printed, then its `setup` is `mixed`.
 
 ## Non-goals
 

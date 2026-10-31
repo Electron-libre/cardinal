@@ -38,3 +38,49 @@ Advisor
 * A setup is a choice of the user, often per task difficulty: say that the comparison is observational, not an A/B.
 * The issues of one setup may be harder than another's; the reference task set
   (`replay_a_reference_task_set_to_compare_two_harness_variants.md`) is the controlled version.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+`cardinal-report --by setup` groups the sessions by setup (main model, ` solo` or ` advised by <advisor>`) instead of
+revision; `delivered-quality` gives each issue the setup of its sessions so the quality table splits too;
+`skill:evaluate-harness` presents it as an observational comparison. Out of scope: rules, fixed context and verdicts by
+setup (kept per revision), a controlled A/B (the reference task set issue).
+
+## Plan
+1. [x] Group by setup: `--by setup` in `cardinal-report`, the setup of a session, the `revisions` column, the
+   revision-keyed tables left out; verified by report tests on fixture rows; makes true REP-14, REP-15, REP-16 (but
+   its quality part).
+2. [ ] Quality by setup: the `setup` column of `delivered-quality` per issue and per summary row, read by the quality
+   table of both groupings; verified by delivered-quality tests on fixture transcripts and a report test; makes true
+   QUA-16, QUA-17, the quality part of REP-16.
+3. [ ] Present it: `skill:evaluate-harness` runs the report a second time with `--by setup` and reads it with its
+   sample sizes, its confounders (revisions, projects, versions) and the observational caveat; verified by the skill
+   checks of `just check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 70b6c7f267a403daf9e3c68943b9867a4d5fdb95
+- Main model of a session: the first of `models` (sub-agent models would fragment the setups).
+- Under `--by setup`, the rules, fixed context and verdicts are not printed; their files are still accepted.
+- The revision mix of a setup group shows in a `revisions` column of the efficiency table.
+- An issue made under several setups is `mixed`, a group of its own.
+
+## Deliverable 1
+
+- done: `cardinal-report --by setup` groups the sessions by setup with their revision mix; the quality, rules, fixed
+  context and verdicts tables are left out by setup until deliverable 2 gives the quality summaries a setup.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (REP-14 to REP-16 traced, spec still `draft` until QUA-16, QUA-17) |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+
+- red: REP-14, REP-15, REP-16: `unknown argument --by`
+- Code review: 1 findings, none fixed: "`--by setup` returns before the tables print" is false, `table()` prints each table as it is built (the setup test reads them)
+- not verified: none
+- decisions needed: none

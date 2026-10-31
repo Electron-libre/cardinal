@@ -255,7 +255,7 @@ flowchart LR
 | `delivered-quality` | done issue (`--summary`: revision) | deliverables, fixes inside and after, review findings, failed checks, tokens, traced ids, lines changed in the specs and in the docs | [`delivered-quality.md`](../specs/delivered-quality.md) |
 | `fixed-context` | project and revision | the bytes every session pays before any work, the skills shipped | [`cardinal-report.md`](../specs/cardinal-report.md) |
 | `cardinal-changes` | expected effect of a change | the `Expected-effect` lines of the commits of `files/`, the revisions in use that hold each | [`cardinal-verdicts.md`](../specs/cardinal-verdicts.md) |
-| `cardinal-report` | group of revisions | the tables of the readers above, never the transcripts; a verdict per expected effect | [`cardinal-report.md`](../specs/cardinal-report.md) |
+| `cardinal-report` | group of revisions, or setup (`--by setup`) | the tables of the readers above, never the transcripts; a verdict per expected effect | [`cardinal-report.md`](../specs/cardinal-report.md) |
 
 The choices behind them:
 

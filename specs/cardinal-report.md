@@ -1,6 +1,6 @@
 ---
 id: REP
-status: accepted
+status: draft
 adrs: [0002, 0006, 0010]
 ---
 
@@ -29,6 +29,9 @@ it. It reports trends, never a pass or a fail.
 - **REP-11** (deterministic) The efficiency table must give, right after `peak_sessions`, `advisor_models` (as `models`, from the `advisor_models` of EVA-18), `advisor_sessions` (the count of the group's sessions whose `advisor_calls` cell is not empty, 0 when none is), then `advisor_calls`, `advisor_input_tokens` and `advisor_output_tokens` (EVA-19): each the median (as REP-5) over those sessions, empty when there is none.
 - **REP-12** (deterministic) The efficiency table must give, right after `input_tokens`, `cache_read_share`: the median (as REP-5, on the shares before rounding) of the share of each session of the group whose input sum of REP-5 is not 0, that session's `cache_read_tokens` over that sum (the median of the ratios, not the ratio of the medians), written as a whole percent rounded half up (`33%`), empty when no session of the group has input.
 - **REP-13** (deterministic) The rules table (REP-6) must give, after `breached_share`, `bytes`: the sum of the `bytes` (BRE-20) of the rule's rows in the group, empty when one of them is empty; then `bytes_per_session`: that sum over the rule's `applied`, rounded half up to the unit, empty when `bytes` is empty or `applied` is 0 (a mean over the sessions where the rule applied, not a median: most sessions waste nothing, so a median stays at 0).
+- **REP-14** (deterministic) `cardinal-report` must accept `--by revision` (the default: the groups of REP-4) or `--by setup`, and refuse any other value, or none, with an error and a non-zero exit. With `--by setup`, the groups are the setups (REP-15) of the sessions of a non-empty revision instead, one group per setup named after it, ordered by their count of sessions, most first, then by name; a group of fewer than `--min-sessions` sessions shows in every table one row with its `sessions` and `too few` in each other cell, as REP-4.
+- **REP-15** (deterministic) The setup of a session must be the first model of its `models` (EVA-6, the model of its first assistant message) followed by ` solo` when its `advisor_models` (EVA-18) is empty, else by ` advised by ` and the first model of its `advisor_models`; a session whose `models` is empty has no setup and is left out of every table under `--by setup`.
+- **REP-16** (deterministic) With `--by setup`, the efficiency table must give, right after `versions`, `revisions`: the revisions of the group's sessions as `models` gives the models (`name=n`, written as REP-4 names them); the quality table sums the rows of the quality summaries whose `setup` (QUA-17) is the group's name, its columns unchanged; the skills table leaves out `unused`; and the rules table, the fixed context table and the verdicts, whose inputs are kept per revision, are not printed (their files still read and checked as REP-3 says).
 
 ## Scenarios
 
@@ -45,6 +48,8 @@ it. It reports trends, never a pass or a fail.
 
 - (REP-13) Given an `oversized-result` that applied in 3 sessions of `a` with `bytes` 70000 and 2 of `b` with `bytes` 30001, when `a..b` is a group, then its row reads `bytes` 100001 and `bytes_per_session` 20000.
 - (REP-11) Given a group of 10 sessions, 4 with an Opus advisor set that called it 0, 1, 3 and 6 times, when the report is printed, then `advisor_models` is `claude-opus-5-5=4`, `advisor_sessions` 4 and `advisor_calls` 2.
+- (REP-14) Given 12 sessions of `claude-sonnet-5-5 advised by claude-opus-5-5`, 15 of `claude-opus-5-5 solo` and 4 of `claude-sonnet-5-5 solo` with the default threshold, when the report is printed with `--by setup`, then the groups are `claude-opus-5-5 solo` (15), `claude-sonnet-5-5 advised by claude-opus-5-5` (12) and `claude-sonnet-5-5 solo`, marked `too few` with 4 sessions.
+- (REP-15) Given a session whose `models` is `claude-sonnet-5-5,claude-haiku-5-5` (an Explore sub-agent) and whose `advisor_models` is `claude-opus-5-5`, then its setup is `claude-sonnet-5-5 advised by claude-opus-5-5`.
 
 ## Non-goals
 
@@ -56,4 +61,6 @@ it. It reports trends, never a pass or a fail.
 - Memory a session loads from outside the repository (`~/.claude/CLAUDE.md`, a `CLAUDE.md` of a parent directory, an import
   outside the repository), on demand (a subdirectory's `CLAUDE.md`, a rule with `paths`), or through a user setting
   (`claude-md-and-agents-md`); the HTML comments Claude Code strips are counted: the measure is of the project's files.
+- A controlled comparison of the setups: a setup is the user's choice, often per task difficulty, so `--by setup`
+  is observational; the reference task set replays the same tasks under each.
 - Archiving the report: the session rows have their archive (EVA-11) and the git signals can be recomputed.

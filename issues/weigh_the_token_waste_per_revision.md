@@ -34,7 +34,7 @@ to move, and the waste rule kept out of the hook candidates.
 Lean agent loop
 
 # Resources
-* `issues/detect_token_waste_in_the_transcripts.md`: the measure and the rule.
+* `issues/done/detect_token_waste_in_the_transcripts.md`: the measure and the rule.
 * `crates/cardinal/src/tools/rule_breaches.rs`, `session_metrics.rs`, `cardinal_report.rs`.
 * `files/.claude/skills/audit-instructions/SKILL.md`, `files/.claude/skills/evaluate-harness/SKILL.md`.
 

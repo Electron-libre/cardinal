@@ -168,3 +168,8 @@ Code review: 10 findings (`high`, `1d828de..HEAD`)
 Code review: no findings (`low`, the fixes)
 
 not verified: a `graded` pass through the new rule on a real run (the measured runs predate it, both would pass: success, 2 commits, review lines, tests)
+
+## Outcome
+No-go on the ten-task set and the comparison (user's decision, 2026-10-31): about $55 of API equivalent at the least
+for measures no current change of the harness needs. The fixture and `just replay` stay for a one-off check (the
+fixture task, three runs per variant, about $6); no issue is written for the other cuts.

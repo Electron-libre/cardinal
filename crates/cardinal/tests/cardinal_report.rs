@@ -512,6 +512,37 @@ fn axes_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: REP-6
+fn token_quality_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let (sessions, _, quality_a, quality_b, _) = axes_inputs(tmp);
+    let arg = |s: &'static str| std::ffi::OsStr::new(s);
+    let (_, out, _) = run(
+        dir,
+        &[
+            arg("--sessions"),
+            sessions.as_os_str(),
+            arg("--quality"),
+            quality_a.as_os_str(),
+            arg("--quality"),
+            quality_b.as_os_str(),
+        ],
+    );
+    let t = tables(&out);
+    let (quality, first) = (t.get("Quality"), "self:1111111..r-b");
+    vec![(
+        "tokens summed and per issue, rounded half up to the unit",
+        [
+            ("input_tokens", "3000001"),
+            ("cache_read_tokens", "2000000"),
+            ("output_tokens", "10002"),
+            ("input_tokens_per_issue", "1000000"),
+            ("output_tokens_per_issue", "3334"),
+        ]
+        .iter()
+        .all(|(c, v)| cell(quality, first, c) == *v),
+    )]
+}
+
 // spec: REP-6, REP-7
 fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (sessions, _, quality_a, _, _) = axes_inputs(tmp);
@@ -573,6 +604,16 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                     docs_only.get("Quality"),
                     "self:1111111",
                     "doc_lines_per_spec_line",
+                )
+                .is_empty(),
+        ),
+        (
+            "no tokens per issue when the tokens are unknown",
+            cell(docs_only.get("Quality"), "self:1111111", "input_tokens").is_empty()
+                && cell(
+                    docs_only.get("Quality"),
+                    "self:1111111",
+                    "input_tokens_per_issue",
                 )
                 .is_empty(),
         ),
@@ -814,6 +855,33 @@ fn verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: VRD-1, VRD-5
+fn token_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let quality = write(
+        &tmp.join("v-quality.tsv"),
+        QUALITY,
+        &[
+            "ra\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10".into(),
+            "rb\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30".into(),
+        ],
+    );
+    let tokens = verdicts(
+        dir,
+        tmp,
+        &pair(two("p1", "ra", 1, 10), two("p1", "rb", 2, 5)),
+        &[
+            change('a', "input_tokens_per_issue", "rb"),
+            change('a', "output_tokens_per_issue", "rb"),
+        ],
+        &["--quality", quality.to_str().unwrap()],
+    );
+    let token_values: Vec<String> = tokens.iter().map(|r| r[5..].join(" ")).collect();
+    vec![(
+        "the tokens per issue come from the quality table",
+        token_values == ["500 300 helped", "5 15 hurt"],
+    )]
+}
+
 // spec: VRD-5, VRD-6, VRD-7, VRD-9
 fn verdict_edge_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let one = |sessions: Vec<S<'static>>, changes: &[String]| {
@@ -970,6 +1038,8 @@ fn cardinal_report() {
         .chain(refusal_checks(&dir, temp.path()))
         .chain(verdict_checks(&dir, temp.path()))
         .chain(verdict_edge_checks(&dir, temp.path()))
+        .chain(token_verdict_checks(&dir, temp.path()))
+        .chain(token_quality_checks(&dir, temp.path()))
         .chain(advisor_verdict_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;

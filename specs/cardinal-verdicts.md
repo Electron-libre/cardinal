@@ -1,6 +1,6 @@
 ---
 id: VRD
-status: draft
+status: accepted
 adrs: [0002, 0010]
 ---
 

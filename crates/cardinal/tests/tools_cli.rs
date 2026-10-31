@@ -210,6 +210,11 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
             "",
         ),
         (
+            "tokens per issue",
+            message("Expected-effect: input_tokens_per_issue down\nExpected-effect: output_tokens_per_issue down"),
+            "",
+        ),
+        (
             "fixed context",
             message("Expected-effect: total_bytes up"),
             "",

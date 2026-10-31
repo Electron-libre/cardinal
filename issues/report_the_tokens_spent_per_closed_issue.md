@@ -52,7 +52,7 @@ and make them `Expected-effect:` metrics. Out of scope: abandoned issues, sessio
 1. [x] Token columns of `delivered-quality`: `input_tokens`, `cache_read_tokens`, `output_tokens` per issue and in
    `--summary`, and the `QUALITY` header of `cardinal-report` that reads it; verified by a fixture session with a
    split message, a sub-agent and a message past the last commit; makes true QUA-1, QUA-7, QUA-15 (~250 lines).
-2. [ ] Ratios and verdicts: `input_tokens_per_issue`, `output_tokens_per_issue` in the quality table and accepted
+2. [x] Ratios and verdicts: `input_tokens_per_issue`, `output_tokens_per_issue` in the quality table and accepted
    by `commit-check` and the `## Verdicts` table; verified by the report and commit-check tests; makes true REP-6,
    VRD-1 (~120 lines).
 
@@ -77,4 +77,21 @@ and make them `Expected-effect:` metrics. Out of scope: abandoned issues, sessio
 - red: QUA-15: the token columns were missing (`the tokens of its span are summed once per message, sub-agents included` failed).
 - Code review: 1 finding (the transcript cells bypassed `cell`): fixed, `cell` takes any count.
 - not verified: a real run on the transcripts of this machine.
+- decisions needed: none.
+
+## Deliverable 2
+- done: the quality table sums the tokens and gives `input_tokens_per_issue` and `output_tokens_per_issue`; both are
+  `Expected-effect:` metrics read from that table.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass, `cardinal-report.md` and `cardinal-verdicts.md` accepted |
+| docs | none to change (no metric list in the docs) |
+| code review | low |
+
+- red: REP-6, VRD-1: the per-issue columns were missing and `commit-check` refused `input_tokens_per_issue`.
+- Code review: no findings.
+- not verified: a real report over the archived sessions.
 - decisions needed: none.

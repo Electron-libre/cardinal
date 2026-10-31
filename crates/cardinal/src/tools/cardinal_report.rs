@@ -373,6 +373,14 @@ fn ratio(a: Option<u64>, b: Option<u64>) -> String {
     }
 }
 
+/// `a / b` rounded half up to the unit, empty when a term is missing or `b` is 0.
+fn per_unit(a: Option<u64>, b: Option<u64>) -> String {
+    match (a, b) {
+        (Some(a), Some(b)) if b > 0 => ((2 * a + b) / (2 * b)).to_string(),
+        _ => String::new(),
+    }
+}
+
 /// The rows of `inputs` whose `revision` belongs to `group`.
 fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec<&'a Row> {
     inputs
@@ -399,6 +407,9 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         "failed_checks",
         "validations",
         "other_messages",
+        "input_tokens",
+        "cache_read_tokens",
+        "output_tokens",
     ];
     let mut columns: Vec<&str> = summed
         .iter()
@@ -414,6 +425,8 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         "fixes_after_per_issue",
         "findings_per_review",
         "doc_lines_per_spec_line",
+        "input_tokens_per_issue",
+        "output_tokens_per_issue",
     ]);
     table("Quality", &columns, groups, |g| {
         let rows = of_group(files.iter().flatten(), g);
@@ -425,6 +438,8 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         cells.push(ratio(total("fixes_after"), total("issues")));
         cells.push(ratio(total("review_findings"), total("reviews")));
         cells.push(ratio(total("doc_lines"), total("spec_lines")));
+        cells.push(per_unit(total("input_tokens"), total("issues")));
+        cells.push(per_unit(total("output_tokens"), total("issues")));
         vec![cells]
     })
 }
@@ -541,9 +556,11 @@ fn fixed_context(groups: &[Group], context: &[Row]) -> Table {
 /// table is not printed or the cell is not a finite number.
 fn metric_value(tables: &[Table], g: usize, metric: &str) -> Option<(String, f64)> {
     let (title, column, key) = match metric {
-        "fixes_after_per_issue" | "findings_per_review" | "doc_lines_per_spec_line" => {
-            ("Quality", metric, None)
-        }
+        "fixes_after_per_issue"
+        | "findings_per_review"
+        | "doc_lines_per_spec_line"
+        | "input_tokens_per_issue"
+        | "output_tokens_per_issue" => ("Quality", metric, None),
         "total_bytes" => ("Fixed context", metric, None),
         _ => match metric.strip_prefix(RULE_METRIC) {
             Some(rule) => ("Rules", "breached_share", Some(("rule", rule))),

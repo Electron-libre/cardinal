@@ -6,8 +6,7 @@
 //! issue are rebased so they still resolve from `issues/done/`. The files are those git lists (tracked and
 //! untracked, not ignored), so the issue worktrees nested under `.claude/worktrees/` keep their own files.
 //! Refuses to run in a linked git worktree, and to close an issue of one named by path from elsewhere: an issue
-//! is closed at merge time, on the main worktree. Drops its line from `issues/queue.md` while that file exists
-//! (format 4; the format 5 ranks each issue in its own file, ADR 0019). Ends on the issue `next-issue` then offers.
+//! is closed at merge time, on the main worktree. Ends on the issue `next-issue` then offers.
 //! Usage: `just close-issue issues/foo.md`; `just close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
@@ -439,30 +438,6 @@ fn relink_closed() -> u8 {
     0
 }
 
-/// Drop the issue `stem` from the `queue.md` of `dir` so `next_issue.rs` never offers a closed one.
-fn drop_from_queue(dir: &Path, stem: &str) {
-    let queue = dir.join("queue.md");
-    if let Ok(text) = std::fs::read_to_string(&queue) {
-        let mut kept: Vec<&str> = text
-            .lines()
-            .filter(|l| !l.trim().starts_with(&format!("- [{stem}](")))
-            .collect();
-        if kept.len() != text.lines().count() {
-            // Closing the last entry would leave the blank line under the header: end with one newline.
-            while kept.last().is_some_and(|l| l.trim().is_empty()) {
-                kept.pop();
-            }
-            let rewritten = if kept.is_empty() {
-                String::new()
-            } else {
-                kept.join("\n") + "\n"
-            };
-            std::fs::write(&queue, rewritten).expect("queue is writable");
-            println!("removed {stem} from {}", queue.display());
-        }
-    }
-}
-
 pub(super) fn main(args: &[String]) -> u8 {
     let Some(arg) = args.first().cloned() else {
         eprintln!("usage: cardinal run close-issue issues/<name>.md | --relink");
@@ -521,8 +496,6 @@ pub(super) fn main(args: &[String]) -> u8 {
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or_default();
-    drop_from_queue(dir, stem);
-    // Last, so that a failure here never leaves the queue offering a closed issue.
     match repo_root(dir) {
         Some(root) => {
             let issues = under(&root, dir);

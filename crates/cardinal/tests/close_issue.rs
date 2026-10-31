@@ -16,7 +16,7 @@ fn run(script: &Path, cwd: &Path, arg: &str) -> (bool, String) {
 }
 
 // spec: PAR-8
-/// `close_issue.rs` edits the queue, so it must run on the main worktree, never on an issue's worktree.
+/// An issue is closed at merge time, on the main worktree, never on an issue's worktree.
 fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
     let root = std::fs::canonicalize(tempfile::tempdir().unwrap().keep()).unwrap();
     let _ = std::fs::remove_dir_all(&root);
@@ -24,7 +24,6 @@ fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
     let linked = root.join("repo-foo");
     std::fs::create_dir_all(main.join("issues")).unwrap();
     std::fs::write(main.join("issues/foo.md"), "x").unwrap();
-    std::fs::write(main.join("issues/queue.md"), "- [foo](foo.md) - why\n").unwrap();
     let git = |args: &[&str]| {
         let ok = Command::new("git")
             .args([
@@ -55,21 +54,12 @@ fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
         linked.to_str().unwrap(),
     ]);
     let (in_linked, out) = run(script, &linked, "issues/foo.md");
-    let untouched = linked.join("issues/foo.md").is_file()
-        && std::fs::read_to_string(linked.join("issues/queue.md"))
-            .unwrap()
-            .contains("[foo]");
+    let untouched = linked.join("issues/foo.md").is_file();
     let (relink, _) = run(script, &linked, "--relink");
     let (by_path, by_path_out) = run(script, &main, "../repo-foo/issues/foo.md");
-    let untouched_by_path = linked.join("issues/foo.md").is_file()
-        && std::fs::read_to_string(linked.join("issues/queue.md"))
-            .unwrap()
-            .contains("[foo]");
+    let untouched_by_path = linked.join("issues/foo.md").is_file();
     let (from_linked, _) = run(script, &linked, "../repo/issues/foo.md");
-    let main_untouched = main.join("issues/foo.md").is_file()
-        && std::fs::read_to_string(main.join("issues/queue.md"))
-            .unwrap()
-            .contains("[foo]");
+    let main_untouched = main.join("issues/foo.md").is_file();
     let (in_main, _) = run(script, &main, "issues/foo.md");
     let out = vec![
         (
@@ -88,12 +78,6 @@ fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
         (
             "the main worktree closes the issue",
             in_main && main.join("issues/done/foo.md").is_file(),
-        ),
-        (
-            "a queue with no header is left empty",
-            std::fs::read_to_string(main.join("issues/queue.md"))
-                .unwrap()
-                .is_empty(),
         ),
     ];
     let _ = std::fs::remove_dir_all(&root);
@@ -230,7 +214,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
     let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap();
     write(
         "issues/foo.md",
-        "[bar](bar.md) [q](queue.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
+        "[bar](bar.md) [q](bar.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
     );
     write("issues/bar.md", "[foo](foo.md)\n[f]: ./foo.md#goal\n");
     write("issues/old.md", "x");
@@ -280,7 +264,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
         (
             "the links of the moved issue still resolve from done/",
             moved
-                == "[bar](../bar.md) [q](../queue.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
+                == "[bar](../bar.md) [q](../bar.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
         ),
         (
             "--relink repairs a relative link to an issue already in done/",
@@ -325,35 +309,6 @@ fn relink_checks(script: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         untouched("vendor/docs/v.md") && untouched("node_modules/pkg/n.md"),
     );
     out
-}
-
-/// Closing issues of `issues/queue.md` in `tmp` drops their entries.
-fn queue_checks(script: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
-    let header = "# Issue queue\n\nIntro.\n";
-    std::fs::write(
-        tmp.join("issues/queue.md"),
-        format!("{header}\n- [a](a.md) - why\n- [b](b.md) - why\n- [c](c.md) - why\n"),
-    )
-    .unwrap();
-    for f in ["a.md", "b.md", "c.md"] {
-        std::fs::write(tmp.join("issues").join(f), "x").unwrap();
-    }
-    let (ok, _) = run(script, tmp, "issues/b.md");
-    let queue = std::fs::read_to_string(tmp.join("issues/queue.md")).unwrap();
-    let middle = (
-        "closing a middle entry keeps the others",
-        ok && queue == format!("{header}\n- [a](a.md) - why\n- [c](c.md) - why\n"),
-    );
-    run(script, tmp, "issues/a.md");
-    let (ok, _) = run(script, tmp, "issues/c.md");
-    let queue = std::fs::read_to_string(tmp.join("issues/queue.md")).unwrap();
-    vec![
-        middle,
-        (
-            "closing the last entry leaves the header ending with one newline",
-            ok && queue == header,
-        ),
-    ]
 }
 
 // spec: CLS-7
@@ -515,10 +470,6 @@ fn close_issue() {
         "an absolute path from outside the repo is moved with git mv",
         ok && staged && out.contains("git mv"),
     );
-
-    for (name, ok) in queue_checks(&script, &tmp) {
-        check(name, ok);
-    }
 
     for (name, ok) in refuses_a_linked_worktree(&script)
         .into_iter()

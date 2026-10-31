@@ -127,7 +127,6 @@ fn worktrees_inside(main: &Path, dir: &Path) -> Result<Vec<PathBuf>, String> {
 fn valid_stem(stem: &str) -> bool {
     !stem.is_empty()
         && !stem.starts_with('-')
-        && stem != "queue"
         && stem
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')

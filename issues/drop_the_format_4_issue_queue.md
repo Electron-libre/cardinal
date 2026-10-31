@@ -63,7 +63,7 @@ history (`issues/done/`, `CHANGELOG.md`, the ADRs) and the other meanings of "qu
    NXT-6 tests, reword the reason of the two banned citations of `tests/skills.rs`; the `next-issue` comment of
    `files/cardinal.just` and the paragraph of `docs/usage.md` (they name `--convert`); verified by `just check`;
    makes true NXT-1 (amended), NXT-4 to NXT-6 withdrawn (~450 lines).
-2. [ ] `close-issue` and `issue-worktree` without the queue: remove `drop_from_queue` and the `queue` skip, their
+2. [x] `close-issue` and `issue-worktree` without the queue: remove `drop_from_queue` and the `queue` skip, their
    tests (`queue_checks`, the queue of the PAR-8 test); verified by `just check`; makes true CLS-4 and PAR-8 as reworded
    (~250 lines).
 
@@ -88,3 +88,20 @@ red: none (a removal: the withdrawn requirements lose their tests, the kept ones
 
 not verified: none. decisions needed: none.
 Code review: no findings (`split_front_matter` is still used by `front_matter` and `title`; `--convert` is now read as a directory and exits 2, as any unknown argument).
+
+## Deliverable 2
+done: `close-issue` no longer edits a `queue.md`, `start-issue` accepts the stem `queue`; the PAR-8 test checks the
+issue files alone, the CLS-4 test cites `bar.md#top` like its reworded scenario.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`check-specs --strict`) |
+| docs | none left (the module comment of `close_issue.rs`) |
+| code review | no findings |
+
+red: none (a removal)
+
+not verified: none. decisions needed: none.
+Code review: no findings

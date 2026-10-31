@@ -32,6 +32,7 @@ The work done before this file existed is in `issues/done/`.
 - Why: an advisor is configured but no call is seen in the transcripts, no skill says when to consult it, and the
   evaluation cannot tell an advised session from a solo one.
 - State: done
+- Released: v1.2.0
 - Issues:
   - [count_the_advisor_calls_of_each_session](issues/done/count_the_advisor_calls_of_each_session.md)
   - [measure_the_main_context_peak_of_an_advised_message](issues/done/measure_the_main_context_peak_of_an_advised_message.md)

@@ -42,7 +42,7 @@ the change that should have caused it, or says it cannot.
 - (VRD-9) Given groups `a` and `b` of 10 sessions each, 8 sessions of `a` archived before `main_context_peak`, when the expectation is `main_context_peak down`, then `verdict` is `confounded`, whatever the two medians; with all 10 sessions of `a` archived before the column, it is `no data`.
 - (VRD-10) Given groups `a` and `b` of 10 sessions each, 3 sessions of `a` with an advisor set, when the expectation is `advisor_calls up`, then `verdict` is `confounded`, whatever the two medians.
 - (VRD-11) Given groups `a` and `b` of 10 sessions each, `a` closing 2 issues and `b` 6, when the expectation is `fixes_after_per_issue down`, then `verdict` is `confounded`, whatever the two ratios.
-- (VRD-12) Given groups `a` and `b` of 10 sessions each, `a` closing 6 issues with 2 reviews and `b` 6 issues with 12 reviews, when the expectation is `findings_per_review down`, then `verdict` is `confounded`, whatever the two ratios; with `a` closing 3 issues, `doc_lines_per_spec_line up` is `confounded` too.
+- (VRD-12) Given groups `a` and `b` of 10 sessions each, `a` closing 6 issues with 2 reviews and `b` 6 issues with 12 reviews, when the expectation is `findings_per_review down`, then `verdict` is `confounded`, whatever the two ratios; with `a` holding 12 reviews and `b` closing 3 issues, `findings_per_review down` and `doc_lines_per_spec_line down` are `confounded` too.
 - (VRD-2) Given a message with `Expected-effect: speed up`, when it is checked, then `commit-check` refuses it.
 - (VRD-1) Given a commit of `files/` with `Expected-effect: doc_lines_per_spec_line up`, when it is checked, then `commit-check` accepts it.
 

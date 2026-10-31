@@ -48,6 +48,7 @@ than `--min-issues` (the issue is the sample unit: its reviews and lines are not
 1. [x] Ratio floors: one table of the quality ratios (metric, numerator, divisor, floor columns) read by `quality()`,
    `metric_value` and `too_few_values`; verified by a binary test of `cardinal-report --changes` per ratio; makes true
    VRD-12.
+2. [x] High review fixes: the findings of the `high` review of `944a321..HEAD`; verified by `just check`.
 
 ## Decisions
 - Mode: autonomous
@@ -60,5 +61,16 @@ than `--min-issues` (the issue is the sample unit: its reviews and lines are not
 - red: VRD-12: `FAIL - a before group with fewer reviews than --min-issues confounds a findings verdict` (and the
   after-group check), the verdicts read `helped`.
 - Code review: 1 finding, not fixed: no floor on `spec_lines` for `doc_lines_per_spec_line`, left out by decision 1 a (the issue is the sample unit).
+- not verified: none.
+- decisions needed: none.
+
+## Deliverable 2
+- done: the `high` review of the issue gave 8 findings. Fixed: the `issues` floor of `findings_per_review` tested on
+  its own, the VRD-12 scenario matched to its test, `QualityRatio.divide` holds the rounding function, a unit test ties
+  `QUALITY_RATIOS` to the metrics of VRD-1, a doc comment rewrapped. Not fixed: no floor on `spec_lines` and one
+  `--min-issues` for reviews (decision 1 a); unchecked column names in `QUALITY_RATIOS` (the binary tests of VRD-11
+  and VRD-12 read every floor, and the quality table tests every cell).
+- red: none (the fixes of a review).
+- Code review: no findings
 - not verified: none.
 - decisions needed: none.

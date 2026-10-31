@@ -389,14 +389,14 @@ fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec
         .collect()
 }
 
-/// A ratio of the quality table (REP-6): its column, the summed columns it divides, whether it is rounded to the unit
-/// rather than to two decimals, and the summed columns that must reach `--min-issues` for a verdict on it (VRD-11,
-/// VRD-12).
+/// A ratio of the quality table (REP-6): its column, the summed columns it divides, how it divides them (`ratio` to two
+/// decimals, `per_unit` to the unit), and the summed columns that must reach `--min-issues` for a verdict on it
+/// (VRD-11, VRD-12).
 struct QualityRatio {
     metric: &'static str,
     numerator: &'static str,
     divisor: &'static str,
-    per_unit: bool,
+    divide: fn(Option<u64>, Option<u64>) -> String,
     floored: &'static [&'static str],
 }
 
@@ -405,35 +405,35 @@ const QUALITY_RATIOS: [QualityRatio; 5] = [
         metric: "fixes_after_per_issue",
         numerator: "fixes_after",
         divisor: "issues",
-        per_unit: false,
+        divide: ratio,
         floored: &["issues"],
     },
     QualityRatio {
         metric: "findings_per_review",
         numerator: "review_findings",
         divisor: "reviews",
-        per_unit: false,
+        divide: ratio,
         floored: &["issues", "reviews"],
     },
     QualityRatio {
         metric: "doc_lines_per_spec_line",
         numerator: "doc_lines",
         divisor: "spec_lines",
-        per_unit: false,
+        divide: ratio,
         floored: &["issues"],
     },
     QualityRatio {
         metric: "input_tokens_per_issue",
         numerator: "input_tokens",
         divisor: "token_issues",
-        per_unit: true,
+        divide: per_unit,
         floored: &["token_issues"],
     },
     QualityRatio {
         metric: "output_tokens_per_issue",
         numerator: "output_tokens",
         divisor: "token_issues",
-        per_unit: true,
+        divide: per_unit,
         floored: &["token_issues"],
     },
 ];
@@ -483,10 +483,11 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
             .iter()
             .map(|c| total(c).map(|n| n.to_string()).unwrap_or_default())
             .collect();
-        cells.extend(QUALITY_RATIOS.iter().map(|r| {
-            let divide = if r.per_unit { per_unit } else { ratio };
-            divide(total(r.numerator), total(r.divisor))
-        }));
+        cells.extend(
+            QUALITY_RATIOS
+                .iter()
+                .map(|r| (r.divide)(total(r.numerator), total(r.divisor))),
+        );
         vec![cells]
     })
 }
@@ -665,8 +666,8 @@ fn too_few_values(
     }
 }
 
-/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11, VRD-12), from the groups before and after
-/// its change.
+/// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11, VRD-12), from the groups before
+/// and after its change.
 fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors) {
     // Per row: the revisions holding its change, and the index of its after group.
     let placed: Vec<(HashSet<&str>, Option<usize>)> = changes
@@ -870,6 +871,18 @@ fn moved(before: f64, after: f64, direction: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // spec: VRD-1 (internal: the two lists are private to their tools)
+    #[test]
+    fn every_quality_ratio_is_a_metric_of_an_expectation() {
+        for r in &QUALITY_RATIOS {
+            assert!(
+                super::super::cardinal_changes::METRICS.contains(&r.metric),
+                "{}",
+                r.metric
+            );
+        }
+    }
 
     // spec: VRD-6 (internal: the tables of the binary never print a value that is not finite)
     #[test]

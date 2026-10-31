@@ -1005,14 +1005,14 @@ fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 
 // spec: VRD-12
 fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
-    // `ra`: 6 issues, 2 reviews with 4 findings, 200 doc lines on 100 spec lines; `rb`: `issues` of the row, 12
-    // reviews with 6 findings, 100 doc lines on 100 spec lines
-    let one = |rb_issues: u64, extra: &[&str]| {
+    // `ra`: 6 issues, `ra_reviews` with 24 findings, 200 doc lines on 100 spec lines; `rb`: `rb_issues`, 12 reviews
+    // with 6 findings, 100 doc lines on 100 spec lines
+    let one = |ra_reviews: u64, rb_issues: u64, extra: &[&str]| {
         let quality = write(
             &tmp.join("r-quality.tsv"),
             QUALITY,
             &[
-                "ra\t6\t1\t1\t0\t0\t0\t2\t4\t0\t0\t100\t200\t1\t0\t0\t0\t0\t0\t0\t0".into(),
+                format!("ra\t6\t1\t1\t0\t0\t0\t{ra_reviews}\t24\t0\t0\t100\t200\t1\t0\t0\t0\t0\t0\t0\t0"),
                 format!(
                     "rb\t{rb_issues}\t1\t1\t0\t0\t0\t12\t6\t0\t0\t100\t100\t1\t0\t0\t0\t0\t0\t0\t0"
                 ),
@@ -1032,12 +1032,12 @@ fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     vec![
         (
             "a before group with fewer reviews than --min-issues confounds a findings verdict",
-            one(6, &[]) == ["confounded", "helped"],
+            one(2, 6, &[]) == ["confounded", "helped"],
         ),
         (
-            "an after group with fewer issues than --min-issues confounds both ratio verdicts",
-            one(3, &["--min-issues", "2"]) == ["helped", "helped"]
-                && one(3, &["--min-issues", "4"]) == ["confounded", "confounded"],
+            "an after group with fewer issues but enough reviews confounds both ratio verdicts",
+            one(12, 3, &["--min-issues", "2"]) == ["helped", "helped"]
+                && one(12, 3, &["--min-issues", "4"]) == ["confounded", "confounded"],
         ),
     ]
 }

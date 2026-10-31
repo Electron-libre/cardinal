@@ -1,6 +1,6 @@
 ---
 id: REV
-status: accepted
+status: draft
 adrs: [0004, 0005]
 ---
 
@@ -35,6 +35,7 @@ mistakes of a cooperative agent, not deliberate bypasses (ADR 0005).
 - **REV-18** (deterministic) withdrawn: see REV-13.
 - **REV-19** (deterministic) The managed entries of `.claude/settings.json` (`entries/.claude/settings.json` of the source, SYN-29) must hold the `permissions.deny` rules `Bash(just waive-review)`, `Bash(just waive-review *)` and `Edit(//**/claude-review-waived)`, so that Claude Code refuses the agent the recipe and an edit of the waiver.
 - **REV-20** (deterministic) `native` must let through a commit whose recorded diff (the index git commits, against `HEAD`) holds, outside `issues/`, only modified regular files, of the text files `close-issue` rewrites and with their mode kept, each equal, in the index, to its `HEAD` content once the references of CLS-1 and CLS-2 are rewritten for the stems `<stem>` whose `issues/<stem>.md` the index deletes and whose `issues/done/<stem>.md` it adds; any other change outside `issues/` (an added, deleted or binary file, a submodule, a changed mode, a file `close-issue` never rewrites, an edit on a line or elsewhere in such a file) must leave the commit to REV-9.
+- **REV-21** (deterministic) `check` must refuse a line holding a `git add` with `-A`, `--all` or `.` among its arguments (its global options skipped as in REV-12, in any command of a chained line such as `git add -A && git commit`), since it stages personal and unrelated files with the deliverable; a `-A` or a `.` inside a quoted message is not one; its message tells the agent to add the files of the deliverable by name.
 
 ## Scenarios
 

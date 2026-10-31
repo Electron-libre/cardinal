@@ -449,6 +449,7 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "review-before-commit\tr2\t1\t0\t0\t0\t",
         "review-waiver\tr1\t4\t1\t1\t2\t",
         "review-waiver\tr2\t1\t0\t0\t0\t",
+        "stage-everything\tr1\t1\t0\t0\t0\t",
         "validation-stop\tr1\t1\t1\t1\t0\t",
     ];
     let lines: Vec<&str> = out.lines().collect();
@@ -986,6 +987,89 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: BRE-21
+fn stage_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("stage");
+    let projects = tmp.join("projects");
+    let repo = new_repo(&tmp.join("g"));
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(
+            ".claude/cardinal.toml",
+            "[cardinal]\nsource = \"x\"\nrev = \"r1\"\n",
+        )],
+    );
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("go");
+    let chained = t.run(
+        "a1",
+        "Bash",
+        &bash("git add -A && git commit -m 'SECRET'"),
+        None,
+    );
+    t.run(
+        "a2",
+        "Bash",
+        &bash("git add src/a.rs && git commit -m 'git add -A .'"),
+        None,
+    );
+    let in_repo = t.run(
+        "a3",
+        "Bash",
+        &bash("git -C repo add ."),
+        Some("SECRET refused"),
+    );
+    let long = t.run("a4", "Bash", &bash("git add --all; ls ."), None);
+    t.run("a5", "Bash", &bash("git commit -am x"), None);
+    t.run("a6", "Bash", &bash("git status . && git add b.rs"), None);
+    t.write(&projects.join("-g/s.jsonl"));
+    let mut other = Transcript::new(&repo, "2026-02-02T10:00:00.000Z");
+    other.typed("go");
+    let alone = other.run("b1", "Bash", &bash("git add -A"), None);
+    other.write(&projects.join("-g/t.jsonl"));
+    let row = |s: &str, kind: &str, line: usize| {
+        format!("{s}\tg\tr1\tstage-everything\t{kind}\t{s}.jsonl:{line}\t")
+    };
+    let expected = vec![
+        row("s", "breach", chained),
+        row("s", "blocked", in_repo),
+        row("s", "breach", long),
+        row("t", "breach", alone),
+    ];
+    let (ok, out) = run(dir, &projects, false);
+    let rows: Vec<String> = out
+        .lines()
+        .filter(|l| l.contains("\tstage-everything\t"))
+        .map(str::to_string)
+        .collect();
+    let (_, summary) = run(dir, &projects, true);
+    let summary: Vec<&str> = summary
+        .lines()
+        .filter(|l| l.starts_with("stage-everything\t"))
+        .collect();
+    let want_summary = ["stage-everything\tr1\t2\t2\t3\t1\t"];
+    if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
+        println!("{out}{}", summary.join("\n"));
+    }
+    vec![
+        (
+            "the staging rule succeeds".to_string(),
+            ok && !out.contains("SECRET"),
+        ),
+        (
+            "a git add of -A, --all or . is a finding, not one of named files nor a quoted one"
+                .to_string(),
+            sorted(rows) == sorted(expected),
+        ),
+        (
+            "the staging rule applies to the sessions with a git add".to_string(),
+            summary == want_summary,
+        ),
+    ]
+}
+
 #[test]
 fn rule_breaches() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1000,6 +1084,7 @@ fn rule_breaches() {
         .chain(personal_language_checks(&dir, &tmp))
         .chain(routing_checks(&dir, &tmp))
         .chain(waste_checks(&dir, &tmp))
+        .chain(stage_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

@@ -1,6 +1,6 @@
 ---
 id: BRE
-status: accepted
+status: draft
 adrs: [0003, 0005, 0006, 0010, 0018]
 ---
 
@@ -37,6 +37,7 @@ tool gets a verdict on the waste it removes.
 - **BRE-18** (deterministic) Rule `skill-routing-write-spec`: its trigger must be a `Write` call whose path, relative to the work tree of its line (BRE-7), lies under `specs/`, ends with `.md`, is not `specs/README.md`, was not committed on the default branch at the session's `start` and no earlier call of the session wrote, with that relative path as `detail`.
 - **BRE-19** (deterministic) Rule `oversized-result`: a tool result of a transcript (the session's own or a sub-agent's) whose text (its string content, else the `text` of its parts joined by newlines) holds more than 25,000 bytes must be a `breach` located at its line, with `detail` that number of bytes. It applies to the sessions with at least one tool result.
 - **BRE-20** (deterministic) The summary of BRE-3 must end with a column `bytes`: for a waste rule (a rule whose `detail` is a number of bytes, `oversized-result` of BRE-19), the sum of the `detail` of its findings in the row's sessions (0 when none); for any other rule, empty. A rule is a waste rule or not whatever its findings, so a summary tells the measures from the instructions by this column alone.
+- **BRE-21** (deterministic) Rule `stage-everything`: a `Bash` call with a word `git` whose subcommand (read as in BRE-16) is `add`, with `-A`, `--all` or `.` among the words after it up to the next word `git`, must be a finding (`blocked` when its result is an error). It applies to the sessions with a `Bash` call holding `git` and `add`.
 
 ## Scenarios
 
@@ -55,6 +56,7 @@ tool gets a verdict on the waste it removes.
 - (BRE-18) Given a `Write` of `specs/new.md` and one of `specs/old.md`, committed before the session, when the session is read with no `write-spec` call, then only `specs/new.md` is a finding.
 - (BRE-19) Given a result of exactly the threshold and one a byte over it, when the session is read, then only the second is a breach.
 - (BRE-20) Given two sessions of a revision, one with results of 30,000 and 40,000 bytes and one with no result over the threshold, when the summary is printed, then the row of `oversized-result` reads `bytes` 70000, and the row of `no-verify` an empty `bytes`.
+- (BRE-21) Given `git add -A && git commit -m x`, then `git add src/a.rs`, then `git -C repo add .`, when the session is read, then the first and the third calls are findings; `git commit -am x` is none: it stages no untracked file.
 
 ## Non-goals
 

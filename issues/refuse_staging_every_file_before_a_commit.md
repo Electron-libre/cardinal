@@ -34,3 +34,40 @@ Lean agent loop
 # Hints
 * `issues/done/hook_code_review_before_commit.md`: the review gate runs before the `git add` of
   `git add -A && git commit`, so a check on the staged files sees nothing yet.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Measure how often the agent stages everything (`git add -A`, `--all`, `.`), then refuse it in the existing
+`PreToolUse` hook `review-gate check` if it is broken: one mechanism that also sees chained lines, so no deny rules.
+Out of scope: `git commit -a` (tracked files only, no personal untracked file), a glob (`git add *`).
+
+## Plan
+1. [x] Rule `stage-everything` in `rule-breaches`, then the measure over the kept transcripts recorded here; verified by
+   a test of the rule on a built transcript; makes true BRE-21.
+2. [ ] If the measure shows breaches in the sessions of a Cardinal revision: `review-gate check` refuses a `git add` of
+   everything, the commit-message prose kept as the reason; verified by tests of `check` on chained, quoted and
+   `-C` lines; makes true REV-21. Else: REV-21 withdrawn and the issue closed with the measure.
+
+## Decisions
+- Mode: autonomous
+- Broken: at least one breach in a session of a Cardinal revision (answer 1 a).
+- Mechanism: extend `review-gate check`, no deny rules (answer 2 a).
+- Base commit: ae5e7c99ea1918807bff76f67117a706b8e29294
+- Pre-measure (grep of the raw transcripts, before any revision filter): 105 `git add -A` and 2 `git add .` in 29 of
+  the 151 transcripts holding a commit, 24 of them dated 2026-10-24 or later.
+- BRE-21 applies to the sessions with a `git add` (not those with a commit): a finding in a session with no commit
+  would else count in no applied session.
+- Measure (2026-10-31, `cardinal run rule-breaches --summary`, every revision): `stage-everything` applied in 200
+  sessions, breached in 33 (16.5 %), 55 breaches and 12 blocked (by a permission prompt), in `cardinal` (21),
+  `Assistant` (19) and `RetroDoc` (15). Broken by decision 1 a: deliverable 2 goes.
+
+## Summary of deliverable 1
+done: rule `stage-everything` in `rule-breaches`, the shared `git_invocations` reads the subcommand for BRE-16 and BRE-21.
+red: BRE-21: `FAIL - a git add of -A, --all or . is a finding, not one of named files nor a quoted one`
+Code review: 1 finding
+- A `-A` or `.` of a later chained command (`git add a && ls .`) counts, the words reaching the next `git` (BRE-21
+  as written, like `--no-edit` of BRE-16): not fixed, a rare over-count of a measure; the hook of deliverable 2 reads
+  each command of the line apart.

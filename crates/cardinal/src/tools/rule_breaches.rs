@@ -316,22 +316,38 @@ struct Routing {
     specs: HashSet<String>,
 }
 
-/// Whether the shell `words` run `git commit` with a message to write: a `git` whose subcommand, after its options, is
-/// `commit`, with no `--no-edit` before the next `git` (BRE-16).
-fn writes_commit_message(words: &[String]) -> bool {
-    let words: Vec<&str> = words.iter().map(String::as_str).collect();
-    words.split(|w| *w == "git").skip(1).any(|invocation| {
-        let mut rest = invocation.iter();
-        while let Some(&word) = rest.next() {
-            match word {
-                "-C" | "-c" => {
-                    rest.next();
+/// Each `git` invocation of the shell `words`: its subcommand, the first word after `git` that is not an option (`-C`
+/// and `-c` taking the next word), with the words after it up to the next `git` (BRE-16).
+fn git_invocations(words: &[String]) -> impl Iterator<Item = (&str, &[String])> {
+    words
+        .split(|w| w == "git")
+        .skip(1)
+        .filter_map(|invocation| {
+            let mut at = 0;
+            while let Some(word) = invocation.get(at) {
+                match word.as_str() {
+                    "-C" | "-c" => at += 2,
+                    option if option.starts_with('-') => at += 1,
+                    subcommand => return Some((subcommand, &invocation[at + 1..])),
                 }
-                option if option.starts_with('-') => {}
-                subcommand => return subcommand == "commit" && !invocation.contains(&"--no-edit"),
             }
-        }
-        false
+            None
+        })
+}
+
+/// Whether the shell `words` run `git commit` with a message to write: no `--no-edit` before the next `git` (BRE-16).
+fn writes_commit_message(words: &[String]) -> bool {
+    git_invocations(words)
+        .any(|(subcommand, args)| subcommand == "commit" && !args.iter().any(|a| a == "--no-edit"))
+}
+
+/// Whether the shell `words` stage every file: a `git add` with `-A`, `--all` or `.` (BRE-21).
+fn stages_everything(words: &[String]) -> bool {
+    git_invocations(words).any(|(subcommand, args)| {
+        subcommand == "add"
+            && args
+                .iter()
+                .any(|a| matches!(a.as_str(), "-A" | "--all" | "."))
     })
 }
 
@@ -380,6 +396,12 @@ impl Verdict {
                 self.add("review-before-commit", false, &call.location, String::new());
                 *refused = false;
             }
+        }
+        if has("git") && has("add") {
+            self.applied.insert("stage-everything");
+        }
+        if stages_everything(&call.words) {
+            self.add("stage-everything", blocked, &call.location, String::new());
         }
         if has("just") && has("waive-review") {
             self.add("review-waiver", blocked, &call.location, String::new());

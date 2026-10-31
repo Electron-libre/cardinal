@@ -60,13 +60,20 @@ sessions never work in the same worktree at once; the workspace outlives the iss
    trunk is read elsewhere (the default branch of the remote, a key of `.claude/cardinal.toml`).
 6. **A reused workspace**: before claiming, the workspace must be clean, on no unmerged issue branch, and cut from the
    current trunk; `finish-issue` must then free the issue without removing the worktree.
-7. **The merge stays the user's**: a linked worktree cannot fast-forward the branch the main worktree has checked out
-   without leaving that checkout behind, so the merge, `close-issue` and the release of the claim stay in the main
-   worktree.
+7. **The end of an issue is heavy**: today the agent of a linked worktree rebases, then prints four commands the user
+   runs in the main worktree (`git merge --ff-only`, `close-issue`, its commit, `finish-issue`). The reasons:
+   - `close-issue` refuses in a linked worktree (PAR-8) so that the queue was edited on the main branch only (ADR
+     0011, Decision). With the ranks of ADR 0019 a branch touches only its own issue files: that reason is gone, and the
+     close can be the last commit of the issue branch.
+   - A linked worktree cannot move the branch the main worktree has checked out: `git update-ref` would leave that
+     checkout behind, and `git push . HEAD:<trunk>` is refused (`receive.denyCurrentBranch`). Whether
+     `updateInstead` updates a branch checked out in another worktree with git 2.56 is not measured.
 8. **A team**: a local ref or lock is invisible from another clone. Pushing the claim (the branch, a draft pull
    request) is the only shared mark; out of scope unless the user wants it.
-9. **The launch**: `claude --worktree` would bring back the isolation of ADR 0011; the docs keep naming a plain
-   `claude` launched in the worktree.
+9. **The launch is not the user's**: the user runs Claude Code through an editor's agent client (ACP), which starts
+   the agent in the folder the editor opened, with no launch option. Opening a worktree as an editor project is then
+   the plain launch ADR 0011 asks for (no `--worktree`, no isolation). The same client can open several agent threads
+   on one project: two sessions in one worktree is a real case, not a hypothesis (weak point 3).
 
 # Approach
 Measure first: two plain `claude` sessions in one worktree, and two sessions handed the same issue from two
@@ -88,13 +95,20 @@ Candidates, to combine at step 1 of `issue-workflow`:
    (deletes its branch and claim) and leaves the worktree.
 5. **Trunk**: read the trunk from the remote's default branch or a key, so the main worktree can host an issue branch
    too.
+6. **The agent ends the issue**: on the user's agreement to close, the agent of the workspace runs `close-issue` on
+   the issue branch, rebases on the trunk, then moves the trunk to its branch by compare-and-swap (`git update-ref
+   refs/heads/<trunk> <branch tip> <old trunk>`), frees the claim and leaves the workspace clean on the new trunk. It
+   needs the trunk checked out by no worktree (the main worktree detached, or kept for integration and moved by the
+   user), or `updateInstead` if a measure shows it works across worktrees. With a remote and pull requests instead,
+   the agent pushes the branch and opens the pull request, and the merge is the host's.
+7. **Ask the user** at step 1: is there a remote, and are the issues merged by pull request or locally?
 
 A new ADR records the choice, amending ADR 0003, 0008 and 0011. Likely over the size limit: split at step 2 (claim
 and `next-issue`, workspace lock, reusable workspace and docs).
 
 # Specs
-* `specs/parallel-issues.md`: PAR-1, PAR-2 (start), PAR-3, PAR-4 (taken), PAR-6, PAR-10 (finish) amended; new
-  requirements for the claim and the workspace lock.
+* `specs/parallel-issues.md`: PAR-1, PAR-2 (start), PAR-3, PAR-4 (taken), PAR-6, PAR-10 (finish), PAR-8 (close only
+  in the main worktree) amended; new requirements for the claim, the workspace lock and the end of an issue.
 * `specs/next-issue.md`: NXT-1 if a claim ref joins the branches.
 * A hook spec for the workspace lock if candidate 3 is kept.
 
@@ -110,6 +124,7 @@ and `next-issue`, workspace lock, reusable workspace and docs).
 * `issues/done/make_the_issue_worktree_optional_and_opened_by_the_user.md`: why the agent no longer creates worktrees.
 
 # Hints
+* Weak point 4 also covers a killed editor: an agent client closed with its editor may skip `SessionEnd`.
 * The agent still never creates, enters or leaves a worktree (ADR 0011): claiming checks out a branch inside the
   worktree the user opened, which is not entering another one.
 * `issues/drop_the_format_4_issue_queue.md` also edits `next_issue.rs`: land it first.

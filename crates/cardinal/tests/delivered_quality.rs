@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages";
+const COLUMNS: &str = "issue\trevision\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -849,12 +849,23 @@ fn bash(cwd: &Path, ts: &str, id: &str, command: &str, error: bool) -> String {
     call + &result
 }
 
+/// An assistant message `id` at `ts` with the usage `input`, `cache_read`, `cache_creation`, `output`.
+fn usage(cwd: &Path, ts: &str, id: &str, tokens: [u64; 4]) -> String {
+    let [input, cache_read, cache_creation, output] = tokens;
+    line(
+        "assistant",
+        cwd,
+        ts,
+        &serde_json::json!({"message": {"id": id, "content": [{"type": "text", "text": "SECRET answer"}], "usage": {"input_tokens": input, "cache_read_input_tokens": cache_read, "cache_creation_input_tokens": cache_creation, "output_tokens": output}}}),
+    )
+}
+
 fn write(path: &Path, lines: &[String]) {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, lines.concat()).unwrap();
 }
 
-// spec: QUA-7, QUA-8
+// spec: QUA-7, QUA-8, QUA-15
 fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("sessions");
     let repo = fixture(&tmp);
@@ -871,6 +882,8 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let s1 = [
         typed(&repo, "2026-01-01T23:00:00Z", "SECRET prepare alpha"),
         typed(&repo, "2026-01-02T23:00:00Z", "SECRET do alpha"),
+        usage(&repo, "2026-01-02T23:30:00Z", "u1", [10, 1000, 200, 50]),
+        usage(&repo, "2026-01-02T23:31:00Z", "u1", [10, 1000, 200, 50]),
         bash(&repo, "2026-01-03T01:00", "a1", "just check", true),
         bash(&repo, "2026-01-03T02:00", "a2", "just test-harness", false),
         bash(&repo, "2026-01-03T03:00", "a3", "cargo check", true),
@@ -886,6 +899,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         bash(&repo, "2026-01-04T09:00", "a6", "just check", true),
         typed(&repo, "2026-01-05T00:30:00Z", "1 a, 2 b"),
         typed(&repo, "2026-01-05T01:00:00Z", "SECRET after"),
+        usage(&repo, "2026-01-05T00:45:00Z", "u2", [1000, 0, 0, 1000]),
     ];
     write(
         &projects.join("-proj/s1.jsonl"),
@@ -893,7 +907,10 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     write(
         &projects.join("-proj/s1/subagents/agent-1.jsonl"),
-        &[bash(&repo, "2026-01-03T04:00", "b1", "just check", true)],
+        &[
+            bash(&repo, "2026-01-03T04:00", "b1", "just check", true),
+            usage(&repo, "2026-01-02T23:40:00Z", "u3", [5, 0, 0, 7]),
+        ],
     );
     let (ok, out) = run(dir, &repo, &["--projects", projects.to_str().unwrap()]);
     let r = rows(&out);
@@ -904,7 +921,8 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ("the sessions of an issue are the latest-starting ones holding its commits, its branch first".to_string(), has(&r, "alpha", "sessions", "1") && has(&r, "beta", "sessions", "1")),
         ("the failed just checks of its span are counted, not other commands nor sub-agents".to_string(), has(&r, "alpha", "failed_checks", "3") && has(&r, "beta", "failed_checks", "1")),
         ("the typed messages of its span are split into validations and the rest".to_string(), has(&r, "alpha", "validations", "1") && has(&r, "alpha", "other_messages", "2") && has(&r, "beta", "validations", "1") && has(&r, "beta", "other_messages", "0")),
-        ("the transcript columns are empty when the projects cannot be read".to_string(), ["sessions", "failed_checks", "validations", "other_messages"].iter().all(|c| has(&n, "alpha", c, ""))),
+        ("the tokens of its span are summed once per message, sub-agents included".to_string(), has(&r, "alpha", "input_tokens", "1215") && has(&r, "alpha", "cache_read_tokens", "1000") && has(&r, "alpha", "output_tokens", "57") && has(&r, "beta", "input_tokens", "0")),
+        ("the transcript columns are empty when the projects cannot be read".to_string(), ["sessions", "failed_checks", "validations", "other_messages", "input_tokens", "cache_read_tokens", "output_tokens"].iter().all(|c| has(&n, "alpha", c, ""))),
         ("no text of a message is printed".to_string(), !out.contains("SECRET")),
     ]
 }
@@ -951,10 +969,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages",
-        "r1\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t",
-        "r2\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t",
-        "a0\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t",
+        "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens",
+        "r1\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t\t\t",
+        "r2\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t\t\t",
+        "a0\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t\t\t",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {

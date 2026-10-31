@@ -1,6 +1,6 @@
 ---
 id: VRD
-status: accepted
+status: draft
 adrs: [0002, 0010]
 ---
 
@@ -16,7 +16,7 @@ the change that should have caused it, or says it cannot.
 
 ## Requirements
 
-- **VRD-1** (deterministic) An expectation must be a line of a commit message of the form `Expected-effect: <metric> <direction>`, `<direction>` being `up` or `down` and `<metric>` one of `turns`, `tool_calls`, `output_tokens`, `input_tokens`, `validations`, `other_messages` (REP-5), `cache_read_share` (REP-12), `main_context_peak` (REP-9), `advisor_calls`, `advisor_input_tokens`, `advisor_output_tokens` (REP-11), `fixes_after_per_issue`, `findings_per_review`, `doc_lines_per_spec_line` (REP-6), `total_bytes` (REP-7), or `breached_share:<rule>`, `<rule>` a name of lowercase letters, digits and `-`, as the rules of the `rule-breaches` summary (BRE-3), and the line holding nothing else.
+- **VRD-1** (deterministic) An expectation must be a line of a commit message of the form `Expected-effect: <metric> <direction>`, `<direction>` being `up` or `down` and `<metric>` one of `turns`, `tool_calls`, `output_tokens`, `input_tokens`, `validations`, `other_messages` (REP-5), `cache_read_share` (REP-12), `main_context_peak` (REP-9), `advisor_calls`, `advisor_input_tokens`, `advisor_output_tokens` (REP-11), `fixes_after_per_issue`, `findings_per_review`, `doc_lines_per_spec_line`, `input_tokens_per_issue`, `output_tokens_per_issue` (REP-6), `total_bytes` (REP-7), or `breached_share:<rule>`, `<rule>` a name of lowercase letters, digits and `-`, as the rules of the `rule-breaches` summary (BRE-3), and the line holding nothing else.
 - **VRD-2** (deterministic) `commit-check` must refuse, with a message naming the line, a commit message holding a line that starts with `Expected-effect:` and is not an expectation of VRD-1.
 - **VRD-3** (deterministic) `cardinal-changes [repo] --sessions <file>` must print a header line then one tab-separated row per expectation of the non-merge commits of the default branch of `repo`, those of a merged branch included, (default the current directory; the default branch as EVA-8 picks it) that change a path under `files/`, with the columns `change` (the full hash of the commit), `metric`, `direction` and `revisions`, in the order `git log --reverse` lists the commits (oldest first), then in the order of the lines of a message.
 - **VRD-4** (deterministic) `revisions` must list the distinct `revision` values of the sessions file, in the order of the earliest `start` of their sessions and joined by `,`, whose commit (the value itself, or what follows `self:`) is a hexadecimal hash of 7 to 40 digits that exists in `repo` and has the change as an ancestor or is the change; a revision git cannot resolve in `repo`, a branch or tag name, `unpinned` and the empty revision are never listed.

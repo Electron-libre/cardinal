@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 const SESSIONS: &str = "session\tproject\tissues\trevision\tmodels\tversions\tstart\tduration_s\tturns\ttool_calls\tinput_tokens\toutput_tokens\tthinking_tokens\tcache_read_tokens\tcache_creation_tokens\tmain_context_peak\tadvisor_models\tadvisor_calls\tadvisor_input_tokens\tadvisor_output_tokens\thook_refusals\tskills\tvalidations\tother_messages\tunreadable_lines\tunknown_lines\tmissing_fields";
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked";
-const QUALITY: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages";
+const QUALITY: &str = "revision\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
 const CHANGES: &str = "change\tmetric\tdirection\trevisions";
@@ -393,14 +393,14 @@ fn axes_inputs(tmp: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
         &tmp.join("quality-a.tsv"),
         QUALITY,
         &[
-            format!("{SELF}\t2\t4\t6\t1\t1\t0\t2\t3\t5\t2\t150\t30\t2\t1\t3\t4"),
-            "zzz\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9".into(),
+            format!("{SELF}\t2\t4\t6\t1\t1\t0\t2\t3\t5\t2\t150\t30\t2\t1\t3\t4\t3000000\t2000000\t10000"),
+            "zzz\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9".into(),
         ],
     );
     let quality_b = write(
         &tmp.join("quality-b.tsv"),
         QUALITY,
-        &["r-b\t1\t1\t2\t0\t0\t0\t1\t\t1\t1\t50\t20\t1\t0\t1\t0".into()],
+        &["r-b\t1\t1\t2\t0\t0\t0\t1\t\t1\t1\t50\t20\t1\t0\t1\t0\t1\t0\t2".into()],
     );
     let context = write(
         &tmp.join("context.tsv"),
@@ -543,7 +543,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         &tmp.join("quality-no-spec.tsv"),
         QUALITY,
         &[format!(
-            "{SELF}\t1\t1\t1\t0\t0\t0\t1\t0\t0\t0\t0\t9\t1\t0\t0\t0"
+            "{SELF}\t1\t1\t1\t0\t0\t0\t1\t0\t0\t0\t0\t9\t1\t0\t0\t0\t\t\t"
         )],
     );
     let (_, docs_only, _) = run(

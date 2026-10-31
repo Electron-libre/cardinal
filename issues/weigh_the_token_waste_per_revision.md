@@ -56,7 +56,7 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
    table of `cardinal-report`; verified by unit tests of both tools; makes true BRE-20, REP-13.
 2. [x] Waste metric: `bytes_per_session:<rule>` accepted by `commit-check` and `cardinal-changes`, given a verdict by
    `cardinal-report --changes`; verified by tests of the three; makes true VRD-13.
-3. [ ] Skills: `audit-instructions` and `evaluate-harness` name a rule with a filled `bytes` a waste measure, read
+3. [x] Skills: `audit-instructions` and `evaluate-harness` name a rule with a filled `bytes` a waste measure, read
    through `bytes_per_session`, never a hook or rewording candidate; `just sync`; verified by `just check-cardinal`.
 
 ## Decisions
@@ -80,4 +80,11 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
   verdicts of `cardinal-report`; `cardinal-verdicts` spec back to `accepted`.
 - red: VRD-13: `cardinal-changes` dropped the line `Expected-effect: bytes_per_session:oversized-result down` as an
   unknown metric.
+- Code review: no findings.
+
+## Deliverable 3
+
+- done: `audit-instructions` and `evaluate-harness` take a rule whose `bytes` is filled for a waste measure, read
+  through `bytes_per_session`, never a hook or rewording candidate; synced.
+- red: none (skill wording, verified by `just check-cardinal`).
 - Code review: no findings.

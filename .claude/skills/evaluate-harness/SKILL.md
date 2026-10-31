@@ -39,7 +39,9 @@ Show the user your results as `.claude/rules/reports-to-the-user.md` says.
    - Read `input_tokens` with `cache_read_share`: a cache read costs about a tenth of an uncached input, so input
      that grows while the share rises may cost less, and a share that falls points to a prompt prefix that changes.
    - A skill `unused` over the last groups may be dropped or described better; a hook whose refusals grow, or a
-     rule whose `breached_share` stays high, goes to `skill:audit-instructions` with its counts.
+     rule whose `breached_share` stays high, goes to `skill:audit-instructions` with its counts; a waste rule (its
+     `bytes` filled) is a measure, not a rule to follow: read its `bytes_per_session`, never its share, and send
+     it to no audit.
    - With no trend, say so: no change is a valid conclusion.
    - `## Verdicts` ties a recorded change to its expected effect over one pair of groups: `confounded` and
      `no data` are no conclusion, and a `helped` or `hurt` is a trend only when the next groups keep it.

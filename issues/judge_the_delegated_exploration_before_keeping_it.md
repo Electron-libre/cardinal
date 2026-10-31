@@ -37,3 +37,48 @@ Lean agent loop
 # Hints
 * A verdict on few sessions is `confounded` (REP-10): say the sample before any decision.
 * Look at which issues changed outcome, not only the medians.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Measure the delegation of step 1 of `issue-workflow` (shipped in 657bf10, 2026-10-28) on its sessions: the metrics of
+`skill:evaluate-harness` around that commit, and how often the agent actually calls an `Explore` subagent per issue
+session; then apply the user's decision (keep, narrow or fold back). Out of scope: a permanent metric of the delegations.
+
+## Plan
+1. [x] Measure: `skill:evaluate-harness` over the groups around 657bf10 (`main_context_peak`, `peak_sessions`,
+   `input_tokens`, `cache_read_share`, `turns`, duration, quality, the verdict of 657bf10), plus a one-off count of
+   the `Agent` calls with `subagent_type: Explore` per issue session from the transcripts (no committed script); the
+   sample size and the issues that changed outcome written in `## Measure` of this issue, anonymised; verified by the
+   report tables quoted (~40 lines under `issues/` only).
+2. [ ] Decision: per the user's answer, keep (a line in `## Decisions`), narrow (rewrite the paragraph of step 1 to
+   the kept case) or fold back (remove the paragraph and its mention in step 3.1); `just sync`; commit with the
+   opposite `Expected-effect:` when the text changes; verified by `just check` and `just check-cardinal` (~0-20 lines).
+
+## Measure
+Sessions since 657bf10 (2026-10-28 to 2026-10-31), four projects, one model (claude-opus-5-5), Claude Code 2.1.312
+mostly; anonymised.
+
+| fact | value |
+|---|---|
+| issue-workflow sessions since 657bf10 (this one left out) | 121 |
+| sessions with an `Explore` call | 6 (5%), 8 calls; 5 in one consumer project, 1 here |
+| other subagents | none |
+| verdict of 657bf10 on `main_context_peak` | `confounded` (before b410ad5 92164, after f19d912..9341832 120575; the before groups mix Sonnet and Opus, other projects) |
+| `main_context_peak` of the groups after (10 groups, 10 to 28 sessions each) | 120575, 106461, 92029, 72645, 99612, 70933, 122587, 103630, 80193: no trend down |
+| median of the sessions with / without `Explore` | peak 180656 / 94487; turns 174 / 67; duration 2519 s / 1125 s |
+
+- The sessions that delegated are the longest issues (2.6x the turns): the peak gap is their size, not the delegation;
+  6 sessions support no conclusion on its effect.
+- The quality table (`input_tokens_per_issue` down from ~12-14M to 4-9M, `fixes_after_per_issue` down) moved over
+  the same span as ~170 other commits and a model change: not attributable to the delegation.
+- Conclusion: the agent almost never delegates (5% of the sessions); the paragraph costs fixed context in every
+  session for a behaviour that barely happens, and no measured gain backs it.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f42d70cbb5c778b5d4768dfb08e45dbe775a0067
+- Delegations counted once from the transcripts, no committed script or `session-metrics` column.
+- A `confounded` sample still leads to a decision, on the delegation count and the issues that changed outcome, saying so.

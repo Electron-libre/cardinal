@@ -115,7 +115,7 @@ Code review: no findings
 High review, not fixed: a resumed session counting the results it copies (no tool result of the 23,662 local ones
 is in two sessions); the result text built for each result to read its length (one copy, negligible beside the
 JSON parse); the bytes not summed per revision and the rule read as a hook candidate: issue
-[weigh_the_token_waste_per_revision](../weigh_the_token_waste_per_revision.md).
+[weigh_the_token_waste_per_revision](weigh_the_token_waste_per_revision.md).
 
 not verified: none
 

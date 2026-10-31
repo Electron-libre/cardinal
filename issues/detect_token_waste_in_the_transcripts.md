@@ -37,7 +37,7 @@ Lean agent loop
 
 # Resources
 * `specs/rule-breaches.md`, `crates/cardinal/src/tools/rule_breaches.rs`, `transcripts.rs`.
-* `issues/count_the_skills_a_session_should_have_loaded.md`: adds rules to `rule-breaches` the same way.
+* `issues/done/count_the_skills_a_session_should_have_loaded.md`: adds rules to `rule-breaches` the same way.
 
 # Hints
 * A `Bash` call can change a file without naming it: `reread-unchanged` must treat it as a possible change, or it

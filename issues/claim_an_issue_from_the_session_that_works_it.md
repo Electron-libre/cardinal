@@ -1,0 +1,115 @@
+---
+rank: 150
+why: 'after the queue drop, which empties next_issue.rs of the format 4 first; before the two others, which wait on the user''s choice or on sessions'
+---
+# Claim an issue from the session that works it
+
+# Goal
+Today an issue runs in parallel only in a worktree made for it: the user commits the issue, runs `just start-issue`
+(worktree and branch named after the issue), launches `claude` there, and later merges, closes and runs
+`just finish-issue`, which removes the worktree. The issue is "taken" only because a branch or a worktree carries its
+name. The user wants a simpler flow:
+
+1. The user opens a session in a worktree (a workspace, not made for one issue).
+2. They hand the agent an issue; the agent starts `issue-workflow`.
+3. The issue is marked taken.
+4. If another agent already works in that workspace, the agent stops there, to avoid conflicts.
+5. The agent works the issue as usual.
+
+The outcome: a session claims its issue from any worktree, atomically and visibly from every other worktree, and two
+sessions never work in the same worktree at once; the workspace outlives the issue.
+
+# Findings
+* `next-issue` marks an issue taken when a branch named after its stem is checked out in a worktree or holds commits
+  off the main branch (PAR-3, `next_issue.rs` `branches`). An issue worked in the main worktree has no branch: nothing
+  marks it, and `next-issue` still offers it to another session (ADR 0011, Consequences).
+* The "main branch" every tool compares with is the branch checked out by the main worktree (`trunk` in
+  `next_issue.rs`, the same in `issue_worktree.rs` and the merge back of `issue-workflow`): an issue branch checked out
+  in the main worktree would become the trunk.
+* `issue-workflow` step 0 stops when the issue is taken elsewhere: in the main worktree a branch `<stem>` exists, in a
+  linked one its branch is not `<stem>`. So a linked worktree serves one issue, named after it.
+* Nothing detects two sessions in the same worktree: they share the files, the index, the review marker (per worktree,
+  PAR-9) and `target/`.
+* Each new worktree pays a cold build (measured on this repository: 239 MB of `target/`, 4 s on 24 cores; a larger
+  project pays much more), and `finish-issue` removes the worktree after each issue.
+* Claude Code (docs, pages "worktrees" and "hooks", read 2026-10-31):
+  - A session started with `claude --worktree <name>` (worktree `.claude/worktrees/<name>`, branch `worktree-<name>`),
+    or entered with `EnterWorktree`, is isolated: Claude Code refuses every command it cannot prove stays in the
+    worktree, and this check cannot be turned off. A plain `claude` launched in a worktree made with `git worktree add`
+    is not isolated (ADR 0011).
+  - Claude Code holds a `git worktree lock` on the worktrees it creates while their agent runs, and a sweep releases the
+    lock of a session whose process exited: prior art for a "busy" mark with a liveness check.
+  - `SessionStart` receives `session_id`, `cwd` and `source` (`startup`, `resume`, `clear`, `compact`, `fork`); it
+    cannot block, but can add context for the agent. `SessionEnd` cannot block, has a 1.5 s budget by default, and
+    does not run when the process is killed. `PreToolUse` can refuse a tool call.
+  - Agent teams claim tasks from their shared list "with file locking to prevent race conditions".
+
+# Weak points of the proposed flow
+1. **Order**: marking the issue taken before checking the workspace leaves a stale mark when the check then stops the
+   session. Check the workspace first, then claim.
+2. **Atomic claim**: two sessions handed the same issue at once both see it free, then both claim it, unless the claim
+   is a compare-and-swap. Creating a git ref is one: `git branch <stem>` and `git update-ref <ref> <new> ""` (the empty
+   old value requires the ref not to exist) fail when it exists, and a ref is seen from every worktree.
+3. **"Another agent in the workspace" is not a moment**: a check at the start of the workflow misses a second session
+   opened later in the same worktree, or one that never starts an issue. The guard belongs to the session (a lock held
+   while it lives), not to the workflow.
+4. **Stale locks**: a crash or a kill skips `SessionEnd`, so a lock needs a liveness check (the process id it records,
+   a heartbeat each hook refreshes) and must let the same `session_id` back in on a resume.
+5. **The main worktree**: claiming by a branch there turns that branch into the trunk of every tool. Either the main
+   worktree stays the integration checkout (issues worked on the trunk, claimed by a ref that is not a branch), or the
+   trunk is read elsewhere (the default branch of the remote, a key of `.claude/cardinal.toml`).
+6. **A reused workspace**: before claiming, the workspace must be clean, on no unmerged issue branch, and cut from the
+   current trunk; `finish-issue` must then free the issue without removing the worktree.
+7. **The merge stays the user's**: a linked worktree cannot fast-forward the branch the main worktree has checked out
+   without leaving that checkout behind, so the merge, `close-issue` and the release of the claim stay in the main
+   worktree.
+8. **A team**: a local ref or lock is invisible from another clone. Pushing the claim (the branch, a draft pull
+   request) is the only shared mark; out of scope unless the user wants it.
+9. **The launch**: `claude --worktree` would bring back the isolation of ADR 0011; the docs keep naming a plain
+   `claude` launched in the worktree.
+
+# Approach
+Measure first: two plain `claude` sessions in one worktree, and two sessions handed the same issue from two
+worktrees, to see what breaks today and what the hooks receive (`session_id`, the process id of the hook's parent).
+
+Candidates, to combine at step 1 of `issue-workflow`:
+1. **Claim by the issue branch**: in a linked workspace, step 0 runs a tool (`cardinal run issue-claim <issue>`) that
+   checks the workspace is clean and cut from the trunk, then creates and checks out `<stem>` from the trunk; the
+   branch is the mark PAR-3 already reads. In the main worktree the issue is worked on the trunk and claimed by
+   candidate 2.
+2. **Claim by a dedicated ref**: `refs/cardinal/claims/<stem>`, created by compare-and-swap, pointing at a blob that
+   names the worktree and the session; `next-issue` reads it next to the branches, `close-issue` or `finish-issue`
+   deletes it. Never pushed by the default refspecs.
+3. **Workspace lock**: a file in the per-worktree git directory (`git rev-parse --git-dir`) holding `session_id`,
+   process id and heartbeat; a `SessionStart` hook takes it or tells the agent the workspace is busy, a `PreToolUse`
+   hook refuses edits and commands to a session that does not hold it while the holder is alive, `SessionEnd` releases
+   it.
+4. **Keep the workspace**: `start-issue` becomes the creation of a workspace (any name), `finish-issue` frees an issue
+   (deletes its branch and claim) and leaves the worktree.
+5. **Trunk**: read the trunk from the remote's default branch or a key, so the main worktree can host an issue branch
+   too.
+
+A new ADR records the choice, amending ADR 0003, 0008 and 0011. Likely over the size limit: split at step 2 (claim
+and `next-issue`, workspace lock, reusable workspace and docs).
+
+# Specs
+* `specs/parallel-issues.md`: PAR-1, PAR-2 (start), PAR-3, PAR-4 (taken), PAR-6, PAR-10 (finish) amended; new
+  requirements for the claim and the workspace lock.
+* `specs/next-issue.md`: NXT-1 if a claim ref joins the branches.
+* A hook spec for the workspace lock if candidate 3 is kept.
+
+# Resources
+* `docs/adr/0003-one-worktree-per-issue.md`, `docs/adr/0008-issue-worktrees-nest-under-claude-worktrees.md`,
+  `docs/adr/0011-the-user-opens-the-issue-worktree.md`.
+* `crates/cardinal/src/tools/next_issue.rs` (`branches`), `issue_worktree.rs`, `close_issue.rs`; `issue-workflow`
+  step 0 and `details.md` ("Worktree of an issue", "Merge back").
+* `docs/workflow.md` (Parallel issues), `docs/usage.md` (Parallel issues in worktrees), `docs/architecture.md`
+  (Parallel issues).
+* https://code.claude.com/docs/en/worktrees.md, https://code.claude.com/docs/en/hooks,
+  https://code.claude.com/docs/en/agent-teams.md
+* `issues/done/make_the_issue_worktree_optional_and_opened_by_the_user.md`: why the agent no longer creates worktrees.
+
+# Hints
+* The agent still never creates, enters or leaves a worktree (ADR 0011): claiming checks out a branch inside the
+  worktree the user opened, which is not entering another one.
+* `issues/drop_the_format_4_issue_queue.md` also edits `next_issue.rs`: land it first.

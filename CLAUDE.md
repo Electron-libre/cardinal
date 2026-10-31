@@ -21,7 +21,7 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - Parallel agents: the user opens a git worktree per parallel issue (`just start-issue`, then `claude` in it; `just
   finish-issue`); the agent never creates or enters one, see `docs/architecture.md`.
 - `AGENTS.md`: commit message format (Conventional Commits, enforced by `just check-commit`);
-  `.claude/rules/reports-to-the-user.md`: the output rule for the reports to the user, loaded in every session.
+  `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session.
 
 This repository is its own first consumer: its `.claude/`, `AGENTS.md`, `cardinal.just`, `script/` and
 `specs/README.md` are copies of `files/`. After changing `files/`, run `just sync`; `just check-cardinal`

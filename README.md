@@ -11,7 +11,7 @@ into each project and tells when a copy drifted.
 | | |
 |---|---|
 | Skills | `issue-workflow` (an issue driven to done in validated deliverables), `create-issue`, `prioritize-issues`, `write-spec`, `update-docs`, `commit-message`, `evaluate-harness`, `audit-instructions` |
-| Rules | `.claude/rules/reports-to-the-user.md`: the format of the reports to the user, loaded in every session with no edit of the project's `CLAUDE.md` |
+| Rules | `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session with no edit of the project's `CLAUDE.md` |
 | Gates | no commit without a code review of the diff, no turn ending on a warning of the project's lint (clippy by default), a reply not in the `user_language` sent back once, the project's formatter (`cargo fmt` by default) after each edit; commit messages checked (Conventional Commits, no AI attribution) |
 | Recipes | `cardinal.just`: `next-issue`, `start-issue`, `close-issue`, `check-issue`, `check-specs`, `spec-coverage`, `check-commit`, `check-cardinal`, `release`… |
 | Releases | `just release`: the next semver proposed from the commits, its `CHANGELOG.md` section written to reread, then a local `v<version>` tag |

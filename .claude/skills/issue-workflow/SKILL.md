@@ -5,11 +5,8 @@ description: Drive an issue file from `issues/` to done in validated deliverable
 
 # Work an issue
 
-The user hands over an issue file in `issues/`. Talk to the user in the `user_language` of `.claude/cardinal.local.toml`, else of `.claude/cardinal.toml` (skills, code, docs and
-commits stay in English). Never skip a validation stop: they are what makes the autonomy safe. The only ones the user can lift are those of
-step 3.6 and 3.8, through the Autonomous mode.
-
-Reports to the user (stops, summaries, final report) follow `.claude/rules/reports-to-the-user.md`.
+The user hands over an issue file in `issues/`. Never skip a validation stop: they are what makes the autonomy safe.
+The only ones the user can lift are those of step 3.6 and 3.8, through the Autonomous mode.
 
 ## 0. Resume or start
 

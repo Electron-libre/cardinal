@@ -38,3 +38,86 @@ Lean agent loop
 # Hints
 * A rule kept because of a past incident has its issue in `issues/done/`: read it before removing the rule.
 * Cut one family at a time, so a regression points at its cause.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Review the managed instructions of `files/` (eight skills, `details.md`, the always-on rule, `AGENTS.md`; there is no
+`CLAUDE.md` template in `files/` nor `seed/`) and cut, one family per commit, the duplicates, contradictions and stale
+rules the user accepts. Out of scope: new tools and hooks (the mechanical candidates become issues), behaviour of the
+binary.
+
+## Audit (2026-10-31, at 2a957a6)
+
+| # | family | where | finding |
+|---|---|---|---|
+| D1 | duplicate | 8 skills: `issue-workflow/SKILL.md:12`, `audit-instructions:11`, `commit-message:11`, `create-issue:11`, `evaluate-harness:12`, `prioritize-issues:13`, `update-docs:11`, `write-spec:13` | "Show the user your results as `reports-to-the-user.md` says": the rule has no `paths`, so it is already loaded in every session |
+| D2 | duplicate | 5 skills: `issue-workflow:8`, `audit-instructions:8`, `evaluate-harness:8`, `prioritize-issues:8`, `create-issue:19` | the same `user_language` sentence, each with its own parenthesis; the `language-hint` hook backs it |
+| D3 | duplicate, self-contradiction | `commit-message:8` vs `:16`, `:40-44` | the skill says "don't restate `AGENTS.md`", then restates its no-attribution (`AGENTS.md:61`, also enforced by `commit-check`) and "don't invent context" (`AGENTS.md:59`) |
+| D4 | duplicate | `issue-workflow:121`, `create-issue:83`, `prioritize-issues:38`, `commit-message:38` | "never `git add -A`" four times; the callers all go through `skill:commit-message` |
+| D5 | duplicate | `issue-workflow` 3.5, 3.6, Autonomous, Advisor | the review is said mandatory five times ("mandatory, never skipped", "Step 6 cannot start before", "If you did not invoke the review, go back", "Never lifted", "never replaces a review"), and the commit gate hook enforces it |
+| D6 | duplicate | `issue-workflow` Autonomous "Lifted" | re-lists the six fields of the 3.6 summary |
+| C1 | conflict | `AGENTS.md:62` vs `commit-message` step 5 | "Output only the commit message" vs "the agent commits, then reports the hash" |
+| C2 | conflict | `update-docs:61-62` | "when asked [to commit], follow `AGENTS.md`" bypasses `skill:commit-message`, the checker included |
+| S1 | stale (system prompt default) | `issue-workflow` Rules: "If something blocks you … don't enumerate every option", "Don't re-litigate decisions", "Anything outward-facing … explicit ask"; `commit-message:44` "Never amend, rewrite history or push" | Claude Code's own prompt says each; the push ban stays once, in Autonomous |
+| S2 | stale (legacy) | `create-issue:60-61`, `prioritize-issues:17-18` | the format 4 `issues/queue.md` conversion: `next-issue` reads that file and prints its own hint (NXT-6) |
+| S3 | stale (detail) | `commit-message:28-31` | exit codes 2 / 3 of the checker: "it errors: fix the setup, the message was not checked" suffices |
+| M1 | mechanical | `issue-workflow` step 1 size limit, 3.5 | `git diff --shortstat` against ~1,000 lines, `issues/` and lock files excluded, moves counted twice: a `cardinal run` tool |
+| M2 | mechanical | D4 | `git add -A` / `git add .` could be a `PreToolUse` refusal |
+
+No rule above traces to an incident of `issues/done/` that its removal would reopen: D1 was a pointer added when the
+rule left `AGENTS.md` (`load_the_shared_agents_md_in_every_session`), D4's incident (`hook_code_review_before_commit`)
+is about a state file, not the agent's `git add`.
+
+## Plan
+1. [x] Reports and language pointers (D1, D2): drop the 8 pointers to the always-on rule, move the `user_language`
+   sentence to that rule once and drop its 5 copies; verified by `just check` (skill references, budget test) and
+   `just check-cardinal` after `just sync`; `Expected-effect: input_tokens down`, not hurting
+   `breached_share:user-language`.
+2. [ ] Commit procedure (D3, D4, C1, C2, S3): `commit-message` points to `AGENTS.md` instead of restating it, keeps
+   the one "never `git add -A`", the callers say "with `skill:commit-message`"; `AGENTS.md` scopes "output only the
+   message" to the user committing; `update-docs` commits through `skill:commit-message`; verified by `just check`;
+   `Expected-effect: input_tokens down`, not hurting `breached_share:commit-attribution`, `commit-format`.
+3. [ ] `issue-workflow` emphasis (D5, D6, S1): one statement of the mandatory review (3.5) and of the push ban,
+   the Autonomous list points to 3.6, the Rules restating the system prompt dropped; verified by `just check`;
+   `Expected-effect: input_tokens down`, not hurting `breached_share:review-before-commit`,
+   `breached_share:validation-stop`.
+4. [ ] Legacy queue (S2): drop the format 4 conversion from `create-issue` and `prioritize-issues`; verified by
+   `just check`; `Expected-effect: input_tokens down`.
+5. [ ] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
+   families, file and line, one family per fix, the `issues/done/` check); verified by `just check`.
+6. [ ] Follow-ups M1, M2: two issues through `skill:create-issue`.
+
+Estimate: under 300 changed lines in all, each deliverable under 100.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2a957a6662b6a962c7e800de277cc88fd8b99099
+- D2: the `user_language` sentence moves once into the always-on rule.
+- S1: the rules restating the system prompt go; the push ban stays once.
+- M1, M2: follow-up issues; the review becomes a mode of `skill:audit-instructions`.
+
+## Deliverable 1
+
+done: the 8 skill pointers to the always-on rule are gone and the `user_language` sentence lives once, in that rule
+(+2 lines always loaded, -5 copies); `skills.rs` refuses a skill that points to an always-on rule or restates the
+language.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `README.md`, `CLAUDE.md` |
+| code review | low, see below |
+
+red: none (no spec): `skills_do_not_point_to_an_always_on_rule` listed the 8 pointers,
+`the_user_language_is_said_once_in_the_always_on_rule` "the rule names no `user_language`".
+
+Code review: no findings
+
+not verified: the effect on `input_tokens` (read by `skill:evaluate-harness` once sessions exist).
+
+decisions needed: none.

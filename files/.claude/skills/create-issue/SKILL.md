@@ -8,15 +8,13 @@ description: Write a new issue file in `issues/` with the repo's template (Goal,
 An issue is a Markdown file `issues/<snake_case_name>.md` that `skill:issue-workflow` can later pick up.
 This skill writes it; `cardinal run check-issue` (`just check-issue`) enforces the mechanical rules. Don't implement anything here.
 
-Show the user your results as `.claude/rules/reports-to-the-user.md` says.
-
 ## Procedure
 
 1. **Check for duplicates**: `ls issues issues/done` and skim the titles close to the subject. If one already
    covers it, propose extending it instead of creating a new file.
 2. **Gather the facts** from what was actually observed (logs, smoke runs, code, `git log`, the `roadmap` documents of `.claude/cardinal.toml`). Don't invent
    findings; if a fact is missing, say so in the issue or ask the user.
-3. **Write the file** in English (the conversation with the user stays in the `user_language` of `.claude/cardinal.local.toml`, else of `.claude/cardinal.toml`), with this template:
+3. **Write the file** in English, with this template:
 
    ```markdown
    # <Title: what to achieve, imperative>

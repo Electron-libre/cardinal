@@ -1,16 +1,16 @@
 # Written by `cardinal sync`: hashes of the managed files, then the managed settings entries. Do not edit.
 format 5
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
-ae32a54ad3e59066328e1a2f7f5afff0ca4b13bf194272c376e23280e4a7ce4e  .claude/rules/reports-to-the-user.md
-33738264b57ca653d092bbfd4c1f6379532967c7842553fb2ec9965dfe05d020  .claude/skills/audit-instructions/SKILL.md
-62e77f126f444e4c4e85623d044235473d36db43bd61877acdaf7bab565a7fb0  .claude/skills/commit-message/SKILL.md
-1184e89b1eace01436dd4aea7f0a206bdcbb57c4079c0d61654d276da94459e0  .claude/skills/create-issue/SKILL.md
-ccce15e613ce8ccb4b25ab81e5adf84a4a53ad3d10c6348b3b84f9717e845f35  .claude/skills/evaluate-harness/SKILL.md
-82b1fab7bf0b83dd06b8878a8fbbb035af43b89447b1cf9e23707bacb58eac2a  .claude/skills/issue-workflow/SKILL.md
+671dbb583f1a80af63586e0bf2b1f5ec969b14652e05bd9a129f409c5a4bc32d  .claude/rules/reports-to-the-user.md
+97ac5aac6ae1cb3f364dc8c3b33040c0082da9eaa11a65475b2213aedc0e7d21  .claude/skills/audit-instructions/SKILL.md
+3d1dd9437eeb3da783899dbc7fbf902569ace3066cb2ac62d0ec9c7dfdd22de2  .claude/skills/commit-message/SKILL.md
+45fb6e7d4962eaa42a62fae86748698a5221b5942607586fb01fcbc0b8c01cbb  .claude/skills/create-issue/SKILL.md
+422701cf2fd492cfb7b534955f3d96101cb27380b0f8af06417e74838baee07c  .claude/skills/evaluate-harness/SKILL.md
+0e731a3aab8be7025dc57067dd026b7b1a72f8f4bbb2e2c60f118dd1b6dc3435  .claude/skills/issue-workflow/SKILL.md
 b4cae6711c864e0ab1b8cc3551c3d9100217d096c4b1f9986a0566d5fb4a70cc  .claude/skills/issue-workflow/details.md
-b85fc9ba93557217e925be696424f3881d66d9ac4ced70aba8643949a08cdc0d  .claude/skills/prioritize-issues/SKILL.md
-b4aed616d9d9df053a5456d6eb2c93af982c7df50ed7123629aafa2b73a0dec9  .claude/skills/update-docs/SKILL.md
-8e77a3c231b051e1553dce195bfe1458a14d8aca9cd7867ede28e77996589d0f  .claude/skills/write-spec/SKILL.md
+2e7ab85e746762b3e1216cc2bfd339e6187e075829e305a09f4a60a89d54c211  .claude/skills/prioritize-issues/SKILL.md
+ba0f5ebc58d4804e64043ef93cbe6b6060ae4e7a39d60e473c558ec6ffec6eae  .claude/skills/update-docs/SKILL.md
+3fd5edf4a14012732ed00db1e303686e2db45f07320421411e314f7facfcb2a2  .claude/skills/write-spec/SKILL.md
 61bdad10b1c0449722ce4b9d3a409580d991222fafb87e2c78a68e4048d4e1dc+x  .github/install_cardinal.sh
 bc32a7e12c24311ccc036b49232f3458f44997761b6a1099cdfe4db1bb738121  .github/workflows/cardinal.yml
 71a0ea0c7e9530936b006d503e89994cd45992911127a9c239b2a560d5de6cef  AGENTS.md

@@ -389,6 +389,72 @@ fn skills() {
     );
 }
 
+/// The rules of `.claude/rules/` whose front matter holds no `paths`: Claude Code loads them in every session.
+fn always_on_rules(root: &Path) -> Vec<String> {
+    let mut rules: Vec<String> = fs::read_dir(root.join(".claude/rules"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "md"))
+        .filter(|p| {
+            let text = fs::read_to_string(p).unwrap_or_default();
+            let mut lines = text.lines();
+            lines.next() != Some("---")
+                || !lines
+                    .take_while(|l| *l != "---")
+                    .any(|l| l.starts_with("paths:"))
+        })
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .collect();
+    rules.sort();
+    rules
+}
+
+/// An always-on rule is already in the context of every session: a skill that points to it pays its line for nothing.
+#[test]
+fn skills_do_not_point_to_an_always_on_rule() {
+    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let rules = always_on_rules(&root);
+    assert!(!rules.is_empty(), "no always-on rule in .claude/rules/");
+    let mut failures = Vec::new();
+    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
+        for file in fs::read_dir(entry.path()).unwrap().flatten() {
+            let text = fs::read_to_string(file.path()).unwrap_or_default();
+            for rule in rules
+                .iter()
+                .filter(|r| text.contains(&format!(".claude/rules/{r}")))
+            {
+                failures.push(format!("{}: points to {rule}", file.path().display()));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}
+
+/// The language of the conversation is said once, in the always-on rule, not in each skill.
+#[test]
+fn the_user_language_is_said_once_in_the_always_on_rule() {
+    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let rule = fs::read_to_string(root.join(".claude/rules/reports-to-the-user.md")).unwrap();
+    assert!(
+        rule.contains("`user_language`"),
+        "the rule names no `user_language`"
+    );
+    let mut copies = Vec::new();
+    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
+        let text = fs::read_to_string(entry.path().join("SKILL.md")).unwrap_or_default();
+        if text.contains("`user_language`") {
+            copies.push(entry.file_name().to_string_lossy().into_owned());
+        }
+    }
+    copies.sort();
+    assert!(
+        copies.is_empty(),
+        "skills restating the language: {copies:?}"
+    );
+}
+
 /// The skills read the `roadmap` documents of the seeded configuration: a new project must get them from `seed/`.
 #[test]
 fn seeded_roadmap_is_seeded() {

@@ -5,12 +5,8 @@ description: Re-rank the open issues (the `rank` of each issue file) by reading 
 
 # Prioritize the issues
 
-Talk to the user in the `user_language` of `.claude/cardinal.local.toml`, else of `.claude/cardinal.toml` (skills, code, docs and the ranks stay in English). Each open issue
-carries its place in its front matter, `rank: <n>` (lowest = next) and `why: '<why here>'` (ADR 0019); `just
-next-issue` prints the resulting order. Don't implement
-anything here.
-
-Show the user your results as `.claude/rules/reports-to-the-user.md` says.
+Each open issue carries its place in its front matter, `rank: <n>` (lowest = next) and `why: '<why here>'` (ADR
+0019); `just next-issue` prints the resulting order. Don't implement anything here.
 
 ## Procedure
 

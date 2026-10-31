@@ -8,8 +8,6 @@ description: Write a commit message that follows the repo's Conventional Commits
 The rules live in `AGENTS.md` (single source of truth: don't restate or drift from them here). This
 skill is the procedure; `cardinal run commit-check` enforces the mechanical rules.
 
-Show the user your results as `.claude/rules/reports-to-the-user.md` says.
-
 ## Procedure
 
 1. **Look at what is actually being committed**: `git status`, and `git diff --staged` (or `git diff` if

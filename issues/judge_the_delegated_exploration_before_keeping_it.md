@@ -55,7 +55,7 @@ session; then apply the user's decision (keep, narrow or fold back). Out of scop
    report tables quoted (~40 lines under `issues/` only).
 2. [x] Decision: per the user's answer, keep (a line in `## Decisions`), narrow (rewrite the paragraph of step 1 to
    the kept case) or fold back (remove the paragraph and its mention in step 3.1); `just sync`; commit with the
-   opposite `Expected-effect:` when the text changes; verified by `just check` and `just check-cardinal` (~0-20 lines).
+   opposite `Expected-effect:` on a fold-back only; verified by `just check` and `just check-cardinal` (~0-20 lines).
 
 ## Measure
 Sessions since 657bf10 (2026-10-28 to 2026-10-31), four projects, one model (claude-opus-5-5), Claude Code 2.1.312
@@ -67,7 +67,7 @@ mostly; anonymised.
 | sessions with an `Explore` call | 6 (5%), 8 calls; 5 in one consumer project, 1 here |
 | other subagents | none |
 | verdict of 657bf10 on `main_context_peak` | `confounded` (before b410ad5 92164, after f19d912..9341832 120575; the before groups mix Sonnet and Opus, other projects) |
-| `main_context_peak` of the groups after (10 groups, 10 to 28 sessions each) | 120575, 106461, 92029, 72645, 99612, 70933, 122587, 103630, 80193: no trend down |
+| `main_context_peak` of the groups after (9 groups, 10 to 28 sessions each; the first, f19d912..9341832, also holds revisions before 657bf10) | 120575, 106461, 92029, 72645, 99612, 70933, 122587, 103630, 80193: no trend down |
 | median of the sessions with / without `Explore` | peak 180656 / 94487; turns 174 / 67; duration 2519 s / 1125 s |
 
 - The sessions that delegated are the longest issues (2.6x the turns): the peak gap is their size, not the delegation;
@@ -76,13 +76,16 @@ mostly; anonymised.
   the same span as ~170 other commits and a model change: not attributable to the delegation.
 - Conclusion: the agent almost never delegates (5% of the sessions); the paragraph costs fixed context in every
   session for a behaviour that barely happens, and no measured gain backs it.
+- The usage grows with the project size (~13% of the sessions of the largest project, ~85k lines, none in the
+  smaller ones), and no larger project has sessions: hence a narrowing and a new measure rather than a fold-back.
 
 ## Decisions
 - Mode: autonomous
 - Base commit: f42d70cbb5c778b5d4768dfb08e45dbe775a0067
 - Delegations counted once from the transcripts, no committed script or `session-metrics` column.
-- Decision: narrow the delegation to a search of the git history or over many files of a large repository (step 1
-  of `issue-workflow`); no `Expected-effect:` since no effect is shown. The issue stays open for a new measure.
+- Decision (the user's, answer `a`): narrow the delegation to a search of the git history or over many files of a large repository (step 1
+  of `issue-workflow`); no `Expected-effect:` since no effect is shown. The issue stays open for a new measure;
+  the verdict of 657bf10 (`main_context_peak down`) keeps running on purpose, over the narrowed text.
 - A `confounded` sample still leads to a decision, on the delegation count and the issues that changed outcome, saying so.
 
 ## Left
@@ -99,10 +102,30 @@ mostly; anonymised.
 | tests | pass (`just check`) |
 | lint | pass |
 | specs | pass |
-| docs | none beyond the skill |
+| docs | `docs/workflow.md` missed here, fixed in deliverable 3 |
 | code review | low, see below |
 
 - red: none (skill text, no test).
 - Code review: no findings
+- not verified: whether the narrowed text changes how often the agent delegates.
+- decisions needed: none.
+
+## Deliverable 3: fixes of the `high` review
+
+- done: the step 1 paragraph shortened to three lines and told apart from the `git log` of a resource;
+  `docs/workflow.md` follows the narrowed delegation; the measure and the decisions corrected (9 groups, the first
+  straddling 657bf10; the user's answer; why narrow rather than fold back; no opposite `Expected-effect:`).
+- not fixed: no size threshold for a "large repository" (a project value the measure cannot set yet).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | `docs/workflow.md` |
+| code review | high: 10 findings, 9 fixed, 1 not fixed (above); low on the fixes, see below |
+
+- red: none (skill text and docs, no test).
+- Code review: no findings (low on the fixes).
 - not verified: whether the narrowed text changes how often the agent delegates.
 - decisions needed: none.

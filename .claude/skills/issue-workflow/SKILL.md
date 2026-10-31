@@ -31,11 +31,9 @@ The understanding, the spec and the plan are written in the files, not in the co
 the console only shows the link and the questions.
 
 - Read the issue, plus the resources it names (docs, `git log`, the `roadmap` documents of `.claude/cardinal.toml`, memory).
-- **Delegate only a wide search**: a search of the git history, or over many files of a large repository, goes to a
-  read-only `Explore` subagent (Agent tool), so only its conclusion stays in the main context. Ask it for the paths and
-  lines behind each conclusion; read back only the lines a decision of the plan rests on. A targeted read of a known
-  file stays in the main thread; so do the spec, the plan, the tests and the commits; the reviews keep going through
-  `code-review`.
+- **Delegate only a wide search** (a hunt through the whole history, not the `git log` of a resource; many files of a
+  large repository) to a read-only `Explore` subagent asking for the paths and lines behind its conclusion; read back
+  only those a decision rests on. Everything else stays in the main thread.
 - **Spec**, when the issue changes what a capability does (skip it for docs, harness, pure refactor, a measure): run
   `skill:write-spec` up to its format check (requirements with stable ids, `deterministic`, left `draft`, a
   `[NEEDS CLARIFICATION: ...]` marker where you would guess); don't do its validation stop: step 2 replaces it. The

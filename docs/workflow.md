@@ -112,4 +112,5 @@ whether the agent got more efficient, the delivered work better and the rules be
 effect it should have in an `Expected-effect: <metric> <up|down>` line (`CLAUDE.md`); the report gives each one a
 verdict, `confounded` when something else changed too. `skill:audit-instructions` reads the
 instructions the user gave over time and proposes the skills, tools, hooks and rules worth adding; each validated proposal becomes
-an issue.
+an issue. Its other mode reviews the shipped instructions for contradictions, duplicates, stale and mechanical
+rules, then fixes the accepted ones one family per deliverable.

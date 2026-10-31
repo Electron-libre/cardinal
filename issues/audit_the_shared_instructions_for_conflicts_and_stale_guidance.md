@@ -86,7 +86,7 @@ is about a state file, not the agent's `git add`.
    `breached_share:validation-stop`.
 4. [x] Legacy queue (S2): drop the format 4 conversion from `create-issue` and `prioritize-issues`; verified by
    `just check`; `Expected-effect: input_tokens down`.
-5. [ ] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
+5. [x] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
    families, file and line, one family per fix, the `issues/done/` check); verified by `just check`.
 6. [ ] Follow-ups M1, M2: two issues through `skill:create-issue`.
 
@@ -188,5 +188,27 @@ red: none (no spec): `skills_drop_the_restated_rules` named `issues/queue.md` in
 Code review: no findings
 
 not verified: none.
+
+decisions needed: none.
+
+## Deliverable 5
+
+done: `skill:audit-instructions` has a mode "Review the existing instructions" (read whole, four families with file
+and line, the `issues/done/` check, a stop, one family per deliverable); its description names it (+~110 bytes of
+fixed context).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/workflow.md` |
+| code review | low, see below |
+
+red: none (no spec): `skills` reported the two required passages missing.
+
+Code review: no findings
+
+not verified: that a request "clean up the instructions" routes to the skill.
 
 decisions needed: none.

@@ -81,6 +81,16 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "a single occurrence is no evidence",
     ),
     (
+        "audit-instructions",
+        "## Review the existing instructions",
+        "the shipped instructions are reviewed for contradictions, duplicates and stale rules",
+    ),
+    (
+        "audit-instructions",
+        "`issues/done/`",
+        "a rule kept for a past incident is read with its issue before it goes",
+    ),
+    (
         "evaluate-harness",
         "no change is a valid conclusion",
         "the measure does not invent a change to make",

@@ -2,7 +2,7 @@
 format 5
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
 671dbb583f1a80af63586e0bf2b1f5ec969b14652e05bd9a129f409c5a4bc32d  .claude/rules/reports-to-the-user.md
-97ac5aac6ae1cb3f364dc8c3b33040c0082da9eaa11a65475b2213aedc0e7d21  .claude/skills/audit-instructions/SKILL.md
+7a544773c15fd3b89760fac68858529eb414da9655be163c48cf0c4adf09ad4d  .claude/skills/audit-instructions/SKILL.md
 7d63ac2e32a81a08420f5cc3e7efafc73556dbdadf5b86df38a7e68b674eaf08  .claude/skills/commit-message/SKILL.md
 ae9c3e05f33b7929cdd343cda6b41acb026d98f646da95e3de0fc783db84d15a  .claude/skills/create-issue/SKILL.md
 422701cf2fd492cfb7b534955f3d96101cb27380b0f8af06417e74838baee07c  .claude/skills/evaluate-harness/SKILL.md

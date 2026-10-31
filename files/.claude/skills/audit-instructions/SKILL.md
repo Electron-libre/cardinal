@@ -1,6 +1,6 @@
 ---
 name: audit-instructions
-description: Read the instructions the user gave the agent over time (CLAUDE.md, AGENTS.md, memory, typed messages of the session transcripts of every project) and propose the skills and hooks worth adding, with evidence, for validation. Use when the user asks to audit their instructions, find what to automate, or propose new skills or hooks.
+description: Read the instructions the user gave the agent over time (CLAUDE.md, AGENTS.md, memory, typed messages of the session transcripts of every project) and propose the skills and hooks worth adding, or review the existing instructions for contradictions, duplicates and stale rules, with evidence, for validation. Use when the user asks to audit their instructions, find what to automate, propose new skills or hooks, or clean up the instructions.
 ---
 
 # Audit the instructions
@@ -43,3 +43,22 @@ Propose only: create nothing here. What an adopted proposal brought is measured 
    the repository and `/tmp` (e.g. `~/.local/state/`), never committed.
 5. **Create** only what the user validates, one issue per proposal through `skill:create-issue`, in generic
    wording per the `confidential` note of `.claude/cardinal.toml` (no project name, no raw quote).
+
+## Review the existing instructions
+
+When the user asks to review the instructions themselves rather than to find new ones:
+
+1. **Read whole** what the project ships to the agent: every markdown file of `.claude/skills/`, the `.claude/rules/`,
+   `AGENTS.md` and `CLAUDE.md` (in the Cardinal source, their originals under `files/`).
+2. **List**, with file and line, four families:
+   - a contradiction: two rules that ask opposite things, or a text that says not to restate a source and restates it;
+   - a duplicate: one rule in several files, or a pointer to a rule with no `paths` (every session loads it already);
+   - a stale rule: what Claude Code's own prompt says or a current model does unprompted, a legacy format a tool
+     already handles, a detail the tool reports itself;
+   - a mechanical rule: a check a hook or a `cardinal run` tool could make.
+3. **Check the history** before proposing to drop a rule: the issue of `issues/done/` that added it; a rule kept for
+   a past incident stays unless a gate or a test now covers it.
+4. **Report, then STOP**: a table `# | family | where | finding`, with the fix proposed per family.
+5. **Fix** only what the user accepts, through an issue (`skill:create-issue`, then `skill:issue-workflow`): one
+   family per deliverable, so a regression points at its cause, each commit with the `Expected-effect:` of what it
+   should move; a mechanical rule becomes its own issue.

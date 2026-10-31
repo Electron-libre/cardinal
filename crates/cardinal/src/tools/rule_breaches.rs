@@ -17,8 +17,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use transcripts::{
     committed_config, committed_file, for_each_numbered_line, git, project_name, projects,
-    projects_root, repository, result_text, revision, sessions, shown, subagents, user_turn, Place,
-    CONFIGS, LOCKS,
+    projects_root, repository, result_text, revision, sessions, shown, subagents, user_command,
+    user_turn, Place, CONFIGS, LOCKS,
 };
 
 const HEADER: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
@@ -34,6 +34,13 @@ const EDIT_TOOLS: &[(&str, &str)] = &[
 /// Where the files of the validation stop go before the plan is validated (`issue-workflow`, step 1).
 const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
 
+/// The skills a session is due to load before their trigger, with their rule (BRE-15).
+const ROUTED: &[(&str, &str)] = &[
+    ("commit-message", "skill-routing-commit-message"),
+    ("issue-workflow", "skill-routing-issue-workflow"),
+    ("write-spec", "skill-routing-write-spec"),
+];
+
 struct Call {
     name: String,
     input: Value,
@@ -47,6 +54,23 @@ struct Call {
 }
 
 impl Call {
+    /// The path a call of a tool of `EDIT_TOOLS` writes; empty for another tool.
+    fn edited_path(&self) -> &str {
+        EDIT_TOOLS
+            .iter()
+            .find(|(tool, _)| *tool == self.name)
+            .and_then(|(_, key)| self.input[*key].as_str())
+            .unwrap_or_default()
+    }
+
+    /// The text an `Edit` or `Write` call puts in its file.
+    fn written_text(&self) -> String {
+        [&self.input["new_string"], &self.input["content"]]
+            .into_iter()
+            .filter_map(Value::as_str)
+            .collect()
+    }
+
     fn has(&self, word: &str) -> bool {
         self.words.iter().any(|w| w == word)
     }
@@ -61,6 +85,8 @@ enum Event {
     Call(usize),
     /// A message or a command the user typed.
     Typed,
+    /// A skill the user loaded by typing its command (the session's own transcript only).
+    Loaded(String),
     /// An error tool result, with the call it answers when known.
     Error {
         location: String,
@@ -133,6 +159,10 @@ impl Transcript {
                     if main && user_turn(line) {
                         t.events.push(Event::Typed);
                     }
+                    if main && user_command(line) {
+                        let text = line["message"]["content"].as_str().unwrap_or_default();
+                        t.events.extend(typed_skills(text).map(Event::Loaded));
+                    }
                     if main && is_hint(line) {
                         t.events.push(Event::Hint);
                     }
@@ -162,6 +192,19 @@ impl Transcript {
         }
         t
     }
+}
+
+/// The skills of the `<command-name>/<skill>` tags of a command the user typed.
+fn typed_skills(text: &str) -> impl Iterator<Item = String> + '_ {
+    text.split("<command-name>/")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('<'))
+        .map(|(name, _)| skill_name(name).to_string())
+}
+
+/// A skill name without its `<prefix>:` (a directory-scoped or a plugin skill).
+fn skill_name(name: &str) -> &str {
+    name.rsplit(':').next().unwrap_or(name)
 }
 
 /// The words of a shell command that the shell itself reads: quoted strings and here-document bodies (commit
@@ -218,11 +261,13 @@ struct Finding {
 }
 
 /// What a session is checked against: the work tree of each `cwd` of its calls, to make paths relative, the managed
-/// paths and the conversation language.
+/// paths, the conversation language, and the repository and `start` the committed files are read at.
 struct Context {
     worktrees: HashMap<String, PathBuf>,
     managed: Option<HashSet<String>>,
     language: Option<Language>,
+    repo: PathBuf,
+    start: String,
 }
 
 impl Context {
@@ -233,6 +278,19 @@ impl Context {
             .ok()
             .map(|p| p.to_string_lossy().into_owned())
     }
+
+    /// Whether the lock lists `skill`, so the session is due to load it (BRE-15).
+    fn synced(&self, skill: &str) -> bool {
+        self.managed
+            .as_ref()
+            .is_some_and(|m| m.contains(&format!(".claude/skills/{skill}/SKILL.md")))
+    }
+}
+
+/// Whether an `Edit` or `Write` call proposes a plan: it puts `Plan: proposed` in a file under `issues/` (BRE-8).
+fn proposes_plan(call: &Call, relative: Option<&str>) -> bool {
+    relative.is_some_and(|r| r.starts_with("issues/"))
+        && call.written_text().contains("Plan: proposed")
 }
 
 /// The work tree holding `cwd`: its git top level, else `cwd` itself (a removed worktree).
@@ -280,21 +338,16 @@ impl Verdict {
         }
     }
 
-    /// The rules of a call of the tool `name` that edits a file; `plan_proposed` once a plan awaits its validation.
+    /// The rules of a call that edits a file; `plan_proposed` once a plan awaits its validation.
     fn check_edit(
         &mut self,
         call: &Call,
-        name: &str,
         blocked: bool,
         context: &Context,
         main: bool,
         plan_proposed: &mut bool,
     ) {
-        let key = EDIT_TOOLS
-            .iter()
-            .find(|(tool, _)| *tool == name)
-            .map(|(_, key)| *key);
-        let path = key.and_then(|k| call.input[k].as_str()).unwrap_or_default();
+        let path = call.edited_path();
         if path.is_empty() {
             return;
         }
@@ -318,14 +371,53 @@ impl Verdict {
             {
                 self.add("validation-stop", false, &call.location, rel.clone());
             }
-            let text = [&call.input["new_string"], &call.input["content"]]
-                .into_iter()
-                .filter_map(Value::as_str)
-                .collect::<String>();
-            let issue = relative.is_some_and(|r| r.starts_with("issues/"));
-            if issue && text.contains("Plan: proposed") {
+            if proposes_plan(call, relative.as_deref()) {
                 *plan_proposed = true;
                 self.applied.insert("validation-stop");
+            }
+        }
+    }
+
+    /// The routing rules of a call of the session's own transcript: the skill its trigger makes due, unless `loaded`
+    /// holds it (BRE-15 to BRE-18).
+    fn check_routing(
+        &mut self,
+        call: &Call,
+        blocked: bool,
+        context: &Context,
+        loaded: &HashSet<String>,
+    ) {
+        let relative = context.relative(&call.cwd, call.edited_path());
+        // a sentence of an issue that quotes the marker proposes no plan: only a line of its own does
+        let plan = relative.as_ref().is_some_and(|r| r.starts_with("issues/"))
+            && call
+                .written_text()
+                .lines()
+                .any(|l| l.trim() == "Plan: proposed");
+        let new_spec = relative.filter(|r| {
+            call.name == "Write"
+                && r.starts_with("specs/")
+                && Path::new(r).extension().is_some_and(|e| e == "md")
+                && r != "specs/README.md"
+                && committed_file(&context.repo, &context.start, &[r.as_str()]).is_none()
+        });
+        let triggered = [
+            call.name == "Bash" && call.commits(),
+            plan,
+            new_spec.is_some(),
+        ];
+        for (&(skill, rule), triggered) in ROUTED.iter().zip(triggered) {
+            if !triggered || !context.synced(skill) {
+                continue;
+            }
+            self.applied.insert(rule);
+            if !loaded.contains(skill) {
+                let detail = if skill == "write-spec" {
+                    new_spec.clone().unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                self.add(rule, blocked, &call.location, detail);
             }
         }
     }
@@ -335,6 +427,8 @@ impl Verdict {
         let mut flagged: HashSet<usize> = HashSet::new();
         let mut refused = false;
         let mut plan_proposed = false;
+        // the skills loaded so far in the session's own transcript (BRE-15)
+        let mut loaded: HashSet<String> = HashSet::new();
         // the language breaches of the turn not yet hinted, each with whether a text block came after it, and where
         // those of the last run of text blocks start: a hint covers that run only (BRE-13)
         let mut unhinted: Vec<(usize, bool)> = Vec::new();
@@ -348,10 +442,23 @@ impl Verdict {
                     self.settle_language(&mut unhinted);
                     run_start = 0;
                 }
+                Event::Loaded(skill) => {
+                    loaded.insert(skill.clone());
+                }
                 Event::Call(i) => {
                     called = true;
                     let call = &t.calls[*i];
                     let blocked = call.error == Some(true);
+                    if main {
+                        self.check_routing(call, blocked, context, &loaded);
+                    }
+                    if call.name == "Skill" {
+                        loaded.extend(
+                            call.input["skill"]
+                                .as_str()
+                                .map(|s| skill_name(s).to_string()),
+                        );
+                    }
                     let before = self.findings.len();
                     match call.name.as_str() {
                         "Bash" => self.check_bash(call, blocked, &mut refused),
@@ -362,8 +469,8 @@ impl Verdict {
                         {
                             refused = false;
                         }
-                        name => {
-                            self.check_edit(call, name, blocked, context, main, &mut plan_proposed);
+                        _ => {
+                            self.check_edit(call, blocked, context, main, &mut plan_proposed);
                         }
                     }
                     if self.findings.len() > before {
@@ -585,6 +692,8 @@ fn record(path: &Path) -> Option<Record> {
         worktrees,
         managed: managed_paths(&repo, &start_text),
         language,
+        repo: repo.clone(),
+        start: start_text.clone(),
     };
     let mut verdict = Verdict::default();
     for (t, main) in &transcripts {

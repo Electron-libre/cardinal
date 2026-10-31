@@ -795,6 +795,102 @@ fn language_kind_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+/// The lock of a project that synced the three routed skills.
+const ROUTED_LOCK: &str = "# lock\nh1  .claude/skills/commit-message/SKILL.md\nh2  .claude/skills/issue-workflow/SKILL.md\nh3  .claude/skills/write-spec/SKILL.md\n";
+
+// spec: BRE-15, BRE-16, BRE-17, BRE-18
+fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("routing");
+    let projects = tmp.join("projects");
+    let config = "[cardinal]\nsource = \"x\"\nrev = \"r1\"\n";
+    let repo = new_repo(&tmp.join("r"));
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[
+            (".claude/cardinal.toml", config),
+            (".claude/cardinal.lock", ROUTED_LOCK),
+            ("specs/old.md", "SECRET"),
+        ],
+    );
+    let write =
+        |path: &str, content: &str| json!({"file_path": repo.join(path), "content": content});
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("go");
+    let refused = t.run("c0", "Bash", &bash("git commit -m SECRET"), Some("exit 1"));
+    let unloaded = t.run("c1", "Bash", &bash("git commit -m SECRET"), None);
+    t.run("c2", "Skill", &json!({"skill": "commit-message"}), None);
+    t.run("c3", "Bash", &bash("git commit -m SECRET"), None);
+    let plan = t.run(
+        "w1",
+        "Write",
+        &write("issues/i.md", "# Tracking\n\nPlan: proposed\n"),
+        None,
+    );
+    t.push(json!({"type": "user", "message": {"role": "user", "content": "<command-name>/issue-workflow</command-name>\n<command-args>SECRET</command-args>"}}));
+    t.run("w2", "Write", &write("issues/j.md", "Plan: proposed"), None);
+    let spec = t.run("w3", "Write", &write("specs/new.md", "SECRET"), None);
+    t.run("w4", "Write", &write("specs/old.md", "SECRET"), None);
+    t.run("w5", "Write", &write("specs/README.md", "SECRET"), None);
+    t.run("w6", "Write", &write("specs/notes.txt", "SECRET"), None);
+    t.run("w7", "Skill", &json!({"skill": "files:write-spec"}), None);
+    t.run("w8", "Write", &write("specs/other.md", "SECRET"), None);
+    t.write(&projects.join("-r/s.jsonl"));
+    // a sub-agent shares neither the skills nor the triggers of the session
+    let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    sub.run("x1", "Bash", &bash("git commit -m SECRET"), None);
+    sub.write(&projects.join("-r/s/subagents/agent-1.jsonl"));
+    // a session that synced none of the routed skills is not due to load them
+    let bare = new_repo(&tmp.join("n"));
+    commit_at(
+        &bare,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[
+            (".claude/cardinal.toml", config),
+            (".claude/cardinal.lock", "# lock\nh1  AGENTS.md\n"),
+        ],
+    );
+    let mut n = Transcript::new(&bare, "2026-02-01T10:00:00.000Z");
+    n.typed("go");
+    n.run("c1", "Bash", &bash("git commit -m SECRET"), None);
+    n.write(&projects.join("-n/s.jsonl"));
+    let row = |rule: &str, kind: &str, line: usize, detail: &str| {
+        format!("s\tr\tr1\tskill-routing-{rule}\t{kind}\ts.jsonl:{line}\t{detail}")
+    };
+    let expected = vec![
+        row("commit-message", "blocked", refused, ""),
+        row("commit-message", "breach", unloaded, ""),
+        row("issue-workflow", "breach", plan, ""),
+        row("write-spec", "breach", spec, "specs/new.md"),
+    ];
+    let (ok, out) = run(dir, &projects, false);
+    let rows: Vec<String> = out
+        .lines()
+        .filter(|l| l.contains("skill-routing"))
+        .map(str::to_string)
+        .collect();
+    let (_, summary) = run(dir, &projects, true);
+    let summary: Vec<&str> = summary
+        .lines()
+        .filter(|l| l.starts_with("skill-routing"))
+        .collect();
+    let want_summary = [
+        "skill-routing-commit-message\tr1\t1\t1\t1\t1",
+        "skill-routing-issue-workflow\tr1\t1\t1\t1\t0",
+        "skill-routing-write-spec\tr1\t1\t1\t1\t0",
+    ];
+    if rows != expected || summary != want_summary {
+        println!("{out}{}", summary.join("\n"));
+    }
+    vec![
+        ("the routing rules succeed".to_string(), ok),
+        ("a trigger is a finding until its skill is called or typed, in the session's own transcript only".to_string(), rows == expected),
+        ("a routing rule applies to the sessions holding its trigger whose lock lists its skill".to_string(), summary == want_summary),
+    ]
+}
+
 #[test]
 fn rule_breaches() {
     let dir = std::path::PathBuf::from("/tools");
@@ -807,6 +903,7 @@ fn rule_breaches() {
         .chain(language_checks(&dir, &tmp))
         .chain(language_kind_checks(&dir, &tmp))
         .chain(personal_language_checks(&dir, &tmp))
+        .chain(routing_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

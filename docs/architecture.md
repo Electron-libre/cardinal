@@ -251,7 +251,7 @@ flowchart LR
 | Reader | One row per | Measures | Spec |
 |---|---|---|---|
 | `session-metrics` | session | tokens, the peak of the main context (sub-agents apart), turns, tool calls, the advisor set and its calls and tokens, hook refusals, skill calls, typed messages | [`evaluation.md`](../specs/evaluation.md) |
-| `rule-breaches` | finding (`--summary`: rule and revision) | the rules a program can check, `breach` or `blocked`; a language breach is `hinted`, `final` or `intermediate` | [`rule-breaches.md`](../specs/rule-breaches.md) |
+| `rule-breaches` | finding (`--summary`: rule and revision) | the rules a program can check, `breach` or `blocked`; a language breach is `hinted`, `final` or `intermediate`; a `skill-routing-<skill>` finding is a trigger met before its skill was loaded | [`rule-breaches.md`](../specs/rule-breaches.md) |
 | `delivered-quality` | done issue (`--summary`: revision) | deliverables, fixes inside and after, review findings, failed checks, tokens, traced ids, lines changed in the specs and in the docs | [`delivered-quality.md`](../specs/delivered-quality.md) |
 | `fixed-context` | project and revision | the bytes every session pays before any work, the skills shipped | [`cardinal-report.md`](../specs/cardinal-report.md) |
 | `cardinal-changes` | expected effect of a change | the `Expected-effect` lines of the commits of `files/`, the revisions in use that hold each | [`cardinal-verdicts.md`](../specs/cardinal-verdicts.md) |

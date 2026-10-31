@@ -36,3 +36,54 @@ Lean agent loop
 
 # Hints
 * A user who commits by hand or asks for a quick fix legitimately skips a skill: the rule is a signal, never a gate.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Add three `skill-routing-<skill>` rules to `rule-breaches` (BRE-15 to BRE-18): a commit without `commit-message`, a
+`Plan: proposed` without `issue-workflow`, a new spec without `write-spec`, each applying only when the project's lock
+lists the skill. Out of scope: any gate, sub-agent transcripts, `cardinal-report` changes (REP-6 lists every rule).
+
+## Measure
+Over the local transcripts (all projects, sessions holding the trigger / of them with the skill never loaded before it):
+`git commit` 379 / 163, new or rewritten `specs/*.md` 32 / 24, `Plan: proposed` 3 / 2. All three fire: none dropped.
+
+## Plan
+1. [x] Skill routing rules: the loaded skills of the main transcript, the three triggers, the lock gate; verified by
+   tests of `crates/cardinal/tests/rule_breaches.rs` through the binary; makes true BRE-15, BRE-16, BRE-17, BRE-18.
+
+## Decisions
+- Mode: autonomous
+- One finding per trigger (as `validation-stop`), not one per session.
+- A plan is proposed only by a line `Plan: proposed` of its own (BRE-17): a `create-issue` quoting the marker in a
+  sentence was the one real finding of the first run. BRE-8 keeps its wider match: follow-up below.
+- A new spec is a `Write` of a path absent from the default branch at the session's `start`.
+- Base commit: 69ba7f79b75ef03adb1eb03ea4ffe48f68118fa1
+
+## Summary of deliverable 1
+done: rules `skill-routing-commit-message`, `-issue-workflow`, `-write-spec` in `rule-breaches`, gated on the lock.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (BRE-15 to BRE-18 traced, spec `accepted`) |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+| code review | 1 finding |
+
+red: BRE-15, BRE-16, BRE-17, BRE-18: `FAIL - a trigger is a finding until its skill is called or typed, in the session's own transcript only` (no `skill-routing` row)
+
+On the local transcripts: `skill-routing-commit-message` applied 194, breached 28; `-write-spec` 19 / 14;
+`-issue-workflow` 0 (no plan written through `Edit` or `Write` in a session whose lock lists the skill).
+Code review: 1 finding: `check_routing` and `proposes_plan` (BRE-8) match `Plan: proposed` differently; not fixed,
+BRE-8 is an accepted requirement outside this deliverable (follow-up below).
+
+not verified: none
+
+decisions needed: none
+
+## Follow-ups
+- BRE-8 (`validation-stop`) matches `Plan: proposed` anywhere in the written text, so a new issue quoting the marker
+  opens a false validation stop; the line rule of BRE-17 would fix it (a change of an accepted requirement: the user's call).

@@ -31,6 +31,10 @@ scope.
 - **BRE-13** (deterministic) The `detail` of a `user-language` breach must be `hinted` when a hint of the `language-hint` hook (an `attachment` line of type `hook_additional_context`, or a meta user line starting with `Stop hook feedback:`, holding `the user_language of .claude/cardinal.toml`) comes after its run of text blocks (the blocks with no tool call between them) and before the next run or user turn (BRE-5), else `final` when no assistant text block comes after it before the next user turn, else `intermediate`.
 - **BRE-14** (deterministic) The `user_language` of a session must be the string `user_language` of the `[project]` table of the personal configuration `.claude/cardinal.local.toml` at the root of the session's repository as it is when the measure runs, when that file is valid TOML and holds one, else that of the `.claude/cardinal.toml` (else `.claude/harness.toml`, for a commit before the rename of ADR 0015) committed at the session's `start`.
 
+- **BRE-15** (deterministic) Rules `skill-routing-<skill>` (BRE-16 to BRE-18): a `<skill>` is loaded at a line of the session's own transcript when an earlier line of it holds a `Skill` call whose skill is `<skill>` or `<prefix>:<skill>`, or a command the user typed (BRE-5) holding `<command-name>/<skill><` or `<command-name>/<prefix>:<skill><`; each trigger of the rule in the session's own transcript at which its skill is not loaded must be a finding at the trigger's call (`blocked` when its result is an error). A rule applies to the sessions whose own transcript holds its trigger and whose lock committed at the session's `start` (BRE-7) lists `.claude/skills/<skill>/SKILL.md`.
+- **BRE-16** (deterministic) Rule `skill-routing-commit-message`: its trigger must be a `Bash` call holding `git` and `commit`.
+- **BRE-17** (deterministic) Rule `skill-routing-issue-workflow`: its trigger must be an `Edit` or `Write` call that puts a line `Plan: proposed` (blanks around it ignored) in a file under `issues/`: a sentence that quotes the marker proposes no plan.
+- **BRE-18** (deterministic) Rule `skill-routing-write-spec`: its trigger must be a `Write` call whose path, relative to the work tree of its line (BRE-7), lies under `specs/`, ends with `.md`, is not `specs/README.md` and was not committed on the default branch at the session's `start`, with that relative path as `detail`.
 ## Scenarios
 
 - (BRE-5) Given a refused commit, then a `/code-review` call, then a commit that passes, when the session is read, then there is one `blocked` finding and no `breach`.
@@ -43,6 +47,9 @@ scope.
 - (BRE-13) Given an English block hinted after its call, then English blocks before two later calls, then an English last reply sent back by the Stop hook, when the session is read, then the first block and the last reply are `hinted` and the two others `intermediate`: each hint covers the run it judged.
 - (BRE-14) Given `user_language = "French"` committed at the session's `start` and `user_language = "English"` in the personal `.claude/cardinal.local.toml` of the repository, when a session of 25-word English blocks is read, then it has no `user-language` breach; with `user_language = "German"` in the personal file, the rule does not apply to it.
 - (BRE-3) Given a rule that applied in ten sessions of a revision and was broken in one, when the summary is printed, then its row reads `applied` 10 and `breached` 1.
+- (BRE-15) Given a commit, then a `Skill` call of `commit-message`, then a second commit, when the session is read, then only the first commit is a `skill-routing-commit-message` finding; given the user's `/commit-message` command before both, neither is.
+- (BRE-15) Given a commit in a session whose lock lists no `.claude/skills/commit-message/SKILL.md`, when the session is read, then `skill-routing-commit-message` does not apply to it.
+- (BRE-18) Given a `Write` of `specs/new.md` and one of `specs/old.md`, committed before the session, when the session is read with no `write-spec` call, then only `specs/new.md` is a finding.
 
 ## Non-goals
 
@@ -51,3 +58,5 @@ scope.
 - The `files:<skill>` calls of the Cardinal repository: Claude Code offers the skills under `files/` as directory-scoped skills and tells the agent to prefer them there; they are the same text as the synced copies, so calling them is no breach.
 - A write made through `Bash` (a heredoc, `sed -i`): only the `Edit`, `Write` and `NotebookEdit` calls are read for the file rules.
 - A command that breaks a rule only by a construction nobody would write by mistake (ADR 0005), such as `-n` for `--no-verify` or a shell variable holding the flag.
+- A skill skipped for a good reason (the user commits by hand, asks for a quick fix): the `skill-routing-<skill>` rules are a signal, never a gate; a commit or a spec the user writes is no call of the agent and no trigger.
+- A skill loaded in a sub-agent, or a trigger in a sub-agent's transcript: the sub-agent does not share the session's context.

@@ -42,7 +42,7 @@ when either group holds fewer issues than a floor, as VRD-9 does for the peak. O
 
 ## Plan
 1. [x] Issue floor: `too_few_values` reads the group's `issues` / `token_issues` cell of the quality table against
-   `--min-issues` (REP-3 option, refused out of 1..=1000); the token verdict test passes `--min-issues 1`; verified by
+   `--min-issues` (REP-3 option, refused out of 1..=1000); the token verdict test passes `--min-issues 2`; verified by
    a new verdict test (2 issues before, 6 after: `confounded`) and a refusal check; makes true VRD-11, REP-3. Docs:
    `docs/usage.md`, `docs/architecture.md`, `evaluate-harness` skill (`files/` then `just sync`). ~150 lines.
 
@@ -54,13 +54,30 @@ when either group holds fewer issues than a floor, as VRD-9 does for the peak. O
 
 ## Deliverable 1
 - done: `too_few_values` reads `issues` / `token_issues` of the quality table against `--min-issues` (default 5).
+
 | check | result |
 |---|---|
 | tests | `just check` green |
 | specs | VRD-11 traced, `cardinal-verdicts.md` back to `accepted` |
 | docs | `docs/usage.md`, `docs/architecture.md`, `evaluate-harness` |
+
 - red: VRD-11, REP-3: `FAIL - a group with fewer issues of known tokens than --min-issues (5) confounds a token verdict` (`unknown argument --min-issues`)
 - Code review: no findings
 - not verified: none
 - decisions needed: none
 - follow-up: `issues/require_enough_reviews_and_spec_lines_for_a_ratio_verdict.md` (floor on `reviews`, `spec_lines`).
+
+## Deliverable 2: fixes of the `high` review
+- done: a check with the before group alone under the `issues` floor; a `floor` helper for both options
+  (`ok_or_else`); `docs/usage.md` names the issues of known tokens; doc comment wrapped at 120; this tracking fixed.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| specs | unchanged, traced |
+| docs | `docs/usage.md` |
+
+- red: none (a test strengthened, no new behaviour)
+- Code review (high): 7 findings: 6 fixed; the single table of ratios and their divisors (`quality()`,
+  `metric_value`, `too_few_values`) left to the follow-up issue, as a hint, since it is a refactor across the three.
+- Code review (low): no findings

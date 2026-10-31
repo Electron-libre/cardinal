@@ -29,3 +29,8 @@ Lean agent loop
 # Resources
 * `specs/cardinal-verdicts.md` (VRD-6, VRD-9, VRD-10, VRD-11), `specs/cardinal-report.md` (REP-6).
 * `crates/cardinal/src/tools/cardinal_report.rs` (`too_few_values`, `Floors`).
+
+# Hints
+* `too_few_values` repeats the divisor of each ratio that `quality()` computes and the metric names of
+  `metric_value`: one table of (metric, numerator, divisor) read by the three would keep the floor on the right
+  column (raised by the `high` review of `require_enough_issues_for_a_per_issue_verdict`).

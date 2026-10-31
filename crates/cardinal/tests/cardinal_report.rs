@@ -965,13 +965,13 @@ fn verdict_edge_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 
 // spec: VRD-11
 fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
-    // 6 issues in each group, but the tokens of only 2 of `ra` known
+    // 6 issues in `ra`, 8 in `rb`, the tokens of only 2 of `ra` known
     let quality = write(
         &tmp.join("f-quality.tsv"),
         QUALITY,
         &[
             "ra\t6\t1\t1\t0\t3\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
-            "rb\t6\t1\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t6".into(),
+            "rb\t8\t1\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t6".into(),
         ],
     );
     let quality = quality.to_str().unwrap();
@@ -993,7 +993,7 @@ fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             one(&[]) == ["helped", "confounded"],
         ),
         (
-            "a group with fewer issues than --min-issues confounds a per-issue verdict",
+            "a before group alone with fewer issues than --min-issues confounds a per-issue verdict",
             one(&["--min-issues", "7"]) == ["confounded", "confounded"],
         ),
         (

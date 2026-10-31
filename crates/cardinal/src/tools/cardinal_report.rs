@@ -4,8 +4,8 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--min-issues <n>] [--anonymous]`. With `--changes`, a last table gives each recorded change of Cardinal a
-//! verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
+//! [--min-sessions <n>] [--min-issues <n>] [--anonymous]`. With `--changes`, a last table gives each recorded change
+//! of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -713,6 +713,14 @@ struct Options {
     anonymous: bool,
 }
 
+/// The whole number from 1 to 1000 that follows the floor option `arg`.
+fn floor(args: &mut impl Iterator<Item = String>, arg: &str) -> Result<usize, String> {
+    args.next()
+        .and_then(|n| n.parse().ok())
+        .filter(|n| (1..=1000).contains(n))
+        .ok_or_else(|| format!("{arg} needs a whole number from 1 to 1000"))
+}
+
 fn options(args: &[String]) -> Result<Options, String> {
     let mut args = args.iter().cloned();
     let mut options = Options {
@@ -733,18 +741,8 @@ fn options(args: &[String]) -> Result<Options, String> {
             "--quality" => options.quality.push(file()?),
             "--context" => options.context = Some(file()?),
             "--changes" => options.changes = Some(file()?),
-            "--min-sessions" | "--min-issues" => {
-                let n = args
-                    .next()
-                    .and_then(|n| n.parse().ok())
-                    .filter(|n| (1..=1000).contains(n))
-                    .ok_or(format!("{arg} needs a whole number from 1 to 1000"))?;
-                if arg == "--min-sessions" {
-                    options.min_sessions = n;
-                } else {
-                    options.min_issues = n;
-                }
-            }
+            "--min-sessions" => options.min_sessions = floor(&mut args, &arg)?,
+            "--min-issues" => options.min_issues = floor(&mut args, &arg)?,
             "--anonymous" => options.anonymous = true,
             other => return Err(format!("unknown argument {other}")),
         }

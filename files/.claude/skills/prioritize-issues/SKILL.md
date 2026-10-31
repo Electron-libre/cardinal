@@ -10,8 +10,7 @@ Each open issue carries its place in its front matter, `rank: <n>` (lowest = nex
 
 ## Procedure
 
-1. **Current state**: `just next-issue` (also reports the issues without a rank and the shared ranks; an
-   `issues/queue.md` left from the format 4 is converted first with `just next-issue --convert`).
+1. **Current state**: `just next-issue` (also reports the issues without a rank and the shared ranks).
 2. **Context**: the `roadmap` and `architecture` documents of `.claude/cardinal.toml`, the ADRs in `docs/adr/` that the issues cite, `git log --oneline -30` (what just
    landed and what it unblocks), and `issues/done/` titles when an issue refers to a closed one.
 3. **Each open issue**: read its Goal, Findings, Approach and Hints (not only the title). Note for each its

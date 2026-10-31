@@ -84,7 +84,7 @@ is about a state file, not the agent's `git add`.
    the Autonomous list points to 3.6, the Rules restating the system prompt dropped; verified by `just check`;
    `Expected-effect: input_tokens down`, not hurting `breached_share:review-before-commit`,
    `breached_share:validation-stop`.
-4. [ ] Legacy queue (S2): drop the format 4 conversion from `create-issue` and `prioritize-issues`; verified by
+4. [x] Legacy queue (S2): drop the format 4 conversion from `create-issue` and `prioritize-issues`; verified by
    `just check`; `Expected-effect: input_tokens down`.
 5. [ ] Audit mode: a "Review the managed instructions" section in `skill:audit-instructions` (this audit's four
    families, file and line, one family per fix, the `issues/done/` check); verified by `just check`.
@@ -167,5 +167,26 @@ red: none (no spec): `skills_drop_the_restated_rules` listed the 7 passages.
 Code review: no findings
 
 not verified: `breached_share:review-before-commit` and `validation-stop` over the next sessions.
+
+decisions needed: none.
+
+## Deliverable 4
+
+done: `create-issue` and `prioritize-issues` no longer explain the format 4 `issues/queue.md`; `next-issue` reads it
+(NXT-4) and hints at `--convert` once a file carries a rank (NXT-6).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no doc cites the removed lines |
+| code review | low, see below |
+
+red: none (no spec): `skills_drop_the_restated_rules` named `issues/queue.md` in both skills.
+
+Code review: no findings
+
+not verified: none.
 
 decisions needed: none.

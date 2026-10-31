@@ -55,8 +55,7 @@ This skill writes it; `cardinal run check-issue` (`just check-issue`) enforces t
    just check-issue issues/<name>.md
    ```
 
-5. **Rank**: a new issue has a priority, so rank it. An `issues/queue.md` left from the format 4 is converted
-   first (`just next-issue --convert`, in the main worktree). Run `just next-issue` (the open issues, lowest rank first),
+5. **Rank**: a new issue has a priority, so rank it. Run `just next-issue` (the open issues, lowest rank first),
    read the issues around the candidate places, then open the file with a front matter
 
    ```markdown

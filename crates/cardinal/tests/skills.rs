@@ -517,6 +517,16 @@ const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
         "don't enumerate every option",
         "Claude Code's prompt holds it",
     ),
+    (
+        "create-issue",
+        "issues/queue.md",
+        "next-issue reads a format 4 queue and prints its own hint to convert it (NXT-6)",
+    ),
+    (
+        "prioritize-issues",
+        "issues/queue.md",
+        "next-issue reads a format 4 queue and prints its own hint to convert it (NXT-6)",
+    ),
 ];
 
 #[test]

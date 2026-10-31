@@ -31,7 +31,7 @@ skill is the procedure; `cardinal run commit-check` enforces the mechanical rule
      fence.
    - If the agent commits (after the user validated the review, or at the commit step of a skill that commits
      on its own, such as `skill:create-issue`): `git commit` with that message, adding only the files of the
-     deliverable (never `git add -A`), then report the hash.
+     deliverable (never `git add -A`: the `review-gate check` hook refuses it), then report the hash.
 
 ## Check an existing commit
 

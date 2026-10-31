@@ -47,7 +47,7 @@ Out of scope: `git commit -a` (tracked files only, no personal untracked file), 
 ## Plan
 1. [x] Rule `stage-everything` in `rule-breaches`, then the measure over the kept transcripts recorded here; verified by
    a test of the rule on a built transcript; makes true BRE-21.
-2. [ ] If the measure shows breaches in the sessions of a Cardinal revision: `review-gate check` refuses a `git add` of
+2. [x] If the measure shows breaches in the sessions of a Cardinal revision: `review-gate check` refuses a `git add` of
    everything, the commit-message prose kept as the reason; verified by tests of `check` on chained, quoted and
    `-C` lines; makes true REV-21. Else: REV-21 withdrawn and the issue closed with the measure.
 
@@ -71,3 +71,13 @@ Code review: 1 finding
 - A `-A` or `.` of a later chained command (`git add a && ls .`) counts, the words reaching the next `git` (BRE-21
   as written, like `--no-edit` of BRE-16): not fixed, a rare over-count of a measure; the hook of deliverable 2 reads
   each command of the line apart.
+- `rule-breaches` was left `draft` by deliverable 1 though BRE-21 is traced: set `accepted` with deliverable 2.
+
+## Summary of deliverable 2
+done: `review-gate check` refuses a `git add` of `-A`, `--all` or `.` in any command of the line, quoted strings and
+here-document bodies dropped first; `git_commands` shares the reading of the global options with REV-12; the
+commit-message line names the hook.
+red: REV-21: `FAIL - git add -A` (and the 7 other refused lines)
+- The first build refused a command of this session whose here-document quoted `git add -A` between backticks: the
+  line is now unquoted before it is cut into commands, and the allowed cases cover it.
+Code review: no findings

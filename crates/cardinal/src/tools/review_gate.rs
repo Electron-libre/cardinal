@@ -1,7 +1,8 @@
 //! `review-gate <mode>`: the code review gate of a commit. Three modes: `record` (`PostToolUse` on `Skill`) stores a marker when the
 //! `code-review` skill ends; `native`, run by the git `pre-commit` hook that `cardinal sync` installs, compares the diff
 //! with the marker and fails the commit when the review is missing; `check` (`PreToolUse` on `Bash`) refuses what would
-//! skip that native hook (`specs/review-gate.md`, ADR 0005).
+//! skip that native hook, and a `git add` of every file, which stages personal and unrelated files with the
+//! deliverable (`specs/review-gate.md`, ADR 0005).
 //!
 //! The marker, `claude-code-review.json` in the git directory of the repository (so it is never a file of the
 //! work tree, whatever the ignore rules), holds the `HEAD`, a hash of the diff against `HEAD` (tracked
@@ -194,7 +195,7 @@ const GIT_VALUE_OPTIONS: [&str; 7] = [
 ];
 
 /// Completes `first`, the start of a value, with the next words of `words` when it opens a quote it does not close.
-fn quoted<'a>(first: &str, words: &mut impl Iterator<Item = &'a &'a str>) -> String {
+fn quoted<'a, 'b: 'a>(first: &str, words: &mut impl Iterator<Item = &'a &'b str>) -> String {
     let mut value = first.to_string();
     if let Some(quote) = first.chars().next().filter(|c| matches!(c, '"' | '\'')) {
         if first.len() == 1 || !first.ends_with(quote) {
@@ -210,7 +211,7 @@ fn quoted<'a>(first: &str, words: &mut impl Iterator<Item = &'a &'a str>) -> Str
 }
 
 /// Takes the value of an option from `words`: a quoted value may span several words.
-fn take_value<'a>(words: &mut impl Iterator<Item = &'a &'a str>) -> Option<String> {
+fn take_value<'a, 'b: 'a>(words: &mut impl Iterator<Item = &'a &'b str>) -> Option<String> {
     let first = *words.next()?;
     Some(quoted(first, words))
 }
@@ -272,36 +273,104 @@ fn segments(command: &str) -> impl Iterator<Item = &str> {
         .filter(|s| !s.trim().is_empty())
 }
 
-/// Whether a `git` command of `segment` (one command of a line) commits skipping its hooks (`skips_verification`).
-/// The subcommand is the first word after `git` once its global options are skipped (`SKIPPED_OPTIONS`,
-/// `GIT_VALUE_OPTIONS` as two words or as `--option=value`, a quoted value included); any other option means it is not
-/// a commit.
-fn commit_skips_hooks(segment: &str) -> bool {
-    let words: Vec<&str> = segment.split_whitespace().collect();
+/// The subcommand of a `git` command, its first word once the global options are skipped (`SKIPPED_OPTIONS`,
+/// `GIT_VALUE_OPTIONS` as two words or as `--option=value`, a quoted value included), quotes around it trimmed;
+/// `None` at any other option. `words` is left on the arguments of the subcommand.
+fn subcommand<'s>(words: &mut std::slice::Iter<'_, &'s str>) -> Option<&'s str> {
+    while let Some(w) = words.next() {
+        if GIT_VALUE_OPTIONS.contains(w) {
+            take_value(words);
+        } else if let Some(value) = GIT_VALUE_OPTIONS
+            .iter()
+            .find_map(|o| w.strip_prefix(o)?.strip_prefix('='))
+        {
+            quoted(value, words);
+        } else if !SKIPPED_OPTIONS.contains(w) {
+            return (!w.starts_with('-')).then(|| w.trim_end_matches(['\'', '"']));
+        }
+    }
+    None
+}
+
+/// The `git` commands of `segment` (one command of a line), each as its subcommand (`subcommand`) and its arguments.
+fn git_commands<'w, 's>(
+    words: &'w [&'s str],
+) -> impl Iterator<Item = (&'s str, &'w [&'s str])> + 'w {
     let is_git =
         |w: &&str| w.trim_start_matches(['$', '\'', '"']).rsplit('/').next() == Some("git");
-    (0..words.len()).filter(|i| is_git(&words[*i])).any(|at| {
-        let mut rest = words[at + 1..].iter();
-        while let Some(w) = rest.next() {
-            if GIT_VALUE_OPTIONS.contains(w) {
-                take_value(&mut rest);
-            } else if let Some(value) = GIT_VALUE_OPTIONS
-                .iter()
-                .find_map(|o| w.strip_prefix(o)?.strip_prefix('='))
-            {
-                quoted(value, &mut rest);
-            } else if !SKIPPED_OPTIONS.contains(w) {
-                return w.trim_end_matches(['\'', '"']) == "commit"
-                    && skips_verification(&rest.copied().collect::<Vec<_>>());
+    (0..words.len())
+        .filter(move |i| is_git(&words[*i]))
+        .filter_map(move |at| {
+            let mut rest = words[at + 1..].iter();
+            let name = subcommand(&mut rest)?;
+            Some((name, rest.as_slice()))
+        })
+}
+
+/// Whether a `git` command of `segment` commits skipping its hooks (`skips_verification`).
+fn commit_skips_hooks(segment: &str) -> bool {
+    let words: Vec<&str> = segment.split_whitespace().collect();
+    let skips =
+        git_commands(&words).any(|(name, args)| name == "commit" && skips_verification(args));
+    skips
+}
+
+/// The text of a line the shell reads as commands: each quoted string becomes the word `quoted` and the body of a
+/// here-document (opened by `<<` outside quotes) is dropped, so a message naming a command runs none.
+fn unquoted(command: &str) -> String {
+    let (mut text, mut quote) = (String::new(), None);
+    let mut lines = command.split('\n');
+    while let Some(line) = lines.next() {
+        let mut terminator: Option<String> = None;
+        let mut chars = line.chars().peekable();
+        while let Some(c) = chars.next() {
+            match quote {
+                Some(q) if c == q => quote = None,
+                Some(_) => {}
+                None if c == '\'' || c == '"' => {
+                    quote = Some(c);
+                    text.push_str(" quoted ");
+                }
+                None if c == '<' && chars.peek() == Some(&'<') => {
+                    chars.next();
+                    let name: String = chars
+                        .clone()
+                        .skip_while(|c| *c == '-' || c.is_whitespace())
+                        .filter(|c| !matches!(c, '\'' | '"'))
+                        .take_while(|c| c.is_alphanumeric() || *c == '_')
+                        .collect();
+                    terminator = terminator.or((!name.is_empty()).then_some(name));
+                    text.push(' ');
+                }
+                None => text.push(c),
             }
         }
-        false
-    })
+        text.push('\n');
+        if let Some(end) = terminator.filter(|_| quote.is_none()) {
+            lines.by_ref().find(|l| l.trim() == end);
+        }
+    }
+    text
+}
+
+/// Whether a `git` command of `segment` stages every file: an `add` with `-A`, `--all` or `.` (REV-21).
+fn add_stages_everything(segment: &str) -> bool {
+    let words: Vec<&str> = segment.split_whitespace().collect();
+    let stages = git_commands(&words).any(|(name, args)| {
+        name == "add" && args.iter().any(|a| matches!(*a, "-A" | "--all" | "."))
+    });
+    stages
 }
 
 /// Whether some commit of the line skips its hooks, each command of the line read apart (a continued line joined).
 fn skips_hooks(command: &str) -> bool {
     segments(&command.replace("\\\n", " ")).any(commit_skips_hooks)
+}
+
+/// Whether some `git add` of the line stages every file, each command of the line read apart once its quoted strings
+/// and here-documents are dropped (REV-21).
+fn stages_everything(command: &str) -> bool {
+    segments(&unquoted(&command.replace("\\\n", " "))).any(add_stages_everything)
 }
 
 /// Whether a command of the line sets `core.hooksPath` (`-c core.hooksPath=…`, `--config-env=core.hooksPath=…`,
@@ -654,6 +723,11 @@ pub(super) fn main(args: &[String]) -> u8 {
             }
             if skips_hooks(command) {
                 refuse_skipped_hook("--no-verify or -n");
+            }
+            if stages_everything(command) {
+                eprintln!("Refused: `git add` of every file stages personal and unrelated files with the deliverable.");
+                eprintln!("Add the files of the deliverable by name.");
+                std::process::exit(2);
             }
         }
         _ => {}

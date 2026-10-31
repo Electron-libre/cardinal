@@ -1,6 +1,6 @@
 ---
 id: BRE
-status: draft
+status: accepted
 adrs: [0003, 0005, 0006, 0010, 0018]
 ---
 

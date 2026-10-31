@@ -585,6 +585,52 @@ fn skipped_hook_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     out
 }
 
+// spec: REV-21
+/// A `git add` of every file is refused in any command of the line; one of named files, or the same words in a
+/// message or in another command of the line, is not.
+fn stage_everything_checks(hook: &Path) -> Vec<(&'static str, bool)> {
+    let current = std::env::temp_dir();
+    let refused = [
+        "git add -A",
+        "git add --all",
+        "git add .",
+        "git add -v -A",
+        "git -C repo add .",
+        "git add -A && git commit -m x",
+        "cd repo; git add .",
+        "git status && git add --all",
+        "cat <<EOF > m\nx\nEOF\ngit add -A",
+    ];
+    let allowed = [
+        "git add src/a.rs",
+        "git add ./src",
+        "git add -u",
+        "git commit -am x",
+        "git commit -m 'git add -A'",
+        "git commit -m \"stop git add .\"",
+        "git add a.rs && ls .",
+        "git status . && git add b.rs",
+        "git commit -m 'never `git add -A`'",
+        "git commit -F - <<'EOF'\nfeat: x\n\ngit add -A; git add .\nEOF",
+        "python3 - <<EOF\nprint(\"`git add --all`\")\nEOF\ngit add c.rs",
+    ];
+    let mut out: Vec<(&'static str, bool)> = refused
+        .iter()
+        .map(|c| {
+            (*c, {
+                let (code, stderr) = commit_attempt(hook, &current, c);
+                code == 2 && stderr.contains("by name")
+            })
+        })
+        .collect();
+    out.extend(
+        allowed
+            .iter()
+            .map(|c| (*c, commit_attempt(hook, &current, c).0 == 0)),
+    );
+    out
+}
+
 /// Runs `mode` for `event` with a `git` that only logs its arguments, and returns the logged calls (`None` when the
 /// hook itself failed, so that "no call" never means "did not run").
 fn git_calls(hook: &Path, mode: &str, event: &serde_json::Value) -> Option<Vec<String>> {
@@ -1076,6 +1122,7 @@ fn review_gate() {
         native_hook_checks,
         native_worktree_checks,
         skipped_hook_checks,
+        stage_everything_checks,
         cheap_checks,
         streaming_checks,
         untracked_content_checks,

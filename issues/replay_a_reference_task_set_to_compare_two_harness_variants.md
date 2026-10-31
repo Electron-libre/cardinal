@@ -141,3 +141,30 @@ Code review: no findings
 not verified: the variance over more than two runs
 
 decisions needed: go or no-go for the other cuts (ten tasks and grading; the comparison of two variants)
+
+## Whole issue: docs and `high` review
+`update-docs` over `1d828de..HEAD`: nothing more (the recipe and the fixture belong to this repository only, the
+`CLAUDE.md` index names them; `docs/` describes what a consumer gets).
+
+Code review: 10 findings (`high`, `1d828de..HEAD`)
+- `graded` ignored the subtype and the review gate: fixed, `graded` pass needs `success`, a commit, a review line and
+  the held-out test (now its own `tests` column).
+- The fixture was copied from the working tree: fixed, `git archive HEAD:fixtures/replay`.
+- `rm` and `test -x` of the pre-commit hook aborted on a revision older than the native gate: fixed, both only when the
+  first sync installed it (dry run at `1d828de` passes).
+- `reviews` counted the `| code review |` table rows: fixed, counted as QUA-6 (not a line starting with `|`).
+- A relative `claude` path broke after the `cd`: fixed, resolved first (relative to the repository root, where `just`
+  runs a recipe).
+- The held-out test is reachable through the source the copy's `.claude/cardinal.toml` names: not fixed, a limit for
+  the task-set cut (a grade kept outside the source).
+- The run loads the user's own configuration (`~/.claude/CLAUDE.md`, skills, MCP servers): not fixed, it conflicts with
+  the decision to use the model of the user's configuration; a decision for the comparison cut.
+- `skipped_dirs` skips a `fixtures` directory at any depth: not fixed, no other one exists and the key's semantics is
+  the tools'.
+- The recorded base is the setup commit, the `commits` column counts from the next one: not fixed, that commit only
+  touches `issues/`, which `deliverable-size` leaves out.
+- Runs are sequential: not fixed, out of the measure; for the comparison cut.
+
+Code review: no findings (`low`, the fixes)
+
+not verified: a `graded` pass through the new rule on a real run (the measured runs predate it, both would pass: success, 2 commits, review lines, tests)

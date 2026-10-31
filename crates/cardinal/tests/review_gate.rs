@@ -600,6 +600,12 @@ fn stage_everything_checks(hook: &Path) -> Vec<(&'static str, bool)> {
         "cd repo; git add .",
         "git status && git add --all",
         "cat <<EOF > m\nx\nEOF\ngit add -A",
+        "echo $((1 << 2))\ngit add -A",
+        "cat <<END-X\nx\nEND-X\ngit add .",
+        "echo \\\"x; git add -A",
+        "git add -Av",
+        "git add ./",
+        "git add :/",
     ];
     let allowed = [
         "git add src/a.rs",
@@ -613,6 +619,10 @@ fn stage_everything_checks(hook: &Path) -> Vec<(&'static str, bool)> {
         "git commit -m 'never `git add -A`'",
         "git commit -F - <<'EOF'\nfeat: x\n\ngit add -A; git add .\nEOF",
         "python3 - <<EOF\nprint(\"`git add --all`\")\nEOF\ngit add c.rs",
+        "git commit -m \"use \\\" git add . \\\" never\"",
+        "git add a.rs # not git add -A",
+        "git add -n .",
+        "git add . --dry-run",
     ];
     let mut out: Vec<(&'static str, bool)> = refused
         .iter()

@@ -24,6 +24,7 @@
 //! and the words of a message excepted). It reads the text only: the gate catches mistakes, not deliberate bypasses.
 
 use super::close_issue;
+use super::shell::{self, GIT_VALUE_OPTIONS};
 
 use std::collections::HashSet;
 use std::io::{Read, Write};
@@ -183,17 +184,6 @@ const SKIPPED_OPTIONS: [&str; 8] = [
     "--literal-pathspecs",
 ];
 
-/// Global options of `git` that take the next word as value.
-const GIT_VALUE_OPTIONS: [&str; 7] = [
-    "-C",
-    "-c",
-    "--git-dir",
-    "--work-tree",
-    "--namespace",
-    "--exec-path",
-    "--super-prefix",
-];
-
 /// Completes `first`, the start of a value, with the next words of `words` when it opens a quote it does not close.
 fn quoted<'a, 'b: 'a>(first: &str, words: &mut impl Iterator<Item = &'a &'b str>) -> String {
     let mut value = first.to_string();
@@ -315,62 +305,9 @@ fn commit_skips_hooks(segment: &str) -> bool {
     skips
 }
 
-/// The text of a line the shell reads as commands: each quoted string becomes the word `quoted` and the body of a
-/// here-document (opened by `<<` outside quotes) is dropped, so a message naming a command runs none.
-fn unquoted(command: &str) -> String {
-    let (mut text, mut quote) = (String::new(), None);
-    let mut lines = command.split('\n');
-    while let Some(line) = lines.next() {
-        let mut terminator: Option<String> = None;
-        let mut chars = line.chars().peekable();
-        while let Some(c) = chars.next() {
-            match quote {
-                Some(q) if c == q => quote = None,
-                Some(_) => {}
-                None if c == '\'' || c == '"' => {
-                    quote = Some(c);
-                    text.push_str(" quoted ");
-                }
-                None if c == '<' && chars.peek() == Some(&'<') => {
-                    chars.next();
-                    let name: String = chars
-                        .clone()
-                        .skip_while(|c| *c == '-' || c.is_whitespace())
-                        .filter(|c| !matches!(c, '\'' | '"'))
-                        .take_while(|c| c.is_alphanumeric() || *c == '_')
-                        .collect();
-                    terminator = terminator.or((!name.is_empty()).then_some(name));
-                    text.push(' ');
-                }
-                None => text.push(c),
-            }
-        }
-        text.push('\n');
-        if let Some(end) = terminator.filter(|_| quote.is_none()) {
-            lines.by_ref().find(|l| l.trim() == end);
-        }
-    }
-    text
-}
-
-/// Whether a `git` command of `segment` stages every file: an `add` with `-A`, `--all` or `.` (REV-21).
-fn add_stages_everything(segment: &str) -> bool {
-    let words: Vec<&str> = segment.split_whitespace().collect();
-    let stages = git_commands(&words).any(|(name, args)| {
-        name == "add" && args.iter().any(|a| matches!(*a, "-A" | "--all" | "."))
-    });
-    stages
-}
-
 /// Whether some commit of the line skips its hooks, each command of the line read apart (a continued line joined).
 fn skips_hooks(command: &str) -> bool {
     segments(&command.replace("\\\n", " ")).any(commit_skips_hooks)
-}
-
-/// Whether some `git add` of the line stages every file, each command of the line read apart once its quoted strings
-/// and here-documents are dropped (REV-21).
-fn stages_everything(command: &str) -> bool {
-    segments(&unquoted(&command.replace("\\\n", " "))).any(add_stages_everything)
 }
 
 /// Whether a command of the line sets `core.hooksPath` (`-c core.hooksPath=…`, `--config-env=core.hooksPath=…`,
@@ -724,7 +661,7 @@ pub(super) fn main(args: &[String]) -> u8 {
             if skips_hooks(command) {
                 refuse_skipped_hook("--no-verify or -n");
             }
-            if stages_everything(command) {
+            if shell::stages_everything(&shell::commands(command)) {
                 eprintln!("Refused: `git add` of every file stages personal and unrelated files with the deliverable.");
                 eprintln!("Add the files of the deliverable by name.");
                 std::process::exit(2);

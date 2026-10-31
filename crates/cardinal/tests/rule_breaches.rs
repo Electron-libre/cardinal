@@ -1023,6 +1023,7 @@ fn stage_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let long = t.run("a4", "Bash", &bash("git add --all; ls ."), None);
     t.run("a5", "Bash", &bash("git commit -am x"), None);
+    t.run("a7", "Bash", &bash("git add a.rs && ls ."), None);
     t.run("a6", "Bash", &bash("git status . && git add b.rs"), None);
     t.write(&projects.join("-g/s.jsonl"));
     let mut other = Transcript::new(&repo, "2026-02-02T10:00:00.000Z");

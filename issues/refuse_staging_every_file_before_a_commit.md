@@ -81,3 +81,19 @@ red: REV-21: `FAIL - git add -A` (and the 7 other refused lines)
 - The first build refused a command of this session whose here-document quoted `git add -A` between backticks: the
   line is now unquoted before it is cut into commands, and the allowed cases cover it.
 Code review: no findings
+3. [x] Docs of the whole issue and fixes of its `high` review: README (Gates), `docs/usage.md`; one shell reader
+   `tools/shell.rs` shared by the hook and the rule; makes true REV-21, BRE-21 as amended.
+
+## Summary of deliverable 3
+done: `shell.rs` reads the commands of a line once (quotes, escapes, comments, here-documents with a terminator
+starting with a letter) and judges a staging of everything for `review-gate check` and `stage-everything`;
+`-A` in a bundle, `./` and `:/` count, a dry run does not; README and `docs/usage.md` name the rule.
+red: REV-21: `FAIL - echo $((1 << 2))` and the other cases of the high review, before the shared reader.
+Code review (high, `base..HEAD`): 8 findings
+- 1, 2, 3, 5, 7 (here-document terminator, escapes, a `.` of a later command, comments, two readers): fixed by
+  `shell.rs`.
+- 4 (`-Av`, `./`, `:/`): fixed; a quoted flag (`git add '-A'`, `git "add"`) is a bypass, not a mistake (ADR 0005).
+- 6 (dry run refused): fixed.
+- 8 (REV-12 keeps its own reading of the line): not fixed, out of this issue; REV-12 works and its tests pass.
+- Measure again with the shared reader: 201 sessions applied, 33 breached, 55 breaches, 12 blocked.
+Code review (low): 1 finding: the rule parsed the command twice; fixed, `stages_everything` takes the parsed commands.

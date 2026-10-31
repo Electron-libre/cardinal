@@ -10,6 +10,7 @@
 
 use super::commit_check::BUILT_IN_SCOPES;
 use super::language::{is_hint, Language};
+use super::shell;
 use super::transcripts;
 
 use chrono::{DateTime, FixedOffset};
@@ -57,8 +58,8 @@ struct Call {
     location: String,
     /// The `cwd` of its line, where its paths are relative to.
     cwd: String,
-    /// The words of a `Bash` command; empty for another tool.
-    words: Vec<String>,
+    /// The commands of a `Bash` call, each as its words (`shell::commands`); empty for another tool.
+    commands: Vec<Vec<String>>,
     /// Whether its result was an error; `None` when no result was read.
     error: Option<bool>,
 }
@@ -82,7 +83,7 @@ impl Call {
     }
 
     fn has(&self, word: &str) -> bool {
-        self.words.iter().any(|w| w == word)
+        self.commands.iter().flatten().any(|w| w == word)
     }
 
     /// Whether it is a `Bash` call running `git commit`.
@@ -154,8 +155,8 @@ impl Transcript {
                         );
                         t.events.push(Event::Call(t.calls.len()));
                         let name = block["name"].as_str().unwrap_or_default().to_string();
-                        let words = if name == "Bash" {
-                            shell_words(block["input"]["command"].as_str().unwrap_or_default())
+                        let commands = if name == "Bash" {
+                            shell::commands(block["input"]["command"].as_str().unwrap_or_default())
                         } else {
                             Vec::new()
                         };
@@ -165,7 +166,7 @@ impl Transcript {
                             input: block["input"].clone(),
                             location: location.clone(),
                             cwd,
-                            words,
+                            commands,
                             error: None,
                         });
                     }
@@ -227,52 +228,6 @@ fn skill_name(name: &str) -> &str {
     name.rsplit(':').next().unwrap_or(name)
 }
 
-/// The words of a shell command that the shell itself reads: quoted strings and here-document bodies (commit
-/// messages, mostly) are dropped, so a message that names `--no-verify` is not a use of it.
-fn shell_words(command: &str) -> Vec<String> {
-    let (mut words, mut word, mut quote) = (Vec::new(), String::new(), None);
-    let mut lines = command.split('\n');
-    while let Some(line) = lines.next() {
-        // the terminator of a here-document opened on this line, outside quotes; its body is the next lines
-        let mut terminator: Option<String> = None;
-        let mut chars = line.chars().peekable();
-        while let Some(c) = chars.next() {
-            match quote {
-                Some(q) if c == q => quote = None,
-                Some(_) => {}
-                None if c == '\'' || c == '"' => quote = Some(c),
-                None if c == '<' && chars.peek() == Some(&'<') => {
-                    chars.next();
-                    let rest: String = chars.clone().collect();
-                    let name: String = rest
-                        .trim_start_matches('-')
-                        .trim_start()
-                        .chars()
-                        .filter(|c| !matches!(c, '\'' | '"'))
-                        .take_while(|c| c.is_alphanumeric() || *c == '_')
-                        .collect();
-                    terminator = terminator.or(name
-                        .starts_with(|c: char| c.is_alphabetic() || c == '_')
-                        .then_some(name));
-                    words.extend((!word.is_empty()).then(|| std::mem::take(&mut word)));
-                }
-                None if c.is_whitespace() || ";&|()<>`".contains(c) => {
-                    words.extend((!word.is_empty()).then(|| std::mem::take(&mut word)));
-                }
-                None => word.push(c),
-            }
-        }
-        if quote.is_none() {
-            words.extend((!word.is_empty()).then(|| std::mem::take(&mut word)));
-        }
-        if let Some(end) = terminator.filter(|_| quote.is_none()) {
-            lines.by_ref().find(|l| l.trim() == end);
-        }
-    }
-    words.extend((!word.is_empty()).then_some(word));
-    words
-}
-
 struct Finding {
     rule: &'static str,
     blocked: bool,
@@ -316,38 +271,12 @@ struct Routing {
     specs: HashSet<String>,
 }
 
-/// Each `git` invocation of the shell `words`: its subcommand, the first word after `git` that is not an option (`-C`
-/// and `-c` taking the next word), with the words after it up to the next `git` (BRE-16).
-fn git_invocations(words: &[String]) -> impl Iterator<Item = (&str, &[String])> {
-    words
-        .split(|w| w == "git")
-        .skip(1)
-        .filter_map(|invocation| {
-            let mut at = 0;
-            while let Some(word) = invocation.get(at) {
-                match word.as_str() {
-                    "-C" | "-c" => at += 2,
-                    option if option.starts_with('-') => at += 1,
-                    subcommand => return Some((subcommand, &invocation[at + 1..])),
-                }
-            }
-            None
+/// Whether the shell `commands` run `git commit` with a message to write: no `--no-edit` after it (BRE-16).
+fn writes_commit_message(commands: &[Vec<String>]) -> bool {
+    commands.iter().any(|command| {
+        shell::git_invocations(command).any(|(subcommand, args)| {
+            subcommand == "commit" && !args.iter().any(|a| a == "--no-edit")
         })
-}
-
-/// Whether the shell `words` run `git commit` with a message to write: no `--no-edit` before the next `git` (BRE-16).
-fn writes_commit_message(words: &[String]) -> bool {
-    git_invocations(words)
-        .any(|(subcommand, args)| subcommand == "commit" && !args.iter().any(|a| a == "--no-edit"))
-}
-
-/// Whether the shell `words` stage every file: a `git add` with `-A`, `--all` or `.` (BRE-21).
-fn stages_everything(words: &[String]) -> bool {
-    git_invocations(words).any(|(subcommand, args)| {
-        subcommand == "add"
-            && args
-                .iter()
-                .any(|a| matches!(a.as_str(), "-A" | "--all" | "."))
     })
 }
 
@@ -400,7 +329,7 @@ impl Verdict {
         if has("git") && has("add") {
             self.applied.insert("stage-everything");
         }
-        if stages_everything(&call.words) {
+        if shell::stages_everything(&call.commands) {
             self.add("stage-everything", blocked, &call.location, String::new());
         }
         if has("just") && has("waive-review") {
@@ -476,7 +405,7 @@ impl Verdict {
         });
         // the detail of each trigger of `ROUTED`, in its order; `None` when the call is not one
         let triggers = [
-            (call.name == "Bash" && writes_commit_message(&call.words)).then(String::new),
+            (call.name == "Bash" && writes_commit_message(&call.commands)).then(String::new),
             plan.then(String::new),
             new_spec,
         ];

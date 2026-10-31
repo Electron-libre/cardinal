@@ -26,6 +26,7 @@ mod repo_files;
 mod review_gate;
 mod rule_breaches;
 mod session_metrics;
+mod shell;
 mod spec_coverage;
 mod transcripts;
 

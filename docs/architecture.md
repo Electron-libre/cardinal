@@ -130,7 +130,7 @@ the commit. The workflow fires on the main branch only: pushing a version tag `v
 
 | Event | Matcher | Tool | Does | Spec |
 |---|---|---|---|---|
-| `PreToolUse` | `Bash` | `review-gate check` | refuses a command that would skip the git hook, or a `git add` of every file | [`review-gate.md`](../specs/review-gate.md) REV-12, REV-21 |
+| `PreToolUse` | `Bash` | `review-gate check` | refuses a command that would skip the git hook, or a `git add` of every file, judged as rule `stage-everything` of `rule-breaches` (`tools/shell.rs`) | [`review-gate.md`](../specs/review-gate.md) REV-12, REV-21 |
 | `PostToolUse` | `Skill` | `review-gate record` | records what the code review saw | [`review-gate.md`](../specs/review-gate.md) |
 | `PostToolUse` | `Edit\|Write` | `format-code` | formats an edited file with the project's format command, else `cargo fmt` the project of an edited `.rs` file | [`format-hook.md`](../specs/format-hook.md) |
 | `Stop` | | `lint-gate` | blocks the end of a turn while the project's lint (else clippy) reports a problem | [`lint-gate.md`](../specs/lint-gate.md) |

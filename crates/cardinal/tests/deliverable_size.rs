@@ -84,6 +84,17 @@ fn counts_the_working_tree_and_the_untracked_files_against_head() {
     assert_eq!(total(&stdout), 7, "{stdout}");
 }
 
+// spec: SIZ-1
+#[test]
+fn a_repository_with_no_commit_counts_against_the_empty_tree() {
+    let dir = tempfile::tempdir().unwrap();
+    git(dir.path(), &["init", "-q", "-b", "main", "."]);
+    write(dir.path(), "new.rs", &lines(3));
+    let (code, stdout) = size(dir.path(), &[]);
+    assert_eq!(code, Some(0), "{stdout}");
+    assert_eq!(total(&stdout), 3, "{stdout}");
+}
+
 // spec: SIZ-2, SIZ-3
 #[test]
 fn a_revision_adds_the_working_tree_a_range_does_not() {
@@ -123,6 +134,27 @@ fn a_pure_rename_counts_nothing() {
     assert_eq!(total(&size(dir.path(), &[]).1), 0);
 }
 
+/// The `git status` of `dir`, staged and unstaged.
+fn status(dir: &Path) -> String {
+    let out = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+// spec: SIZ-5, SIZ-11
+#[test]
+fn a_plain_move_counts_nothing_and_leaves_the_index_alone() {
+    let dir = repo(&[("old.rs", &lines(10))]);
+    std::fs::rename(dir.path().join("old.rs"), dir.path().join("new.rs")).unwrap();
+    let before = status(dir.path());
+    let (_, stdout) = size(dir.path(), &[]);
+    assert_eq!(total(&stdout), 0, "{stdout}");
+    assert_eq!(status(dir.path()), before);
+}
+
 // spec: SIZ-6
 #[test]
 fn a_rename_edited_later_in_the_range_counts_twice() {
@@ -145,6 +177,14 @@ fn a_binary_file_counts_nothing() {
     let dir = repo(&[("tracked.bin", "a\0b\n")]);
     write(dir.path(), "tracked.bin", "c\0d\ne\n");
     write(dir.path(), "new.bin", "x\0y\nz\n");
+    assert_eq!(total(&size(dir.path(), &[]).1), 0);
+}
+
+// spec: SIZ-7
+#[test]
+fn a_file_git_reads_as_binary_by_its_attributes_counts_nothing() {
+    let dir = repo(&[(".gitattributes", "*.gen -diff\n")]);
+    write(dir.path(), "out.gen", &lines(5));
     assert_eq!(total(&size(dir.path(), &[]).1), 0);
 }
 
@@ -206,6 +246,10 @@ fn a_git_failure_or_a_bad_limit_exits_3_with_no_count() {
     assert_eq!(size(dir.path(), &[]), (Some(3), String::new()));
     let dir = repo(&[]);
     assert_eq!(size(dir.path(), &["nope"]), (Some(3), String::new()));
+    assert_eq!(size(dir.path(), &["--output=x"]), (Some(3), String::new()));
+    assert!(!dir.path().join("x").exists());
+    let dir = repo(&[(".claude/cardinal.toml/x", "")]);
+    assert_eq!(size(dir.path(), &[]), (Some(3), String::new()));
     let outside = tempfile::tempdir().unwrap();
     assert_eq!(size(outside.path(), &[]), (Some(3), String::new()));
 }

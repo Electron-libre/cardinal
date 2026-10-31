@@ -61,7 +61,7 @@ the console only shows the link and the questions.
   (added + removed, outside `issues/` and lock files). At most ~1,000 per deliverable (a `low` review reads it whole),
   ~3,000 and 6 deliverables per issue (the `high` review reads `base..HEAD`, the context grows with each
   deliverable); the tool reads the limits of the project. It counts a move that also edits twice, so move in a
-  deliverable of its own. A deliverable over the limit is cut until each part is under it; an issue over it gets a
+  deliverable of its own (in the issue total, a moved file edited later still counts twice). A deliverable over the limit is cut until each part is under it; an issue over it gets a
   split proposed at step 2 ([details.md](details.md), "Split an issue").
 
 ## 2. Validate (STOP)

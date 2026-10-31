@@ -52,6 +52,9 @@ Out of scope: counting deliverables, estimating a plan before its code exists (s
 2. [x] Skill: `issue-workflow` steps 0, 1 and 3.5 and `docs/workflow.md` name the tool (`details.md` cites only the
    limit of step 1, no counting rule: unchanged) instead of the
    counting rules; verified by `just check` (skills tests, specs) and a run of the tool on this issue's range.
+3. [x] Fixes of the `high` review: git counts the untracked files through an intent-to-add copy of the index, no
+   commit yet, options refused, an unreadable configuration; verified by `tests/deliverable_size.rs`; makes true
+   SIZ-1, SIZ-5, SIZ-7, SIZ-10, SIZ-11.
 
 ## Decisions
 - Mode: autonomous
@@ -98,3 +101,29 @@ Out of scope: counting deliverables, estimating a plan before its code exists (s
 - decisions needed: none.
 - follow-up: in this repository the copies under `.claude/` of a changed `files/` count a second time (491 lines
   for the issue, 19 of them the copy of the skill); not a problem below the limit.
+
+## Deliverable 3
+
+- done: the 10 findings of `/code-review high` on `7121eb2..HEAD`, settled below; SIZ-1, SIZ-5, SIZ-7 and SIZ-10
+  amended, SIZ-11 added; 240 changed lines.
+
+| check | result |
+|---|---|
+| tests | `tests/deliverable_size.rs`: 13 passed; `just check` passed |
+| lint | clippy clean |
+| specs | `just check-specs` ok, SIZ-1 to SIZ-11 traced |
+| docs | skill step 1 (the issue-total warning restored) |
+| code review | `/code-review low`: 1 finding, kept by design |
+
+- red: SIZ-1, SIZ-5, SIZ-7, SIZ-10, SIZ-11: exit 3 with no commit, a plain `mv` counted 20, a `-diff` file 5,
+  `--output=x` accepted.
+- High review (10 findings): option injection, plain `mv` counted twice, no commit, non-UTF-8 untracked path,
+  binary detection unlike git's, left-out files read, a lossy copy to count lines: fixed by letting git count
+  the untracked files (intent-to-add in a copy of the index) and refusing a target starting with `-`; an
+  unreadable configuration now exits 3; the issue-total warning restored in the skill. Not fixed: the `git`
+  helper copied from `release.rs`, since the six helpers of `tools/` differ (trim, env, stdin) and this one now
+  takes an index and an input.
+- Code review: 1 finding: an untracked symbolic link now counts 1 line; kept, it is how `git diff` counts it once
+  tracked, as SIZ-1 asks.
+- not verified: a repository in SHA-256 format (the empty tree is asked to git, not hard-coded).
+- decisions needed: none.

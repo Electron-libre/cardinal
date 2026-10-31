@@ -2,11 +2,12 @@
 //! Usage: `cardinal run deliverable-size [<rev> | <a>..<b>]`: no argument counts the working tree and its untracked
 //! files against `HEAD` (SIZ-1), `<rev>` against that revision (SIZ-2), a range its commits alone (SIZ-3). Prints
 //! `<lines>\t<path>` per file, largest first, then the total against the limit; exits 0 within it, 1 over it, 3 on an
-//! error (SIZ-9, SIZ-10).
+//! error (SIZ-9, SIZ-10). git does all the counting: the untracked files are marked intent-to-add in a copy of the
+//! index, so `git diff` pairs a plain `mv` as a rename and reads their binary attributes (SIZ-5, SIZ-7, SIZ-11).
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// The lock files, left out with `issues/` (SIZ-4).
@@ -41,6 +42,10 @@ pub fn main(args: &[String]) -> u8 {
 
 /// The printed report and whether its total exceeds the limit.
 fn report(target: Option<&str>) -> Result<(String, bool), String> {
+    if let Some(option) = target.filter(|t| t.starts_with('-')) {
+        // git would read it as one of its options (SIZ-10)
+        return Err(format!("`{option}` is not a revision or a range"));
+    }
     let root = super::repo_root()?;
     let root = Path::new(&root);
     let (key, default) = match target {
@@ -48,15 +53,24 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
         Some(_) => ("issue_size_limit", 3000),
     };
     let limit = limit(root, key, default)?;
-    let mut counts = diff(root, target.unwrap_or("HEAD"))?;
-    if !target.is_some_and(|t| t.contains("..")) {
-        for path in untracked(root)? {
-            let bytes =
-                std::fs::read(root.join(&path)).map_err(|e| format!("cannot read {path}: {e}"))?;
-            *counts.entry(path).or_default() += line_count(&bytes);
+    let numstat = match target {
+        Some(range) if range.contains("..") => git(root, &diff_args(range), None, None)?,
+        Some(rev) => working_tree_diff(root, rev)?,
+        None if git(root, &["rev-parse", "--verify", "-q", "HEAD"], None, None).is_ok() => {
+            working_tree_diff(root, "HEAD")?
         }
-    }
-    let mut files: Vec<(u64, String)> = counts
+        None => {
+            // no commit yet: everything counts as added (SIZ-1)
+            let empty = git(
+                root,
+                &["hash-object", "-t", "tree", "--stdin"],
+                None,
+                Some(b""),
+            )?;
+            working_tree_diff(root, String::from_utf8_lossy(&empty).trim())?
+        }
+    };
+    let mut files: Vec<(u64, String)> = counts(&numstat)
         .into_iter()
         .filter(|(path, n)| *n > 0 && !left_out(path))
         .map(|(path, n)| (n, path))
@@ -77,8 +91,10 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
 /// absent (SIZ-8, SIZ-10).
 fn limit(root: &Path, key: &str, default: u64) -> Result<u64, String> {
     let path = crate::config_of(root);
-    let Ok(text) = std::fs::read_to_string(&path) else {
-        return Ok(default);
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(default),
+        Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
     };
     let table: toml::Table = text
         .parse()
@@ -93,23 +109,78 @@ fn limit(root: &Path, key: &str, default: u64) -> Result<u64, String> {
     }
 }
 
-/// The added plus removed lines of each file `git diff <target>` changes, renames detected only when exact, so a
-/// renamed and edited file counts its whole old and new content (SIZ-5, SIZ-6); a binary file counts 0 (SIZ-7).
-fn diff(root: &Path, target: &str) -> Result<BTreeMap<String, u64>, String> {
-    let out = git(
+/// `git diff --numstat` of `target`, renames detected only when exact, so a renamed and edited file counts its whole
+/// old and new content (SIZ-5, SIZ-6).
+fn diff_args(target: &str) -> [&str; 7] {
+    [
+        "diff",
+        "--numstat",
+        "-z",
+        "-M100%",
+        "--no-ext-diff",
+        target,
+        "--",
+    ]
+}
+
+/// The diff of the working tree against `rev`, the untracked files included as new ones: they are marked
+/// intent-to-add in a copy of the index, removed after, so the index of the repository is untouched (SIZ-11).
+fn working_tree_diff(root: &Path, rev: &str) -> Result<Vec<u8>, String> {
+    let index = git(
         root,
-        &[
-            "diff",
-            "--numstat",
-            "-z",
-            "-M100%",
-            "--no-ext-diff",
-            target,
-            "--",
-        ],
+        &["rev-parse", "--path-format=absolute", "--git-path", "index"],
+        None,
+        None,
     )?;
+    let index = PathBuf::from(String::from_utf8_lossy(&index).trim());
+    let copy = TempIndex(index.with_extension(format!("cardinal-size-{}", std::process::id())));
+    if index.exists() {
+        std::fs::copy(&index, &copy.0)
+            .map_err(|e| format!("cannot copy {}: {e}", index.display()))?;
+    }
+    let untracked: Vec<u8> = git(
+        root,
+        &["ls-files", "-o", "--exclude-standard", "-z"],
+        None,
+        None,
+    )?
+    .split(|b| *b == 0)
+    // a nested repository is listed as its directory: never counted, as `repo_files` drops it
+    .filter(|p| !p.is_empty() && !p.ends_with(b"/"))
+    .flat_map(|p| p.iter().copied().chain([0]))
+    .collect();
+    if !untracked.is_empty() {
+        git(
+            root,
+            &[
+                "--literal-pathspecs",
+                "add",
+                "--intent-to-add",
+                "--pathspec-from-file=-",
+                "--pathspec-file-nul",
+            ],
+            Some(&copy.0),
+            Some(&untracked),
+        )?;
+    }
+    git(root, &diff_args(rev), Some(&copy.0), None)
+}
+
+/// A copy of the index, deleted when dropped.
+struct TempIndex(PathBuf);
+
+impl Drop for TempIndex {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// The added plus removed lines of each path of a `git diff --numstat -z`; a binary file, `-` for both, counts 0
+/// (SIZ-7).
+fn counts(numstat: &[u8]) -> BTreeMap<String, u64> {
+    let text = String::from_utf8_lossy(numstat);
     let mut counts = BTreeMap::new();
-    let mut fields = out.split('\0');
+    let mut fields = text.split('\0');
     while let Some(record) = fields.next() {
         let mut parts = record.splitn(3, '\t');
         let (Some(added), Some(removed), Some(path)) = (parts.next(), parts.next(), parts.next())
@@ -126,26 +197,7 @@ fn diff(root: &Path, target: &str) -> Result<BTreeMap<String, u64>, String> {
         let n = added.parse::<u64>().unwrap_or(0) + removed.parse::<u64>().unwrap_or(0);
         *counts.entry(path.to_string()).or_default() += n;
     }
-    Ok(counts)
-}
-
-/// The untracked files git does not ignore, nested repositories left out as `repo_files` does.
-fn untracked(root: &Path) -> Result<Vec<String>, String> {
-    let out = git(root, &["ls-files", "-o", "--exclude-standard", "-z"])?;
-    Ok(out
-        .split('\0')
-        .filter(|p| !p.is_empty() && !p.ends_with('/'))
-        .filter(|p| root.join(p).symlink_metadata().is_ok_and(|m| m.is_file()))
-        .map(String::from)
-        .collect())
-}
-
-/// The lines of a text file, a last one without its newline included; 0 for a binary one (a NUL byte).
-fn line_count(bytes: &[u8]) -> u64 {
-    if bytes.contains(&0) {
-        return 0;
-    }
-    String::from_utf8_lossy(bytes).lines().count() as u64
+    counts
 }
 
 fn left_out(path: &str) -> bool {
@@ -156,12 +208,38 @@ fn left_out(path: &str) -> bool {
             .any(|p| super::check_specs::name_matches(p, name))
 }
 
-/// The stdout of `git <args>` run in `root`, or git's message.
-fn git(root: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
+/// The stdout of `git <args>` run in `root`, with `index` as its index and `stdin` as its input, or git's message.
+fn git(
+    root: &Path,
+    args: &[&str],
+    index: Option<&Path>,
+    stdin: Option<&[u8]>,
+) -> Result<Vec<u8>, String> {
+    use std::io::Write as _;
+    use std::process::Stdio;
+    let mut command = Command::new("git");
+    command
         .args(args)
         .current_dir(root)
-        .output()
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    if let Some(index) = index {
+        command.env("GIT_INDEX_FILE", index);
+    }
+    let mut child = command
+        .spawn()
+        .map_err(|e| format!("cannot run git: {e}"))?;
+    if let (Some(input), Some(mut pipe)) = (stdin, child.stdin.take()) {
+        pipe.write_all(input)
+            .map_err(|e| format!("cannot write to git: {e}"))?;
+    }
+    let out = child
+        .wait_with_output()
         .map_err(|e| format!("cannot run git: {e}"))?;
     if !out.status.success() {
         return Err(format!(
@@ -170,5 +248,5 @@ fn git(root: &Path, args: &[&str]) -> Result<String, String> {
             String::from_utf8_lossy(&out.stderr).trim()
         ));
     }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    Ok(out.stdout)
 }

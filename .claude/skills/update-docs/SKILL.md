@@ -57,4 +57,4 @@ rg -n "<name>" CLAUDE.md AGENTS.md docs/ <root_docs> <architecture>
 ## 6. Report
 
 Finish with a short table: document → updated / n/a (reason) → what changed. Don't commit unless asked;
-when asked, follow `AGENTS.md`.
+when asked, use `skill:commit-message`.

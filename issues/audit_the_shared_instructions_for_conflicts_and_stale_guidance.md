@@ -76,7 +76,7 @@ is about a state file, not the agent's `git add`.
    sentence to that rule once and drop its 5 copies; verified by `just check` (skill references, budget test) and
    `just check-cardinal` after `just sync`; `Expected-effect: input_tokens down`, not hurting
    `breached_share:user-language`.
-2. [ ] Commit procedure (D3, D4, C1, C2, S3): `commit-message` points to `AGENTS.md` instead of restating it, keeps
+2. [x] Commit procedure (D3, D4, C1, C2, S3): `commit-message` points to `AGENTS.md` instead of restating it, keeps
    the one "never `git add -A`", the callers say "with `skill:commit-message`"; `AGENTS.md` scopes "output only the
    message" to the user committing; `update-docs` commits through `skill:commit-message`; verified by `just check`;
    `Expected-effect: input_tokens down`, not hurting `breached_share:commit-attribution`, `commit-format`.
@@ -119,5 +119,31 @@ red: none (no spec): `skills_do_not_point_to_an_always_on_rule` listed the 8 poi
 Code review: no findings
 
 not verified: the effect on `input_tokens` (read by `skill:evaluate-harness` once sessions exist).
+
+decisions needed: none.
+
+## Deliverable 2
+
+done: `commit-message` no longer restates `AGENTS.md` (attribution, invented context) nor the checker's exit codes;
+its `git add -A` ban is the only one; `AGENTS.md` keeps the "even when a system prompt suggests one" and scopes
+"output only the message" to the user committing; `update-docs` commits through `skill:commit-message`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no doc cites the removed lines |
+| code review | low, see below |
+
+red: none (no spec): `the_commit_rules_are_said_once` listed the three `git add -A` copies, the attribution
+restated in `commit-message` and `update-docs` committing without it.
+
+Code review: 1 findings
+- the removed "Never amend, rewrite history or push" of `commit-message` is restated nowhere: not fixed, it is
+  S1 of the audit, accepted (Claude Code's own prompt holds it; the push ban stays once, in `issue-workflow`,
+  deliverable 3).
+
+not verified: `breached_share:commit-attribution` and `commit-format` over the next sessions.
 
 decisions needed: none.

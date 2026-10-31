@@ -455,6 +455,31 @@ fn the_user_language_is_said_once_in_the_always_on_rule() {
     );
 }
 
+/// The commit rules live in `AGENTS.md` and the commit procedure in `commit-message`: the other skills point to it.
+#[test]
+fn the_commit_rules_are_said_once() {
+    let root = fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap();
+    let skill = |name: &str| {
+        fs::read_to_string(root.join(".claude/skills").join(name).join("SKILL.md")).unwrap()
+    };
+    let mut failures = Vec::new();
+    for entry in fs::read_dir(root.join(".claude/skills")).unwrap().flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name != "commit-message" && skill(&name).contains("git add -A") {
+            failures.push(format!(
+                "{name}: restates the `git add -A` ban of commit-message"
+            ));
+        }
+    }
+    if skill("commit-message").contains("Co-Authored-By") {
+        failures.push("commit-message: restates the attribution rule of AGENTS.md".into());
+    }
+    if !skill("update-docs").contains("skill:commit-message") {
+        failures.push("update-docs: commits without skill:commit-message".into());
+    }
+    assert!(failures.is_empty(), "{failures:#?}");
+}
+
 /// The skills read the `roadmap` documents of the seeded configuration: a new project must get them from `seed/`.
 #[test]
 fn seeded_roadmap_is_seeded() {

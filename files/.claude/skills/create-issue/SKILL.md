@@ -78,7 +78,7 @@ This skill writes it; `cardinal run check-issue` (`just check-issue`) enforces t
    or `done` milestone takes an issue only on the user's agreement. Never create or reorder a milestone unasked: the
    milestones, their order and their states are the user's.
 6. **Commit**: commit the issue files alone (the new issue files and the roadmap file step 5 edited), added then named on
-   the commit line (`git add <files>`, then `git commit -m <msg> -- <files>`; never `git add -A`), with
+   the commit line (`git add <files>`, then `git commit -m <msg> -- <files>`), with
    `skill:commit-message`; other modified or staged files stay out of the commit. Two exceptions: an issue
    written inside another deliverable (a review finding) is committed with that deliverable, not on its own;
    when the roadmap file already held changes that are not this skill's, ask before committing.

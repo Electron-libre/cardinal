@@ -31,4 +31,4 @@ Each open issue carries its place in its front matter, `rank: <n>` (lowest = nex
    200, 300..., `why` updated; nothing else of the file), run `just next-issue` and check it prints that order
    with no issue without a rank nor shared rank. When the order changed, commit the re-ranked issue files alone,
    with the issue files the split wrote or narrowed, added then named on the commit line (`git add <files>`, then
-   `git commit -m <msg> -- <files>`; never `git add -A`), with `skill:commit-message`; ask first when one of those files held changes that are not this skill's.
+   `git commit -m <msg> -- <files>`), with `skill:commit-message`; ask first when one of those files held changes that are not this skill's.

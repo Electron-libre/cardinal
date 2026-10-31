@@ -50,7 +50,7 @@ variants, the report; they become new issues only if the measure says the replay
 1. [x] Fixture: `fixtures/replay/`, a tiny Rust crate (outside the workspace) with one small issue whose `# Tracking`
    holds a validated plan in autonomous mode, so the run never stops for the user; verified by `cargo test` failing on
    the fixture as handed over, then passing with the expected change applied by hand (not committed); no requirement.
-2. [ ] Runner: a `replay <rev> <runs>` recipe of the `justfile` (this repository only, not `files/`) that copies the
+2. [x] Runner: a `replay <rev> <runs>` recipe of the `justfile` (this repository only, not `files/`) that copies the
    fixture to a fresh directory per run, commits it, runs `cardinal init` at `<rev>` of this repository, runs
    `claude -p` on the issue with `--output-format json`, then grades it (fixture tests, the review gate held: a commit
    exists and `issues/` records `Code review`) and prints one tab-separated line per run (duration, cost, tokens,
@@ -83,5 +83,26 @@ import replay_fixture::word_frequencies`, and its 4 tests pass with a reference 
 Code review: no findings
 
 not verified: none
+
+decisions needed: none
+
+## Deliverable 2: runner
+done: `just replay <rev> <runs> [claude]` in the `justfile`: a copy per run under `/tmp/cardinal-replay.*/replay-fixture`
+(kept), `cardinal init` of this repository's `.git` at `<rev>`, the setup committed before the review gate is
+installed, `claude -p` with the decided flags, then the grade (`commits` since the base, `reviews` lines of the issue,
+`graded` by the held-out test) next to the fields of the JSON result.
+
+| check | result |
+|---|---|
+| tests | `just check` passes |
+| dry run | a stub `claude` applying the reference solution: `success`, `reviews` 1, `graded` pass; `true` as `claude`: the line `unreadable`, `graded` fail |
+| docs | `CLAUDE.md` index |
+| code review | see below |
+
+red: none (a recipe; the dry run first printed no line for an empty result, fixed with `jq -e`)
+Code review: 1 finding
+- `reviews` counted the review lines the handed issue may already hold: fixed, the count before the run is subtracted.
+
+not verified: a real `claude -p` run (deliverable 3)
 
 decisions needed: none

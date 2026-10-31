@@ -55,6 +55,7 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 
 | Command | Does |
 |---|---|
+| `cardinal init <source> [--rev <rev>]` | points the project at a source (a directory or a git URL) in `.claude/cardinal.toml` |
 | `cardinal sync [--dry-run] [--force]` | brings the project in step with its source |
 | `cardinal update [--rev <rev>] [--dry-run] [--force]` | moves a git source to a revision, syncs, pins the commit |
 | `cardinal check` | fails when a copy drifted, the review gate is missing or a hook needs a newer `cardinal` |
@@ -78,5 +79,6 @@ delivers. Details: [docs/workflow.md](docs/workflow.md).
 
 - [docs/usage.md](docs/usage.md): every command in detail, the evaluation, parallel worktrees.
 - [docs/workflow.md](docs/workflow.md): how an issue goes from idea to merge, alone or in parallel.
-- [docs/architecture.md](docs/architecture.md): how Cardinal is built.
+- [docs/architecture.md](docs/architecture.md): how Cardinal is built; [docs/gates.md](docs/gates.md) and
+  [docs/evaluation.md](docs/evaluation.md) hold the detail of its hooks and of its evaluation.
 - [specs/](specs/): what each capability must do; [docs/adr/](docs/adr/): why it is so.

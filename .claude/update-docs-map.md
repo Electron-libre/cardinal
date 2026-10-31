@@ -11,7 +11,7 @@ Read by `skill:update-docs`.
 | New key read from `.claude/cardinal.toml` | `seed/.claude/cardinal.toml` (with its comment), `docs/architecture.md` |
 | Project-owned file added under `seed/` | `docs/architecture.md` |
 | Content of a seeded file changed | `docs/usage.md` (what a project seeded before changes by hand: it owns the file) |
-| Hook added, renamed or dropped (a `cardinal run` tool or a script under `files/.claude/hooks/`), or an allow or deny rule of the harness | `entries/.claude/settings.json`, `docs/architecture.md` (Hooks and their declaration), `README.md` (What a project gets, Gates), then `just sync` |
+| Hook added, renamed or dropped (a `cardinal run` tool), or an allow or deny rule of the harness | `entries/.claude/settings.json`, `docs/architecture.md` (Hooks and their declaration), `docs/gates.md`, `README.md` (What a project gets, Gates), then `just sync` |
 | Meaning of the managed content an older `cardinal` would misread (a key of `entries/`, a line of the lock, a directory of the source) | `cardinal-format` and `FORMAT` in `crates/cardinal/src/lib.rs`, raised together (ADR 0014), `specs/sync.md`; a managed name or a seeded text it replaces goes to `migrations/<n>.toml` (ADR 0017) |
-| Column or metric of a transcript reader (`session-metrics`, `cardinal-report`, `Expected-effect:` metrics) | its spec (`specs/evaluation.md`, `cardinal-report.md`, `cardinal-verdicts.md`), `docs/architecture.md` (the readers table) |
-| Fixture under `fixtures/` or recipe of this repository's `justfile` | `CLAUDE.md` (Index) |
+| Column or metric of a transcript reader (`session-metrics`, `cardinal-report`, `Expected-effect:` metrics) | its spec (`specs/evaluation.md`, `cardinal-report.md`, `cardinal-verdicts.md`), `docs/evaluation.md` (the readers table) |
+| Fixture under `fixtures/` or recipe of this repository's `justfile` | `CLAUDE.md` (Index), `docs/evaluation.md` (The replay) |

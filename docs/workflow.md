@@ -70,7 +70,7 @@ flowchart TD
   document the issue touched whole, so the patches of each deliverable add up to a consistent page;
   `doc_lines_per_spec_line` in `cardinal-report` measures the effect.
 - **Gates**: a commit fails while its diff holds a file the last review never saw; only the user can waive it, with
-  `just waive-review` ([architecture](architecture.md#the-review-gate)).
+  `just waive-review` ([gates](gates.md#the-review-gate)).
 
 ## Parallel issues
 
@@ -109,7 +109,7 @@ sequenceDiagram
 
 `skill:evaluate-harness` reads the session transcripts and the git history and reports, per Cardinal revision (or per model setup),
 whether the agent got more efficient, the delivered work better and the rules better followed
-([architecture](architecture.md#the-evaluation-from-the-transcripts)). A commit that changes `files/` names the
+([evaluation](evaluation.md)). A commit that changes `files/` names the
 effect it should have in an `Expected-effect: <metric> <up|down>` line (`CLAUDE.md`); the report gives each one a
 verdict, `confounded` when something else changed too. `skill:audit-instructions` reads the
 instructions the user gave over time and proposes the skills, tools, hooks and rules worth adding; each validated proposal becomes

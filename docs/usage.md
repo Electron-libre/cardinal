@@ -49,18 +49,19 @@ The installed `cardinal` is the launcher of every project of the machine, not a 
 revision whose hooks call a subcommand it does not know needs its `cardinal` installed first, or every hook refuses and
 the agent can run nothing, the install included. `cardinal update` refuses such a revision and prints the install to
 run; in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
-The hooks of a project synced before the rename call `harness`, which is no longer installed: one `cardinal update`
-moves them to `cardinal`.
 
-A source also declares the format of its managed content in `cardinal-format`, a whole number (ADR 0014): `sync` and
-`update` refuse a source of a format the installed `cardinal` does not read, write nothing and print the install to
-run, instead of misreading it (SYN-40); `check`, `sync` and `update` refuse in the same way a lock synced from a
-source of a newer format (SYN-42).
+### Formats and migrations
+
+A source declares the format of its managed content in `cardinal-format`, a whole number (ADR 0014). An older
+`cardinal` refuses what it would misread, writes nothing and prints the install to run:
+
+| Refused by | When | Spec |
+|---|---|---|
+| `sync`, `update` | the source is of a format above the one the installed `cardinal` reads | SYN-40 |
+| `check`, `sync`, `update` | the lock was synced from a source of such a format | SYN-42 |
+| `init`, `sync`, `update` | the source is below the format 3, whose tools read the names before the rename (`.claude/harness.toml`, `.claude/harness.lock`, `harness.just`) | SYN-51, ADR 0016 |
 
 The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just`.
-`init`, `sync` and `update` refuse a source below the format 3, whose tools read the names before the rename
-(`.claude/harness.toml`, `.claude/harness.lock`, `harness.just`), and write nothing (SYN-51, ADR 0016): a project of
-those names is read and migrated by the `cardinal` of its own revision only.
 
 A source that raises its format declares what changed in `migrations/<n>.toml`, `<n>` the new format (ADR 0017):
 
@@ -75,15 +76,17 @@ old = "check: check-old"
 new = "check: check-new"
 ```
 
-`sync` and `update` apply the migrations above the format of the lock, up to the one of the source, in increasing
-format (SYN-52): each `rewrite` replaces its text where the project left it as seeded, printed `rewritten: <path>`,
-and leaves a line the project changed as it is (SYN-53). Then each line of a file git tracks, outside the managed
-files, `issues/done/` and `docs/adr/`, that still cites an old name of `names` as a word is printed on stderr as
-`warning: <path>:<line> cites <old>, named <new> since the format <n>`, for the agent or the user to edit: the run
-that applies the migration is the only one to print it (SYN-54). Until a project moves, `check` and `sync` print
-`hint: .claude/cardinal.lock is of the format <a>, this cardinal reads the format <m>: run `cardinal update` …` when
-its lock is of a lower format than the installed `cardinal` reads and its source is a git one (SYN-55). A migration that cannot be read fails them, writing
-nothing.
+`sync` and `update` apply each migration above the format of the lock, up to the one of the source, in increasing
+format (SYN-52); one that cannot be read fails them, writing nothing.
+
+- Each `rewrite` replaces its text where the project left it as seeded, printed `rewritten: <path>`, and leaves a
+  line the project changed as it is (SYN-53).
+- Then each line of a file git tracks, outside the managed files, `issues/done/` and `docs/adr/`, that still cites
+  an old name of `names` as a word is printed on stderr as `warning: <path>:<line> cites <old>, named <new> since the
+  format <n>`, for the agent or the user to edit. Only the run that applies the migration prints it (SYN-54).
+- Until a project with a git source moves, `check` and `sync` print `hint: .claude/cardinal.lock is of the format
+  <a>, this cardinal reads the format <m>: run `cardinal update` …` when its lock is below the format the installed
+  `cardinal` reads (SYN-55).
 
 ## Size of a deliverable
 
@@ -120,8 +123,8 @@ them after 30 days by default, for every project at once: keep them a year in yo
 
 `fixed_context_budget = <bytes>` in the `[project]` table of `.claude/cardinal.toml` bounds the fixed context every
 session pays (`CLAUDE.md`, `.claude/CLAUDE.md`, the rules without `paths`, the files they import, `AGENTS.md` and
-`.claude/AGENTS.md` only when imported or when neither `CLAUDE.md` file exists, and the skill descriptions): `check`, `sync` and `update` warn when the work tree
-exceeds it, naming the largest part, and never fail because of it.
+`.claude/AGENTS.md` only when imported or when neither `CLAUDE.md` file exists, and the skill descriptions): `check`,
+`sync` and `update` warn when the work tree exceeds it, naming the largest part, and never fail because of it.
 
 The skill `evaluate-harness` runs the readers below and reports the trend per axis; each can also run alone. With no
 projects directory given, they read the `projects/` of the configuration directory and warn when it cannot be read.
@@ -133,20 +136,38 @@ projects directory given, they read the `projects/` of the configuration directo
 | `delivered-quality [repo] [--summary]` | one row per done issue: its commits and deliverables, the fixes inside it, the fixes and reverts of its files in the 30 days after its close, its reviews and their findings, the lines it changed in the specs and in the docs, the setup (main model, alone or advised; `mixed` when its sessions differ), failed checks, typed messages and tokens of the sessions that made it; `--summary` sums them per Cardinal revision and setup |
 | `fixed-context` | per project and Cardinal revision, the bytes of the memory files (`AGENTS.md` apart, counted only when loaded) and the skill descriptions that every session pays, and the skills the revision ships |
 | `cardinal-changes [repo] --sessions <file>` | one row per `Expected-effect: <metric> <up\|down>` line of a commit of the Cardinal source that changes `files/`, with the revisions of the sessions that hold the change |
-| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup] [--anonymous]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), a row per group of consecutive revisions with enough sessions (`--min-sessions`, 10), the model, version and project mix next to the numbers (`--anonymous` keeps only the count of projects); `--by setup` groups the sessions by setup (`<model> solo` or `<model> advised by <advisor>`) instead, with their revision mix and the quality of each setup, and leaves out the tables kept per revision (rules, fixed context, verdicts); with `--changes`, the verdict of each expected effect (`helped`, `hurt`, `no observed effect`, `confounded` when a group is too small, holds fewer issues (of known tokens, for the tokens; or fewer reviews, for the findings per review) than `--min-issues` (5) for a ratio of the quality table, or something else changed too, `no data`) |
+| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup] [--anonymous]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), and with `--changes` a verdict per expected effect; see below |
+
+`cardinal-report` in detail:
+
+- **Groups**: a row per group of consecutive revisions with at least `--min-sessions` (10) sessions, the model,
+  version and project mix next to the numbers (`--anonymous` keeps only the count of projects).
+- **`--by setup`**: groups the sessions by setup (`<model> solo` or `<model> advised by <advisor>`) instead, with
+  their revision mix and the quality of each setup, and leaves out the tables kept per revision (rules, fixed
+  context, verdicts).
+- **Verdicts** (`--changes`): `helped`, `hurt`, `no observed effect`, `no data`, or `confounded` when something else
+  changed too, a group is too small, or, for a ratio of the quality table, a group closed fewer issues than
+  `--min-issues` (5) (only those of known tokens count for the tokens) or, for the findings per review, also held
+  fewer reviews than it.
 
 ## Parallel issues in worktrees
 
-For an issue run in parallel, `just start-issue issues/<name>.md` creates the worktree `.claude/worktrees/<stem>` on
-a branch `<stem>`, inside the main one, and makes git ignore it; launch a plain `claude` there. The steps are in
-[workflow.md](workflow.md#parallel-issues).
+For an issue run in parallel, the user opens its worktree; the agent never creates, enters or leaves one (ADR 0011,
+[specs/parallel-issues.md](../specs/parallel-issues.md)):
 
-The tools that run on `.` without git's `info/exclude` then read every issue in progress. Keep the worktrees out of
-them:
+| Recipe | What it does |
+|---|---|
+| `just start-issue issues/<stem>.md` | creates the worktree `.claude/worktrees/<stem>` inside the main one, on a new branch `<stem>` cut from the branch of the main worktree; adds `/.claude/worktrees/` to git's `info/exclude`; copies `.claude/cardinal.local.toml` into it. Refuses an issue file not committed on the main branch. Launch a plain `claude` in the worktree. |
+| `just finish-issue <stem> [--force]` | from outside the worktree, removes it and deletes the branch once the branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes |
+
+The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues).
+
+The tools that run on `.` and do not read git's `info/exclude` then read every issue in progress. Keep the worktrees
+out of them:
 
 | Tool | Setting |
 |---|---|
-| measured, prettier, black | `/.claude/worktrees/` in `.gitignore` |
+| prettier, black | `/.claude/worktrees/` in `.gitignore` |
 | eslint 9 | `{ ignores: [".claude/worktrees/"] }` in `eslint.config.js` |
 | vitest | `exclude: [...configDefaults.exclude, ".claude/worktrees/**"]` |
 | jest | `"<rootDir>/.claude/worktrees/"` in `testPathIgnorePatterns` and `modulePathIgnorePatterns` |

@@ -29,7 +29,7 @@ next-issue *args:
 start-issue issue:
     cardinal run issue-worktree start {{issue}}
 
-# Remove the worktree and the branch of an issue once its branch is merged into the main branch (rebase and one-commit squash included); `--force` for a squash of several commits, only after the user agreed.
+# Remove the worktree and the branch of an issue once its branch is merged into the main branch (fast-forward, rebase or squash); `--force` also drops work not on the main branch, only after the user agreed.
 finish-issue stem *flags:
     cardinal run issue-worktree finish {{stem}} {{flags}}
 

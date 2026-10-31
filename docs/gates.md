@@ -1,0 +1,74 @@
+# Gates
+
+The hooks that hold the agent to the rules of a project, in detail;
+[architecture.md](architecture.md#hooks-and-their-declaration) lists them and says how `sync` declares them.
+
+## The review gate
+
+`review-gate` makes the code review of `issue-workflow` (step 3.5) a precondition of the commit. The gates catch the
+mistakes of a cooperative agent, not deliberate bypasses
+([ADR 0005](adr/0005-the-gates-catch-mistakes-not-bypasses.md)); the judgement moved from the command text to the
+repository git resolves ([ADR 0004](adr/0004-review-gate-moves-from-the-command-to-the-repository.md),
+`crates/cardinal/src/gate.rs`).
+
+```mermaid
+sequenceDiagram
+  participant A as agent
+  participant CC as Claude Code
+  participant G as git
+  A->>CC: /code-review low (Skill)
+  CC->>CC: PostToolUse: review-gate record<br/>marker = HEAD, tree hash, files seen
+  A->>CC: Bash: git commit
+  CC->>CC: PreToolUse: review-gate check<br/>refuses --no-verify, -n, core.hooksPath, git add -A
+  CC->>G: git commit
+  G->>G: pre-commit: review-gate native
+  alt a file of the diff the review never saw
+    G-->>A: exit 2: run /code-review low
+  else reviewed, waived, issues/ only, or a close
+    G-->>A: commit made
+  end
+```
+
+- **record** writes `claude-code-review.json` in the git directory, never in the work tree: the `HEAD`, a hash of the
+  working tree against `HEAD` (tracked changes and untracked files) and the files it covers. It does not parse the
+  review text. `code-review` runs forked, so the hook fires when the review ends.
+- **native** recomputes that snapshot and refuses when the marker is missing, older than the last commit, or the diff
+  holds a file the review never saw (REV-9, REV-10); a fix to a reviewed file passes, documentation is reviewed like
+  code, and the temporary index of `git commit -a` (`GIT_INDEX_FILE`) is ignored so the snapshot is the one `record`
+  took. Each linked worktree has its own marker and waiver (REV-11, REV-15). The commit of a close passes unreviewed
+  when, outside `issues/`, its index holds only the references `close-issue` rewrites for the moves it records (REV-20).
+- **check** reads a command only for what would skip the git hook (REV-12): a native hook does not run under
+  `--no-verify` or `-n`, nor once `core.hooksPath` points elsewhere. A commit made by another tool is out of reach.
+- **Waiver**: only the user waives the next commit, with `just waive-review` (it creates `claude-review-waived` at
+  `git rev-parse --git-path`, REV-17). The managed deny rules make Claude Code refuse the agent the recipe and an edit
+  of the file (REV-19); they match the command the agent usually writes, not a `touch` or a script. A waiver is stamped
+  with `HEAD` when it lets a commit through and removed at the first run after `HEAD` moved, so a command that does not
+  commit leaves it usable.
+- **Install**: `sync` writes the git `pre-commit` (a small `sh` script marked by its second line) in the hooks
+  directory of the common git directory, keeps a user's own hook as `pre-commit.user` run after it, and skips a
+  `core.hooksPath` set elsewhere (SYN-18 to SYN-23); a project nested in another repository, or outside any, gets
+  no gate and no error. `.git/hooks` is not cloned, so each clone needs its own `sync`. A missing `cardinal`, or a
+  launcher that cannot run the tool (exit 3), is a warning, not a refusal.
+
+## The code hooks
+
+- **`lint-gate`**, at the end of a turn, runs the `lint_command` of `.claude/cardinal.toml` (by `sh -c`, from the
+  project directory) when a file named like one of its `lint_files` changed outside the `.claude` directories, else
+  `cargo clippy` in a project with a `Cargo.toml` and a changed `.rs` file; in both cases only when the lint state
+  (command, commit, changed files) changed since the last passing run (CLG-1, CLG-4, CLG-7). What it prints is billed
+  to the agent at each turn: one short line per clippy diagnostic, at most 40 (CLG-2, CLG-3), the first 40 non-blank
+  lines of another lint (CLG-8). An empty `lint_command` turns the gate off.
+- **`format-code`**, after an edit, runs the `format_command` with the edited file as last argument, from the root of
+  its work tree, when the file is named like one of the `format_files`, else `cargo fmt` for a `.rs` file; it prints
+  nothing (FMT-1 to FMT-4).
+
+The hooks that run cargo do not trust `CLAUDE_PROJECT_DIR`: a session that entered another worktree keeps it on the
+main one, where another agent may work. `lint-gate` checks the work tree of the event's `cwd` (CLG-6) and
+`format-code` runs `cargo fmt` from the directory of the edited file. For the same reason the seeded `justfile` asks
+the project's `check` to print nothing on success.
+
+## Attribution
+
+No hook guards it: the seeded settings turn it off (`"attribution": {"commit": "", "pr": "", "sessionUrl": false}`),
+`cardinal run commit-check` rejects a credit line (run by `skill:commit-message` and by CI through
+`just check-commits`), and `check` warns of settings that leave it on.

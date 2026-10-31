@@ -21,5 +21,6 @@ What we do, in a few sentences.
 What gets easier, what gets harder, what must be redone (for example a full re-ingest).
 ```
 
-Write an ADR for: embedding model or prefix changes, Qdrant payload or collection schema changes, crate
-boundaries, anything a future reader would otherwise undo by accident.
+Write an ADR for: the layout of the source or of a consumer (file names, what is managed, seeded or merged), the
+format of the managed content and its migrations, where a tool runs and how it is installed, a limit the gates keep
+on purpose, anything a future reader would otherwise undo by accident.

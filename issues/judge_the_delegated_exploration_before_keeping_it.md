@@ -1,6 +1,6 @@
 ---
-rank: 75
-why: 'cheap and immediate: the delegation already ran for many sessions; decides whether the one subagent of the workflow stays'
+rank: 225
+why: 'waits for ~10 issue sessions with an Explore call on the largest project before the new measure'
 ---
 # Judge the delegated exploration before keeping it
 

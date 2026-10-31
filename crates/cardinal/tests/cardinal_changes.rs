@@ -86,7 +86,7 @@ fn run(cwd: &Path, args: &[&str]) -> (i32, String, String) {
     )
 }
 
-// spec: VRD-3, VRD-4, VRD-7
+// spec: VRD-3, VRD-4, VRD-7, VRD-13
 #[test]
 fn lists_the_expectations_of_the_changes_with_the_revisions_that_hold_them() {
     let tmp = tempfile::tempdir().unwrap();
@@ -134,7 +134,7 @@ fn lists_the_expectations_of_the_changes_with_the_revisions_that_hold_them() {
         &repo,
         5,
         "files/c.md",
-        "feat(files): w\n\nExpected-effect: breached_share:commit-attribution down\n",
+        "feat(files): w\n\nExpected-effect: breached_share:commit-attribution down\nExpected-effect: bytes_per_session:oversized-result down\n",
     );
     // Two commits of the same second keep the order they were made in.
     let c6 = commit(
@@ -172,6 +172,7 @@ fn lists_the_expectations_of_the_changes_with_the_revisions_that_hold_them() {
         format!("{c1}\ttotal_bytes\tup\t{held}"),
         format!("{c4}\tvalidations\tup\t{c5}"),
         format!("{c5}\tbreached_share:commit-attribution\tdown\t{c5}"),
+        format!("{c5}\tbytes_per_session:oversized-result\tdown\t{c5}"),
         format!("{c6}\tturns\tup\t"),
         format!("{c7}\tturns\tdown\t"),
     ];

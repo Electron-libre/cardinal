@@ -54,7 +54,7 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
 ## Plan
 1. [x] Bytes per rule: `bytes` in the `--summary` of `rule-breaches`, `bytes` and `bytes_per_session` in the rules
    table of `cardinal-report`; verified by unit tests of both tools; makes true BRE-20, REP-13.
-2. [ ] Waste metric: `bytes_per_session:<rule>` accepted by `commit-check` and `cardinal-changes`, given a verdict by
+2. [x] Waste metric: `bytes_per_session:<rule>` accepted by `commit-check` and `cardinal-changes`, given a verdict by
    `cardinal-report --changes`; verified by tests of the three; makes true VRD-13.
 3. [ ] Skills: `audit-instructions` and `evaluate-harness` name a rule with a filled `bytes` a waste measure, read
    through `bytes_per_session`, never a hook or rewording candidate; `just sync`; verified by `just check-cardinal`.
@@ -73,3 +73,11 @@ candidate. Out of scope: moving the waste to `session-metrics` (approach 2), oth
   refused the new summary header.
 - Code review: no findings.
 - not verified: the summary on the local transcripts (the tests use fixtures).
+
+## Deliverable 2
+
+- done: `bytes_per_session:<rule>` accepted by `commit-check` and `cardinal-changes`, read from the rules table by the
+  verdicts of `cardinal-report`; `cardinal-verdicts` spec back to `accepted`.
+- red: VRD-13: `cardinal-changes` dropped the line `Expected-effect: bytes_per_session:oversized-result down` as an
+  unknown metric.
+- Code review: no findings.

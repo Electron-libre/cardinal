@@ -177,7 +177,7 @@ fn commit_check_enforces_each_rule_of_agents_md() {
     check_messages(repo.path(), cases);
 }
 
-// spec: VRD-1, VRD-2
+// spec: VRD-1, VRD-2, VRD-13
 #[test]
 fn commit_check_refuses_an_expected_effect_it_cannot_read() {
     let repo = project(Some("[project]\ncommit_scopes = [\"files\"]\n"));
@@ -223,6 +223,16 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
             "rule share",
             message("Expected-effect: breached_share:commit-attribution down"),
             "",
+        ),
+        (
+            "waste bytes",
+            message("Expected-effect: bytes_per_session:oversized-result down"),
+            "",
+        ),
+        (
+            "waste bytes with no rule",
+            message("Expected-effect: bytes_per_session: down"),
+            "Expected-effect",
         ),
         (
             "unknown metric",

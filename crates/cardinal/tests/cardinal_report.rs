@@ -758,6 +758,8 @@ fn verdicts(
         &[
             "x-rule\tra\t4\t2\t2\t0\t".into(),
             "x-rule\trb\t4\t1\t1\t0\t".into(),
+            "oversized-result\tra\t4\t2\t3\t0\t120000".into(),
+            "oversized-result\trb\t4\t2\t2\t0\t48000".into(),
         ],
     );
     let mut args: Vec<&std::ffi::OsStr> = vec![
@@ -903,6 +905,25 @@ fn verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             ) == ["confounded"],
         ),
     ]
+}
+
+// spec: VRD-13
+fn waste_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let rows = verdicts(
+        dir,
+        tmp,
+        &pair(two("p1", "ra", 1, 10), two("p1", "rb", 2, 10)),
+        &[
+            change('a', "bytes_per_session:oversized-result", "rb"),
+            change('a', "breached_share:oversized-result", "rb"),
+        ],
+        &[],
+    );
+    let values: Vec<String> = rows.iter().map(|r| r[5..].join(" ")).collect();
+    vec![(
+        "the bytes per session of a waste rule come from its row of the rules table",
+        values == ["30000 12000 helped", "50 50 no observed effect"],
+    )]
 }
 
 // spec: VRD-1, VRD-5
@@ -1168,6 +1189,7 @@ fn cardinal_report() {
         .chain(refusal_checks(&dir, temp.path()))
         .chain(verdict_checks(&dir, temp.path()))
         .chain(verdict_edge_checks(&dir, temp.path()))
+        .chain(waste_verdict_checks(&dir, temp.path()))
         .chain(token_verdict_checks(&dir, temp.path()))
         .chain(token_quality_checks(&dir, temp.path()))
         .chain(advisor_verdict_checks(&dir, temp.path()))

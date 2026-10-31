@@ -5,7 +5,7 @@
 
 use std::io::Read;
 
-use super::cardinal_changes::{expectation, METRICS, RULE_METRIC};
+use super::cardinal_changes::{expectation, METRICS, RULE_METRIC, WASTE_METRIC};
 use super::{config_list, repo_root};
 
 const TYPES: [&str; 9] = [
@@ -91,7 +91,7 @@ pub(super) fn violations(message: &str, scopes: &[String]) -> Vec<String> {
         }
         if expectation(line).is_some_and(|e| e.is_err()) {
             errors.push(format!(
-                "line {n}: write `Expected-effect: <metric> <up|down>`, the metric one of {METRICS:?} or `{RULE_METRIC}<rule>`"
+                "line {n}: write `Expected-effect: <metric> <up|down>`, the metric one of {METRICS:?}, `{RULE_METRIC}<rule>` or `{WASTE_METRIC}<rule>`"
             ));
         }
         if line.chars().any(is_emoji) {

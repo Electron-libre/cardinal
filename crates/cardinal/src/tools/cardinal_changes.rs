@@ -13,7 +13,7 @@ use super::transcripts::{default_branch, git};
 pub(super) const HEADER: &str = "change\tmetric\tdirection\trevisions";
 const USAGE: &str = "usage: cardinal run cardinal-changes [repo] --sessions <file>";
 const PREFIX: &str = "Expected-effect:";
-/// The metrics an expectation can name: columns of the `cardinal-report` tables (`breached_share:<rule>` apart).
+/// The metrics an expectation can name: columns of the `cardinal-report` tables (the metrics of a rule apart).
 pub(super) const METRICS: [&str; 17] = [
     "turns",
     "tool_calls",
@@ -34,6 +34,8 @@ pub(super) const METRICS: [&str; 17] = [
     "total_bytes",
 ];
 pub(super) const RULE_METRIC: &str = "breached_share:";
+/// The metric of the bytes of a waste rule per session (VRD-13).
+pub(super) const WASTE_METRIC: &str = "bytes_per_session:";
 
 /// The metric and direction of an `Expected-effect:` line; `None` for another line, `Some(Err(()))` for one that
 /// names no known metric and direction.
@@ -42,12 +44,15 @@ pub(super) fn expectation(line: &str) -> Option<Result<(&str, &str), ()>> {
     let words: Vec<&str> = rest.split_whitespace().collect();
     let known = |metric: &str| {
         METRICS.contains(&metric)
-            || metric.strip_prefix(RULE_METRIC).is_some_and(|rule| {
-                !rule.is_empty()
-                    && rule
-                        .chars()
-                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-            })
+            || [RULE_METRIC, WASTE_METRIC]
+                .iter()
+                .filter_map(|prefix| metric.strip_prefix(prefix))
+                .any(|rule| {
+                    !rule.is_empty()
+                        && rule
+                            .chars()
+                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                })
     };
     Some(match words[..] {
         [metric, direction @ ("up" | "down")] if rest.starts_with(' ') && known(metric) => {

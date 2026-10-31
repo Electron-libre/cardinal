@@ -9,7 +9,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC};
+use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC, WASTE_METRIC};
 use super::delivered_quality::SUMMARY_HEADER as QUALITY;
 use super::session_metrics::HEADER as SESSIONS;
 
@@ -604,9 +604,13 @@ fn metric_value(tables: &[Table], g: usize, metric: &str) -> Option<(String, f64
     let (title, column, key) = match metric {
         _ if quality_ratio(metric).is_some() => ("Quality", metric, None),
         "total_bytes" => ("Fixed context", metric, None),
-        _ => match metric.strip_prefix(RULE_METRIC) {
-            Some(rule) => ("Rules", "breached_share", Some(("rule", rule))),
-            None => ("Efficiency", metric, None),
+        _ => match (
+            metric.strip_prefix(RULE_METRIC),
+            metric.strip_prefix(WASTE_METRIC),
+        ) {
+            (Some(rule), _) => ("Rules", "breached_share", Some(("rule", rule))),
+            (_, Some(rule)) => ("Rules", "bytes_per_session", Some(("rule", rule))),
+            _ => ("Efficiency", metric, None),
         },
     };
     let cell = tables

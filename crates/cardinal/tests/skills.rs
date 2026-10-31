@@ -547,12 +547,12 @@ const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
     (
         "create-issue",
         "issues/queue.md",
-        "next-issue reads a format 4 queue and prints its own hint to convert it (NXT-6)",
+        "the rank of each issue file replaced the format 4 queue (ADR 0019)",
     ),
     (
         "prioritize-issues",
         "issues/queue.md",
-        "next-issue reads a format 4 queue and prints its own hint to convert it (NXT-6)",
+        "the rank of each issue file replaced the format 4 queue (ADR 0019)",
     ),
 ];
 

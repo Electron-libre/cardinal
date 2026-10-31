@@ -44,8 +44,8 @@ deliberate step run from the main branch.
 - (PAR-6) Given a squashed branch whose content was later changed on the main branch, when `finish-issue` runs, then it counts as not merged (the safe side).
 - (PAR-11) Given the shell in a subdirectory of the issue worktree, when `finish-issue` runs, then it fails and the worktree and the branch are kept.
 - (PAR-3) Given a branch `foo` with no worktree and no commit off the main branch, when `next-issue` runs, then `foo` is not taken and is reported as `Stale:`.
-- (PAR-8) Given the shell in the main worktree, when `close-issue ../repo-foo/issues/foo.md` names the issue of the linked worktree `repo-foo`, then it fails and the issue and the queue of `repo-foo` are untouched.
-- (PAR-8) Given the shell in the linked worktree `repo-foo`, when `close-issue ../repo/issues/foo.md` names the issue of the main worktree, then it fails and the issue and the queue of the main worktree are untouched.
+- (PAR-8) Given the shell in the main worktree, when `close-issue ../repo-foo/issues/foo.md` names the issue of the linked worktree `repo-foo`, then it fails and the issues of `repo-foo` are untouched.
+- (PAR-8) Given the shell in the linked worktree `repo-foo`, when `close-issue ../repo/issues/foo.md` names the issue of the main worktree, then it fails and the issues of the main worktree are untouched.
 - (PAR-13) Given a `.gitignore` holding `!.claude/` and an `info/exclude` that already holds `/.claude/worktrees/`, when `start-issue` runs, then `git status` of the main worktree lists nothing under `.claude/worktrees/` and `info/exclude` holds the line once.
 - (PAR-14) Given an issue worktree under `.claude/worktrees/` whose documents cite `issues/foo.md`, when `close-issue issues/foo.md` runs in the main worktree, then the files of the issue worktree are untouched.
 - (PAR-14) Given an issue worktree under `.claude/worktrees/` in a clone whose `info/exclude` lacks the line of PAR-13, when the spec traceability check runs in the main worktree, then it reads none of the files of the issue worktree.

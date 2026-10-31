@@ -21,7 +21,7 @@ check-commits base head:
 close-issue issue:
     cardinal run close-issue {{issue}}
 
-# Which issue to work on next (the open issue of lowest rank that no branch or worktree has taken), and the issues without a rank; `--convert` turns a format 4 issues/queue.md into ranks.
+# Which issue to work on next (the open issue of lowest rank that no branch or worktree has taken) and the issues without a rank.
 next-issue *args:
     cardinal run next-issue {{args}}
 

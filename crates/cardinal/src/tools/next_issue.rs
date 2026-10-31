@@ -1,15 +1,11 @@
 //! Print the next issue to work on: the open issue of lowest `rank` in its front matter, with its title, its `why`
-//! and the rest of the order (ADR 0019). Reports (stderr) the issues without a rank and the shared ranks. While
-//! `issues/queue.md` exists (format 4), its lines give the order, and the issues missing from it and its lines
-//! without a file are reported.
+//! and the rest of the order (ADR 0019). Reports (stderr) the issues without a rank and the shared ranks.
 //! An issue is taken, and skipped, when a git worktree has a branch named after its stem checked out, or when such
 //! a branch holds work that is not on the branch of the main worktree (patch-equivalent commits and a squash of any
 //! number of commits count as on it: merging the branch would change no file). A branch with neither (left over after a merge, empty) is reported `Stale:` and takes nothing. The mark
 //! comes from git alone, so every worktree sees it.
-//! Usage: `just next-issue` (from the repo root, or pass the `issues` directory as argument); `--convert` turns
-//! `issues/queue.md` into the ranks of the issue files and deletes it.
+//! Usage: `just next-issue` (from the repo root, or pass the `issues` directory as argument).
 
-use std::fmt::Write as _;
 use std::path::Path;
 use std::process::Command;
 
@@ -23,16 +19,6 @@ fn title(dir: &Path, stem: &str) -> String {
                 .find_map(|l| l.strip_prefix("# ").map(str::to_string))
         })
         .unwrap_or_else(|| "(no file)".to_string())
-}
-
-/// `- [stem](stem.md) - why` gives `(stem, why)`; any other line (title, prose) is not an entry.
-fn entry(line: &str) -> Option<(&str, &str)> {
-    let rest = line.trim().strip_prefix("- [")?;
-    let (stem, rest) = rest.split_once("](")?;
-    let why = rest
-        .split_once(')')
-        .map_or("", |(_, w)| w.trim_start_matches(" - "));
-    Some((stem, why))
 }
 
 fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
@@ -136,7 +122,7 @@ fn branches(dir: &Path, stems: &[&str]) -> Vec<Branch> {
         .collect()
 }
 
-/// The stems of the issue files of `dir` (`queue.md` excluded), sorted.
+/// The stems of the issue files of `dir`, sorted.
 fn issue_stems(dir: &Path) -> Vec<String> {
     let mut stems: Vec<String> = std::fs::read_dir(dir)
         .map(|d| {
@@ -144,42 +130,11 @@ fn issue_stems(dir: &Path) -> Vec<String> {
                 .map(|e| e.path())
                 .filter(|p| p.is_file() && p.extension().is_some_and(|x| x == "md"))
                 .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
-                .filter(|s| s != "queue")
                 .collect()
         })
         .unwrap_or_default();
     stems.sort();
     stems
-}
-
-/// The order of a format 4 `queue.md` (NXT-4): its entries, and whether it drifted from the files.
-fn from_queue(dir: &Path, queue: &str) -> (Vec<(String, String)>, bool) {
-    let entries: Vec<(String, String)> = queue
-        .lines()
-        .filter_map(entry)
-        .map(|(s, w)| (s.to_string(), w.to_string()))
-        .collect();
-    let mut drift = false;
-    for (stem, _) in &entries {
-        if !dir.join(format!("{stem}.md")).is_file() {
-            eprintln!("queue line without a file: {stem}");
-            drift = true;
-        }
-    }
-    for s in issue_stems(dir) {
-        if !entries.iter().any(|(e, _)| *e == s) {
-            eprintln!("issue missing from the queue: {s}");
-            drift = true;
-        }
-    }
-    let ranked = issue_stems(dir).iter().any(|s| {
-        std::fs::read_to_string(dir.join(format!("{s}.md")))
-            .is_ok_and(|t| front_matter(&t, "rank").is_some())
-    });
-    if ranked {
-        eprintln!("hint: issue files carry a `rank` that issues/queue.md hides: run `just next-issue --convert` in the main worktree (NXT-6)");
-    }
-    (entries, drift)
 }
 
 /// The lines of the front matter of `text` (between a first line `---` and the next `---`, line endings kept) and
@@ -253,82 +208,6 @@ fn from_ranks(dir: &Path) -> (Vec<(String, String)>, bool) {
     (entries, drift)
 }
 
-/// `text` with `rank` and `why` (single-quoted; removed when empty) set in its front matter: an existing line of
-/// either key is replaced in place with the line ending of the file, a missing one is added at the end of the front
-/// matter, and a file without one gets it; nothing else changes.
-fn with_rank(text: &str, rank: usize, why: &str) -> String {
-    let mut set = vec![
-        ("rank", Some(rank.to_string())),
-        (
-            "why",
-            (!why.is_empty()).then(|| format!("'{}'", why.replace('\'', "''"))),
-        ),
-    ];
-    let Some((matter, closing, _)) = split_front_matter(text) else {
-        let head: String = set
-            .iter()
-            .filter_map(|(k, v)| Some(format!("{k}: {}\n", v.as_ref()?)))
-            .collect();
-        return format!("---\n{head}---\n{text}");
-    };
-    let eol = if text.starts_with("---\r\n") {
-        "\r\n"
-    } else {
-        "\n"
-    };
-    let mut out = text[..text.find('\n').map_or(0, |i| i + 1)].to_string();
-    for l in matter {
-        let key = set
-            .iter()
-            .position(|(k, _)| l.strip_prefix(k).is_some_and(|r| r.starts_with(':')));
-        if let Some(i) = key {
-            if let (k, Some(v)) = set.remove(i) {
-                let _ = write!(out, "{k}: {v}{eol}");
-            }
-        } else {
-            out.push_str(l);
-        }
-    }
-    for (k, v) in set {
-        if let Some(v) = v {
-            let _ = write!(out, "{k}: {v}{eol}");
-        }
-    }
-    out + &text[closing..]
-}
-
-/// `--convert` (NXT-5): the rank of each line of `queue.md` (100 times its position) and its reason go to the front
-/// matter of its issue file, then `queue.md` is deleted. Exit 1 when a line had no file.
-fn convert(dir: &Path) -> u8 {
-    if let Some((top, main)) = super::close_issue::linked_worktree(dir) {
-        eprintln!(
-            "{} is a linked worktree: convert the queue in the main worktree {main}",
-            top.display()
-        );
-        return 1;
-    }
-    let path = dir.join("queue.md");
-    let Ok(queue) = std::fs::read_to_string(&path) else {
-        eprintln!("no {}", path.display());
-        return 2;
-    };
-    let mut drift = false;
-    for (i, (stem, why)) in queue.lines().filter_map(entry).enumerate() {
-        let file = dir.join(format!("{stem}.md"));
-        let Ok(text) = std::fs::read_to_string(&file) else {
-            eprintln!("queue line without a file: {stem}");
-            drift = true;
-            continue;
-        };
-        let rank = 100 * (i + 1);
-        std::fs::write(&file, with_rank(&text, rank, why)).expect("issue file is writable");
-        println!("{stem}: rank {rank}");
-    }
-    std::fs::remove_file(&path).expect("queue is removable");
-    println!("removed {}", path.display());
-    u8::from(drift)
-}
-
 /// The open issues of a directory in order, with their `why`, and the branches that may take them.
 struct Queue {
     entries: Vec<(String, String)>,
@@ -337,12 +216,9 @@ struct Queue {
 }
 
 impl Queue {
-    /// The lines of `issues/queue.md` while it exists (NXT-4), else the ranks (NXT-1); the drift is reported on stderr.
+    /// The order of the ranks (NXT-1); the drift is reported on stderr.
     fn read(dir: &Path) -> Self {
-        let (entries, drift) = match std::fs::read_to_string(dir.join("queue.md")) {
-            Ok(queue) => from_queue(dir, &queue),
-            Err(_) => from_ranks(dir),
-        };
+        let (entries, drift) = from_ranks(dir);
         let stems: Vec<&str> = entries.iter().map(|(s, _)| s.as_str()).collect();
         let branches = branches(dir, &stems);
         Queue {
@@ -384,16 +260,8 @@ pub(super) fn next(dir: &Path) -> String {
 }
 
 pub(super) fn main(args: &[String]) -> u8 {
-    let convert_flag = args.iter().any(|a| a == "--convert");
-    let dir = args
-        .iter()
-        .find(|a| *a != "--convert")
-        .cloned()
-        .unwrap_or_else(|| "issues".to_string());
-    let dir = Path::new(&dir);
-    if convert_flag {
-        return convert(dir);
-    }
+    let dir = args.first().map_or("issues", String::as_str);
+    let dir = Path::new(dir);
     if !dir.is_dir() {
         eprintln!("no {} directory", dir.display());
         std::process::exit(2);

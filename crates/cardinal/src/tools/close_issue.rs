@@ -384,7 +384,7 @@ fn repo_root(dir: &Path) -> Option<std::path::PathBuf> {
 }
 
 /// The top of the worktree of `dir` and the path of the main worktree, when they differ.
-pub(super) fn linked_worktree(dir: &Path) -> Option<(std::path::PathBuf, String)> {
+fn linked_worktree(dir: &Path) -> Option<(std::path::PathBuf, String)> {
     let top = repo_root(dir)?;
     let out = Command::new("git")
         .args(["worktree", "list", "--porcelain"])

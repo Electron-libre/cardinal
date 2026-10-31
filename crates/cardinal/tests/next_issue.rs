@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal tool next-issue` and the queue handling of `cardinal tool close-issue`.
+//! Behavior test for `cardinal tool next-issue`, and of the next issue `cardinal tool close-issue` offers after a close.
 
 use std::path::Path;
 use std::process::Command;
@@ -39,14 +39,13 @@ fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
     let _ = std::fs::remove_dir_all(&root);
     let repo = root.join("repo");
     std::fs::create_dir_all(repo.join("issues")).unwrap();
-    for s in ["a", "b", "c", "d"] {
+    for (i, s) in ["a", "b", "c", "d"].into_iter().enumerate() {
         std::fs::write(
             repo.join(format!("issues/{s}.md")),
-            format!("# Title {s}\n"),
+            format!("---\nrank: {}\n---\n# Title {s}\n", 100 * (i + 1)),
         )
         .unwrap();
     }
-    std::fs::write(repo.join("issues/queue.md"), "# Queue\n\n- [a](a.md) - one\n- [b](b.md) - two\n- [c](c.md) - three\n- [d](d.md) - four\n").unwrap();
     git(&repo, &["init", "-q", "-b", "trunk", "."]);
     git(&repo, &["add", "-A"]);
     git(&repo, &["commit", "-qm", "init", "--no-verify"]);
@@ -70,8 +69,11 @@ fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
     branch_with_commit(&repo, "a");
     let (_, branch) = run(&repo);
     out.push((
-        "a branch with commits off the main branch takes the issue, the others keep their queue position",
-        branch.contains("Next: issues/b.md") && branch.contains("Taken: a\n") && branch.contains("  3. c") && branch.contains("  4. d"),
+        "a branch with commits off the main branch takes the issue, the others keep their position",
+        branch.contains("Next: issues/b.md")
+            && branch.contains("Taken: a\n")
+            && branch.contains("  3. c")
+            && branch.contains("  4. d"),
     ));
     let linked = root.join("repo-b");
     git(
@@ -122,7 +124,6 @@ fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
     let plain = root.join("plain");
     std::fs::create_dir_all(plain.join("issues")).unwrap();
     std::fs::copy(repo.join("issues/a.md"), plain.join("issues/a.md")).unwrap();
-    std::fs::write(plain.join("issues/queue.md"), "- [a](a.md) - one\n").unwrap();
     let (code, outside) = run(&plain);
     out.push((
         "outside a git repository nothing is taken",
@@ -140,14 +141,13 @@ fn stale_checks(script: &Path) -> Vec<(&'static str, bool)> {
     let _ = std::fs::remove_dir_all(&root);
     let repo = root.join("repo");
     std::fs::create_dir_all(repo.join("issues")).unwrap();
-    for s in ["a", "b", "c", "d", "e"] {
+    for (i, s) in ["a", "b", "c", "d", "e"].into_iter().enumerate() {
         std::fs::write(
             repo.join(format!("issues/{s}.md")),
-            format!("# Title {s}\n"),
+            format!("---\nrank: {}\n---\n# Title {s}\n", 100 * (i + 1)),
         )
         .unwrap();
     }
-    std::fs::write(repo.join("issues/queue.md"), "- [a](a.md) - one\n- [b](b.md) - two\n- [c](c.md) - three\n- [d](d.md) - four\n- [e](e.md) - five\n").unwrap();
     git(&repo, &["init", "-q", "-b", "trunk", "."]);
     git(&repo, &["add", "-A"]);
     git(&repo, &["commit", "-qm", "init", "--no-verify"]);
@@ -214,10 +214,8 @@ fn next_issue() {
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(tmp.join("issues")).unwrap();
     let w = |f: &str, t: &str| std::fs::write(tmp.join("issues").join(f), t).unwrap();
-    w("a.md", "# Title A\n");
-    w("b.md", "# Title B\n");
-    w("c.md", "# Title C\n");
-    w("queue.md", "# Issue queue\n\nProse.\n\n- [b](b.md) - first\n- [a](a.md) - second\n- [ghost](ghost.md) - gone\n");
+    w("a.md", "---\nrank: 200\n---\n# Title A\n");
+    w("b.md", "---\nrank: 100\n---\n# Title B\n");
     let run = |script: &str, arg: &str| {
         let out = tool_command(dir.join(script))
             .arg(arg)
@@ -235,27 +233,12 @@ fn next_issue() {
         println!("{} - {name}", if ok { "ok  " } else { "FAIL" });
         failed |= !ok;
     };
-    let (ok, out) = run("next_issue.rs", "issues");
+    let (_, out) = run("next_issue.rs", "issues");
     check(
         "first line is the next issue, with its title",
         out.contains("Next: issues/b.md") && out.contains("Title B"),
     );
-    check(
-        "line without a file is reported",
-        !ok && out.contains("queue line without a file: ghost"),
-    );
-    check(
-        "issue absent from the queue is reported",
-        out.contains("missing from the queue: c"),
-    );
-    let (_, out) = run("close_issue.rs", "issues/b.md");
-    let queue = std::fs::read_to_string(tmp.join("issues/queue.md")).unwrap();
-    check(
-        "closing removes the line from the queue",
-        out.contains("removed b")
-            && !queue.contains("[b](b.md) - first")
-            && queue.contains("[a](a.md) - second"),
-    );
+    run("close_issue.rs", "issues/b.md");
     let (_, out) = run("next_issue.rs", "issues");
     check(
         "next moves on after closing",
@@ -359,126 +342,6 @@ fn a_shared_rank_is_reported() {
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(err.contains("same rank 100: a, b"), "{err}");
     assert!(!err.contains("same rank 200"), "{err}");
-}
-
-// spec: NXT-4
-/// While `issues/queue.md` exists (a source of the format 4), its lines give the order, not the ranks.
-#[test]
-fn the_queue_file_wins_over_the_ranks_while_it_exists() {
-    let root = issues_dir(&[
-        ("a.md", "---\nrank: 100\n---\n# Title A\n"),
-        ("b.md", "---\nrank: 200\n---\n# Title B\n"),
-        ("queue.md", "- [b](b.md) - first\n- [a](a.md) - second\n"),
-    ]);
-    let (code, out, err) = next_in(root.path());
-    assert_eq!(code, Some(0), "{out}{err}");
-    assert!(
-        out.contains("Next: issues/b.md") && out.contains("why here: first"),
-        "{out}"
-    );
-}
-
-// spec: NXT-5
-/// `--convert` turns a format 4 queue into the ranks of the files, keeping the rest of each file, then drops it.
-#[test]
-fn convert_writes_the_ranks_of_the_queue_and_drops_it() {
-    let root = issues_dir(&[
-        ("a.md", "---\nmilestone: m1\nrank: 7\n---\n# Title A\n\nBody.\n"),
-        ("b.md", "# Title B\n\nBody.\n"),
-        ("c.md", "# Title C\n"),
-        ("d.md", "---\nrank: 7\nwhy: old reason\n---\n# Title D\n"),
-        ("e.md", "---\r\nmilestone: m1\r\n---\r\n# Title E\r\n"),
-        (
-            "queue.md",
-            "# Queue\n\nProse.\n\n- [b](b.md) - needed first\n- [ghost](ghost.md) - gone\n- [a](a.md) - it's second\n- [d](d.md)\n- [e](e.md) - crlf\n",
-        ),
-    ]);
-    let out = tool_command("next_issue.rs")
-        .args(["--convert", "issues"])
-        .current_dir(root.path())
-        .output()
-        .unwrap();
-    let err = String::from_utf8_lossy(&out.stderr);
-    let read = |f: &str| std::fs::read_to_string(root.path().join("issues").join(f)).unwrap();
-    assert_eq!(
-        read("b.md"),
-        "---\nrank: 100\nwhy: 'needed first'\n---\n# Title B\n\nBody.\n"
-    );
-    assert_eq!(
-        read("a.md"),
-        "---\nmilestone: m1\nrank: 300\nwhy: 'it''s second'\n---\n# Title A\n\nBody.\n"
-    );
-    assert_eq!(read("c.md"), "# Title C\n");
-    assert_eq!(read("d.md"), "---\nrank: 400\n---\n# Title D\n");
-    assert_eq!(
-        read("e.md"),
-        "---\r\nmilestone: m1\r\nrank: 500\r\nwhy: 'crlf'\r\n---\r\n# Title E\r\n"
-    );
-    assert!(err.contains("queue line without a file: ghost"), "{err}");
-    assert!(!root.path().join("issues/queue.md").exists());
-
-    let (_, next, err) = next_in(root.path());
-    assert!(
-        next.contains("Next: issues/b.md\n  Title B\n  why here: needed first\n")
-            && next.contains("  2. a\n  3. d\n  4. e\n  5. c\n"),
-        "{next}"
-    );
-    assert!(err.contains("issue without a rank: c"), "{err}");
-}
-
-// spec: NXT-5
-/// `--convert` in a linked worktree would rewrite every issue on an issue branch: it refuses, changing nothing.
-#[test]
-fn convert_refuses_in_a_linked_worktree() {
-    let root = tempfile::tempdir().unwrap();
-    let repo = root.path().join("repo");
-    std::fs::create_dir_all(repo.join("issues")).unwrap();
-    std::fs::write(repo.join("issues/a.md"), "# Title A\n").unwrap();
-    std::fs::write(repo.join("issues/queue.md"), "- [a](a.md) - one\n").unwrap();
-    git(&repo, &["init", "-q", "-b", "trunk", "."]);
-    git(&repo, &["add", "-A"]);
-    git(&repo, &["commit", "-qm", "init", "--no-verify"]);
-    let linked = root.path().join("linked");
-    git(
-        &repo,
-        &["worktree", "add", "-q", "-b", "a", linked.to_str().unwrap()],
-    );
-    let out = tool_command("next_issue.rs")
-        .args(["--convert", "issues"])
-        .current_dir(&linked)
-        .output()
-        .unwrap();
-    assert_eq!(out.status.code(), Some(1), "{out:?}");
-    assert!(
-        String::from_utf8_lossy(&out.stderr).contains("linked worktree"),
-        "{out:?}"
-    );
-    assert_eq!(
-        std::fs::read_to_string(linked.join("issues/a.md")).unwrap(),
-        "# Title A\n"
-    );
-    assert!(linked.join("issues/queue.md").exists());
-}
-
-// spec: NXT-6
-/// An issue ranked by a format 5 skill while the queue still exists is hidden by it: `next-issue` says how to convert.
-#[test]
-fn a_rank_hidden_by_the_queue_hints_at_the_conversion() {
-    let root = issues_dir(&[
-        ("a.md", "# Title A\n"),
-        ("b.md", "---\nrank: 150\n---\n# Title B\n"),
-        ("queue.md", "- [a](a.md) - first\n"),
-    ]);
-    let (_, _, err) = next_in(root.path());
-    assert!(err.contains("issue missing from the queue: b"), "{err}");
-    assert!(err.contains("just next-issue --convert"), "{err}");
-
-    let root = issues_dir(&[
-        ("a.md", "# Title A\n"),
-        ("queue.md", "- [a](a.md) - first\n"),
-    ]);
-    let (_, _, err) = next_in(root.path());
-    assert!(!err.contains("--convert"), "{err}");
 }
 
 // spec: NXT-1

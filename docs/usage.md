@@ -30,11 +30,6 @@ The seeded `roadmap` key names `ROADMAP.md`, the milestones `skill:create-issue`
 project seeded before names `docs/TODO.md`, which nothing seeds: `sync` copies `ROADMAP.md` when it is missing, and
 the project points its key at it by hand.
 
-A project seeded before the format 5 orders its issues in `issues/queue.md`: `next-issue` keeps reading it while it
-exists, and `just next-issue --convert` moves each line into the `rank` and `why` of its issue file, then deletes it
-(NXT-5, ADR 0019). `next-issue` hints at it once an issue file has a rank the queue hides (NXT-6), and the
-migration to the format 5 warns of the lines that still cite the queue.
-
 The seeded `user_language` is the default language of the conversation. Each person may set their own in a
 `[project]` table of `.claude/cardinal.local.toml`, which the managed `.claude/.gitignore` keeps out of git: the
 `language-hint` hook, rule `user-language` of `rule-breaches` and the skills read it first, and `start-issue`

@@ -27,7 +27,7 @@ rely on it at every close, and `--relink` repairs the references to issues close
 - (CLS-2) Given `docs/a.md` holding `[a](../issues/foo.md)` and `docs/adr/b.md` holding `[b](../../issues/foo.md)`, when `close-issue issues/foo.md` runs, then they read `[a](../issues/done/foo.md)` and `[b](../../issues/done/foo.md)`.
 - (CLS-2) Given `issues/bar.md` holding `[foo](foo.md)`, when `close-issue issues/foo.md` runs, then it reads `[foo](done/foo.md)`.
 - (CLS-3) Given `README.md` at the root holding `[x](../issues/foo.md)` (outside the repository) and `[y](docs/issues/foo.md)`, when `close-issue issues/foo.md` runs, then both are unchanged.
-- (CLS-4) Given `issues/foo.md` holding `[bar](bar.md)`, `[q](queue.md#top)` and `[old](done/old.md)`, when `close-issue issues/foo.md` runs, then `issues/done/foo.md` holds `[bar](../bar.md)`, `[q](../queue.md#top)` and `[old](old.md)`.
+- (CLS-4) Given `issues/foo.md` holding `[bar](bar.md)`, `[q](bar.md#top)` and `[old](done/old.md)`, when `close-issue issues/foo.md` runs, then `issues/done/foo.md` holds `[bar](../bar.md)`, `[q](../bar.md#top)` and `[old](old.md)`.
 - (CLS-4) Given `issues/foo.md` holding `[c](done/)` and `[o](../../out.md)` (outside the repository), when `close-issue issues/foo.md` runs, then `issues/done/foo.md` holds `[c](./)` and `[o](../../../out.md)`.
 - (CLS-6) Given `issues/foo.md` holding `` `[e](bar.md)` `` and a fenced block with `[f](bar.md)`, when `close-issue issues/foo.md` runs, then both are unchanged in `issues/done/foo.md`.
 - (CLS-7) Given `issues/foo.md` of rank 1 and `issues/bar.md` of rank 2 titled `Bar`, when `close-issue issues/foo.md` runs, then its output ends with `Next: issues/bar.md` and `Bar`; closing `issues/bar.md` then ends with `No open issue.`.

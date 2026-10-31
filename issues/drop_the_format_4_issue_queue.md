@@ -48,3 +48,43 @@ The format 5 orders the issues by the `rank` of each issue file (ADR 0019), and 
 
 # Hints
 * `issues/done/` and `CHANGELOG.md` cite the queue as history: leave them.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+No tool reads or writes `issues/queue.md` any more, and the specs and docs no longer describe it. Out of scope: the
+history (`issues/done/`, `CHANGELOG.md`, the ADRs) and the other meanings of "queue" (`session_metrics.rs`, `memory.rs`).
+
+## Plan
+1. [x] `next-issue` without the queue: remove `from_queue`, `--convert`, the NXT-6 hint and the `queue` stem
+   exclusion; move the setups of `tests/next_issue.rs` that wrote a `queue.md` to ranked files, delete the NXT-4 to
+   NXT-6 tests, reword the reason of the two banned citations of `tests/skills.rs`; the `next-issue` comment of
+   `files/cardinal.just` and the paragraph of `docs/usage.md` (they name `--convert`); verified by `just check`;
+   makes true NXT-1 (amended), NXT-4 to NXT-6 withdrawn (~450 lines).
+2. [ ] `close-issue` and `issue-worktree` without the queue: remove `drop_from_queue` and the `queue` skip, their
+   tests (`queue_checks`, the queue of the PAR-8 test); verified by `just check`; makes true CLS-4 and PAR-8 as reworded
+   (~250 lines).
+
+## Decisions
+- Mode: autonomous
+- Base commit: be60fe270285d7d916178dc8ff92f5f4d0cbb02e
+- No format raise (ADR 0014): the managed content keeps its meaning, only the binary stops reading a project file.
+- `migrations/5.toml` keeps its text as history: it applies once, to a lock of the format 4.
+
+## Deliverable 1
+done: `next-issue` reads only the ranks; `--convert`, the queue reading and its hint are gone, with their tests and docs.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`check-specs --strict`) |
+| docs | `docs/usage.md`, `files/cardinal.just` |
+| code review | no findings |
+
+red: none (a removal: the withdrawn requirements lose their tests, the kept ones stay green)
+
+not verified: none. decisions needed: none.
+Code review: no findings (`split_front_matter` is still used by `front_matter` and `title`; `--convert` is now read as a directory and exits 2, as any unknown argument).

@@ -16,7 +16,24 @@ the same metrics as `cardinal-report`.
   REP-5; it has no controlled comparison.
 * The article on folding subagents recommends about ten reference tasks to start, graded on the final answer, each run
   several times: in its support-agent test a regression appeared in only one run of two.
-* Not verified: the cost of a run of a full issue in headless mode (`claude -p`) on the user's plan.
+* Measured (2026-10-31, `just replay f3c6cb1 2`, Opus 5.5, Claude Code 2.1.312, the one-deliverable fixture issue):
+
+  | run | duration | cost (API equivalent) | turns | output tokens | cache read | commits | graded |
+  |---|---|---|---|---|---|---|---|
+  | 1 | 203 s | $0.89 | 19 | 6,639 | 549,968 | 2 | pass |
+  | 2 | 149 s | $0.94 | 25 | 8,747 | 664,151 | 2 | pass |
+
+  Both runs worked the issue to the end with no stop: the `low` reviews, the `high` review of the whole issue, its
+  fixes in a second commit, then the question to close. They differed where a controlled comparison is wanted: run 1
+  called no `commit-message` nor `update-docs` (skills `code-review=3;issue-workflow=1`), run 2 did; run 1 left 3
+  findings of the `high` review, run 2 fixed all 5. `session-metrics` reads their transcripts (project
+  `replay-fixture`, revision the pinned commit).
+* Grading is automatic (the held-out test, the commits, the review lines); reading the final answer took about a
+  minute a run. The skills called, read from `session-metrics`, are the cheapest signal of a rule kept or not.
+* Headless in a fresh copy, Claude Code ignores the allow rules of `.claude/settings.json` (the workspace is not
+  trusted) but runs its hooks; `--permission-mode auto` was enough, no command was refused.
+* Cost of the candidate: ten tasks, three runs each, two variants: 60 runs, about $55 of API equivalent and three
+  hours in a row.
 
 # Approach
 1. Measure first: one task (a small issue of a fixture repository) run headless twice, its duration, tokens and the
@@ -55,7 +72,7 @@ variants, the report; they become new issues only if the measure says the replay
    `claude -p` on the issue with `--output-format json`, then grades it (fixture tests, the review gate held: a commit
    exists and `issues/` records `Code review`) and prints one tab-separated line per run (duration, cost, tokens,
    turns, graded); verified by a dry run with `runs=1`; no requirement.
-3. [ ] Measure: two runs at `HEAD`, their lines and the grading effort written in `# Findings`, with the go or no-go
+3. [x] Measure: two runs at `HEAD`, their lines and the grading effort written in `# Findings`, with the go or no-go
    for the other cuts (ten tasks and grading; the comparison of two variants with the metrics of `cardinal-report`).
 
 ## Decisions
@@ -106,3 +123,21 @@ Code review: 1 finding
 not verified: a real `claude -p` run (deliverable 3)
 
 decisions needed: none
+
+## Deliverable 3: measure
+done: the two runs written in `# Findings`; the fixture fixed from what they showed: the internal reason of its TXT-1
+test (`check-specs` warned), its `Cargo.lock` committed (each run left it untracked).
+
+| check | result |
+|---|---|
+| tests | `just check` passes |
+| runs | 2 of 2 `success`, graded pass |
+| fixture | `check-specs` in a fresh copy: only TXT-2 and TXT-3 untraced, the task |
+| code review | see below |
+
+red: none (a measure)
+Code review: no findings
+
+not verified: the variance over more than two runs
+
+decisions needed: go or no-go for the other cuts (ten tasks and grading; the comparison of two variants)

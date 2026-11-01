@@ -166,7 +166,7 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 2. [x] Close frees the claim: `close-issue` runs in any worktree, deletes the claim on the trunk, sets it
    `merge pending` elsewhere; verified by tests through the binary; makes true CLM-7, PAR-18 (PAR-8 withdrawn)
    (~250 lines).
-3. [ ] Workspace lock: measure what a hook receives (`CLAUDE_PID`, the `session_id` after `/clear`), then
+3. [x] Workspace lock: measure what a hook receives (`CLAUDE_PID`, the `session_id` after `/clear`), then
    `cardinal run workspace-lock check|start|release` and its hooks in `entries/.claude/settings.json`; verified by
    tests feeding hook inputs; makes true WSL-1 to WSL-9 (~650 lines).
 4. [ ] Workflow: `issue-workflow` step 0 claims instead of reading branches, the end of an issue on a workspace
@@ -198,3 +198,16 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 - checks: tests pass (`tests/issue_claim.rs`, `tests/close_issue.rs`), clippy clean, specs checked, docs
   (`docs/architecture.md`, `docs/workflow.md`, `details.md`).
 - red: CLM-7, PAR-18: `FAIL - a linked worktree closes its own issue`.
+
+## Deliverable 3: workspace lock
+
+- done: `cardinal run workspace-lock check|start|release` and its three hooks in `entries/.claude/settings.json`;
+  the lock (`cardinal-session` in the git directory of the worktree) changes under a mutex directory;
+  `specs/workspace-lock.md` accepted.
+- checks: tests pass (`tests/workspace_lock.rs`, 9), clippy clean, specs checked, docs (`docs/architecture.md`,
+  `docs/gates.md`, `README.md`).
+- red: WSL-1, WSL-2, WSL-3, WSL-4, WSL-5, WSL-6, WSL-7, WSL-8, WSL-9: `cardinal: unknown tool `workspace-lock``, then
+  the WSL-8 assertion on the entries.
+- measure: once synced here, the live `PreToolUse` hook wrote the lock with this session's `session_id` and the
+  `CLAUDE_PID` the agent's commands see: a hook receives both.
+- not verified: whether `/clear` gives a new `session_id` (the same process is let through either way); macOS.

@@ -67,6 +67,24 @@ main one, where another agent may work. `lint-gate` checks the work tree of the 
 `format-code` runs `cargo fmt` from the directory of the edited file. For the same reason the seeded `justfile` asks
 the project's `check` to print nothing on success.
 
+## The workspace lock
+
+`workspace-lock` keeps one Claude Code session per worktree, since two would share its files, index, review marker and
+build output, and an editor's agent client opens several threads on one folder
+([ADR 0022](adr/0022-a-session-claims-its-issue-and-locks-its-workspace.md), spec
+[`workspace-lock.md`](../specs/workspace-lock.md)). The lock is `cardinal-session` in the git directory of the
+worktree (per worktree, WSL-9), holding the `session_id` of the event and the process of the session (`CLAUDE_PID`).
+
+- **`check`** (`PreToolUse` on `Bash|Edit|Write|NotebookEdit`) takes the lock when it is free, when its process no
+  longer runs (a killed session skips `SessionEnd`) or when it names the same session or process (a resumed or
+  cleared one), and lets the call through; while another live session holds it, it refuses the call (exit 2). The
+  read-only tools stay open.
+- **`start`** (`SessionStart`, which cannot block) takes the lock, or tells the agent the worktree is busy.
+- **`release`** (`SessionEnd`) deletes the lock of its own session.
+
+The changes of the lock run under a mutex directory beside it, created atomically, so two sessions starting at once
+leave one holder (WSL-4). A broken event, no git repository or no `CLAUDE_PID` lets the call through (WSL-7).
+
 ## Attribution
 
 No hook guards it: the seeded settings turn it off (`"attribution": {"commit": "", "pr": "", "sessionUrl": false}`),

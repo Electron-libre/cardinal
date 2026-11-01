@@ -30,6 +30,7 @@ mod session_metrics;
 mod shell;
 mod spec_coverage;
 mod transcripts;
+mod workspace_lock;
 
 pub(crate) use fixed_context::description_bytes;
 
@@ -151,6 +152,11 @@ pub const TOOLS: &[Tool] = &[
         name: "spec-coverage",
         about: "[root]: the test files that cite no requirement of an accepted spec, largest first",
         main: spec_coverage::main,
+    },
+    Tool {
+        name: "workspace-lock",
+        about: "check | start | release: the hooks that keep one Claude Code session per worktree",
+        main: workspace_lock::main,
     },
 ];
 

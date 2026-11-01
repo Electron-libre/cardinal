@@ -1,6 +1,6 @@
 ---
 id: WSL
-status: draft
+status: accepted
 adrs: [0005, 0022]
 ---
 

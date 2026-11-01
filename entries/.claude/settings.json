@@ -19,6 +19,15 @@
             "command": "cardinal run review-gate check"
           }
         ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run workspace-lock check"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -53,6 +62,26 @@
             "type": "command",
             "command": "cardinal run language-hint",
             "timeout": 600
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run workspace-lock start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run workspace-lock release"
           }
         ]
       }

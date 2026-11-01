@@ -155,7 +155,7 @@ fn worktree_checks(hook: &Path) -> Vec<(&'static str, bool)> {
 // spec: REV-17
 /// `just waive-review` creates the waiver of the worktree it runs in, prints its path and changes nothing else.
 fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
-    let recipes = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../files/cardinal.just");
+    let recipes = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../files/cardinal-review.just");
     let root = tempfile::tempdir().unwrap().keep();
     let _ = fs::remove_dir_all(&root);
     let (main, linked) = (root.join("main"), root.join("linked"));

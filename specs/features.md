@@ -32,6 +32,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-16** (deterministic) The source of Cardinal must declare the features `lint-gate`, `format-code` and `language-hint`, each made of the one hook entry of `entries/.claude/settings.json` whose command is `cardinal run <feature>`, and no file.
 - **FEA-17** (deterministic) `sync` must read the features a feature needs from the optional `needs` list of strings of its table in `features.toml`, and fail with an error (exit 3) naming the feature and the name, writing nothing, when `needs` names a feature `features.toml` does not declare.
 - **FEA-18** (deterministic) `sync` must fail with the error `<config>: disabled turns off <needed>, which <feature> needs` (exit 3, SYN-37) and write nothing, `--dry-run` included, when `disabled` turns off a feature that a feature left on needs.
+- **FEA-19** (deterministic) The source of Cardinal must keep the recipes of a part a feature may leave out in a managed file of their own, which `files/cardinal.just` imports with `import?`: `cardinal-commits.just` (`check-commit`, `check-commits`), `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), `cardinal-specs.just` (`check-specs`, `spec-coverage`) and `cardinal-review.just` (`waive-review`); `cardinal.just` keeps `open-worktree`, `close-worktree`, `release` and `check-cardinal`, and `just --list` must succeed in a project missing any of the four.
 
 ## Scenarios
 
@@ -43,6 +44,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-18) Given `a` needs `b`, when `disabled = ["b"]`, then `sync` fails naming `b` and `a`; when `disabled = ["a", "b"]`, then it succeeds: only the features left on are judged.
 - (FEA-18) Given `a` and `b` need each other, when `disabled = ["a", "b"]`, then `sync` succeeds: a cycle in `needs` is harmless, each feature being judged against the ones left on; when `disabled = ["a"]`, then it fails naming `a` and `b`.
 - (FEA-17) Given `a` with `needs = ["a"]`, then `sync` accepts it: a feature needing itself is never turned off while left on.
+- (FEA-19) Given a project whose `cardinal-specs.just` is missing, when `just --list` runs, then it lists the other recipes and fails on none.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 
 ## Non-goals

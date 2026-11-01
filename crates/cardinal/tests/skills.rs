@@ -661,3 +661,73 @@ fn the_hook_only_features_are_their_hook_entry() {
         assert_eq!(entries, declared, "{feature}");
     }
 }
+
+// spec: FEA-19
+/// The recipes of each part a feature may leave out live in a file of their own, which `cardinal.just` imports
+/// optionally: `just --list` lists every recipe with all the files, and still runs with any one missing.
+#[test]
+fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
+    const PARTS: [(&str, &[&str]); 5] = [
+        (
+            "cardinal.just",
+            &[
+                "open-worktree",
+                "close-worktree",
+                "release",
+                "check-cardinal",
+            ],
+        ),
+        ("cardinal-commits.just", &["check-commit", "check-commits"]),
+        (
+            "cardinal-issues.just",
+            &["next-issue", "close-issue", "check-issue"],
+        ),
+        ("cardinal-specs.just", &["check-specs", "spec-coverage"]),
+        ("cardinal-review.just", &["waive-review"]),
+    ];
+    let files = repo_root().join("files");
+    let core = fs::read_to_string(files.join("cardinal.just")).unwrap();
+    let list = |missing: Option<&str>| {
+        let dir = tempfile::tempdir().unwrap();
+        for (file, _) in PARTS.iter().filter(|(f, _)| Some(*f) != missing) {
+            fs::copy(files.join(file), dir.path().join(file)).unwrap();
+        }
+        fs::write(dir.path().join("justfile"), "import 'cardinal.just'\n").unwrap();
+        let out = std::process::Command::new("just")
+            .args(["--list", "--unsorted"])
+            .current_dir(dir.path())
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{missing:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .skip(1)
+            .filter_map(|l| l.split_whitespace().next().map(str::to_string))
+            .collect::<Vec<_>>()
+    };
+    let mut all = list(None);
+    all.sort();
+    let mut expected: Vec<String> = PARTS
+        .iter()
+        .flat_map(|(_, r)| r.iter().map(ToString::to_string))
+        .collect();
+    expected.sort();
+    assert_eq!(all, expected);
+    for (file, recipes) in &PARTS[1..] {
+        assert!(core.contains(&format!("import? '{file}'")), "{file}");
+        let left = list(Some(file));
+        assert!(
+            recipes.iter().all(|r| !left.contains(&r.to_string())),
+            "{file}: {left:?}"
+        );
+        assert_eq!(
+            left.len(),
+            expected.len() - recipes.len(),
+            "{file}: {left:?}"
+        );
+    }
+}

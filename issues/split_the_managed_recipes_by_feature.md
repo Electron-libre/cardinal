@@ -29,3 +29,36 @@ Optional features
 
 # Hints
 * `cardinal.just` importing the others keeps the seeded `justfile` untouched: no migration of a project-owned file.
+
+# Specs
+* `specs/features.md` FEA-19; `specs/review-gate.md` REV-17 and `specs/tool-binaries.md` BIN-8 renamed.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Move the recipes of the commit convention, the issue files, the specs and the review gate out of `cardinal.just` into
+four managed files it imports with `import?`; declaring the features themselves stays with their own issues. No
+migration (the seeded `justfile` is untouched) and no raised format: an older `cardinal` copies the new files as any.
+
+## Plan
+1. [x] Split the recipes: the four files and `import?` lines in `files/cardinal.just`, `just sync`, REV-17 test pointed
+   at `cardinal-review.just`, docs (README, architecture, usage); verified by a test running `just --list` on
+   `cardinal.just` with all, and with each one missing; makes true FEA-19.
+
+## Decisions
+- Mode: autonomous
+- Files at the root next to `cardinal.just` (`cardinal-<part>.just`); `waive-review` moves to `cardinal-review.just` (answers 1 a, 2 a).
+- `just` 1.58 accepts a nested `import?` and a missing file; the root `justfile` of this repository still overrides
+  `check-specs` and `check-cardinal` (`allow-duplicate-recipes`), checked in a scratch directory.
+- The seeded `check: check-specs` still needs `cardinal-specs.just`: left to `turn_off_the_specs`.
+- Base commit: b2215631c23341a35b81a0f213c032202b3ae863
+
+## Deliverable 1
+- done: four `cardinal-<part>.just` files imported by `import?`; REV-17 test reads `cardinal-review.just`; README,
+  architecture, CLAUDE.md and the docs map name them.
+- red: FEA-19: `fs::copy` of `files/cardinal-commits.just` failed (no such file).
+- checks: `just check` pass (fmt, clippy, tests, specs), `just check-cardinal` pass, docs updated.
+- Code review: no findings
+- not verified: a consumer synced with an older `just` lacking `import?` (CI installs the latest).

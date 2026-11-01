@@ -1,5 +1,5 @@
 //! The native review gate `sync` installs, run as the binary on temp dirs, and the `pre-commit` it writes, run with
-//! `/bin/sh` (SYN-18 to SYN-23, BIN-9, BIN-14).
+//! `/bin/sh` (SYN-18 to SYN-23, SYN-60, BIN-9, BIN-14).
 #![cfg(unix)]
 
 mod common;
@@ -551,4 +551,124 @@ fn a_source_of_an_older_revision_still_gets_and_checks_the_gate() {
         &check(&home, &root, false),
         &[&format!("missing: {LEGACY_HOOK}"), MISSING],
     );
+}
+
+const RESTORED: &str = "pre-commit.user -> pre-commit";
+
+/// Make the source of `gated` manage no hook of the review gate any more.
+fn drop_gate(source: &TempDir) {
+    put(source.path(), "entries/.claude/settings.json", "{}");
+}
+
+// spec: SYN-60
+#[test]
+fn sync_removes_the_gate_once_the_source_no_longer_manages_it() {
+    let home = Home::new();
+    let (source, root) = synced(&home);
+    drop_gate(&source);
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), Some("removed"), "{sync:?}");
+    assert_eq!(sync.outcome(RESTORED), None, "{sync:?}");
+    assert!(fs::symlink_metadata(pre_commit(&root)).is_err());
+    assert_eq!(home.ok(root.path(), &["sync"]).outcome(GATE), None);
+
+    // an edited gate, or one of an older revision, is ours too
+    let (source, root) = synced(&home);
+    let managed = get(root.path(), ".git/hooks/pre-commit").unwrap();
+    fs::write(pre_commit(&root), managed.replace("cardinal: review", "x")).unwrap();
+    drop_gate(&source);
+    assert_eq!(
+        home.ok(root.path(), &["sync"]).outcome(GATE),
+        Some("removed")
+    );
+    assert!(fs::symlink_metadata(pre_commit(&root)).is_err());
+}
+
+// spec: SYN-60
+#[test]
+fn removing_the_gate_gives_the_chained_hook_of_the_user_back() {
+    let home = Home::new();
+    let (source, root) = gated(&home);
+    user_hook(&root, 1);
+    let user = get(root.path(), ".git/hooks/pre-commit").unwrap();
+    home.ok(root.path(), &["sync"]);
+    drop_gate(&source);
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), Some("removed"), "{sync:?}");
+    assert_eq!(sync.outcome(RESTORED), Some("moved"), "{sync:?}");
+    assert_eq!(
+        get(root.path(), ".git/hooks/pre-commit").as_deref(),
+        Some(user.as_str())
+    );
+    assert!(executable(&pre_commit(&root)));
+    assert!(!root.path().join(".git/hooks/pre-commit.user").exists());
+    // the user's hook runs as the commit's hook again
+    let hook = run_hook(&home, &root, Path::new("/usr/bin:/bin"), &["x"]);
+    assert_eq!(hook.code, Some(1), "{hook:?}");
+    assert_eq!(get(root.path(), "ran").as_deref(), Some("user x\n"));
+}
+
+// spec: SYN-60
+#[test]
+fn removing_the_gate_gives_a_symlinked_hook_of_the_user_back_as_a_link() {
+    let home = Home::new();
+    let (source, root) = gated(&home);
+    script(&root.path().join("scripts/hook"), "echo linked >> ran\n");
+    fs::create_dir_all(root.path().join(".git/hooks")).unwrap();
+    std::os::unix::fs::symlink("../../scripts/hook", pre_commit(&root)).unwrap();
+    home.ok(root.path(), &["sync"]);
+    drop_gate(&source);
+    home.ok(root.path(), &["sync"]);
+    let target = fs::read_link(pre_commit(&root)).unwrap();
+    assert_eq!(
+        fs::canonicalize(target).unwrap(),
+        fs::canonicalize(root.path().join("scripts/hook")).unwrap()
+    );
+}
+
+// spec: SYN-60
+#[test]
+fn without_the_gate_sync_leaves_the_hooks_of_the_user_alone() {
+    let home = Home::new();
+    // a hook of the user that is not ours
+    let (source, root) = gated(&home);
+    drop_gate(&source);
+    user_hook(&root, 0);
+    let hooks = root.path().join(".git/hooks");
+    put(&hooks, "pre-commit.user", "#!/bin/sh\n");
+    let before = snapshot(&hooks);
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), None, "{sync:?}");
+    assert_eq!(snapshot(&hooks), before);
+
+    // a `pre-commit.user` alone, with no gate
+    fs::remove_file(pre_commit(&root)).unwrap();
+    let before = snapshot(&hooks);
+    assert_eq!(home.ok(root.path(), &["sync"]).outcome(RESTORED), None);
+    assert_eq!(snapshot(&hooks), before);
+
+    // core.hooksPath set: the gate under .git/hooks is not the one git runs, it stays
+    let (source, root) = synced(&home);
+    home.git(root.path(), &["config", "core.hooksPath", ".githooks"]);
+    drop_gate(&source);
+    let hooks = root.path().join(".git/hooks");
+    let before = snapshot(&hooks);
+    assert_eq!(home.ok(root.path(), &["sync"]).outcome(GATE), None);
+    assert_eq!(snapshot(&hooks), before);
+}
+
+// spec: SYN-60
+#[test]
+fn dry_run_reports_the_removal_and_writes_nothing() {
+    let home = Home::new();
+    let (source, root) = gated(&home);
+    user_hook(&root, 0);
+    home.ok(root.path(), &["sync"]);
+    drop_gate(&source);
+    let hooks = root.path().join(".git/hooks");
+    let before = snapshot(&hooks);
+    let dry = home.ok(root.path(), &["sync", "--dry-run"]);
+    assert_eq!(dry.outcome(GATE), Some("removed"), "{dry:?}");
+    assert_eq!(dry.outcome(RESTORED), Some("moved"), "{dry:?}");
+    assert_eq!(snapshot(&hooks), before);
 }

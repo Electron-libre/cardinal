@@ -33,3 +33,48 @@ Optional features
 
 # Hints
 * A chained hook of the user (SYN-19) must be restored, not deleted, when the gate goes.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A feature `review-gate` (the two `review-gate` hooks, the three deny rules of the waiver, `cardinal-review.just`) a
+project turns off; `sync` then removes the native gate it installed and gives a chained `pre-commit` of the user back.
+Out of scope: the refusals of the `check` hook kept apart (REV-12, REV-21 go with it), rewording the skills.
+Measured today: with the entries left out, `gate::plan` returns nothing, so an installed gate stays and refuses every
+commit (nothing records a review any more).
+
+## Plan
+1. [x] Uninstall: `sync` removes a marked `pre-commit` when the source, as turned on, manages no gate, and moves
+   `pre-commit.user` back (dry-run reports, writes nothing); verified by tests of `tests/gate_cli.rs`; makes true SYN-60.
+2. [ ] Feature: declare `review-gate` in `features.toml`, docs (`docs/gates.md`, `specs/README`-level mentions);
+   verified by a test of the declared feature and a `sync`/`check` test with it off (no missing gate, no deny-rule
+   warning, gate back once on again); makes true FEA-23, FEA-24, FEA-25.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 811286c97808adde7c8ea2560f766e83453c472e
+- The `check` hook goes with the feature (REV-12, REV-21 with it).
+- A marked gate is removed whether up to date, edited or of an older revision.
+
+## Deliverable 1
+
+done: `sync` removes a marked `pre-commit` the source no longer manages and moves `pre-commit.user` back.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | `just check-specs` clean on SYN-60 |
+| docs | `docs/gates.md`, `docs/architecture.md` |
+| code review | `/code-review low` |
+
+red: SYN-60: `sync_removes_the_gate_once_the_source_no_longer_manages_it` failed with `left: None, right: Some("removed")`
+(the gate stayed in place).
+
+Code review: 1 findings
+- An edited gate is removed (`State::Modified`): kept, as decided at validation; the install already rewrites an
+  edited gate (SYN-20), its script says `do not edit`, and the gates of older revisions read as edited.
+
+not verified: none. decisions needed: none.

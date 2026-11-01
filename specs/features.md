@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: accepted
+status: draft
 adrs: [0014, 0025]
 ---
 
@@ -36,6 +36,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-20** (deterministic) The source of Cardinal must declare the feature `conventional-commits`, whose files hold the commit message convention (Conventional Commits: subject, type, scope, body, footer, style); none of them being `files/AGENTS.md` nor the `SKILL.md` of `skill:commit-message`, which the other skills call to commit.
 - **FEA-21** (deterministic) `commit-check` and `check-commits` must report nothing but the attribution lines (FEA-8) and the malformed `Expected-effect:` lines, reading no `commit_scopes`, when the project turns off the feature `conventional-commits`.
 - **FEA-22** (deterministic) `rule-breaches` must not apply rule `commit-format` (BRE-9) to a commit whose `.claude/cardinal.toml`, as of that commit, turns off the feature `conventional-commits`.
+- **FEA-23** (deterministic) The source of Cardinal must declare the feature `review-gate`, made of the hook entries of `entries/.claude/settings.json` whose command is `cardinal run review-gate check` or `cardinal run review-gate record`, the deny rules of REV-19 and the file `cardinal-review.just` (`waive-review`); turned off, `sync` removes the native gate it installed (SYN-60).
+- **FEA-24** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check` must not report `missing: native review gate` nor `modified: native review gate` (SYN-23).
+- **FEA-25** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check`, `sync` and `update` must not print the warnings of SYN-24.
 
 ## Scenarios
 
@@ -50,6 +53,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-19) Given a `justfile` importing `cardinal.just` and no `cardinal-specs.just`, when `just --list` runs, then it lists the other recipes and fails on none.
 - (FEA-21) Given `disabled = ["conventional-commits"]` and the message `Added the parser.` with a body line of 90 characters, when `commit-check` reads it, then it prints nothing and exits 0; with a `Co-Authored-By:` line, it reports that line only.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
+- (FEA-23, SYN-60) Given a project that turned `review-gate` off, when it removes the name from `disabled` and runs `sync`, then the hooks, the deny rules, `cardinal-review.just` and the native gate are back, a user's `pre-commit` chained again (SYN-19).
 
 ## Non-goals
 
@@ -66,7 +70,11 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - The commit types that `delivered-quality` reads (QUA-3) and `release` (the version and the changelog): a project
   with its own convention counts no `fix`, and its release is proposed as a patch
   (`issues/release_a_project_without_the_commit_convention.md`).
-- Declaring the features other than `no-ai-attribution`, `conventional-commits` and the hooks of FEA-16: each comes
-  with its own issue.
+- Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16 and
+  `review-gate`: each comes with its own issue.
+- Keeping the refusals of `cardinal run review-gate check` (`--no-verify`, `core.hooksPath`, a `git add` of every
+  file: REV-12, REV-21) when `review-gate` is off: they go with its hook.
+- Rewording the skills that mention the gate (`skill:issue-workflow` keeps its mandatory review): a project that
+  turns the gate off reviews as its workflow says, nothing refuses a commit.
 - Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
   loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).

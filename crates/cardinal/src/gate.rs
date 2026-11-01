@@ -2,7 +2,7 @@
 //!
 //! The hook is a small `sh` script that starts `cardinal run review-gate native` (the tool of the revision the project
 //! pins, `specs/tool-binaries.md`), then the `pre-commit` the user already had (moved to `pre-commit.user`, never
-//! overwritten).
+//! overwritten). Once the source no longer manages the gate, `sync` removes it and moves that hook back (SYN-60).
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -79,6 +79,10 @@ pub enum State {
 pub struct Plan {
     hooks: PathBuf,
     state: State,
+    /// Whether the gate is wanted: if not, ours is removed.
+    wanted: bool,
+    /// Whether a hook of the user is chained to the gate, read before the gate is written or removed.
+    chained: bool,
 }
 
 /// The output of `git args` run in `dir`, `None` when it fails. The repository is the project's, not the one a hook or an
@@ -149,13 +153,9 @@ pub fn manages<'a>(entries: &[Entry], mut files: impl Iterator<Item = &'a String
     entries.iter().any(|e| e.label().contains(REVIEW_TOOL)) || files.any(|f| f == LEGACY_HOOK)
 }
 
-/// The hooks directory of the project and what its `pre-commit` is, `None` when the project is not expected to have the
-/// gate (`expected` is false: Cardinal manages no hook of the review gate) or is not the top of a git repository.
-/// One decision for `sync` and `check`, so they never disagree about where the gate goes.
-fn inspect(root: &Path, expected: bool) -> Option<(PathBuf, State)> {
-    if !expected {
-        return None;
-    }
+/// The hooks directory of the project and what its `pre-commit` is, `None` when the project is not the top of a git
+/// repository. One decision for `sync` and `check`, so they never disagree about where the gate goes.
+fn inspect(root: &Path) -> Option<(PathBuf, State)> {
     let hooks = hooks_dir(root)?;
     let state = if hooks_path_set(root) {
         State::Redirected
@@ -170,21 +170,36 @@ fn inspect(root: &Path, expected: bool) -> Option<(PathBuf, State)> {
 /// records a managed hook of the review gate, whether or not the settings still hold it.
 #[must_use]
 pub fn problem(root: &Path, expected: bool) -> Option<String> {
-    match inspect(root, expected)?.1 {
+    if !expected {
+        return None;
+    }
+    match inspect(root)?.1 {
         State::Missing | State::Foreign => Some(format!("missing: {GATE}")),
         State::Modified => Some(format!("modified: {GATE}")),
         State::UpToDate | State::Redirected => None,
     }
 }
 
-/// Decide what to do for the project at `root`, whose source manages a hook of the review gate when `has_review_hook`.
+/// Decide what to do for the project at `root`, whose source manages a hook of the review gate when `has_review_hook`:
+/// install the gate, or remove the one installed before when the source no longer manages it (SYN-60).
 ///
 /// # Errors
 /// When a `pre-commit` of the user must move to `pre-commit.user` and that file exists already.
 pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
-    let Some((hooks, state)) = inspect(root, has_review_hook) else {
+    let Some((hooks, state)) = inspect(root) else {
         return Ok(None);
     };
+    if !has_review_hook {
+        // a gate left in place would refuse every commit, nothing recording a review any more
+        let ours = matches!(state, State::Modified | State::UpToDate);
+        let chained = fs::symlink_metadata(hooks.join(CHAINED)).is_ok();
+        return Ok(ours.then_some(Plan {
+            hooks,
+            state,
+            wanted: false,
+            chained,
+        }));
+    }
     if state == State::Foreign && hooks.join(CHAINED).exists() {
         bail!(
             "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
@@ -192,7 +207,12 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
             hooks.join(CHAINED).display()
         );
     }
-    Ok(Some(Plan { hooks, state }))
+    Ok(Some(Plan {
+        hooks,
+        state,
+        wanted: true,
+        chained: false,
+    }))
 }
 
 impl Plan {
@@ -200,6 +220,13 @@ impl Plan {
     #[must_use]
     pub fn outcomes(&self) -> Vec<(String, Outcome)> {
         let mut out = Vec::new();
+        if !self.wanted {
+            out.push((GATE.to_string(), Outcome::Removed));
+            if self.chained {
+                out.push(("pre-commit.user -> pre-commit".to_string(), Outcome::Moved));
+            }
+            return out;
+        }
         if self.state == State::Redirected {
             let why = "not installed: core.hooksPath is set, so git reads its hooks elsewhere; add `cardinal run review-gate native` to your own pre-commit, run from the top of the work tree";
             return vec![(GATE.to_string(), Outcome::Skipped(why))];
@@ -216,11 +243,14 @@ impl Plan {
         out
     }
 
-    /// Write the hook.
+    /// Write the hook, or remove it when it is no longer wanted.
     ///
     /// # Errors
-    /// When a file cannot be moved or written.
-    pub fn install(&self) -> Result<()> {
+    /// When a file cannot be moved, written or removed.
+    pub fn apply(&self) -> Result<()> {
+        if !self.wanted {
+            return self.uninstall();
+        }
         if matches!(self.state, State::UpToDate | State::Redirected) {
             return Ok(());
         }
@@ -245,6 +275,18 @@ impl Plan {
             fs::remove_file(&hook)?;
         }
         fs::rename(&staged, &hook)?;
+        Ok(())
+    }
+
+    /// Remove the gate and put the hook of the user it chained back in its place, a link moved as a link.
+    fn uninstall(&self) -> Result<()> {
+        let hook = self.hooks.join("pre-commit");
+        if self.chained {
+            // one rename replaces the gate, so the repository is never left without the user's hook
+            fs::rename(self.hooks.join(CHAINED), &hook)?;
+        } else {
+            fs::remove_file(&hook)?;
+        }
         Ok(())
     }
 }

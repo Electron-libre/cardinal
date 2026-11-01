@@ -28,7 +28,7 @@ flowchart LR
   sync -->|"copied, same path<br/>(SYN-1 to SYN-3, SYN-5 to SYN-8)"| managed["managed files"]
   sync -->|"copied once, if missing<br/>(SYN-4)"| owned["project-owned files"]
   sync -->|"entries merged<br/>(SYN-29 to SYN-36)"| settings[".claude/settings.json"]
-  sync -->|"installed<br/>(SYN-18 to SYN-23)"| gate[".git/hooks/pre-commit"]
+  sync -->|"installed, removed<br/>(SYN-18 to SYN-23, SYN-60)"| gate[".git/hooks/pre-commit"]
   sync --> lock[".claude/cardinal.lock"]
   lock -.->|hashes compared| check["cardinal check"]
 ```

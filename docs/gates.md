@@ -49,6 +49,8 @@ sequenceDiagram
   `core.hooksPath` set elsewhere (SYN-18 to SYN-23); a project nested in another repository, or outside any, gets
   no gate and no error. `.git/hooks` is not cloned, so each clone needs its own `sync`. A missing `cardinal`, or a
   launcher that cannot run the tool (exit 3), is a warning, not a refusal.
+- **Uninstall**: once the source no longer manages a hook of the gate, `sync` removes the `pre-commit` it marked and
+  moves `pre-commit.user` back in its place (SYN-60); a gate left alone would refuse every commit.
 
 ## The code hooks
 

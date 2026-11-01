@@ -711,9 +711,9 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
     let (files, wanted) = turned_on(root, source, &all_files, wanted)?;
     // decided first: a hook of the user that cannot be chained stops the sync before it writes anything
     let gate = gate::plan(root, gate::manages(&wanted, files.iter()))?;
-    // installed before the managed files are written, so a failure leaves the project as it was
+    // installed or removed before the managed files are written, so a failure leaves the project as it was
     if let (Some(gate), false) = (&gate, options.dry_run) {
-        gate.install()?;
+        gate.apply()?;
     }
     let mut report = Report::default();
 

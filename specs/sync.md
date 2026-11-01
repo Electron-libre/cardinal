@@ -1,6 +1,6 @@
 ---
 id: SYN
-status: accepted
+status: draft
 adrs: [0002, 0004, 0005, 0007, 0013, 0014, 0015, 0016, 0017, 0018, 0020]
 ---
 
@@ -35,7 +35,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - **SYN-19** (deterministic) When a `pre-commit` without the mark already exists, the installation must move it to `pre-commit.user` and the installed hook must run it after the review gate, passing its arguments and failing the commit when it fails; it must never overwrite the user's hook, and must fail changing nothing when a `pre-commit.user` already exists.
 - **SYN-20** (deterministic) `sync` must reinstall the native gate when it is missing, no longer executable or different from the managed one, and report nothing when it is up to date (idempotent, as SYN-6); `--dry-run` must report the installation and write nothing.
 - **SYN-21** (deterministic) For a linked worktree, or a project whose `.git` is a file, the gate must be installed in the `hooks` directory of the common git directory.
-- **SYN-22** (deterministic) When `core.hooksPath` is set for the project, `sync` must install nothing, report that the native gate is not installed and why, and succeed; a project that is not a git repository, or whose source manages no hook running `cardinal run review-gate` (SYN-29) and has no `.claude/hooks/require_code_review.rs` among its files (an older revision), gets no gate and no error.
+- **SYN-22** (deterministic) When `core.hooksPath` is set for the project, `sync` must install nothing, report that the native gate is not installed and why, and succeed; a project that is not a git repository, or whose source manages no hook running `cardinal run review-gate` (SYN-29) and has no `.claude/hooks/require_code_review.rs` among its files (an older revision), gets no gate and no error (SYN-60 removes one installed before).
 - **SYN-23** (deterministic) `check` must report `missing: native review gate` when the project is a git repository whose lock records a managed hook running `cardinal run review-gate` (even removed from the settings since) or the managed file `.claude/hooks/require_code_review.rs` (an older revision, even deleted since), whose hooks directory lacks the managed gate and where `core.hooksPath` is unset, and `modified: native review gate` when it differs; it must not report it otherwise, nor when the `CI` environment variable is set (a fresh clone of a CI run has no git hooks and nobody commits there).
 - **SYN-24** (deterministic) `check` must print `warning: .claude/settings.json lacks the deny rule <rule>` for each rule of REV-19 (`specs/review-gate.md`) that the `permissions.deny` list of the project's `.claude/settings.json` lacks, when the lock records the review gate as SYN-23 says and that settings file exists; the warning goes to stderr and must not make `check` fail. `sync` adds the rules the source manages (SYN-29); this is how a project whose rule was removed by hand, or whose source does not manage it, learns of it.
 - **SYN-25** (deterministic) `check` must print `warning: .claude/settings.json runs the missing hook <path>` for each hook command of the `hooks` table of the project's `.claude/settings.json` that names a file under `.claude/hooks/` the project does not have, when that settings file exists; the warning goes to stderr and must not make `check` fail. A hook the source dropped is deleted by `sync` (SYN-5), but the seeded settings keep running it.
@@ -73,6 +73,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - **SYN-57** (deterministic) When `.claude/cardinal.toml` is not valid TOML or its `[cardinal].source` is not a non-empty string, `.github/install_cardinal.sh` must fail (exit 1) with `no source read from .claude/cardinal.toml` on stderr and run no install.
 - **SYN-58** (deterministic) When the runner has no `python3` of version 3.11 or later (the first with `tomllib`), `.github/install_cardinal.sh` must fail (exit 1) with an error on stderr that names Python 3.11 and run no install.
 - **SYN-59** (deterministic) After `sync` into a git repository, git must ignore `.claude/cardinal.local.toml`, the personal configuration (ADR 0018), which `sync` and `check` never read, write nor report.
+- **SYN-60** (deterministic) When the project is the top of a git repository whose `core.hooksPath` is unset and whose source, as the project turns it on (FEA-3), manages no hook of the review gate (SYN-22), `sync` must remove a `pre-commit` of the hooks directory that carries the mark of SYN-18 (up to date, edited or of an older revision), report `removed: native review gate`, and move a `pre-commit.user` back to `pre-commit` reporting `moved: pre-commit.user -> pre-commit`, keeping its content, its mode and, for a symbolic link, its target; a `pre-commit` without the mark and a `pre-commit.user` with no gate of ours are left untouched; `--dry-run` reports the same and writes nothing. A gate left in place would refuse every commit, no review hook being there to record one.
 
 ## Scenarios
 
@@ -121,6 +122,8 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - (SYN-56) Given a `source` key in a table before `[cardinal]`, when the installer runs, then it installs from `[cardinal].source`, as `cardinal` does.
 - (SYN-56) Given a `rev` that is not a string, when the installer runs, then it installs with no `rev`, as `cardinal` reads none.
 - (SYN-57) Given a `source = ""` or a `source = 1`, when the installer runs, then it fails with the no-source error.
+- (SYN-60) Given a gate installed with a user's `pre-commit` chained, when the project turns the feature `review-gate` off and runs `sync`, then the user's hook is `pre-commit` again and a commit runs it; a second `sync` reports nothing about the gate.
+- (SYN-60) Given `core.hooksPath` set, when the source no longer manages the gate, then `sync` touches no hook, the one under `.git/hooks` included.
 
 ## Non-goals
 

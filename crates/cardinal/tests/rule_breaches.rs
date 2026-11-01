@@ -1180,10 +1180,11 @@ fn gate_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     if !quiet(&out) || !quiet(&summary) {
         println!("{out}{summary}");
     }
+    // the session is read: the waste rule applies to it
     vec![(
         "a session of a project that turned off review-gate is not checked against its rules"
             .to_string(),
-        ok && quiet(&out) && quiet(&summary),
+        ok && quiet(&out) && quiet(&summary) && summary.contains("oversized-result\t"),
     )]
 }
 

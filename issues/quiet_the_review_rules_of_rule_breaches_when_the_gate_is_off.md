@@ -58,3 +58,14 @@ rules read the session's calls, not its commits: the configuration judged is the
 - Code review: 2 findings, none fixed: both feared that the skip of `check_bash` and of the `Refused:` errors silenced
   other rules; `check_bash` applies only the four rules and the error branch adds only `review-waiver` and
   `review-before-commit`.
+
+## Summary of the close (update-docs and high review)
+- done: `docs/usage.md` names the four rules in the row of `review-gate`; `docs/gates.md` and it say which sessions
+  go quiet; the FEA-26 test checks that the session is read (`oversized-result` applies).
+- red: none (a fix of the test and the docs).
+- High review: 8 findings. Fixed: the test with no positive control, the two doc wordings. Not fixed: the
+  configuration read at the session's `start` on the default branch (a worktree branch, a change mid-session) is
+  decision 1 a, as BRE-14; a refusal of a gate a project turned off yet kept is a configuration it chose; the three
+  call sites of the exception (a rule-to-feature map in `Verdict`) would be a refactor of FEA-11 and FEA-22 too,
+  left out of this issue.
+- Code review (low): no findings.

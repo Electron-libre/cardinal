@@ -130,3 +130,5 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
   a consumer already synced to an unreleased format 6 gets no warning.
 - not verified: the recipes through `just` (`[no-cd]`).
 - Code review (low): 1 findings; the unused `head` of a branch-only target dropped.
+
+Done: deliverables 1 to 4 committed (a8ad997, b2c827f, 58c2094, 7c21f89); left: the follow-up issue `count_the_sessions_of_a_closed_worktree_with_its_repository`.

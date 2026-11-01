@@ -199,3 +199,15 @@ fn sync_refuses_a_features_file_or_a_disabled_key_of_another_shape() {
         assert!(run.stderr.contains("disabled"), "{disabled}: {run:?}");
     }
 }
+
+// spec: FEA-15
+#[test]
+fn sync_never_seeds_the_path_of_a_file_turned_off() {
+    let home = Home::new();
+    let (source, root) = with_features(&home);
+    put(source.path(), "seed/sub/b.txt", "seeded");
+    disable(&root, "[\"hint\"]");
+    let run = home.ok(root.path(), &["sync"]);
+    assert_eq!(run.outcome("sub/b.txt"), Some("removed"), "{run:?}");
+    assert!(get(root.path(), "sub/b.txt").is_none(), "{run:?}");
+}

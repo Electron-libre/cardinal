@@ -706,17 +706,9 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
         ..
     } = previous.unwrap_or_default();
     let wanted = entries::of_source(source)?;
-    let files = list(&managed)?;
+    let all_files = list(&managed)?;
     // the features the project turns off are content the source does not manage (FEA-3), judged before any write
-    let left = features::left_out(root, source, &files, &wanted)?;
-    let wanted: Vec<_> = wanted
-        .into_iter()
-        .filter(|e| !left.entries.contains(e))
-        .collect();
-    let files: Vec<String> = files
-        .into_iter()
-        .filter(|f| !left.files.contains(f))
-        .collect();
+    let (files, wanted) = turned_on(root, source, &all_files, wanted)?;
     // decided first: a hook of the user that cannot be chained stops the sync before it writes anything
     let gate = gate::plan(root, gate::manages(&wanted, files.iter()))?;
     // installed before the managed files are written, so a failure leaves the project as it was
@@ -728,7 +720,9 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
     let file_set: BTreeSet<&String> = files.iter().collect();
     let new_lock = write_managed(root, &managed, &files, &lock, options, &mut report)?;
     remove_dropped(root, &lock, &file_set, options, &mut report)?;
-    write_seeds(root, &seeds, &file_set, options, &mut report)?;
+    // a managed path is never a seed, even one of a feature turned off (FEA-15)
+    let all_set: BTreeSet<&String> = all_files.iter().collect();
+    write_seeds(root, &seeds, &all_set, options, &mut report)?;
 
     // after the seeds: a first sync merges into the settings it was just seeded with, written or not
     let seeded = report.outcome(entries::SETTINGS) == Some(Outcome::Seeded);
@@ -795,6 +789,26 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
         Some(format)
     };
     Ok(report)
+}
+
+/// The managed files and entries of `source` the project at `root` keeps: those of no feature it turns off.
+fn turned_on(
+    root: &Path,
+    source: &Path,
+    files: &[String],
+    wanted: Vec<entries::Entry>,
+) -> Result<(Vec<String>, Vec<entries::Entry>)> {
+    let left = features::left_out(root, source, files, &wanted)?;
+    let files = files
+        .iter()
+        .filter(|f| !left.files.contains(*f))
+        .cloned()
+        .collect();
+    let wanted = wanted
+        .into_iter()
+        .filter(|e| !left.entries.contains(e))
+        .collect();
+    Ok((files, wanted))
 }
 
 /// Write the managed files of `managed` the project lacks or left as locked (all of them with `force`); returns the new
@@ -991,6 +1005,28 @@ fn write_seeds(
     Ok(())
 }
 
+/// The commands of the hooks of `source` that only features the project at `root` turns off run (FEA-14); none when the
+/// source or the features cannot be read, which the sync then reports.
+fn turned_off(root: &Path, source: &Path) -> Vec<String> {
+    let (Ok(files), Ok(wanted)) = (list(&source.join("files")), entries::of_source(source)) else {
+        return Vec::new();
+    };
+    let Ok(left) = features::left_out(root, source, &files, &wanted) else {
+        return Vec::new();
+    };
+    let kept: Vec<&str> = wanted
+        .iter()
+        .filter(|e| !left.entries.contains(e))
+        .filter_map(entries::Entry::command)
+        .collect();
+    left.entries
+        .iter()
+        .filter_map(entries::Entry::command)
+        .filter(|c| !kept.contains(c))
+        .map(str::to_string)
+        .collect()
+}
+
 /// What `update` did: the revision before and after, and the `sync` that followed.
 #[derive(Debug)]
 pub struct UpdateReport {
@@ -1043,12 +1079,14 @@ fn update_in(
     )?;
     // The hooks of the target must not lock the agent out: the installed launcher has to know their subcommands. A
     // fragment that cannot be read fails the sync below, before anything is written.
+    let off = turned_off(root, &dir);
     let mut refused: Vec<String> = fs::read_to_string(dir.join(entries::FRAGMENT))
         .ok()
         .and_then(|text| serde_json::from_str(&text).ok())
         .map(|fragment| launcher::refused(&fragment))
         .unwrap_or_default()
         .iter()
+        .filter(|command| !off.contains(*command))
         .map(|command| {
             format!("the installed cardinal cannot run the hook `{command}` of {commit}")
         })

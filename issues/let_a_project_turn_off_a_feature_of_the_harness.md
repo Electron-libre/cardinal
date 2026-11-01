@@ -88,6 +88,7 @@ scope: the other features, dependencies between features, a personal opt-out.
    declared in `features.toml`, and `commit-check`, `check-issue`, the SYN-26 warning and rule `commit-attribution`
    read `disabled`; verified by the CLI tests of each tool and a test of the source; makes true FEA-8 to FEA-13.
    ~400 lines.
+3. [x] Docs of the whole issue and fixes of its `high` review; makes true FEA-14, FEA-15.
 
 ## Decisions
 - Mode: autonomous
@@ -113,3 +114,15 @@ scope: the other features, dependencies between features, a personal opt-out.
   `commit-check` and `check-issue`, the SYN-26 warning printed, the `commit-attribution` row present, no
   `features.toml`).
 - not verified: a consumer that turns the feature off and commits with a co-author trailer through Claude Code.
+
+## Deliverable 3
+- done: `features.toml` in the architecture diagram and the docs map; `update` no longer refuses a hook only a feature
+  turned off runs (FEA-14); a managed path of a feature turned off is never seeded (FEA-15); `rule-breaches` reads the
+  configuration of a commit once; `[cardinal] disabled` in the architecture text.
+- red: FEA-14, FEA-15: `update` exited 3 naming `cardinal newcmd`; `sub/b.txt` was seeded back after its removal.
+- Code review (high): 8 findings. Fixed: 2 (update), 3 (seed), 5 (two `git show`), 8 (architecture). Not fixed:
+  1 (the rule left `AGENTS.md`, read by agents other than Claude Code: decided at step 2, Cardinal targets Claude Code,
+  and `commit-check` and CI still refuse the trailer), 4 (`check-issue` takes the root from the issue path: it has no
+  git repository in its tests, and the path is `issues/<name>.md` by its own rules), 6 (a malformed `disabled` read as
+  absent outside `sync`: the ban stays on, and `sync` fails loudly on it), 7 (one more `git rev-parse` in
+  `commit-check`: a few milliseconds per commit).

@@ -101,6 +101,14 @@ impl Entry {
         }
     }
 
+    /// The command a hook runs, `None` for a rule.
+    pub fn command(&self) -> Option<&str> {
+        match self {
+            Entry::Hook { hook, .. } => hook["command"].as_str(),
+            _ => None,
+        }
+    }
+
     /// The report line of the entry, `.claude/settings.json <entry>` (SYN-34).
     pub fn label(&self) -> String {
         format!("{SETTINGS} {self}")

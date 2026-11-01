@@ -27,6 +27,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-11** (deterministic) `rule-breaches` must not apply rule `commit-attribution` (BRE-9) to a commit whose `.claude/cardinal.toml`, as of that commit, turns off the feature `no-ai-attribution`.
 - **FEA-12** (deterministic) The source of Cardinal must declare the feature `no-ai-attribution`, whose files hold the rule against AI attribution in commits.
 - **FEA-13** (deterministic) `files/AGENTS.md` must not hold the rule against AI attribution: a project that turns the feature off loads it nowhere.
+- **FEA-14** (deterministic) `update` must not refuse a revision for a hook the installed `cardinal` cannot run (BIN-16) when that hook is an entry of a feature the project turns off.
+- **FEA-15** (deterministic) `sync` must not seed a path of `seed/` that is also a file of a feature the project turns off.
 
 ## Scenarios
 

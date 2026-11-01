@@ -583,18 +583,14 @@ fn conventional(subject: &str, scopes: &[String]) -> bool {
         && !description.ends_with('.')
 }
 
-/// Whether the configuration of `commit` in `repo` turns off the feature `no-ai-attribution`.
-fn attribution_off(repo: &Path, commit: &str) -> bool {
-    shown(repo, commit, &CONFIGS)
-        .and_then(|t| t.parse::<toml::Table>().ok())
-        .is_some_and(|config| features::turns_off(&config, features::NO_AI_ATTRIBUTION))
+/// The configuration of `commit` in `repo`, the one `just check-commit` read; `None` when it has none or it is invalid.
+fn commit_config(repo: &Path, commit: &str) -> Option<toml::Table> {
+    shown(repo, commit, &CONFIGS).and_then(|t| t.parse().ok())
 }
 
-/// The `commit_scopes` of the configuration of `commit` in `repo`, the one `just check-commit` read.
-fn commit_scopes(repo: &Path, commit: &str) -> Vec<String> {
-    let config = shown(repo, commit, &CONFIGS).and_then(|t| t.parse::<toml::Table>().ok());
+/// The `commit_scopes` of the configuration of a commit.
+fn commit_scopes(config: Option<&toml::Table>) -> Vec<String> {
     let list = config
-        .as_ref()
         .and_then(|c| c.get("project"))
         .and_then(|p| p.get("commit_scopes"))
         .and_then(toml::Value::as_array);
@@ -652,8 +648,12 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
         };
         let verdict = &mut record.verdict;
         verdict.applied.insert("commit-format");
+        let config = commit_config(repo, full);
         // a project that turned the ban off at that commit has no attribution rule to breach (FEA-11)
-        if !attribution_off(repo, full) {
+        let off = config
+            .as_ref()
+            .is_some_and(|c| features::turns_off(c, features::NO_AI_ATTRIBUTION));
+        if !off {
             verdict.applied.insert("commit-attribution");
             if attributed(message) {
                 verdict.add("commit-attribution", false, "", hash.to_string());
@@ -661,7 +661,7 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
         }
         if !conventional(
             message.lines().next().unwrap_or_default(),
-            &commit_scopes(repo, full),
+            &commit_scopes(config.as_ref()),
         ) {
             verdict.add("commit-format", false, "", hash.to_string());
         }

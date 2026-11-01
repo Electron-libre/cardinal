@@ -7,22 +7,24 @@ How Cardinal is built. This page covers the sync, the binary and the hooks; two 
 
 ## What is shared, and how
 
-A consumer project holds a `.claude/cardinal.toml`: the `[cardinal]` table (`source`, and `rev` for a git source) and
-its own values (`[project]`, read by the tools and the skills). `cardinal sync` reads the source, writes three kinds of
+A consumer project holds a `.claude/cardinal.toml`: the `[cardinal]` table (`source`, `rev` for a git source, and the
+`disabled` features) and its own values (`[project]`, read by the tools and the skills). `cardinal sync` reads the source, writes three kinds of
 files, records them in the lock and installs the review gate
 ([ADR 0001](adr/0001-shared-harness-synced-by-a-rust-tool.md), spec [`specs/sync.md`](../specs/sync.md)):
 
 ```mermaid
 flowchart LR
-  toml[".claude/cardinal.toml<br/>source, rev"] --> sync["cardinal sync"]
+  toml[".claude/cardinal.toml<br/>source, rev, disabled"] --> sync["cardinal sync"]
   subgraph source
     files["files/"]
     seed["seed/"]
     entries["entries/.claude/settings.json"]
+    features["features.toml"]
   end
   files --> sync
   seed --> sync
   entries --> sync
+  features -.->|"left out when disabled<br/>(FEA-3)"| sync
   sync -->|"copied, same path<br/>(SYN-1 to SYN-3, SYN-5 to SYN-8)"| managed["managed files"]
   sync -->|"copied once, if missing<br/>(SYN-4)"| owned["project-owned files"]
   sync -->|"entries merged<br/>(SYN-29 to SYN-36)"| settings[".claude/settings.json"]

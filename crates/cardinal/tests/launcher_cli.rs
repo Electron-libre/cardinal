@@ -195,3 +195,35 @@ fn update_dry_run_warns_of_a_hook_the_installed_cardinal_refuses() {
     assert_eq!(get(root.path(), CONFIG), config);
     assert_eq!(get(root.path(), "a.txt").as_deref(), Some("a1"));
 }
+
+// spec: FEA-14
+#[test]
+fn update_goes_through_when_the_refused_hook_belongs_to_a_feature_turned_off() {
+    let home = Home::new();
+    let (repo, root, head) = source_with_a_new_hook_command(&home);
+    put(
+        repo.path(),
+        "features.toml",
+        "[newcmd]\nentries = [\"hook Stop cardinal newcmd\", \"hook Stop cardinal newcmd other\"]\n",
+    );
+    home.git(repo.path(), &["add", "."]);
+    home.git(repo.path(), &["commit", "--quiet", "-m", "feature"]);
+    let feature = home.git(repo.path(), &["rev-parse", "HEAD"]);
+    let config = get(root.path(), CONFIG).unwrap();
+    put(
+        root.path(),
+        CONFIG,
+        &config.replacen("[cardinal]\n", "[cardinal]\ndisabled = [\"newcmd\"]\n", 1),
+    );
+    install_cardinal_with_run(&home);
+
+    let run = home.ok(root.path(), &["update"]);
+
+    assert!(!run.stderr.contains("newcmd"), "{run:?}");
+    let config = get(root.path(), CONFIG).unwrap();
+    assert!(
+        config.contains(&feature) && !config.contains(&head),
+        "{run:?}"
+    );
+    assert_eq!(get(root.path(), "a.txt").as_deref(), Some("a2"));
+}

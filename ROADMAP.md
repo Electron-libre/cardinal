@@ -53,7 +53,7 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_managed_recipes_by_feature](issues/done/split_the_managed_recipes_by_feature.md)
   - [turn_off_the_review_gate](issues/turn_off_the_review_gate.md)
   - [turn_off_the_workspace_lock](issues/turn_off_the_workspace_lock.md)
-  - [turn_off_conventional_commits](issues/turn_off_conventional_commits.md)
+  - [turn_off_conventional_commits](issues/done/turn_off_conventional_commits.md)
   - [turn_off_the_issue_files](issues/turn_off_the_issue_files.md)
   - [turn_off_the_specs](issues/turn_off_the_specs.md)
   - [find_the_root_of_a_done_issue](issues/find_the_root_of_a_done_issue.md)

@@ -109,11 +109,6 @@ pub const TOOLS: &[Tool] = &[
         main: issue_claim::main,
     },
     Tool {
-        name: "issue-worktree",
-        about: "start <issue> | finish <stem> [--force]: the worktree and branch of an issue",
-        main: worktree::main,
-    },
-    Tool {
         name: "language-hint",
         about: "Stop hook: send the agent back once when its last reply is not in the user_language",
         main: language_hint::main,
@@ -157,6 +152,11 @@ pub const TOOLS: &[Tool] = &[
         name: "workspace-lock",
         about: "check | start | release: the hooks that keep one Claude Code session per worktree",
         main: workspace_lock::main,
+    },
+    Tool {
+        name: "worktree",
+        about: "open <name> [--path <dir>] [--branch <branch>] | finish <stem> [--force]: the user's worktrees",
+        main: worktree::main,
     },
 ];
 

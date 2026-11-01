@@ -70,7 +70,7 @@ Longer autonomy
 
 Plan: validated
 
-Done: every deliverable committed; the follow-up is `issues/warn_when_starting_a_blocked_issue.md`.
+Done: every deliverable committed; the follow-up is `issues/done/warn_when_starting_a_blocked_issue.md`.
 
 ## Understanding
 Replace the `rank` by `priority` and `depends_on` in each issue's front matter; `next-issue` derives the order (ready
@@ -121,5 +121,5 @@ anything but an issue. The `# Milestone` section of the issue is the source of i
 - Code review: 10 findings.
   - fixed: age read with `--no-renames` and `core.quotePath=false` (a renamed issue keeps an age), the template heading `# Milestone (optional; ...)` read, `depends_on` deduplicated, the `check-issue` message names the real directory, `front_matter` private and `offer` takes the free list; `drive_...` names its milestone `Longer autonomy`.
   - not fixed: `rank:` may warn on a consumer's own `rank:` field (accepted at the stop of step 2, question 5); `No ready issue` also shown when the blocker is unknown or a cycle (stderr names it, exit 1); `claim_...` has no milestone (none in the roadmap: the user's call).
-  - new issue: `issues/warn_when_starting_a_blocked_issue.md` (`start-issue` opens a blocked issue).
+  - new issue: `issues/done/warn_when_starting_a_blocked_issue.md` (`start-issue` opens a blocked issue).
 - red: NXT-1: without `--no-renames`, `the_oldest_issue_breaks_a_tie` listed the renamed `z` after the untracked `0`.

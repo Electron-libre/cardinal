@@ -72,7 +72,7 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
 1. [x] Move the tool: `issue_worktree.rs` becomes `worktree.rs` (source and test), no other edit, the tool keeps
    its name `issue-worktree` until deliverable 2 (an edit of a moved file counts it twice); verified by `just check`;
    makes true nothing new (a pure move, counted apart).
-2. [ ] `open-worktree` replaces `start-issue`: any name, sibling path or `--path`, branch `<name>` or `--branch`,
+2. [x] `open-worktree` replaces `start-issue`: any name, sibling path or `--path`, branch `<name>` or `--branch`,
    no issue file, no `info/exclude` line, personal configuration copied; ADR 0023, `migrations/6.toml`, docs;
    verified by the behavior test of the tool; makes true PAR-1, PAR-2, PAR-17 (PAR-13 withdrawn).
 3. [ ] `close-worktree` replaces `finish-issue`: a path or a name (sibling, `.claude/worktrees/`, branch checked out,
@@ -94,3 +94,12 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
 - red: none (a move, no new test).
 - not verified: nothing.
 - Code review: 1 findings; the `issue-worktree` entry had moved in `TOOLS`: put back in place.
+
+## Deliverable 2
+- done: `just open-worktree <name> [--path] [--branch]` (tool `worktree open`, `[no-cd]` recipe) replaces
+  `start-issue`; no issue file, no `info/exclude` line; `migrations/6.toml` names `start-issue`; docs; the issue
+  `warn_when_starting_a_blocked_issue` withdrawn to `issues/done/`.
+- red: PAR-1, PAR-2, PAR-17: `cardinal: unknown tool `worktree``.
+- not verified: the recipe through `just` from a subdirectory (`[no-cd]`), only the tool is tested.
+- follow-up: `finish-issue` still names the branch; deliverable 3.
+- Code review: 1 findings; `--path` or `--branch` with no value was ignored: now refused with the usage.

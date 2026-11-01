@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal tool issue-worktree` (`start` and `finish`) against a throwaway git repository.
+//! Behavior test for `cardinal tool worktree` (`open` and `finish`) against a throwaway git repository.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -32,9 +32,6 @@ fn branch_exists(repo: &Path, name: &str) -> bool {
     )
 }
 
-/// The `info/exclude` the user had before `start`: a Latin-1 comment, and no final newline.
-const EXCLUDE: &[u8] = b"# caf\xe9\n*.log";
-
 struct Ctx {
     root: PathBuf,
     repo: PathBuf,
@@ -60,69 +57,100 @@ impl Ctx {
         )
     }
 
-    fn wt(&self, stem: &str) -> PathBuf {
-        self.repo.join(".claude/worktrees").join(stem)
+    /// Where `open` puts a worktree by default: next to the main one.
+    fn wt(&self, name: &str) -> PathBuf {
+        self.root.join(format!("repo-{name}"))
     }
 
-    /// Where `start` put the worktrees before PAR-1 nested them.
     fn sibling(&self, stem: &str) -> PathBuf {
-        self.root.join(format!("repo-{stem}"))
+        self.wt(stem)
     }
 
     fn entries(&self) -> usize {
         std::fs::read_dir(&self.root).unwrap().count()
-            + std::fs::read_dir(self.repo.join(".claude/worktrees")).map_or(0, Iterator::count)
     }
 }
 
 // spec: PAR-1
-fn start_creates_the_worktree(c: &Ctx) -> Checks {
-    let (ok, out) = c.run(&c.repo, &["start", "issues/x.md"]);
+fn open_creates_the_worktree(c: &Ctx) -> Checks {
+    let (ok, out) = c.run(&c.repo, &["open", "x"]);
     let created = ok && c.wt("x").join("issues/x.md").is_file() && branch_exists(&c.repo, "x");
-    let (linked_ok, _) = c.run(&c.wt("x"), &["start", "issues/y.md"]);
-    vec![
-        (
-            "start creates the worktree under .claude/worktrees on a branch named after the stem",
-            created,
-        ),
-        (
-            "start prints the worktree path",
-            out.trim() == c.wt("x").to_str().unwrap(),
-        ),
-        (
-            "start works from a linked worktree and nests the new one in the main one",
-            linked_ok && c.wt("y").is_dir() && !c.wt("x").join(".claude/worktrees/y").exists(),
-        ),
-    ]
-}
-
-// spec: PAR-13
-fn start_makes_git_ignore_the_worktrees(c: &Ctx) -> Checks {
-    let bytes = std::fs::read(c.repo.join(".git/info/exclude")).unwrap_or_default();
-    let exclude = String::from_utf8_lossy(&bytes);
+    let (linked_ok, _) = c.run(&c.wt("x"), &["open", "y"]);
+    let (named_ok, named_out) = c.run(
+        &c.repo,
+        &[
+            "open",
+            "n",
+            "--path",
+            "../elsewhere/n",
+            "--branch",
+            "feat/n",
+        ],
+    );
+    let named = named_ok
+        && c.root.join("elsewhere/n/issues/x.md").is_file()
+        && branch_exists(&c.repo, "feat/n")
+        && !branch_exists(&c.repo, "n");
+    let (no_issue, _) = c.run(&c.repo, &["open", "no-issue-file"]);
+    // a branch checked out nowhere, here a merged one, is checked out as it is
+    git_ok(&c.repo, &["branch", "kept"]);
+    let (reopened, _) = c.run(&c.repo, &["open", "kept"]);
+    let exclude = std::fs::read_to_string(c.repo.join(".git/info/exclude")).unwrap_or_default();
     let status = Command::new("git")
-        .args(["status", "--porcelain", "--untracked-files=all"])
+        .args(["status", "--porcelain"])
         .current_dir(&c.repo)
         .output()
         .unwrap();
-    let status = String::from_utf8_lossy(&status.stdout).into_owned();
+    let removed = git(
+        &c.repo,
+        &[
+            "worktree",
+            "remove",
+            c.wt("no-issue-file").to_str().unwrap(),
+        ],
+    ) && git(&c.repo, &["branch", "-D", "no-issue-file"])
+        && git(
+            &c.repo,
+            &["worktree", "remove", c.wt("kept").to_str().unwrap()],
+        )
+        && git(&c.repo, &["branch", "-D", "kept"])
+        && git(
+            &c.repo,
+            &[
+                "worktree",
+                "remove",
+                c.root.join("elsewhere/n").to_str().unwrap(),
+            ],
+        )
+        && git(&c.repo, &["branch", "-D", "feat/n"]);
+    let _ = std::fs::remove_dir_all(c.root.join("elsewhere"));
     vec![
         (
-            "the main worktree's status lists no issue worktree despite `!.claude/`",
-            !status.contains(".claude/worktrees"),
+            "open creates <repo>-<name> next to the main worktree on a branch <name>",
+            created,
         ),
         (
-            "info/exclude holds the line once after two starts",
-            exclude
-                .lines()
-                .filter(|l| *l == "/.claude/worktrees/")
-                .count()
-                == 1,
+            "open prints the worktree path",
+            out.trim() == c.wt("x").to_str().unwrap(),
         ),
         (
-            "info/exclude keeps its earlier lines, even not in UTF-8",
-            bytes.starts_with(EXCLUDE),
+            "open works from a linked worktree and puts the new one next to the main one",
+            linked_ok && c.wt("y").is_dir(),
         ),
+        (
+            "open takes --path relative to the current directory and --branch",
+            named && named_out.trim() == c.root.join("elsewhere/n").to_str().unwrap(),
+        ),
+        ("open needs no issue file", no_issue),
+        (
+            "open checks out an existing branch checked out nowhere",
+            reopened,
+        ),
+        (
+            "open writes nothing to info/exclude and leaves the main worktree clean",
+            !exclude.contains(".claude/worktrees") && status.stdout.is_empty(),
+        ),
+        ("the checks clean up after themselves", removed),
     ]
 }
 
@@ -130,43 +158,44 @@ const PERSONAL: &str = ".claude/cardinal.local.toml";
 const PERSONAL_TEXT: &str = "[project]\nuser_language = \"English\"\n";
 
 // spec: PAR-17
-fn start_copies_the_personal_configuration(c: &Ctx) -> Checks {
+fn open_copies_the_personal_configuration(c: &Ctx) -> Checks {
     let copied = std::fs::read_to_string(c.wt("x").join(PERSONAL)).ok();
     vec![(
-        "start copies the personal configuration of the main worktree into the new one",
+        "open copies the personal configuration of the main worktree into the new one",
         copied.as_deref() == Some(PERSONAL_TEXT),
     )]
 }
 
 // spec: PAR-2
-fn start_refuses_and_changes_nothing(c: &Ctx) -> Checks {
+fn open_refuses_and_changes_nothing(c: &Ctx) -> Checks {
     let before = c.entries();
-    let (taken, _) = c.run(&c.repo, &["start", "issues/x.md"]);
-    let (missing, _) = c.run(&c.repo, &["start", "issues/missing.md"]);
-    let (uncommitted, _) = c.run(&c.repo, &["start", "issues/new.md"]);
+    let (checked_out, _) = c.run(&c.repo, &["open", "x"]);
+    let (elsewhere, _) = c.run(&c.repo, &["open", "other", "--branch", "x"]);
+    let (bad_name, _) = c.run(&c.repo, &["open", "../up"]);
+    let (dash, _) = c.run(&c.repo, &["open", "-x"]);
+    let (dot, _) = c.run(&c.repo, &["open", ".x"]);
     std::fs::create_dir_all(c.wt("z")).unwrap();
-    let (occupied, _) = c.run(&c.repo, &["start", "issues/z.md"]);
+    let (occupied, _) = c.run(&c.repo, &["open", "z"]);
     std::fs::remove_dir_all(c.wt("z")).unwrap();
     git_ok(&c.repo, &["checkout", "-q", "--detach"]);
-    let (detached, _) = c.run(&c.repo, &["start", "issues/z.md"]);
+    let (detached, _) = c.run(&c.repo, &["open", "z"]);
     let detached_clean = !branch_exists(&c.repo, "z") && !c.wt("z").exists();
     git_ok(&c.repo, &["checkout", "-q", "trunk"]);
     vec![
         (
-            "start refuses a detached main worktree",
+            "open refuses to cut a branch from a detached main worktree",
             !detached && detached_clean,
         ),
-        ("start refuses an issue whose branch exists", !taken),
         (
-            "start refuses a missing issue file",
-            !missing && !branch_exists(&c.repo, "missing"),
+            "open refuses a branch checked out in a worktree",
+            !checked_out && !elsewhere && !branch_exists(&c.repo, "other"),
         ),
         (
-            "start refuses an issue file the main branch does not hold",
-            !uncommitted && !branch_exists(&c.repo, "new"),
+            "open refuses a name outside its characters",
+            !bad_name && !dash && !dot,
         ),
         (
-            "start refuses an existing directory",
+            "open refuses an existing path",
             !occupied && !branch_exists(&c.repo, "z"),
         ),
         ("a refusal changes nothing", c.entries() == before),
@@ -212,7 +241,7 @@ fn finish_removes_only_a_clean_worktree(c: &Ctx) -> Checks {
     );
     let (stranger, _) = c.run(&c.repo, &["finish", "w"]);
     // an agent worktree nested in the issue worktree is ignored there, so `git status` alone does not see it
-    let (ok, _) = c.run(&c.repo, &["start", "issues/z.md"]);
+    let (ok, _) = c.run(&c.repo, &["open", "z"]);
     let agent = c.wt("z").join(".claude/worktrees/agent");
     git_ok(
         &c.repo,
@@ -308,7 +337,7 @@ fn commit_file(wt: &Path, name: &str) {
 // spec: PAR-6
 fn finish_accepts_a_patch_equivalent_branch(c: &Ctx) -> Checks {
     for stem in ["r", "m"] {
-        let (ok, _) = c.run(&c.repo, &["start", &format!("issues/{stem}.md")]);
+        let (ok, _) = c.run(&c.repo, &["open", stem]);
         assert!(ok);
         commit_file(&c.wt(stem), &format!("{stem}.txt"));
     }
@@ -333,7 +362,7 @@ fn finish_accepts_a_patch_equivalent_branch(c: &Ctx) -> Checks {
 // spec: PAR-6
 fn finish_accepts_a_squash_of_several_commits(c: &Ctx) -> Checks {
     for stem in ["s", "t"] {
-        let (ok, _) = c.run(&c.repo, &["start", &format!("issues/{stem}.md")]);
+        let (ok, _) = c.run(&c.repo, &["open", stem]);
         assert!(ok);
         commit_file(&c.wt(stem), &format!("{stem}1.txt"));
         commit_file(&c.wt(stem), &format!("{stem}2.txt"));
@@ -362,7 +391,7 @@ fn finish_accepts_a_squash_of_several_commits(c: &Ctx) -> Checks {
 
 // spec: PAR-10
 fn finish_forces_work_that_is_not_on_trunk(c: &Ctx) -> Checks {
-    let (ok, _) = c.run(&c.repo, &["start", "issues/u.md"]);
+    let (ok, _) = c.run(&c.repo, &["open", "u"]);
     assert!(ok);
     commit_file(&c.wt("u"), "u1.txt");
     let (plain, msg) = c.run(&c.repo, &["finish", "u"]);
@@ -381,7 +410,7 @@ fn finish_forces_work_that_is_not_on_trunk(c: &Ctx) -> Checks {
 
 // spec: PAR-11
 fn finish_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
-    let (ok, _) = c.run(&c.repo, &["start", "issues/c.md"]);
+    let (ok, _) = c.run(&c.repo, &["open", "c"]);
     assert!(ok);
     let sub = c.wt("c").join("issues");
     let (inside, msg) = c.run(&c.wt("c"), &["finish", "c"]);
@@ -415,8 +444,8 @@ fn finish_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
 }
 
 #[test]
-fn issue_worktree() {
-    let script = std::path::PathBuf::from("/tools").join("issue_worktree.rs");
+fn worktree() {
+    let script = std::path::PathBuf::from("/tools").join("worktree.rs");
     let root = std::fs::canonicalize(tempfile::tempdir().unwrap().keep()).unwrap();
     let _ = std::fs::remove_dir_all(&root);
     let repo = root.join("repo");
@@ -424,8 +453,6 @@ fn issue_worktree() {
     for s in ["x", "y", "z", "w", "r", "m", "s", "t", "u", "c"] {
         std::fs::write(repo.join(format!("issues/{s}.md")), format!("# {s}\n")).unwrap();
     }
-    // a project that tracks `.claude/` against a global gitignore un-ignores it
-    std::fs::write(repo.join(".gitignore"), "!.claude/\n").unwrap();
     // the managed `.claude/.gitignore` and a personal configuration it ignores
     std::fs::create_dir_all(repo.join(".claude")).unwrap();
     std::fs::write(repo.join(".claude/.gitignore"), "cardinal.local.toml\n").unwrap();
@@ -433,9 +460,6 @@ fn issue_worktree() {
     git_ok(&repo, &["init", "-q", "-b", "trunk", "."]);
     git_ok(&repo, &["add", "-A"]);
     git_ok(&repo, &["commit", "-qm", "init", "--no-verify"]);
-    std::fs::write(repo.join("issues/new.md"), "# new\n").unwrap();
-    std::fs::create_dir_all(repo.join(".git/info")).unwrap();
-    std::fs::write(repo.join(".git/info/exclude"), EXCLUDE).unwrap();
 
     let c = Ctx {
         root: root.clone(),
@@ -444,10 +468,9 @@ fn issue_worktree() {
     };
     let mut failed = false;
     for checks in [
-        start_creates_the_worktree(&c),
-        start_makes_git_ignore_the_worktrees(&c),
-        start_copies_the_personal_configuration(&c),
-        start_refuses_and_changes_nothing(&c),
+        open_creates_the_worktree(&c),
+        open_copies_the_personal_configuration(&c),
+        open_refuses_and_changes_nothing(&c),
         finish_needs_a_merged_branch(&c),
         finish_removes_only_a_clean_worktree(&c),
         finish_removes_a_legacy_sibling(&c),

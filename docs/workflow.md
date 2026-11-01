@@ -87,7 +87,7 @@ sequenceDiagram
   participant U as user
   participant W as agent, worktree
   participant H as host
-  U->>U: git worktree add (or just start-issue)
+  U->>U: git worktree add (or just open-worktree)
   U->>W: open the worktree, hand issues/NAME.md
   W->>W: issue-claim issues/NAME.md
   W->>W: issue-workflow, commits on the branch
@@ -100,7 +100,7 @@ sequenceDiagram
 - The agent never creates, enters or leaves a worktree: a session entered with `EnterWorktree` or `claude --worktree`
   is isolated by Claude Code, which refuses every command it cannot prove stays there.
 - The claim (`cardinal run issue-claim`, step 0 of `issue-workflow`) makes `just next-issue` skip the issue in every
-  worktree, the main one included; a branch named after the issue (`start-issue`) still does too.
+  worktree, the main one included; a branch named after the issue (made by the former `start-issue`) still does too.
 - The `workspace-lock` hooks keep one live session per worktree: a second thread on the same folder has its edits
   and commands refused.
 - `close-issue` runs in the worktree of the issue, never on an issue of another worktree; on a branch other than

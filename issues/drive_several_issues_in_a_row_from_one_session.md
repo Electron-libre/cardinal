@@ -16,8 +16,8 @@ independent issues done in one session, with one grouped plan validation up fron
   N issues as they are written today stops N times.
 * A subagent can't ask the user anything: a blocking question has to come back to the orchestrator.
 * The agent never creates or enters a worktree (ADR 0011, step 0 of the skill); `isolation: "worktree"` of the Agent
-  tool would break that and the "taken" detection of `next-issue` (branch `<stem>`, worktree under
-  `.claude/worktrees/`).
+  tool would break that and the "taken" detection of `next-issue` (branch `<stem>`, the claim of
+  ADR 0022).
 * Not verified: whether `/code-review high`, run at the end of each issue, works inside a subagent (it may start
   subagents of its own).
 * The article on folding subagents into the main loop (see Resources) keeps a subagent only for a measured context

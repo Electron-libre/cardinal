@@ -26,3 +26,9 @@ Longer autonomy
 
 # Resources
 * `crates/cardinal/src/tools/issue_worktree.rs`, `crates/cardinal/src/tools/next_issue.rs`, `specs/next-issue.md`.
+
+# Tracking
+
+Withdrawn: `open-worktree` replaced `start-issue` and takes no issue (ADR 0023,
+`issues/reuse_a_worktree_across_issues.md`), so there is no issue to check the readiness of; `next-issue` still
+never offers a blocked issue (NXT-7).

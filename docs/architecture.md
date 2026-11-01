@@ -172,14 +172,14 @@ a tool `cardinal run` does not know.
 ## Parallel issues
 
 Two agents can drive two issues at once, each in its own worktree (one the user opens on the branch they
-pick, or `.claude/worktrees/<stem>` on a branch `<stem>` from `start-issue`): separate working tree and index, shared
+pick, with `git worktree add` or `open-worktree`, next to the main one): separate working tree and index, shared
 object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
-[ADR 0008](adr/0008-issue-worktrees-nest-under-claude-worktrees.md),
+[ADR 0023](adr/0023-worktrees-open-next-to-the-main-one-with-no-issue.md),
 [ADR 0011](adr/0011-the-user-opens-the-issue-worktree.md), spec
 [`specs/parallel-issues.md`](../specs/parallel-issues.md)). The steps are in
 [workflow.md](workflow.md#parallel-issues); the design:
 
-- **Tool**: `cardinal run issue-worktree` (`just start-issue`, `just finish-issue`), `issue-claim`, `workspace-lock`,
+- **Tool**: `cardinal run worktree` (`just open-worktree`, `just finish-issue`), `issue-claim`, `workspace-lock`,
   `next-issue` and `close-issue`.
 - **Taken** is the worktree itself, or a branch holding commits not on the main branch (PAR-3): `next-issue` reads
   `git for-each-ref`, `git worktree list`, `git cherry` and `git merge-tree --write-tree`, so every worktree sees it
@@ -191,9 +191,10 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
   spec [`specs/issue-claim.md`](../specs/issue-claim.md)). `next-issue` lists a `working` claim as taken (with
   `session ended` once its process is gone) and a `merge pending` one until the trunk holds the closed issue, then
   deletes it.
-- **Personal configuration**: `start-issue` copies the git-ignored `.claude/cardinal.local.toml` of the main
+- **Personal configuration**: `open-worktree` copies the git-ignored `.claude/cardinal.local.toml` of the main
   worktree into the new one (PAR-17), so the person's `user_language` follows them.
-- **Nesting**: `start-issue` makes git ignore `/.claude/worktrees/` (PAR-13), and the scanners (`close-issue`,
+- **Nesting**: `open-worktree` puts the worktrees next to the main one; for those the former `start-issue` nested
+  under `.claude/worktrees/` (ADR 0008), the scanners (`close-issue`,
   `check-specs`, `spec-coverage`) take their files from git (`repo_files.rs`, `git ls-files -co --exclude-standard`,
   PAR-14, [ADR 0009](adr/0009-scanners-list-the-repository-files-through-git.md)), which never lists a nested
   worktree. `close-issue` also drops `.git`, `target`, `node_modules` and the `skipped_dirs` by name; `check-specs`

@@ -13,7 +13,7 @@ into each project and tells when a copy drifted.
 | Skills | `issue-workflow` (an issue driven to done in validated deliverables), `create-issue`, `prioritize-issues`, `write-spec`, `update-docs`, `commit-message`, `evaluate-harness`, `audit-instructions` |
 | Rules | `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session with no edit of the project's `CLAUDE.md` |
 | Gates | no commit without a code review of the diff, no `git add` of every file, no turn ending on a warning of the project's lint (clippy by default), a reply not in the `user_language` sent back once, the project's formatter (`cargo fmt` by default) after each edit, one Claude Code session per worktree; commit messages checked (Conventional Commits, no AI attribution) |
-| Recipes | `cardinal.just`: `next-issue`, `start-issue`, `close-issue`, `check-issue`, `check-specs`, `spec-coverage`, `check-commit`, `check-cardinal`, `release`… |
+| Recipes | `cardinal.just`: `next-issue`, `open-worktree`, `close-issue`, `check-issue`, `check-specs`, `spec-coverage`, `check-commit`, `check-cardinal`, `release`… |
 | Releases | `just release`: the next semver proposed from the commits, its `CHANGELOG.md` section written to reread, then a local `v<version>` tag |
 | CI | `.github/workflows/cardinal.yml`: the copies and the specs checked on main and on each pull request, plus its commit messages |
 | Evaluation | `cardinal run session-metrics`, `rule-breaches`, `delivered-quality`…: did a Cardinal revision make the agent better? |

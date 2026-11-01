@@ -18,14 +18,13 @@ are narrowed to it, its Findings stay. Each other cut is a new issue written wit
 `skill:create-issue` (not its commit and deliver steps), citing the first in `# Findings`, with the priority of the
 first and the cut it needs in `depends_on`; an open issue that depended on the first names the cut it needs. A split at step 2 takes the
 deliverables of the other cuts out of the plan, and the new plan is validated again. In a linked worktree, write
-no cut: stop and leave the split to the user in the main worktree, where `start-issue` and `next-issue` see it.
+no cut: stop and leave the split to the user in the main worktree, where `next-issue` sees it.
 
 ## Worktree
 
 An issue usually runs in the main worktree, on the trunk. For parallel work the user opens another worktree on a
-branch they pick, with `git worktree add` or `just start-issue issues/<name>.md` (creates
-`.claude/worktrees/<name>` on a branch `<name>`, adds `/.claude/worktrees/` to `.git/info/exclude`), and launches a
-plain `claude` there or opens it as an editor project. Not `claude --worktree`, nor `EnterWorktree` from another
+branch they pick, with `git worktree add` or `just open-worktree <name>` (creates `../<repo>-<name>` on a branch
+`<name>`), and launches a plain `claude` there or opens it as an editor project. Not `claude --worktree`, nor `EnterWorktree` from another
 session: Claude Code then isolates the session and refuses every command it cannot prove stays in the worktree.
 Several issues may share a worktree, one after the other; the worktree outlives them.
 

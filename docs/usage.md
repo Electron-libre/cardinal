@@ -32,8 +32,8 @@ the project points its key at it by hand.
 
 The seeded `user_language` is the default language of the conversation. Each person may set their own in a
 `[project]` table of `.claude/cardinal.local.toml`, which the managed `.claude/.gitignore` keeps out of git: the
-`language-hint` hook, rule `user-language` of `rule-breaches` and the skills read it first, and `start-issue`
-copies it into each issue worktree.
+`language-hint` hook, rule `user-language` of `rule-breaches` and the skills read it first, and `open-worktree`
+copies it into each worktree it opens.
 
 With a local directory source (this repository), `cardinal run` builds the source's crate with `cargo`, so a hook runs
 the tools of the working tree, or of the last build that compiled.
@@ -154,18 +154,10 @@ and the `workspace-lock` hooks keep one session per worktree:
 
 | Recipe | What it does |
 |---|---|
-| `just start-issue issues/<stem>.md` | creates the worktree `.claude/worktrees/<stem>` inside the main one, on a new branch `<stem>` cut from the branch of the main worktree; adds `/.claude/worktrees/` to git's `info/exclude`; copies `.claude/cardinal.local.toml` into it. Refuses an issue file not committed on the main branch. Launch a plain `claude` in the worktree. |
+| `just open-worktree <name> [--path <dir>] [--branch <branch>]` | creates the worktree `../<repo>-<name>` next to the main one (or `<dir>`, relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main worktree, or on that branch as it is when it exists and no worktree has it; copies `.claude/cardinal.local.toml` into it. It takes no issue: the worktree serves issues in turn and keeps its build. Launch a plain `claude` in it. |
 | `just finish-issue <stem> [--force]` | from outside the worktree, removes it and deletes the branch once the branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes |
 
 The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues).
 
-The tools that run on `.` and do not read git's `info/exclude` then read every issue in progress. Keep the worktrees
-out of them:
-
-| Tool | Setting |
-|---|---|
-| prettier, black | `/.claude/worktrees/` in `.gitignore` |
-| eslint 9 | `{ ignores: [".claude/worktrees/"] }` in `eslint.config.js` |
-| vitest | `exclude: [...configDefaults.exclude, ".claude/worktrees/**"]` |
-| jest | `"<rootDir>/.claude/worktrees/"` in `testPathIgnorePatterns` and `modulePathIgnorePatterns` |
-| rg, tsc, pytest, ruff, mypy | nothing, they already skip it |
+A worktree the former `start-issue` left under `.claude/worktrees/` is still inside the main one: remove it with
+`finish-issue` once its branch is merged.

@@ -1,15 +1,15 @@
-//! Give an issue its own git worktree and branch, so that two agents can work on two issues at once.
-//! `start issues/<stem>.md` creates the worktree `<main worktree>/.claude/worktrees/<stem>`, on a new branch
-//! `<stem>` cut from the branch of the main worktree, and makes git ignore `/.claude/worktrees/` (`info/exclude`).
-//! `finish <stem> [--force]` removes that worktree and branch once the
+//! Open and remove the user's git worktrees, each serving issues in turn (ADR 0023).
+//! `open <name> [--path <dir>] [--branch <branch>]` creates the worktree `<main worktree>-<name>`, or `<dir>`
+//! (relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main
+//! worktree, or on that branch as it is when it exists and no worktree has it checked out.
+//! `finish <stem> [--force]` removes the worktree of the branch `<stem>` and that branch once the
 //! branch is merged into the branch of the main worktree (ancestor, or every commit has a patch-equivalent there,
 //! or a merge into it would change no file, which covers a rebase and a squash of any number of commits); `--force` also
 //! accepts a branch whose work is not on it, after the user agreed, and still refuses a worktree with uncommitted
-//! changes or holding another worktree. It also removes a worktree left at `<main worktree>-<stem>`, where `start` put
-//! it before ADR 0008. `start` runs from any worktree; `finish` too, except from inside the worktree it would remove (it refuses and names the main worktree, `--force` or not).
-//! Usage: `just start-issue issues/foo.md`, `just finish-issue foo` (`just finish-issue foo --force`).
+//! changes or holding another worktree. It also removes a worktree left under `<main worktree>/.claude/worktrees/`
+//! by the former `start-issue`. `open` runs from any worktree; `finish` too, except from inside the worktree it would remove (it refuses and names the main worktree, `--force` or not).
+//! Usage: `just open-worktree foo`, `just finish-issue foo` (`just finish-issue foo --force`).
 
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -67,51 +67,18 @@ fn worktree_of(cwd: &Path, branch: &str) -> Option<PathBuf> {
     })
 }
 
-/// The worktree of an issue: under `.claude/worktrees/`, the only place Claude Code enters without asking (ADR 0008).
+/// Where the former `start-issue` put the worktree of an issue (ADR 0008), still accepted by `finish`.
 fn nested(main: &Path, stem: &str) -> PathBuf {
     main.join(WORKTREES).join(stem)
 }
 
-/// Where `start` put the worktree of an issue before ADR 0008, still accepted by `finish`.
+/// The default place of a worktree: next to the main one (ADR 0003, ADR 0023).
 fn sibling(main: &Path, stem: &str) -> Option<PathBuf> {
     let name = main.file_name()?.to_string_lossy();
     Some(main.with_file_name(format!("{name}-{stem}")))
 }
 
 const WORKTREES: &str = ".claude/worktrees";
-
-/// Make git ignore the nested worktrees in every worktree, through the `info/exclude` of the common directory: a
-/// `.gitignore` belongs to the project, and this one may un-ignore `.claude/`.
-fn exclude_worktrees(main: &Path) -> Result<(), String> {
-    let common = PathBuf::from(git(
-        main,
-        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
-    )?);
-    let exclude = common.join("info/exclude");
-    let line = format!("/{WORKTREES}/");
-    let fail = |e: std::io::Error| format!("cannot update {}: {e}", exclude.display());
-    // bytes, not text: the user's patterns need not be UTF-8, and they are only ever appended to
-    let bytes = match std::fs::read(&exclude) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
-        read => read.map_err(fail)?,
-    };
-    if bytes.split(|b| *b == b'\n').any(|l| l == line.as_bytes()) {
-        return Ok(());
-    }
-    let separator = if bytes.is_empty() || bytes.ends_with(b"\n") {
-        ""
-    } else {
-        "\n"
-    };
-    std::fs::create_dir_all(common.join("info")).map_err(fail)?;
-    let mut file = std::fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(&exclude)
-        .map_err(fail)?;
-    file.write_all(format!("{separator}{line}\n").as_bytes())
-        .map_err(fail)
-}
 
 /// The worktrees nested in `dir`, such as an agent's: `git status` in `dir` does not see them, being ignored.
 fn worktrees_inside(main: &Path, dir: &Path) -> Result<Vec<PathBuf>, String> {
@@ -132,66 +99,81 @@ fn valid_stem(stem: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
 }
 
-fn start(cwd: &Path, issue: &str) -> Result<String, String> {
-    let path = Path::new(issue);
-    let stem = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or_default();
-    if path.extension().is_none_or(|e| e != "md")
-        || path
-            .parent()
-            .and_then(Path::file_name)
-            .is_none_or(|d| d != "issues")
-        || !valid_stem(stem)
-    {
+/// A name for a path and a branch: ASCII letters, digits, `.`, `_` and `-`, not opening on `-` or `.` (PAR-2).
+fn valid_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.starts_with(['-', '.'])
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+}
+
+/// `path` with its `.` and `..` folded, as the user reads it: the directory does not exist yet.
+fn lexical(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for part in path.components() {
+        match part {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other),
+        }
+    }
+    out
+}
+
+fn open(
+    cwd: &Path,
+    name: &str,
+    path: Option<&str>,
+    branch: Option<&str>,
+) -> Result<String, String> {
+    if !valid_name(name) {
         return Err(format!(
-            "{issue} is not an issue file directly under an `issues/` directory"
+            "{name} is not a worktree name: ASCII letters, digits, `.`, `_` and `-`, not opening on `-` or `.`"
         ));
     }
-    let (main, branch) = main_worktree(cwd)?;
-    let base = branch.ok_or("the main worktree has no branch checked out")?;
-    if git_ok(
-        &main,
-        &["rev-parse", "--verify", "-q", &format!("refs/heads/{stem}")],
-    ) {
-        return Err(format!(
-            "the branch {stem} already exists: the issue is taken"
-        ));
+    let branch = branch.unwrap_or(name);
+    if branch.starts_with('-') || !git_ok(cwd, &["check-ref-format", "--branch", branch]) {
+        return Err(format!("{branch} is not a valid branch name"));
     }
-    if !git_ok(
-        &main,
-        &["cat-file", "-e", &format!("{base}:issues/{stem}.md")],
-    ) {
-        return Err(format!(
-            "{issue} is not committed on {base}: commit it first, the worktree would not hold it"
-        ));
-    }
-    if !git(
-        &main,
-        &["status", "--porcelain", "--", &format!("issues/{stem}.md")],
-    )?
-    .is_empty()
-    {
-        return Err(format!("{issue} has uncommitted changes in the main worktree: commit them first, the worktree would not hold them"));
-    }
-    let dir = nested(&main, stem);
+    let (main, trunk) = main_worktree(cwd)?;
+    let dir = match path {
+        Some(p) => lexical(
+            &std::path::absolute(cwd.join(p)).map_err(|e| format!("cannot resolve {p}: {e}"))?,
+        ),
+        None => sibling(&main, name).ok_or("the main worktree has no directory name")?,
+    };
     if dir.exists() {
         return Err(format!("{} already exists", dir.display()));
     }
-    git(
+    let target = dir.to_string_lossy();
+    let exists = git_ok(
         &main,
         &[
-            "worktree",
-            "add",
+            "rev-parse",
+            "--verify",
             "-q",
-            "-b",
-            stem,
-            &dir.to_string_lossy(),
-            &base,
+            &format!("refs/heads/{branch}"),
         ],
-    )?;
-    exclude_worktrees(&main)?;
+    );
+    if exists {
+        if let Some(at) = worktree_of(&main, branch) {
+            return Err(format!(
+                "the branch {branch} is checked out in {}: open that worktree, or name another branch",
+                at.display()
+            ));
+        }
+        git(&main, &["worktree", "add", "-q", &target, branch])?;
+    } else {
+        let base = trunk
+            .ok_or("the main worktree has no branch checked out to cut the new branch from")?;
+        git(
+            &main,
+            &["worktree", "add", "-q", "-b", branch, &target, &base],
+        )?;
+    }
     // git ignores the personal configuration, so the checkout lacks it (PAR-17)
     let personal = main.join(crate::PERSONAL_CONFIG);
     if personal.is_file() {
@@ -278,6 +260,9 @@ fn finish(cwd: &Path, stem: &str, force: bool) -> Result<String, String> {
     Ok(format!("removed the worktree and the branch {stem}"))
 }
 
+const USAGE: &str =
+    "usage: cardinal run worktree open <name> [--path <dir>] [--branch <branch>] | finish <stem> [--force]";
+
 pub(super) fn main(args: &[String]) -> u8 {
     let args: Vec<String> = args.to_vec();
     let result = match args
@@ -286,15 +271,34 @@ pub(super) fn main(args: &[String]) -> u8 {
         .collect::<Vec<_>>()
         .as_slice()
     {
-        ["start", issue] => start(Path::new("."), issue),
+        ["open", rest @ ..] if !rest.is_empty() => {
+            let (mut path, mut branch, mut name) = (None, None, None);
+            let mut it = rest.iter();
+            let mut bad = false;
+            while let Some(a) = it.next() {
+                match *a {
+                    "--path" => {
+                        path = it.next().copied();
+                        bad |= path.is_none();
+                    }
+                    "--branch" => {
+                        branch = it.next().copied();
+                        bad |= branch.is_none();
+                    }
+                    n if name.is_none() && !n.starts_with("--") => name = Some(n),
+                    _ => bad = true,
+                }
+            }
+            match name {
+                Some(n) if !bad => open(Path::new("."), n, path, branch),
+                _ => Err(USAGE.to_string()),
+            }
+        }
         ["finish", stem] => finish(Path::new("."), stem, false),
         ["finish", stem, "--force"] | ["finish", "--force", stem] => {
             finish(Path::new("."), stem, true)
         }
-        _ => Err(
-            "usage: cardinal run issue-worktree start issues/<stem>.md | finish <stem> [--force]"
-                .to_string(),
-        ),
+        _ => Err(USAGE.to_string()),
     };
     match result {
         Ok(message) => {

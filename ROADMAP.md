@@ -49,7 +49,7 @@ The work done before this file existed is in `issues/done/`.
   - [drive_several_issues_in_a_row_from_one_session](issues/drive_several_issues_in_a_row_from_one_session.md)
   - [order_the_issues_by_priority_and_dependencies](issues/done/order_the_issues_by_priority_and_dependencies.md)
   - [link_the_next_issue_when_closing_one](issues/done/link_the_next_issue_when_closing_one.md)
-  - [warn_when_starting_a_blocked_issue](issues/warn_when_starting_a_blocked_issue.md)
+  - [warn_when_starting_a_blocked_issue](issues/done/warn_when_starting_a_blocked_issue.md)
   - [claim_an_issue_from_the_session_that_works_it](issues/done/claim_an_issue_from_the_session_that_works_it.md)
   - [reuse_a_worktree_across_issues](issues/reuse_a_worktree_across_issues.md)
 

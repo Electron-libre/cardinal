@@ -26,13 +26,14 @@ close-issue issue:
 next-issue *args:
     cardinal run next-issue {{args}}
 
-# Give an issue its own worktree `.claude/worktrees/<stem>` and branch `<stem>`, so two agents can work in parallel.
-start-issue issue:
-    cardinal run issue-worktree start {{issue}}
+# Open a worktree `../<repo>-<name>` (or `--path <dir>`) on a new branch `<name>` (or `--branch <branch>`) cut from the main branch, for an agent to work issues in parallel.
+[no-cd]
+open-worktree name *flags:
+    cardinal run worktree open {{name}} {{flags}}
 
 # Remove the worktree and the branch of an issue once its branch is merged into the main branch (fast-forward, rebase or squash); `--force` also drops work not on the main branch, only after the user agreed.
 finish-issue stem *flags:
-    cardinal run issue-worktree finish {{stem}} {{flags}}
+    cardinal run worktree finish {{stem}} {{flags}}
 
 # Prepare a release: no argument prints the proposed version; `<version>` writes its CHANGELOG.md section to reread and commit; `<version> --tag` then creates the local tag (never pushed).
 release *args:

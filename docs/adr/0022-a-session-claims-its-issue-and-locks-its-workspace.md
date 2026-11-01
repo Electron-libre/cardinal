@@ -1,6 +1,6 @@
 # 0022. A session claims its issue and locks its workspace
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-01
 
 ## Context

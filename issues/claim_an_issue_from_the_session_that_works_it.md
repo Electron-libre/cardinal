@@ -169,7 +169,7 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 3. [x] Workspace lock: measure what a hook receives (`CLAUDE_PID`, the `session_id` after `/clear`), then
    `cardinal run workspace-lock check|start|release` and its hooks in `entries/.claude/settings.json`; verified by
    tests feeding hook inputs; makes true WSL-1 to WSL-9 (~650 lines).
-4. [ ] Workflow: `issue-workflow` step 0 claims instead of reading branches, the end of an issue on a workspace
+4. [x] Workflow: `issue-workflow` step 0 claims instead of reading branches, the end of an issue on a workspace
    branch opens a pull request, `details.md`, the Rules, `docs/workflow.md`, `docs/usage.md`,
    `docs/architecture.md`, ADR 0022 accepted; verified by `just check` and `just check-cardinal` (~300 lines).
 
@@ -211,3 +211,12 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 - measure: once synced here, the live `PreToolUse` hook wrote the lock with this session's `session_id` and the
   `CLAUDE_PID` the agent's commands see: a hook receives both.
 - not verified: whether `/clear` gives a new `session_id` (the same process is let through either way); macOS.
+
+## Deliverable 4: workflow
+
+- done: `issue-workflow` step 0 claims the issue and stops on a refused claim or lock; the merge back of a workspace
+  branch closes on the branch, pushes and opens or updates the pull request; `details.md` (Workspace, Merge back),
+  `docs/workflow.md`, `docs/usage.md`, `docs/architecture.md`; ADR 0022 accepted.
+- checks: `just check` passes, `just check-cardinal` passes, docs reread.
+- red: none (instructions and docs, no test).
+- not verified: the pull request path end to end (no workspace branch closed yet).

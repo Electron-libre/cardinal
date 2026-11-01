@@ -21,9 +21,9 @@ flowchart LR
 | Plan the milestones | user orders them, agent drafts | the `roadmap` documents of `.claude/cardinal.toml` (`ROADMAP.md` when seeded); `skill:create-issue` cuts a shaped one into issues |
 | Write the issue (Goal, Findings, Approach, Resources) | agent, attached to a milestone | `skill:create-issue`, checked by `just check-issue` |
 | Prioritize it | agent proposes, user decides | `priority`, `depends_on` and `why` in the front matter of the issue (ADR 0021), `skill:prioritize-issues` to review them all |
-| Pick the next one | anyone | `just next-issue`: the first ready issue (by milestone, priority, age) no branch or worktree has taken, then the blocked ones |
+| Pick the next one | anyone | `just next-issue`: the first ready issue (by milestone, priority, age) no claim, branch or worktree has taken, then the blocked ones |
 | Drive it to done | agent, with one validation stop | `skill:issue-workflow` |
-| Close it | agent in the main worktree, on the user's agreement; the user after a parallel issue | `just close-issue issues/NAME.md`: moves it to `issues/done/` and prints the next issue; the agent sets its milestone `done` when it was the last |
+| Close it | agent, on the user's agreement | `just close-issue issues/NAME.md`: moves it to `issues/done/`, frees its claim (`merge pending` on a workspace branch, until the pull request is merged) and prints the next issue; the agent sets its milestone `done` when it was the last |
 | Release | user, on the agent's proposal when a milestone becomes `done` | `just release <version>` writes the `CHANGELOG.md` section and marks the milestone `Released:`; reread, commit, `just release <version> --tag`; the user pushes the tag |
 
 ## Inside issue-workflow
@@ -74,30 +74,35 @@ flowchart TD
 
 ## Parallel issues
 
-An issue usually runs in the main worktree. For two issues at once, the user gives the second its own worktree, so
-the files, index and `target/` of one session never reach the other
-([ADR 0003](adr/0003-one-worktree-per-issue.md), [ADR 0011](adr/0011-the-user-opens-the-issue-worktree.md), spec
-[`specs/parallel-issues.md`](../specs/parallel-issues.md)).
+An issue usually runs in the main worktree, on the trunk. For two issues at once, the user opens another worktree
+(a workspace) on a branch they pick, so the files, index and `target/` of one session never reach the other; a
+workspace serves several issues in turn
+([ADR 0011](adr/0011-the-user-opens-the-issue-worktree.md),
+[ADR 0022](adr/0022-a-session-claims-its-issue-and-locks-its-workspace.md), specs
+[`parallel-issues.md`](../specs/parallel-issues.md), [`issue-claim.md`](../specs/issue-claim.md),
+[`workspace-lock.md`](../specs/workspace-lock.md)).
 
 ```mermaid
 sequenceDiagram
-  participant U as user, main worktree
-  participant W as agent, issue worktree
-  U->>U: commit issues/NAME.md with its priority
-  U->>U: just start-issue issues/NAME.md
-  Note over U: .claude/worktrees/NAME on branch NAME
-  U->>W: launch claude in the worktree
-  W->>W: issue-workflow, commits on NAME
-  W->>W: user agrees to close: rebase on main,<br/>just check-cardinal
-  W-->>U: prints the commands left
-  U->>U: git merge --ff-only NAME
-  U->>U: just close-issue issues/NAME.md, commit
-  U->>U: just finish-issue NAME
+  participant U as user
+  participant W as agent, workspace
+  participant H as host
+  U->>U: git worktree add (or just start-issue)
+  U->>W: open the worktree, hand issues/NAME.md
+  W->>W: issue-claim issues/NAME.md
+  W->>W: issue-workflow, commits on the branch
+  W->>W: user agrees to close: close-issue,<br/>claim merge pending, just check-cardinal
+  W->>H: push, open or update the pull request
+  H->>H: merge into the trunk
+  Note over U,H: next-issue drops the claim once the trunk holds the close
 ```
 
 - The agent never creates, enters or leaves a worktree: a session entered with `EnterWorktree` or `claude --worktree`
   is isolated by Claude Code, which refuses every command it cannot prove stays there.
-- While the branch or the worktree exists, `just next-issue` skips the issue for every other session.
+- The claim (`cardinal run issue-claim`, step 0 of `issue-workflow`) makes `just next-issue` skip the issue in every
+  worktree, the main one included; a branch named after the issue (`start-issue`) still does too.
+- The `workspace-lock` hooks keep one live session per worktree: a second thread on the same folder has its edits
+  and commands refused.
 - `close-issue` runs in the worktree of the issue, never on an issue of another worktree; on a branch other than
   the trunk it leaves the claim `merge pending`, which `next-issue` drops once the trunk holds the close. A branch
   prioritizes only its own issues, so two branches never conflict over the order.

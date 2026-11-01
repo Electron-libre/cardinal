@@ -147,8 +147,10 @@ projects directory given, they read the `projects/` of the configuration directo
 
 ## Parallel issues in worktrees
 
-For an issue run in parallel, the user opens its worktree; the agent never creates, enters or leaves one (ADR 0011,
-[specs/parallel-issues.md](../specs/parallel-issues.md)):
+For an issue run in parallel, the user opens a worktree (with `git worktree add`, or the recipe below) and hands it
+issues; the agent never creates, enters or leaves one (ADR 0011, ADR 0022,
+[specs/parallel-issues.md](../specs/parallel-issues.md)). The agent claims each issue with `cardinal run issue-claim`,
+and the `workspace-lock` hooks keep one session per worktree:
 
 | Recipe | What it does |
 |---|---|

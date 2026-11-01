@@ -251,6 +251,14 @@ fn fixture(tmp: &Path) -> (PathBuf, PathBuf) {
         ",\"gitBranch\":\"gone_nested\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}",
     );
     std::fs::write(proj.join("s5.jsonl"), s5).unwrap();
+    let renamed = tmp.join("myrepo-feat");
+    let s7 = line(
+        "user",
+        &renamed,
+        "2026-10-26T09:00:00.000Z",
+        ",\"gitBranch\":\"issue-b\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}",
+    );
+    std::fs::write(proj.join("s7.jsonl"), s7).unwrap();
     let inline_subagent = line(
         "assistant",
         &repo,
@@ -289,11 +297,12 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let s4 = rows.get("s4").unwrap_or(&empty);
     let s5 = rows.get("s5").unwrap_or(&empty);
     let s6 = rows.get("s6").unwrap_or(&empty);
+    let s7 = rows.get("s7").unwrap_or(&empty);
     let col =
         |r: &HashMap<String, String>, c: &str| r.get(c).cloned().unwrap_or_else(|| "<none>".into());
     vec![
         ("the script succeeds", out.status.success()),
-        ("header names every column, one row per session, none for the sub-agent", rows.len() == 6),
+        ("header names every column, one row per session, none for the sub-agent", rows.len() == 7),
         ("a message repeated on 3 lines is one turn; the sub-agent adds one", col(s1, "turns") == "3"),
         ("tool calls count every tool_use block, sub-agent included", col(s1, "tool_calls") == "4"),
         ("tokens are added once per message, sub-agent included", col(s1, "input_tokens") == "1011" && col(s1, "output_tokens") == "22"),
@@ -315,6 +324,7 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         ("a submodule is its own project", col(s3, "project") == "lib"),
         ("a removed issue worktree counts with its repository", col(s4, "project") == "myrepo"),
         ("a removed worktree under .claude/worktrees counts with its repository", col(s5, "project") == "myrepo"),
+        ("a removed worktree named apart from its branches counts with its repository", col(s7, "project") == "myrepo"),
         ("unreadable lines are counted, sub-agent included", col(s1, "unreadable_lines") == "2"),
         ("unknown line types are counted", col(s1, "unknown_lines") == "1"),
         ("assistant lines without usage are missing fields, metadata lines without timestamp are not", col(s1, "missing_fields") == "1"),

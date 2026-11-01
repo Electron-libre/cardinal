@@ -442,7 +442,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 if cwd.is_empty() {
                     None
                 } else {
-                    repository(&cwd, &session.place.issues)
+                    repository(&cwd)
                 }
             });
             let start = session.place.start_text();

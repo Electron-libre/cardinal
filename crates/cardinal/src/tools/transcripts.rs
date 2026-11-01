@@ -256,25 +256,26 @@ pub fn git_bytes(dir: &Path, args: &[&str]) -> Option<Vec<u8>> {
 
 /// The main worktree of the repository holding `cwd`: a linked worktree counts with its main repository, a submodule
 /// or a separate git directory is its own work tree. A removed worktree under `<repo>/.claude/worktrees/` (ADR 0008),
-/// or a removed issue worktree `<repo>-<branch>` (ADR 0003), counts with `<repo>` when that one still exists.
-pub fn repository(cwd: &str, branches: &[String]) -> Option<PathBuf> {
+/// or a removed `<repo>-<x>` (ADR 0003, ADR 0023), counts with `<repo>` when that one still exists, the longest first.
+pub fn repository(cwd: &str) -> Option<PathBuf> {
     let dir = Path::new(cwd);
     if !dir.exists() {
         let nested = dir
             .ancestors()
             .find(|a| a.ends_with(".claude/worktrees"))
             .and_then(|a| a.parent()?.parent());
-        let name = dir.file_name()?.to_string_lossy().into_owned();
-        let sibling = || {
-            branches.iter().find_map(|b| {
-                name.strip_suffix(&format!("-{b}"))
-                    .map(|r| dir.with_file_name(r))
-            })
-        };
-        let found = nested
+        if let Some(found) = nested
             .filter(|r| r.exists())
-            .and_then(|r| repository(r.to_str()?, &[]));
-        return found.or_else(|| repository(sibling()?.to_str()?, &[]));
+            .and_then(|r| repository(r.to_str()?))
+        {
+            return Some(found);
+        }
+        let name = dir.file_name()?.to_string_lossy().into_owned();
+        return name
+            .rmatch_indices('-')
+            .map(|(i, _)| dir.with_file_name(&name[..i]))
+            .filter(|r| r.exists())
+            .find_map(|r| repository(r.to_str()?));
     }
     let common = PathBuf::from(git(
         dir,

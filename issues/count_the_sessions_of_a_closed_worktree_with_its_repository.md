@@ -37,3 +37,32 @@ Longer autonomy
 
 # Hints
 * A directory `<repo>-<x>` next to `<repo>` may be an unrelated clone: approach 1 then misattributes it.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A removed `<repo>-<x>` next to an existing git repository `<repo>` counts with `<repo>` whatever `<x>` (approach 1);
+the branch match goes, and with it the `branches` argument of `repository()`. Approach 2 measured: `git worktree
+remove` leaves no record in the main git directory (no `worktrees/` entry, no path in `.git`), so it is out.
+
+## Plan
+1. [x] Link a removed `<repo>-<x>` to `<repo>` whatever `<x>`: `repository()` tries the prefixes of the name, the
+   longest first, drops its branch argument (5 callers); verified by a `session_metrics.rs` session in
+   `myrepo-feat` on branch `issue-b` counted as `myrepo`; makes true EVA-7 (amended).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 0162c22a03e49f8430270648133677068484a6e6
+- 1 a: an unrelated clone `<repo>-<x>` removed since is accepted as a misattribution, stated in EVA-7.
+- 2 a: the longest existing prefix wins.
+
+## Deliverable 1
+
+- done: a removed `<repo>-<x>` counts with the longest existing git repository among the prefixes of its name;
+  `repository()` no longer takes the session's branches, so its per-`cwd` cache in the four readers is now exact.
+- red: EVA-7: `FAIL - a removed worktree named apart from its branches counts with its repository`
+- Code review: no findings
+- not verified: none
+- decisions needed: none

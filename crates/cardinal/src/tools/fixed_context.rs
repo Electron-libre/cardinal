@@ -251,7 +251,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 if cwd.is_empty() {
                     None
                 } else {
-                    repository(&cwd, &place.issues)
+                    repository(&cwd)
                 }
             });
             let (Some(repo), Some((start, text))) = (repo.clone(), &place.start) else {

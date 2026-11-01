@@ -398,13 +398,10 @@ struct Queue {
 }
 
 /// The claims of the open issues `stems` (CLM-5, CLM-6); a `merge pending` one whose issue the trunk holds in
-/// `issues/done/` is deleted instead.
+/// `issues/done/` is deleted instead, whether or not the issue is still open here.
 fn claims(dir: &Path, stems: &[&str], trunk: &str) -> Vec<(String, Claim)> {
     let mut out = Vec::new();
     for (stem, oid, claim) in issue_claim::all(dir) {
-        if !stems.contains(&stem.as_str()) {
-            continue;
-        }
         let merged = claim.state == "merge pending"
             && !trunk.is_empty()
             && !git_lines(
@@ -414,7 +411,7 @@ fn claims(dir: &Path, stems: &[&str], trunk: &str) -> Vec<(String, Claim)> {
             .is_empty();
         if merged {
             issue_claim::delete(dir, &stem, &oid);
-        } else {
+        } else if stems.contains(&stem.as_str()) {
             out.push((stem, claim));
         }
     }

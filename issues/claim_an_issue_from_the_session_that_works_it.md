@@ -180,6 +180,7 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 - Q2 (a): `start-issue` and `finish-issue` stay as they are; the reusable workspace is a follow-up issue.
 - Q3 (a): on the user's agreement to close, an issue of a workspace branch is closed on that branch, pushed, and its
   pull request opened with `gh` (or the branch's open one updated).
+- High review fixes: one more deliverable (5), below.
 - Q4 (a): a `PreToolUse` hook refuses `Bash`, `Edit`, `Write` and `NotebookEdit` to a second session.
 
 ## Deliverable 1: issue claims
@@ -220,3 +221,30 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 - checks: `just check` passes, `just check-cardinal` passes, docs reread.
 - red: none (instructions and docs, no test).
 - not verified: the pull request path end to end (no workspace branch closed yet).
+
+## Deliverable 5: docs of the whole issue and fixes of the high review
+
+- done: `CLAUDE.md` and `docs/architecture.md` name the claim and the lock; a `merge pending` claim is dropped once
+  merged even where its issue is no longer open; `issue-claim` accepts only a file directly under `issues/` and names
+  a ref git refuses; `close-issue` leaves the claim of another worktree; the merge back names no remote nor host
+  (`origin`, `gh` only as the GitHub example); CLM-3, CLM-6, CLM-7 and the intent of WSL reworded.
+- checks: tests pass, clippy clean, specs checked, docs reread.
+- red: CLM-3, CLM-6, CLM-7: `assertion failed: NOTES.md is no issue file`, `dropped although a is no longer open`,
+  the claim of `ws` rewritten by a close in the main worktree.
+- Code review: 10 findings (high, `3d848c8..HEAD`)
+  - merge pending claim leaked after the merge: fixed.
+  - same process takes the lock or the claim: kept, measured: the editor's agent client runs one `claude` process per
+    thread (two under its adapter), so one process is one session lineage (`/clear`).
+  - any `.md` claimable, `:(exclude).` disables the dirty check: fixed.
+  - stale mutex break races: not fixed, needs a hook killed inside its few milliseconds under the mutex plus two hooks
+    at once; a gate for cooperative agents (ADR 0005).
+  - close overwrites another worktree's claim: fixed.
+  - `origin` and `gh` hard-coded in the shared skill: fixed.
+  - `SessionStart` takes the lock of an idle session: kept, the guard belongs to the session (weak point 3, Q4);
+    intent reworded.
+  - `update-ref` failure reported as a race: fixed message.
+  - one `cat-file` per claim: not fixed, the claims are dropped once merged, so they stay few.
+  - duplicated git helpers, `trunk` on a detached main: not fixed, a detached main worktree has no trunk for any tool.
+- Code review: 2 findings (low, on this deliverable)
+  - the claim of a removed worktree was never freed: fixed, `close-issue` frees it.
+  - a bare file name run from `issues/` was refused: fixed, the directory is canonicalized.

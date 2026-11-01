@@ -194,6 +194,13 @@ fn a_claim_needs_an_open_issue_a_repository_and_a_session() {
         &["issue-claim", r.main.join("issues/a.md").to_str().unwrap()],
     );
     assert_eq!(code, Some(1), "an issue of another worktree");
+    std::fs::write(r.ws.join("NOTES.md"), "# Notes\n").unwrap();
+    std::fs::create_dir_all(r.ws.join("issues/sub")).unwrap();
+    std::fs::write(r.ws.join("issues/sub/x.md"), "# X\n").unwrap();
+    for file in ["NOTES.md", "issues/sub/x.md"] {
+        let (code, _) = tool(&r.ws, "s", &live(), &["issue-claim", file]);
+        assert_eq!(code, Some(1), "{file} is no issue file");
+    }
     let outside = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(outside.path().join("issues")).unwrap();
     std::fs::write(outside.path().join("issues/a.md"), "# A\n").unwrap();
@@ -293,6 +300,57 @@ fn close_issue_frees_the_claim_on_the_trunk_and_marks_it_merge_pending_elsewhere
     std::fs::write(r.main.join("issues/c.md"), "---\npriority: low\n---\n# C\n").unwrap();
     let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/c.md"]);
     assert_eq!(code, Some(0), "no claim still closes: {out}");
+}
+
+// spec: CLM-6
+#[test]
+fn a_claim_closed_on_a_workspace_branch_is_dropped_once_merged() {
+    let r = repo();
+    claim(&r.ws, "s1", &live(), "a");
+    tool(&r.ws, "", "", &["close-issue", "issues/a.md"]);
+    git(&r.ws, &["commit", "-qam", "close a", "--no-verify"]);
+    git(&r.main, &["merge", "-q", "--ff-only", "ws"]);
+    let out = next(&r.main);
+    assert!(!out.contains("Merge pending"), "{out}");
+    assert_eq!(
+        claim_text(&r.main, "a"),
+        "",
+        "dropped although `a` is no longer open"
+    );
+}
+
+// spec: CLM-7
+#[test]
+fn close_issue_leaves_the_claim_of_another_worktree() {
+    let r = repo();
+    claim(&r.ws, "s1", &live(), "a");
+    let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/a.md"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        claim_text(&r.main, "a").contains("state working\n"),
+        "{out}"
+    );
+    assert!(out.contains("another worktree"), "{out}");
+    std::fs::write(r.main.join("issues/c.md"), "---\npriority: low\n---\n# C\n").unwrap();
+    let (code, out) = tool(
+        &r.main.join("issues"),
+        "s2",
+        &live(),
+        &["issue-claim", "c.md"],
+    );
+    assert_eq!(code, Some(0), "a bare file name from issues/: {out}");
+    claim(&r.ws, "s1", &live(), "b");
+    git(
+        &r.main,
+        &["worktree", "remove", "--force", r.ws.to_str().unwrap()],
+    );
+    let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/b.md"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert_eq!(
+        claim_text(&r.main, "b"),
+        "",
+        "the claim of a removed worktree is freed"
+    );
 }
 
 // spec: CLM-8

@@ -412,12 +412,22 @@ fn refuse_other_worktree(dir: &Path) {
     }
 }
 
-/// Free the claim of `stem` in the repository of `dir` (CLM-7): delete it on the trunk, else mark it `merge pending`
-/// on the current branch.
+/// Free the claim of `stem` made in the worktree of `dir` (CLM-7): delete it on the trunk, else mark it `merge
+/// pending` on the current branch; the claim of another existing worktree is left to it.
 fn free_claim(dir: &Path, stem: &str) {
     let Some((old, mut claim)) = issue_claim::read(dir, stem) else {
         return;
     };
+    // a claim whose worktree was removed is freed by whoever closes the issue
+    let theirs = std::fs::canonicalize(&claim.worktree).ok();
+    let here = repo_root(dir).and_then(|r| std::fs::canonicalize(r).ok());
+    if theirs.is_some() && theirs != here {
+        eprintln!(
+            "the claim of {stem} belongs to another worktree ({}): it was left as is",
+            claim.worktree
+        );
+        return;
+    }
     let branch = issue_claim::current_branch(dir);
     if issue_claim::trunk(dir).is_some_and(|t| t == branch) {
         if issue_claim::delete(dir, stem, &old) {

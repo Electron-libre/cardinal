@@ -20,8 +20,9 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - `specs/`: what the tool and its shared hooks must do (one file per capability, see `specs/README.md`), traced to
   its tests by `// spec: ID`.
 - `issues/`: open issues, ordered by the `priority` and `depends_on` of their front matter (`just next-issue`); `docs/adr/`: decisions.
-- Parallel agents: the user opens a git worktree per parallel issue (`just start-issue`, then `claude` in it; `just
-  finish-issue`); the agent never creates or enters one, see `docs/architecture.md`.
+- Parallel agents: the user opens a worktree (a workspace, `git worktree add` or `just start-issue`) and launches
+  `claude` in it; the agent claims each issue (`cardinal run issue-claim`), one session per worktree (`workspace-lock`
+  hooks), and never creates or enters a worktree, see `docs/architecture.md`.
 - `AGENTS.md`: commit message format (Conventional Commits, enforced by `just check-commit`);
   `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session.
 

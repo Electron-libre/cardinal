@@ -9,8 +9,8 @@ adrs: [0005, 0022]
 ## Intent
 
 Two Claude Code sessions in the same worktree share its files, its index, its review marker and its build output, and
-an editor's agent client opens several threads on one folder. A lock per worktree, held by the session that first acts
-there while its process runs, stops the other sessions before they edit or run anything (ADR 0022). Like the other
+an editor's agent client opens several threads on one folder. A lock per worktree, held by the session that first starts
+or acts there while its process runs, stops the other sessions before they edit or run anything (ADR 0022). Like the other
 gates it catches the mistakes of cooperative agents, not deliberate bypasses (ADR 0005).
 
 ## Requirements

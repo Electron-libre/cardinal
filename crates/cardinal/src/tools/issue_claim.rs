@@ -171,7 +171,9 @@ fn claim(issue: &str) -> Result<String, String> {
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
-    if !path.is_file() || dir.file_name().is_some_and(|n| n == "done") {
+    let named_issues =
+        std::fs::canonicalize(dir).is_ok_and(|d| d.file_name().is_some_and(|n| n == "issues"));
+    if !path.is_file() || !named_issues {
         return Err(format!("{issue} is not an open issue file"));
     }
     let env = |key: &str| {
@@ -243,7 +245,7 @@ fn claim(issue: &str) -> Result<String, String> {
 /// The refusal of a claim held by another session (CLM-2).
 fn refused(stem: &str, theirs: Option<Claim>) -> String {
     match theirs {
-        None => format!("the claim of {stem} changed while it was taken: run issue-claim again"),
+        None => format!("git could not write {PREFIX}{stem} (a stem git refuses as a ref name, or a claim deleted meanwhile)"),
         Some(c) => format!(
             "{stem} is claimed by another session: worktree {}, branch {}, state {}, session {}; stop and ask the user",
             c.worktree,

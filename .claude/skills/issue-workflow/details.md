@@ -49,9 +49,11 @@ On a branch other than the trunk, once the user agreed to close the issue:
 2. Run `just check-cardinal`: when it names a hook the installed `cardinal` refuses (the branch adds a subcommand the
    hooks call), run the `cargo install` it prints before going on. After the merge the hooks of the main worktree
    call it too, and one the installed `cardinal` refuses blocks every command, the install included.
-3. `git push -u origin <branch>`, then `gh pr list --head <branch>`: with no open pull request, `gh pr create --base
-   <trunk>` titled after the issue, its body the summary of the deliverables; with one, the push updated it. Report
-   its URL. No remote: stop and print the merge left to the user in the main worktree (`git merge --ff-only <branch>`).
+3. Push the branch to the remote the trunk tracks (`git push -u <remote> <branch>`), then, with the host's CLI (`gh`
+   on GitHub: `gh pr list --head <branch>`), open the pull request to the trunk when the branch has none, titled after
+   the issue, its body the summary of the deliverables; with one, the push updated it. Report its URL. No remote or no
+   CLI of the host: stop and print what is left to the user (the push, the pull request, or `git merge --ff-only
+   <branch>` in the main worktree).
    Never rebase a pushed branch unasked. The merge is the host's (or the user's).
    No link to the next issue here: the `issues/` of the worktree is the branch's.
 

@@ -1,7 +1,7 @@
 # Recipes of Cardinal, the shared agent harness. Managed by `cardinal sync`: change them in the Cardinal repository.
 # The tools they run are those of `cardinal run`, the binary of the revision `.claude/cardinal.toml` pins.
 
-# The recipes of each part a project may turn off live in a file of their own, imported only when present.
+# The recipes of each part a feature may leave out live in a file of their own, imported only when present.
 import? 'cardinal-commits.just'
 import? 'cardinal-issues.just'
 import? 'cardinal-specs.just'

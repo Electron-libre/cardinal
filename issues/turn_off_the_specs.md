@@ -12,6 +12,8 @@ cannot drop them. The outcome: a feature `specs` that leaves them out, with `iss
 when the feature is off.
 
 # Findings
+* The seeded `justfile` has `check: check-specs`: without `cardinal-specs.just`, `just` refuses the whole file; the
+  managed CI workflow runs `just check-specs` too.
 * `issue-workflow` writes a spec at step 1 when a capability changes, and its tests cite `// spec:` ids.
 
 # Approach

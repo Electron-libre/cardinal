@@ -46,6 +46,9 @@ migration (the seeded `justfile` is untouched) and no raised format: an older `c
 1. [x] Split the recipes: the four files and `import?` lines in `files/cardinal.just`, `just sync`, REV-17 test pointed
    at `cardinal-review.just`, docs (README, architecture, usage); verified by a test running `just --list` on
    `cardinal.just` with all, and with each one missing; makes true FEA-19.
+2. [x] Fixes of the `high` review of the issue: FEA-19 narrowed to `cardinal.just` (the seeded `check: check-specs`
+   and the CI job go to their features' issues, `turn_off_the_specs` notes them), the test reads `just --summary` as
+   sets, the docs name the `cardinal-<part>.just` files; verified by the FEA-19 test and `just check`.
 
 ## Decisions
 - Mode: autonomous
@@ -62,3 +65,12 @@ migration (the seeded `justfile` is untouched) and no raised format: an older `c
 - checks: `just check` pass (fmt, clippy, tests, specs), `just check-cardinal` pass, docs updated.
 - Code review: no findings
 - not verified: a consumer synced with an older `just` lacking `import?` (CI installs the latest).
+
+## Deliverable 2
+- done: the `high` review findings settled: FEA-19 and its scenario narrowed, a non-goal for the project's own
+  recipes and the CI, `turn_off_the_specs` findings, test on `just --summary`, `docs/usage.md`, `update-docs` and
+  the comment of `cardinal.just` reworded.
+- red: none (review fixes, the FEA-19 test rewritten green).
+- not fixed: the REV-17 test copies `cardinal-review.just` alone (the import is FEA-19's test); no minimum `just`
+  version enforced (CI installs the latest).
+- Code review: no findings

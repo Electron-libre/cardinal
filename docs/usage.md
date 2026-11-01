@@ -89,7 +89,7 @@ A source declares the format of its managed content in `cardinal-format`, a whol
 | `check`, `sync`, `update` | the lock was synced from a source of such a format | SYN-42 |
 | `init`, `sync`, `update` | the source is below the format 5, whose tools order the issues by `issues/queue.md` | SYN-51, ADR 0020 |
 
-The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just`.
+The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just` (which imports the `cardinal-<part>.just` files).
 
 A source that raises its format declares what changed in `migrations/<n>.toml`, `<n>` the new format (ADR 0017):
 

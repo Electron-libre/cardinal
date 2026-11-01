@@ -3,6 +3,7 @@
 //! (`` `AGENTS.md` section "<heading>" ``) a skill references actually exists, as does every file of its own
 //! directory it links (`[x](details.md)`); every markdown file of a skill is checked, not only `SKILL.md`.
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
@@ -664,7 +665,7 @@ fn the_hook_only_features_are_their_hook_entry() {
 
 // spec: FEA-19
 /// The recipes of each part a feature may leave out live in a file of their own, which `cardinal.just` imports
-/// optionally: `just --list` lists every recipe with all the files, and still runs with any one missing.
+/// optionally: `just` loads every recipe with all the files, and the others with any one missing.
 #[test]
 fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
     const PARTS: [(&str, &[&str]); 5] = [
@@ -687,14 +688,14 @@ fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
     ];
     let files = repo_root().join("files");
     let core = fs::read_to_string(files.join("cardinal.just")).unwrap();
-    let list = |missing: Option<&str>| {
+    let recipes = |missing: Option<&str>| {
         let dir = tempfile::tempdir().unwrap();
         for (file, _) in PARTS.iter().filter(|(f, _)| Some(*f) != missing) {
             fs::copy(files.join(file), dir.path().join(file)).unwrap();
         }
         fs::write(dir.path().join("justfile"), "import 'cardinal.just'\n").unwrap();
         let out = std::process::Command::new("just")
-            .args(["--list", "--unsorted"])
+            .arg("--summary")
             .current_dir(dir.path())
             .output()
             .unwrap();
@@ -704,30 +705,20 @@ fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
             String::from_utf8_lossy(&out.stderr)
         );
         String::from_utf8_lossy(&out.stdout)
-            .lines()
-            .skip(1)
-            .filter_map(|l| l.split_whitespace().next().map(str::to_string))
-            .collect::<Vec<_>>()
+            .split_whitespace()
+            .map(str::to_string)
+            .collect::<BTreeSet<_>>()
     };
-    let mut all = list(None);
-    all.sort();
-    let mut expected: Vec<String> = PARTS
-        .iter()
-        .flat_map(|(_, r)| r.iter().map(ToString::to_string))
-        .collect();
-    expected.sort();
-    assert_eq!(all, expected);
-    for (file, recipes) in &PARTS[1..] {
+    let of = |parts: &[(&str, &[&str])]| -> BTreeSet<String> {
+        parts
+            .iter()
+            .flat_map(|(_, r)| r.iter().map(ToString::to_string))
+            .collect()
+    };
+    assert_eq!(recipes(None), of(&PARTS));
+    for (file, _) in &PARTS[1..] {
         assert!(core.contains(&format!("import? '{file}'")), "{file}");
-        let left = list(Some(file));
-        assert!(
-            recipes.iter().all(|r| !left.contains(&r.to_string())),
-            "{file}: {left:?}"
-        );
-        assert_eq!(
-            left.len(),
-            expected.len() - recipes.len(),
-            "{file}: {left:?}"
-        );
+        let left: Vec<_> = PARTS.iter().copied().filter(|(f, _)| f != file).collect();
+        assert_eq!(recipes(Some(file)), of(&left), "{file}");
     }
 }

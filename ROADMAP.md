@@ -53,7 +53,7 @@ The work done before this file existed is in `issues/done/`.
   - [claim_an_issue_from_the_session_that_works_it](issues/done/claim_an_issue_from_the_session_that_works_it.md)
   - [reuse_a_worktree_across_issues](issues/done/reuse_a_worktree_across_issues.md)
   - [count_the_sessions_of_a_closed_worktree_with_its_repository](issues/done/count_the_sessions_of_a_closed_worktree_with_its_repository.md)
-  - [hand_over_the_worktree_lock_of_a_clean_session](issues/hand_over_the_worktree_lock_of_a_clean_session.md)
+  - [hand_over_the_worktree_lock_of_a_clean_session](issues/done/hand_over_the_worktree_lock_of_a_clean_session.md)
 
 ## Lean agent loop
 

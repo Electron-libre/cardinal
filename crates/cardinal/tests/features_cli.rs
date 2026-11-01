@@ -228,7 +228,7 @@ fn sync_refuses_a_feature_needing_one_the_source_does_not_declare() {
     assert_eq!(run.code, Some(3), "{run:?}");
     assert!(
         run.stderr
-            .contains("the feature hint needs the feature gone, which it does not declare"),
+            .contains("the feature hint needs the feature gone, which the source does not declare"),
         "{run:?}"
     );
     assert_eq!(snapshot(root.path()), before);

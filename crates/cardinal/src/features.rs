@@ -36,7 +36,7 @@ pub struct Left {
 }
 
 /// The features `source` declares, by name; none when it has no `features.toml` (FEA-1). An error when the file is not
-/// in the shape of FEA-1 (FEA-7).
+/// in the shape of FEA-1 and FEA-17 (FEA-7).
 fn of_source(source: &Path) -> Result<BTreeMap<String, Feature>> {
     let path = source.join(SOURCE);
     let text = match fs::read_to_string(&path) {
@@ -146,7 +146,7 @@ pub fn left_out(root: &Path, source: &Path, files: &[String], entries: &[Entry])
             );
         }
         if let Some(needed) = feature.needs.iter().find(|n| !features.contains_key(*n)) {
-            bail!("{SOURCE}: the feature {name} needs the feature {needed}, which it does not declare");
+            bail!("{SOURCE}: the feature {name} needs the feature {needed}, which the source does not declare");
         }
     }
     let disabled = disabled(root)?;

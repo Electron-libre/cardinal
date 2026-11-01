@@ -22,5 +22,7 @@ a `cardinal` that reads up to 6 would ignore `disabled` and install everything.
 ## Consequences
 A feature turned off removes its tokens and hook calls; the default stays every feature on. The binary hard-codes the
 names of the features its checks carry, which is safe since a project runs the binary of the revision it pins. A
-project that edited a file of a feature it turns off keeps the file (reported `kept`). Features that need one another
-are not handled until one does.
+project that edited a file of a feature it turns off keeps the file (reported `kept`). A feature lists the features it
+needs in `needs`, and `sync` refuses a `disabled` that turns off one a feature left on needs (FEA-18). A `cardinal`
+older than `needs` refuses the key (FEA-7) rather than misreading it, so the key alone raises no format; the first
+source revision that declares a `needs` raises it, so that `update` names the `cardinal` to install.

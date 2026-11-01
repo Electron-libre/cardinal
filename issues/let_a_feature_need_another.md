@@ -68,3 +68,17 @@ red: FEA-17, FEA-18: `features.toml: a.needs is not \`files\` nor \`entries\``
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Whole-issue review (high, d6dd9e9..3465376)
+done: ADR 0025 says how `needs` is handled and when it raises the format; the FEA-17 error says "which the source
+does not declare"; the doc comment of `of_source` cites FEA-17.
+
+Code review: 8 findings
+- fixed: ADR 0025 stale; format raise when `needs` is first used recorded in ADR 0025; FEA-17 wording; doc comment.
+- not fixed: `turned_off` swallowing `left_out` errors (pre-existing, FEA-5 alike; installing the named `cardinal`
+  then shows the real error); one error per `sync` for a chain of needs (FEA-18 names the direct pair, enough to fix
+  the list); binary checks reading `disabled` without `needs` (FEA-8 reads the configuration by design, `sync`
+  refuses the list); `BTreeSet` for `disabled` (its order gives the order of the FEA-5 error).
+
+red: none
+Code review (low): no findings

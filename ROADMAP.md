@@ -47,6 +47,15 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [let_a_project_turn_off_a_feature_of_the_harness](issues/done/let_a_project_turn_off_a_feature_of_the_harness.md)
+  - [declare_the_hook_only_features](issues/declare_the_hook_only_features.md)
+  - [declare_the_file_only_features](issues/declare_the_file_only_features.md)
+  - [let_a_feature_need_another](issues/let_a_feature_need_another.md)
+  - [split_the_managed_recipes_by_feature](issues/split_the_managed_recipes_by_feature.md)
+  - [turn_off_the_review_gate](issues/turn_off_the_review_gate.md)
+  - [turn_off_the_workspace_lock](issues/turn_off_the_workspace_lock.md)
+  - [turn_off_conventional_commits](issues/turn_off_conventional_commits.md)
+  - [turn_off_the_issue_files](issues/turn_off_the_issue_files.md)
+  - [turn_off_the_specs](issues/turn_off_the_specs.md)
 
 ## Longer autonomy
 

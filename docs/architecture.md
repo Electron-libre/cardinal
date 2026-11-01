@@ -136,8 +136,8 @@ nothing: it only names a commit a consumer can pin (`cardinal update --rev v0.2.
 | Event | Matcher | Tool | Does | Spec |
 |---|---|---|---|---|
 | `PreToolUse` | `Bash` | `review-gate check` | refuses a command that would skip the git hook, or a `git add` of every file, judged as rule `stage-everything` of `rule-breaches` (`tools/shell.rs`) | [`review-gate.md`](../specs/review-gate.md) REV-12, REV-21 |
-| `PreToolUse` | `Bash\|Edit\|Write\|NotebookEdit` | `workspace-lock check` | takes the lock of the worktree, or refuses the call while another live session holds it | [`workspace-lock.md`](../specs/workspace-lock.md) |
-| `SessionStart` | | `workspace-lock start` | takes the lock, or tells the agent the worktree is busy | [`workspace-lock.md`](../specs/workspace-lock.md) WSL-5 |
+| `PreToolUse` | `Bash\|Edit\|Write\|NotebookEdit` | `workspace-lock check` | takes the lock of the worktree, or refuses the call while another live session with work in progress holds it (a clean holder hands it over) | [`workspace-lock.md`](../specs/workspace-lock.md) |
+| `SessionStart` | | `workspace-lock start` | takes the lock, or tells the agent the worktree is busy | [`workspace-lock.md`](../specs/workspace-lock.md) WSL-5, WSL-10 |
 | `SessionEnd` | | `workspace-lock release` | releases the lock of the session | [`workspace-lock.md`](../specs/workspace-lock.md) WSL-6 |
 | `PostToolUse` | `Skill` | `review-gate record` | records what the code review saw | [`review-gate.md`](../specs/review-gate.md) |
 | `PostToolUse` | `Edit\|Write` | `format-code` | formats an edited file with the project's format command, else `cargo fmt` the project of an edited `.rs` file | [`format-hook.md`](../specs/format-hook.md) |

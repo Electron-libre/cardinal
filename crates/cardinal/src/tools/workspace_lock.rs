@@ -106,7 +106,12 @@ fn keeps(holder: &Holder, me: &Holder, cwd: &Path) -> bool {
 /// claimed `working` by its session or process; an unreadable status counts as work in progress.
 fn in_progress(holder: &Holder, cwd: &Path) -> bool {
     let status = Command::new("git")
-        .args(["status", "--porcelain"])
+        .args([
+            "--no-optional-locks",
+            "status",
+            "--porcelain",
+            "--untracked-files=normal",
+        ])
         .current_dir(cwd)
         .output()
         .ok()
@@ -126,28 +131,26 @@ fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), Holder> {
     if before.as_ref() == Some(me) {
         return Ok(());
     }
-    // Read git before the mutex, so a slow status never holds it: the holder seen here must still hold it under the mutex.
+    // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
     let kept = before.as_ref().is_some_and(|h| keeps(h, me, cwd));
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
-    match read(path) {
-        Some(h)
-            if h.session != me.session
-                && h.pid != me.pid
-                && alive(&h.pid)
-                && (kept || before.as_ref() != Some(&h)) =>
-        {
-            Err(h)
+    let keeper = read(path).filter(|h| {
+        if before.as_ref() == Some(h) {
+            kept
+        } else {
+            keeps(h, me, cwd)
         }
-        _ => {
-            let tmp = path.with_extension(format!("tmp{}", std::process::id()));
-            if std::fs::write(&tmp, me.text()).is_ok() {
-                let _ = std::fs::rename(&tmp, path);
-            }
-            Ok(())
-        }
+    });
+    if let Some(h) = keeper {
+        return Err(h);
     }
+    let tmp = path.with_extension(format!("tmp{}", std::process::id()));
+    if std::fs::write(&tmp, me.text()).is_ok() {
+        let _ = std::fs::rename(&tmp, path);
+    }
+    Ok(())
 }
 
 /// Delete the lock at `path` when `session` holds it (WSL-6).

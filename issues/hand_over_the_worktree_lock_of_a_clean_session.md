@@ -87,3 +87,16 @@ done: a live holder with a clean worktree and no `working` claim of its session 
 
 red: WSL-10: `a clean worktree and no claim: Refused: another live session (a) works in this worktree`
 Code review: no findings
+
+## Review of the whole issue (`high`)
+2. [x] Fixes of the `high` review: `git status` with `--no-optional-locks` and `--untracked-files=normal`; a holder
+   that changed between the two reads is judged under the mutex instead of refused; the guard no longer repeats
+   `keeps`; `docs/architecture.md` hook table and ADR 0022 status updated.
+
+Code review high: 8 findings
+* fixed: optional index lock, `status.showUntrackedFiles`, changed holder refused, duplicated guard, architecture
+  table, ADR 0022 status.
+* not fixed: an edit in flight when the lock is handed over (a check passes before its tool runs; the same window as
+  the non-goal of two sessions acting at once in a clean worktree, a cooperative gate, ADR 0005); one `git cat-file`
+  per claim (read only when the status is clean, and a clone holds few claims).
+Code review (fixes): no findings

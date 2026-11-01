@@ -1,6 +1,6 @@
 # 0022. A session claims its issue and locks its workspace
 
-Status: Accepted
+Status: Accepted, partly superseded by 0024 (a live session with no work in progress hands its worktree lock over)
 Date: 2026-11-01
 
 ## Context

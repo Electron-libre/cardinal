@@ -6,10 +6,14 @@
 //! a branch holds work that is not on the branch of the main worktree (patch-equivalent commits and a squash of any
 //! number of commits count as on it: merging the branch would change no file). A branch with neither (left over after a merge, empty) is reported `Stale:` and takes nothing. The mark
 //! comes from git alone, so every worktree sees it.
+//! An issue is also taken by its claim (`issue_claim.rs`, ADR 0022): `working`, listed with its worktree, or `merge
+//! pending`, listed with its branch until the trunk holds the closed issue, when the claim is dropped.
 //! Usage: `just next-issue` (from the repo root, or pass the `issues` directory as argument).
 
 use std::path::Path;
 use std::process::Command;
+
+use super::issue_claim::{self, Claim};
 
 fn title(dir: &Path, stem: &str) -> String {
     std::fs::read_to_string(dir.join(format!("{stem}.md")))
@@ -77,9 +81,10 @@ struct Branch {
     taken: bool,
 }
 
-/// The branches of the repository that holds `dir`. The branch of the main worktree is left out: it is the trunk,
-/// not an issue. Empty outside a git repository. Only the branches named after one of `stems` are examined for commits.
-fn branches(dir: &Path, stems: &[&str]) -> Vec<Branch> {
+/// The branches of the repository that holds `dir`, and the trunk. The branch of the main worktree is left out: it is
+/// the trunk, not an issue. Empty outside a git repository. Only the branches named after one of `stems` are examined
+/// for commits.
+fn branches(dir: &Path, stems: &[&str]) -> (Vec<Branch>, String) {
     let mut out: Vec<(String, Option<String>)> = git_lines(
         dir,
         &["for-each-ref", "--format=%(refname:short)", "refs/heads"],
@@ -109,7 +114,8 @@ fn branches(dir: &Path, stems: &[&str]) -> Vec<Branch> {
             first = false;
         }
     }
-    out.into_iter()
+    let branches = out
+        .into_iter()
         .map(|(name, worktree)| {
             let taken = worktree.is_some()
                 || trunk.is_empty()
@@ -121,7 +127,8 @@ fn branches(dir: &Path, stems: &[&str]) -> Vec<Branch> {
                 taken,
             }
         })
-        .collect()
+        .collect();
+    (branches, trunk)
 }
 
 /// The stems of the issue files of `dir`, sorted.
@@ -382,11 +389,36 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
     (keyed.into_iter().map(|(_, e)| e).collect(), drift)
 }
 
-/// The open issues of a directory in order, and the branches that may take them.
+/// The open issues of a directory in order, and the branches and claims that may take them.
 struct Queue {
     entries: Vec<Entry>,
     drift: bool,
     branches: Vec<Branch>,
+    claims: Vec<(String, Claim)>,
+}
+
+/// The claims of the open issues `stems` (CLM-5, CLM-6); a `merge pending` one whose issue the trunk holds in
+/// `issues/done/` is deleted instead.
+fn claims(dir: &Path, stems: &[&str], trunk: &str) -> Vec<(String, Claim)> {
+    let mut out = Vec::new();
+    for (stem, oid, claim) in issue_claim::all(dir) {
+        if !stems.contains(&stem.as_str()) {
+            continue;
+        }
+        let merged = claim.state == "merge pending"
+            && !trunk.is_empty()
+            && !git_lines(
+                dir,
+                &["cat-file", "-t", &format!("{trunk}:./done/{stem}.md")],
+            )
+            .is_empty();
+        if merged {
+            issue_claim::delete(dir, &stem, &oid);
+        } else {
+            out.push((stem, claim));
+        }
+    }
+    out
 }
 
 impl Queue {
@@ -394,11 +426,13 @@ impl Queue {
     fn read(dir: &Path) -> Self {
         let (entries, drift) = order(dir);
         let stems: Vec<&str> = entries.iter().map(|e| e.stem.as_str()).collect();
-        let branches = branches(dir, &stems);
+        let (branches, trunk) = branches(dir, &stems);
+        let claims = claims(dir, &stems, &trunk);
         Queue {
             entries,
             drift,
             branches,
+            claims,
         }
     }
 
@@ -407,12 +441,22 @@ impl Queue {
         self.branches.iter().find(|b| b.name == stem && b.taken)
     }
 
+    /// The claim of the issue `stem`, if any (CLM-5, CLM-6).
+    fn claim(&self, stem: &str) -> Option<&Claim> {
+        self.claims.iter().find(|(s, _)| s == stem).map(|(_, c)| c)
+    }
+
+    /// Whether a branch or a claim keeps the issue `stem` from being offered.
+    fn taken(&self, stem: &str) -> bool {
+        self.taken_by(stem).is_some() || self.claim(stem).is_some()
+    }
+
     /// The ready issues no branch takes, with their position in the order: `(index, entry)` (PAR-4, NXT-7).
     fn free(&self) -> Vec<(usize, &Entry)> {
         self.entries
             .iter()
             .enumerate()
-            .filter(|(_, e)| e.blockers.is_empty() && self.taken_by(&e.stem).is_none())
+            .filter(|(_, e)| e.blockers.is_empty() && !self.taken(&e.stem))
             .collect()
     }
 
@@ -421,11 +465,7 @@ impl Queue {
     fn offer(&self, dir: &Path, free: &[(usize, &Entry)]) -> String {
         match free.first() {
             None if self.entries.is_empty() => "No open issue.".to_string(),
-            None if self
-                .entries
-                .iter()
-                .all(|e| self.taken_by(&e.stem).is_some()) =>
-            {
+            None if self.entries.iter().all(|e| self.taken(&e.stem)) => {
                 "Every open issue is taken.".to_string()
             }
             None => "No ready issue: every free one waits on another.".to_string(),
@@ -462,6 +502,18 @@ pub(super) fn main(args: &[String]) -> u8 {
     let taken = |stem: &str| queue.taken_by(stem).map(|b| b.worktree.as_deref());
     let stale = |stem: &str| queue.branches.iter().any(|b| b.name == stem && !b.taken);
     for e in &queue.entries {
+        match queue.claim(&e.stem) {
+            Some(c) if c.state == "merge pending" => {
+                println!("Merge pending: {} ({})", e.stem, c.branch);
+                continue;
+            }
+            Some(c) => {
+                let ended = if c.alive() { "" } else { ", session ended" };
+                println!("Taken: {} (claimed in {}{ended})", e.stem, c.worktree);
+                continue;
+            }
+            None => {}
+        }
         if let Some(path) = taken(&e.stem) {
             println!(
                 "Taken: {}{}",

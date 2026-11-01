@@ -147,3 +147,45 @@ Longer autonomy
 * The agent still never creates, enters or leaves a worktree (ADR 0011): claiming checks out a branch inside the
   worktree the user opened, which is not entering another one.
 * `issues/done/drop_the_format_4_issue_queue.md` also edits `next_issue.rs`: land it first.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A session claims its issue by a git ref created by compare-and-swap (`refs/cardinal/claims/<stem>`, holding session,
+process, worktree, branch, state), freed at `close-issue`; a per-worktree lock held while the session's process runs
+refuses edits and commands to a second session. Out of scope: a claim shared across clones; the reusable workspace
+recipes (question 2). Means beyond the issue: the agent's commands already receive `CLAUDE_CODE_SESSION_ID` and
+`CLAUDE_PID` (measured), so the claim tool reads the session itself and needs no hook to pass it.
+
+## Plan
+1. [x] Issue claims: `cardinal run issue-claim` and the claims read by `next-issue` (taken, `session ended`,
+   `Merge pending:`, dropped once merged); verified by tests through the binary on temporary repositories; makes true
+   CLM-1 to CLM-6, CLM-8, CLM-9 (~700 lines).
+2. [ ] Close frees the claim: `close-issue` runs in any worktree, deletes the claim on the trunk, sets it
+   `merge pending` elsewhere; verified by tests through the binary; makes true CLM-7, PAR-18 (PAR-8 withdrawn)
+   (~250 lines).
+3. [ ] Workspace lock: measure what a hook receives (`CLAUDE_PID`, the `session_id` after `/clear`), then
+   `cardinal run workspace-lock check|start|release` and its hooks in `entries/.claude/settings.json`; verified by
+   tests feeding hook inputs; makes true WSL-1 to WSL-9 (~650 lines).
+4. [ ] Workflow: `issue-workflow` step 0 claims instead of reading branches, the end of an issue on a workspace
+   branch opens a pull request, `details.md`, the Rules, `docs/workflow.md`, `docs/usage.md`,
+   `docs/architecture.md`, ADR 0022 accepted; verified by `just check` and `just check-cardinal` (~300 lines).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 3d848c8a74d8f117ee68301357b6d15dc343e6b8
+- Q1 (a): a new claim is refused on uncommitted tracked changes outside `issues/`; taking a claim back checks nothing (CLM-9).
+- Q2 (a): `start-issue` and `finish-issue` stay as they are; the reusable workspace is a follow-up issue.
+- Q3 (a): on the user's agreement to close, an issue of a workspace branch is closed on that branch, pushed, and its
+  pull request opened with `gh` (or the branch's open one updated).
+- Q4 (a): a `PreToolUse` hook refuses `Bash`, `Edit`, `Write` and `NotebookEdit` to a second session.
+
+## Deliverable 1: issue claims
+
+- done: `cardinal run issue-claim` takes `refs/cardinal/claims/<stem>` by compare-and-swap; `next-issue` lists
+  working claims as taken (`session ended` when the process is gone) and `Merge pending:` ones, dropped once merged.
+- checks: tests pass (`tests/issue_claim.rs`, 8), clippy clean, specs checked, docs (`docs/architecture.md`).
+- red: CLM-1, CLM-2, CLM-3, CLM-4, CLM-5, CLM-6, CLM-8, CLM-9: `cardinal: unknown tool `issue-claim``.
+- not verified: a claim on macOS (`kill -0` assumed).

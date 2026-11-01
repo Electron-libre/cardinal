@@ -180,6 +180,12 @@ separate working tree and index, shared object store ([ADR 0003](adr/0003-one-wo
   `git for-each-ref`, `git worktree list`, `git cherry` and `git merge-tree --write-tree`, so every worktree sees it
   and no file needs cleaning. A leftover branch with neither is listed `Stale:` for `finish-issue` to clean (PAR-4,
   PAR-6).
+- **Claim**: `cardinal run issue-claim issues/<stem>.md` takes the ref `refs/cardinal/claims/<stem>` by
+  compare-and-swap (`git update-ref <ref> <blob> ""`) for the session of `CLAUDE_CODE_SESSION_ID` and its process
+  `CLAUDE_PID`, from any worktree and branch ([ADR 0022](adr/0022-a-session-claims-its-issue-and-locks-its-workspace.md),
+  spec [`specs/issue-claim.md`](../specs/issue-claim.md)). `next-issue` lists a `working` claim as taken (with
+  `session ended` once its process is gone) and a `merge pending` one until the trunk holds the closed issue, then
+  deletes it.
 - **Personal configuration**: `start-issue` copies the git-ignored `.claude/cardinal.local.toml` of the main
   worktree into the new one (PAR-17), so the person's `user_language` follows them.
 - **Nesting**: `start-issue` makes git ignore `/.claude/worktrees/` (PAR-13), and the scanners (`close-issue`,

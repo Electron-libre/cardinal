@@ -16,6 +16,7 @@ mod deliverable_size;
 mod delivered_quality;
 mod fixed_context;
 mod format_code;
+mod issue_claim;
 mod issue_worktree;
 mod language;
 mod language_hint;
@@ -102,6 +103,11 @@ pub const TOOLS: &[Tool] = &[
         main: format_code::main,
     },
     Tool {
+        name: "issue-claim",
+        about: "issues/<stem>.md: claim an issue for the Claude Code session that works it",
+        main: issue_claim::main,
+    },
+    Tool {
         name: "issue-worktree",
         about: "start <issue> | finish <stem> [--force]: the worktree and branch of an issue",
         main: issue_worktree::main,
@@ -118,7 +124,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "next-issue",
-        about: "the first ready issue no branch or worktree has taken, and the blocked ones",
+        about: "the first ready issue no claim, branch or worktree has taken, and the blocked ones",
         main: next_issue::main,
     },
     Tool {

@@ -49,6 +49,8 @@ Declare `lint-gate`, `format-code` and `language-hint` in `features.toml`, each 
 1. [x] Hook-only features: the three tables in `features.toml`, a test of the source that each names exactly the hook
    entry of its command, the docs (`docs/architecture.md` hooks table); verified by the source test and a `sync`
    dry-run with the three turned off; makes true FEA-16.
+2. [x] Fixes of the `high` review: the `docs/architecture.md` hooks table, the two off switches of the lint gate and
+   the wording of `docs/gates.md`; verified by `just check`.
 
 ## Decisions
 - Mode: autonomous
@@ -58,6 +60,16 @@ Declare `lint-gate`, `format-code` and `language-hint` in `features.toml`, each 
 ## Deliverable 1
 
 - done: `lint-gate`, `format-code` and `language-hint` declared in `features.toml`; docs in `docs/usage.md`,
-  `docs/gates.md`, `README.md`.
+  `docs/gates.md`, `README.md` (`docs/architecture.md` added by deliverable 2).
 - red: FEA-16: `features.toml declares no lint-gate`.
 - Verified by hand: a fresh project with the three in `disabled` gets the three hooks `removed` by `sync`, `check` passes.
+
+## Deliverable 2
+
+- done: the docs findings of the `high` review fixed.
+- red: none (docs only).
+- Code review (high): 8 findings. Fixed: architecture table, tracking line, the two lint switches, gates wording.
+  Not fixed: the test rebuilds the entry text (a drift of `Entry`'s format fails `sync` on this repo through FEA-6, in
+  `just check-cardinal`); a matcher renamed without `features.toml` fails `sync` (the issue's Hint, caught here by
+  FEA-16); the three names hard-coded (FEA-16 names them); `hinted` user-language breaches turning `final` when
+  `language-hint` is off (decision 1 a: the measure counts the rule, the hook off is the project's choice).

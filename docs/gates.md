@@ -57,13 +57,14 @@ sequenceDiagram
   `cargo clippy` in a project with a `Cargo.toml` and a changed `.rs` file; in both cases only when the lint state
   (command, commit, changed files) changed since the last passing run (CLG-1, CLG-4, CLG-7). What it prints is billed
   to the agent at each turn: one short line per clippy diagnostic, at most 40 (CLG-2, CLG-3), the first 40 non-blank
-  lines of another lint (CLG-8). An empty `lint_command` turns the gate off.
+  lines of another lint (CLG-8). An empty `lint_command` turns the gate off, but the hook still runs at each turn; `disabled = ["lint-gate"]`
+  drops its call.
 - **`format-code`**, after an edit, runs the `format_command` with the edited file as last argument, from the root of
   its work tree, when the file is named like one of the `format_files`, else `cargo fmt` for a `.rs` file; it prints
   nothing (FMT-1 to FMT-4).
 
-Each code hook, like the `language-hint` hook, is also a feature of `features.toml`: a project whose lint runs in CI,
-or whose editor formats, drops the hook call with `disabled` (FEA-16, `specs/features.md`).
+Each code hook is also a feature of `features.toml`, as is the `language-hint` hook: a project whose lint runs in CI,
+whose editor formats, or that works in English only drops the hook call with `disabled` (FEA-16, `specs/features.md`).
 
 The hooks that run cargo do not trust `CLAUDE_PROJECT_DIR`: a session that entered another worktree keeps it on the
 main one, where another agent may work. `lint-gate` checks the work tree of the event's `cwd` (CLG-6) and

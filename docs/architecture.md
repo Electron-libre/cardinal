@@ -152,7 +152,8 @@ nothing: it only names a commit a consumer can pin (`cardinal update --rev v0.2.
 | `Stop` | | `language-hint` | sends the agent back once when its last reply is not in the `user_language`, judged as rule `user-language` of `rule-breaches` (`tools/language.rs`) | [`language-hint.md`](../specs/language-hint.md) |
 | git `pre-commit` | | `review-gate native` | refuses a commit whose diff the review never saw | [`review-gate.md`](../specs/review-gate.md) REV-9 |
 
-How each works: [gates.md](gates.md).
+How each works: [gates.md](gates.md). `format-code`, `lint-gate` and `language-hint` are also features of
+`features.toml` a project turns off with `disabled` (FEA-16, [`features.md`](../specs/features.md)).
 
 Claude Code runs a hook only once declared in `.claude/settings.json`, which is seeded and then owned by the project.
 The source therefore declares what it manages in `entries/.claude/settings.json`: the hooks above, the

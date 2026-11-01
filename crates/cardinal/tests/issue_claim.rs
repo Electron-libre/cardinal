@@ -304,7 +304,7 @@ fn close_issue_frees_the_claim_on_the_trunk_and_marks_it_merge_pending_elsewhere
 
 // spec: CLM-6
 #[test]
-fn a_claim_closed_on_a_workspace_branch_is_dropped_once_merged() {
+fn a_claim_closed_off_the_trunk_is_dropped_once_merged() {
     let r = repo();
     claim(&r.ws, "s1", &live(), "a");
     tool(&r.ws, "", "", &["close-issue", "issues/a.md"]);

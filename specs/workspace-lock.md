@@ -4,7 +4,7 @@ status: accepted
 adrs: [0005, 0022]
 ---
 
-# Workspace lock
+# Worktree lock
 
 ## Intent
 

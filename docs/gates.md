@@ -67,7 +67,7 @@ main one, where another agent may work. `lint-gate` checks the work tree of the 
 `format-code` runs `cargo fmt` from the directory of the edited file. For the same reason the seeded `justfile` asks
 the project's `check` to print nothing on success.
 
-## The workspace lock
+## The worktree lock
 
 `workspace-lock` keeps one Claude Code session per worktree, since two would share its files, index, review marker and
 build output, and an editor's agent client opens several threads on one folder

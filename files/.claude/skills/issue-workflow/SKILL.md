@@ -13,7 +13,7 @@ The only ones the user can lift are those of step 3.6 and 3.8, through the Auton
 **Work where the session was started**: the main worktree, or a worktree the user opened on the branch they picked.
 Never create, enter or leave a worktree yourself (no `just start-issue`, no `EnterWorktree`). In a linked worktree,
 never redirect to the main one (`git -C`, its paths). **Claim the issue first**: `cardinal run issue-claim
-issues/<name>.md`; when it refuses (another session's claim, uncommitted changes), or the workspace lock refuses your
+issues/<name>.md`; when it refuses (another session's claim, uncommitted changes), or the worktree lock refuses your
 commands (another session works in this worktree), stop and tell the user what it names. In the main worktree, also
 stop when a branch `<stem>` exists (an issue worktree of `start-issue`). Details: [details.md](details.md).
 

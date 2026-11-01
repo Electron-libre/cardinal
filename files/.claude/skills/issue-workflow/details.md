@@ -20,14 +20,14 @@ first and the cut it needs in `depends_on`; an open issue that depended on the f
 deliverables of the other cuts out of the plan, and the new plan is validated again. In a linked worktree, write
 no cut: stop and leave the split to the user in the main worktree, where `start-issue` and `next-issue` see it.
 
-## Workspace
+## Worktree
 
-An issue usually runs in the main worktree, on the trunk. For parallel work the user opens another worktree (a
-workspace) on a branch they pick, with `git worktree add` or `just start-issue issues/<name>.md` (creates
+An issue usually runs in the main worktree, on the trunk. For parallel work the user opens another worktree on a
+branch they pick, with `git worktree add` or `just start-issue issues/<name>.md` (creates
 `.claude/worktrees/<name>` on a branch `<name>`, adds `/.claude/worktrees/` to `.git/info/exclude`), and launches a
 plain `claude` there or opens it as an editor project. Not `claude --worktree`, nor `EnterWorktree` from another
 session: Claude Code then isolates the session and refuses every command it cannot prove stays in the worktree.
-Several issues may share a workspace, one after the other; the workspace outlives them.
+Several issues may share a worktree, one after the other; the worktree outlives them.
 
 - **Claim**: `issue-claim` writes the ref `refs/cardinal/claims/<stem>` for the session (`CLAUDE_CODE_SESSION_ID`);
   `just next-issue` then skips the issue in every worktree. It takes back a claim of the same session, or of the same

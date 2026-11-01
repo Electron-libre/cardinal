@@ -171,7 +171,7 @@ a tool `cardinal run` does not know.
 
 ## Parallel issues
 
-Two agents can drive two issues at once, each in its own worktree (a workspace the user opens on the branch they
+Two agents can drive two issues at once, each in its own worktree (one the user opens on the branch they
 pick, or `.claude/worktrees/<stem>` on a branch `<stem>` from `start-issue`): separate working tree and index, shared
 object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 [ADR 0008](adr/0008-issue-worktrees-nest-under-claude-worktrees.md),

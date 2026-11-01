@@ -16,11 +16,16 @@ const TYPES: [&str; 9] = [
 pub(super) const BUILT_IN_SCOPES: [&str; 2] = ["docs", "cardinal"];
 const ATTRIBUTION: [&str; 3] = ["co-authored-by", "generated with", "noreply@anthropic.com"];
 
-/// The built-in scopes plus the project's `commit_scopes`, read once from the repository root.
-pub(super) fn scopes() -> Result<Vec<String>, String> {
+/// The built-in scopes plus the project's `commit_scopes`, read once from the repository root; `None` when the project
+/// turns off the feature `conventional-commits`, its format then being the project's (FEA-21).
+pub(super) fn scopes() -> Result<Option<Vec<String>>, String> {
+    let root = repo_root()?;
+    if features::is_off(&root, features::CONVENTIONAL_COMMITS) {
+        return Ok(None);
+    }
     let mut all: Vec<String> = BUILT_IN_SCOPES.iter().map(|s| (*s).to_string()).collect();
-    all.extend(config_list(&repo_root()?, "commit_scopes")?);
-    Ok(all)
+    all.extend(config_list(&root, "commit_scopes")?);
+    Ok(Some(all))
 }
 
 fn is_emoji(c: char) -> bool {
@@ -74,17 +79,25 @@ pub(super) fn attribution_banned() -> bool {
     })
 }
 
-/// The violations of `message`, empty when it is valid; an attribution is one only when `attribution` is banned.
-pub(super) fn violations(message: &str, scopes: &[String], attribution: bool) -> Vec<String> {
+/// The violations of `message`, empty when it is valid; an attribution is one only when `attribution` is banned, and
+/// the convention is checked only when `scopes` is known (the feature `conventional-commits` on).
+pub(super) fn violations(
+    message: &str,
+    scopes: Option<&[String]>,
+    attribution: bool,
+) -> Vec<String> {
     let lines: Vec<&str> = message.lines().collect();
     let mut errors = Vec::new();
-    check_subject(lines.first().copied().unwrap_or(""), scopes, &mut errors);
-    if lines.get(1).is_some_and(|l| !l.is_empty()) {
-        errors.push("a blank line must separate the subject from the body".into());
+    let convention = scopes.is_some();
+    if let Some(scopes) = scopes {
+        check_subject(lines.first().copied().unwrap_or(""), scopes, &mut errors);
+        if lines.get(1).is_some_and(|l| !l.is_empty()) {
+            errors.push("a blank line must separate the subject from the body".into());
+        }
     }
     for (i, line) in lines.iter().enumerate() {
         let n = i + 1;
-        if i > 0 && line.chars().count() > 72 {
+        if convention && i > 0 && line.chars().count() > 72 {
             errors.push(format!(
                 "line {n} is {} chars, wrap at 72",
                 line.chars().count()
@@ -96,7 +109,7 @@ pub(super) fn violations(message: &str, scopes: &[String], attribution: bool) ->
                 "line {n}: no Co-Authored-By trailer or AI/tool attribution allowed"
             ));
         }
-        if i > 0 && (line.starts_with('#') || line.starts_with("```")) {
+        if convention && i > 0 && (line.starts_with('#') || line.starts_with("```")) {
             errors.push(format!("line {n}: no markdown headings or code fences"));
         }
         if expectation(line).is_some_and(|e| e.is_err()) {
@@ -104,7 +117,7 @@ pub(super) fn violations(message: &str, scopes: &[String], attribution: bool) ->
                 "line {n}: write `Expected-effect: <metric> <up|down>`, the metric one of {METRICS:?}, `{RULE_METRIC}<rule>` or `{WASTE_METRIC}<rule>`"
             ));
         }
-        if line.chars().any(is_emoji) {
+        if convention && line.chars().any(is_emoji) {
             errors.push(format!("line {n}: no emoji"));
         }
     }
@@ -124,7 +137,7 @@ pub(super) fn main(_args: &[String]) -> u8 {
             return 2;
         }
     };
-    let errors = violations(&message, &scopes, attribution_banned());
+    let errors = violations(&message, scopes.as_deref(), attribution_banned());
     for e in &errors {
         println!("{e}");
     }

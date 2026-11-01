@@ -41,7 +41,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 continue;
             }
         };
-        let errors = violations(&message, &scopes, attribution);
+        let errors = violations(&message, scopes.as_deref(), attribution);
         for e in &errors {
             println!("{e}");
         }

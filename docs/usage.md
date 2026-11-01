@@ -67,6 +67,7 @@ names both, and turning both off is accepted.
 | Feature | Turns off |
 |---|---|
 | `no-ai-attribution` | the rule against AI attribution and the checks of the binary that enforce it |
+| `conventional-commits` | the commit convention (`commit-message/conventional-commits.md`), its checks in `commit-check` and `check-commits`, and rule `commit-format` of `rule-breaches`; the attribution and `Expected-effect:` checks stay |
 | `lint-gate` | the Stop hook that runs the project's lint, for a lint that runs in CI |
 | `format-code` | the hook that formats each edited file, for an editor that formats |
 | `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |

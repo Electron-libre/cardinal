@@ -52,7 +52,7 @@ the attribution and `Expected-effect:` checks); only their convention part is ga
    `files/AGENTS.md`; `commit-message` and `issue-workflow` point to it (else to the project's own convention);
    `features.toml` declares `conventional-commits`; `just sync`; verified by a test in `tests/skills.rs`; makes true
    FEA-20.
-2. [ ] Gate the checks: `commit-check` (hence `check-commits`) keeps only the attribution and `Expected-effect:` lines
+2. [x] Gate the checks: `commit-check` (hence `check-commits`) keeps only the attribution and `Expected-effect:` lines
    when the feature is off, `rule-breaches` drops `commit-format`; verified by tests of `tools_cli.rs` and
    `rule_breaches.rs`; makes true FEA-21, FEA-22; spec `accepted`.
 
@@ -84,6 +84,31 @@ red: FEA-20: `the_commit_convention_lives_in_its_feature_alone` panicked at the 
 Code review: 1 finding
 - The comment of `features.toml` described the gating of deliverable 2 ahead of its code: cut to the files; the
   checks join it with deliverable 2.
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+
+done: with `conventional-commits` off, `commit-check` and `check-commits` read no `commit_scopes` and report only the
+attribution and `Expected-effect:` lines; `rule-breaches` no longer applies `commit-format`; spec `accepted`; docs
+(`usage.md`, `README.md`, `features.toml`). Follow-up from the review of deliverable 1:
+`issues/find_the_root_of_a_done_issue.md`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass, `features.md` accepted |
+| docs | `docs/usage.md`, `README.md` |
+| code review | see below |
+
+red: FEA-21, FEA-22: `commit-check` reported `format must be <type>(<scope>): <description>`, the blank line, the wrap
+and the heading on `Added the parser.`; `rule-breaches` applied `commit-format` to the commit of a project that turned
+the convention off.
+
+Code review: no findings
 
 not verified: none
 

@@ -647,7 +647,6 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
             continue;
         };
         let verdict = &mut record.verdict;
-        verdict.applied.insert("commit-format");
         let config = commit_config(repo, full);
         // a project that turned the ban off at that commit has no attribution rule to breach (FEA-11)
         let off = config
@@ -659,6 +658,14 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
                 verdict.add("commit-attribution", false, "", hash.to_string());
             }
         }
+        // nor a format rule when it turned the convention off (FEA-22)
+        if config
+            .as_ref()
+            .is_some_and(|c| features::turns_off(c, features::CONVENTIONAL_COMMITS))
+        {
+            continue;
+        }
+        verdict.applied.insert("commit-format");
         if !conventional(
             message.lines().next().unwrap_or_default(),
             &commit_scopes(config.as_ref()),

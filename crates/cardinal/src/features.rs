@@ -18,6 +18,8 @@ pub const SOURCE: &str = "features.toml";
 const DISABLED: &str = "disabled";
 /// The feature whose checks refuse an AI or tool attribution in commits and issues.
 pub const NO_AI_ATTRIBUTION: &str = "no-ai-attribution";
+/// The feature whose checks hold the commit messages to Conventional Commits.
+pub const CONVENTIONAL_COMMITS: &str = "conventional-commits";
 
 /// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34); and the
 /// features it needs (FEA-17).

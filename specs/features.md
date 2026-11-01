@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: draft
+status: accepted
 adrs: [0014, 0025]
 ---
 
@@ -64,6 +64,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - Checking a project's own commit convention when it turns off `conventional-commits`: `commit-check` and the CI job
   `commits` stay, for the attribution and the `Expected-effect:` footers that the measure reads.
 - The commit types that `delivered-quality` reads (QUA-3): a project with its own convention counts no `fix`.
-- Declaring the features other than `no-ai-attribution` and the hooks of FEA-16: each comes with its own issue.
+- Declaring the features other than `no-ai-attribution`, `conventional-commits` and the hooks of FEA-16: each comes
+  with its own issue.
 - Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
   loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).

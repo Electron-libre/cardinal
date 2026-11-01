@@ -348,6 +348,41 @@ fn commit_checks_accept_an_attribution_when_the_project_turns_off_the_ban() {
     assert_eq!(code, 0, "{stdout}");
 }
 
+// spec: FEA-21
+#[test]
+fn commit_checks_leave_the_format_to_a_project_that_turns_off_the_convention() {
+    // no `commit_scopes`: the convention off reads none
+    let repo = project(Some(
+        "[cardinal]\nsource = \"x\"\ndisabled = [\"conventional-commits\"]\n",
+    ));
+    let message = format!("Added the parser.\n{}\n# notes\n", "x".repeat(90));
+    let (code, stdout, stderr) = tool(repo.path(), &["commit-check"], &message);
+    assert_eq!((code, stdout.as_str()), (0, ""), "{stderr}");
+    let (code, stdout, _) = tool(
+        repo.path(),
+        &["commit-check"],
+        "Added the parser.\n\nCo-Authored-By: x\nExpected-effect: nothing sideways\n",
+    );
+    assert_eq!(code, 1);
+    assert_eq!(stdout.lines().count(), 2, "{stdout}");
+    assert!(
+        stdout.contains("line 3: no Co-Authored-By")
+            && stdout.contains("line 4: write `Expected-effect"),
+        "{stdout}"
+    );
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", "start"],
+    );
+    git(repo.path(), &["tag", "base"]);
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", "Added the parser."],
+    );
+    let (code, stdout, _) = tool(repo.path(), &["check-commits", "base", "HEAD"], "");
+    assert_eq!(code, 0, "{stdout}");
+}
+
 #[test]
 fn check_commits_validates_every_non_merge_commit_of_the_range() {
     let repo = project(Some("[project]\ncommit_scopes = []\n"));

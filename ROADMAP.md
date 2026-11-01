@@ -56,6 +56,7 @@ The work done before this file existed is in `issues/done/`.
   - [turn_off_conventional_commits](issues/turn_off_conventional_commits.md)
   - [turn_off_the_issue_files](issues/turn_off_the_issue_files.md)
   - [turn_off_the_specs](issues/turn_off_the_specs.md)
+  - [find_the_root_of_a_done_issue](issues/find_the_root_of_a_done_issue.md)
 
 ## Longer autonomy
 

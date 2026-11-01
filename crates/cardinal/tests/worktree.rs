@@ -177,6 +177,7 @@ fn open_refuses_and_changes_nothing(c: &Ctx) -> Checks {
     let (dot, _) = c.run(&c.repo, &["open", ".x"]);
     std::fs::create_dir_all(c.wt("z")).unwrap();
     let (occupied, _) = c.run(&c.repo, &["open", "z"]);
+    let (nested, _) = c.run(&c.repo, &["open", "q", "--path", ".claude/worktrees/q"]);
     std::fs::remove_dir_all(c.wt("z")).unwrap();
     git_ok(&c.repo, &["checkout", "-q", "--detach"]);
     let (detached, _) = c.run(&c.repo, &["open", "z"]);
@@ -194,6 +195,10 @@ fn open_refuses_and_changes_nothing(c: &Ctx) -> Checks {
         (
             "open refuses a name outside its characters",
             !bad_name && !dash && !dot,
+        ),
+        (
+            "open refuses a path inside the main worktree",
+            !nested && !branch_exists(&c.repo, "q") && !c.repo.join(".claude/worktrees/q").exists(),
         ),
         (
             "open refuses an existing path",
@@ -351,6 +356,24 @@ fn close_designates_by_path_name_or_branch(c: &Ctx) -> Checks {
     let (unmerged, _) = c.run(&c.repo, &["close", "../detached"]);
     let detached_kept = detached.join("detached.txt").is_file();
     let (gone, _) = c.run(&c.repo, &["close", "../detached", "--force"]);
+    // a detached worktree whose directory is gone still keeps its commits off trunk
+    let lost = c.root.join("lost");
+    git_ok(
+        &c.repo,
+        &["worktree", "add", "-q", "--detach", lost.to_str().unwrap()],
+    );
+    commit_file(&lost, "lost.txt");
+    std::fs::remove_dir_all(&lost).unwrap();
+    let (lost_plain, _) = c.run(&c.repo, &["close", "../lost"]);
+    let (lost_forced, _) = c.run(&c.repo, &["close", "../lost", "--force"]);
+    // a worktree reused on another branch while a branch of its name is left: ambiguous
+    let (opened_amb, _) = c.run(&c.repo, &["open", "amb", "--branch", "next"]);
+    git_ok(&c.repo, &["branch", "amb"]);
+    let (ambiguous, amb_msg) = c.run(&c.repo, &["close", "amb"]);
+    let amb_kept =
+        c.wt("amb").is_dir() && branch_exists(&c.repo, "next") && branch_exists(&c.repo, "amb");
+    let (amb_path, _) = c.run(&c.repo, &["close", "../repo-amb"]);
+    git_ok(&c.repo, &["branch", "-D", "amb"]);
     let before = c.entries();
     let (nothing, msg) = c.run(&c.repo, &["close", "nothing-here"]);
     vec![
@@ -373,6 +396,14 @@ fn close_designates_by_path_name_or_branch(c: &Ctx) -> Checks {
         (
             "close refuses a detached worktree with commits off trunk, and --force removes it",
             !unmerged && detached_kept && gone && !detached.exists(),
+        ),
+        (
+            "close refuses a detached worktree with a missing directory and commits off trunk, --force prunes it",
+            !lost_plain && lost_forced,
+        ),
+        (
+            "close refuses a name that designates a reused worktree and a branch, the path removes the worktree",
+            opened_amb && !ambiguous && amb_msg.contains("git branch -D amb") && amb_kept && amb_path && !c.wt("amb").exists(),
         ),
         (
             "close fails, removing nothing, when nothing is designated",
@@ -447,7 +478,10 @@ fn close_forces_work_that_is_not_on_trunk(c: &Ctx) -> Checks {
     let (ok, _) = c.run(&c.repo, &["open", "u"]);
     assert!(ok);
     commit_file(&c.wt("u"), "u1.txt");
+    // a tag named like the branch, on trunk, must not stand for the branch
+    git_ok(&c.repo, &["tag", "u", "trunk"]);
     let (plain, msg) = c.run(&c.repo, &["close", "u"]);
+    git_ok(&c.repo, &["tag", "-d", "u"]);
     let kept = c.wt("u").is_dir() && branch_exists(&c.repo, "u");
     std::fs::write(c.wt("u").join("dirty.txt"), "wip\n").unwrap();
     let (dirty, _) = c.run(&c.repo, &["close", "u", "--force"]);

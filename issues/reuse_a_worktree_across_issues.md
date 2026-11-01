@@ -79,6 +79,8 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
    bare branch), same safety, detached worktree; `Stale:` names it; `migrations/6.toml`, docs, spec and ADR accepted;
    verified by the behavior tests of the tool and of `next-issue`; makes true PAR-4, PAR-6, PAR-7, PAR-10, PAR-11,
    PAR-15, PAR-19.
+4. [x] Docs of the whole issue and the fixes of its `high` review; verified by the behavior test of the tool;
+   makes true PAR-2, PAR-6, PAR-10, PAR-19 (amended).
 
 ## Decisions
 - Mode: autonomous
@@ -113,3 +115,18 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
   `close` subcommand); `next-issue` named `finish-issue a`.
 - not verified: the recipes through `just` (`[no-cd]`), only the tool is tested.
 - Code review: 1 findings; a detached worktree with commits off trunk was removed without `--force`: its HEAD now gets the merge check (test added).
+
+## Deliverable 4
+- done: `update-docs` over `18385b9..HEAD` (no stale page left); fixes of the `high` review: `close-worktree <name>`
+  refuses a name designating both a reused worktree and a branch (the `Stale:` hint would have removed the worktree),
+  compares `refs/heads/<branch>` (a tag of the same name stood for it), checks the HEAD of a detached worktree whose
+  directory is gone, deletes the branch with `-D` after its own merge check; `open-worktree --path` refuses a path
+  inside the main worktree; one `git worktree list` per run. PAR-2 and PAR-19 amended.
+- red: PAR-2, PAR-6, PAR-10, PAR-19: on the code of deliverable 3 the test panicked at `worktree.rs:486` after
+  `open --path .claude/worktrees/q` was accepted.
+- Code review (high): 8 findings; 1, 3, 4, 5, 6, 8 fixed; 2 became
+  `issues/count_the_sessions_of_a_closed_worktree_with_its_repository.md` (EVA-7, outside PAR); 7 not fixed: the
+  renames sit in `migrations/6.toml`, format 6 being unreleased, and a recipe rename raises no format (ADR 0014), so
+  a consumer already synced to an unreleased format 6 gets no warning.
+- not verified: the recipes through `just` (`[no-cd]`).
+- Code review (low): 1 findings; the unused `head` of a branch-only target dropped.

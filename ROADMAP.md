@@ -46,7 +46,7 @@ The work done before this file existed is in `issues/done/`.
   convention, no parallel agents, issues tracked elsewhere) cannot drop a part without a conflict at each sync.
 - State: in issues
 - Issues:
-  - [let_a_project_turn_off_a_feature_of_the_harness](issues/let_a_project_turn_off_a_feature_of_the_harness.md)
+  - [let_a_project_turn_off_a_feature_of_the_harness](issues/done/let_a_project_turn_off_a_feature_of_the_harness.md)
 
 ## Longer autonomy
 

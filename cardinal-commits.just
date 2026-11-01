@@ -1,6 +1,6 @@
 # The recipes of the commit message convention, imported by `cardinal.just`. Managed by `cardinal sync`: change them in the Cardinal repository.
 
-# Validate a commit message against AGENTS.md (default: HEAD).
+# Validate a commit message against the commit convention (default: HEAD).
 check-commit rev="HEAD":
     git log -1 --format=%B {{rev}} | cardinal run commit-check
 

@@ -80,7 +80,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "commit-check",
-        about: "validate a commit message read from stdin against AGENTS.md",
+        about: "validate a commit message read from stdin against the commit convention",
         main: commit_check::main,
     },
     Tool {

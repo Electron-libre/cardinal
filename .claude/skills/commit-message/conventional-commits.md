@@ -1,7 +1,7 @@
 # Commit messages
 
 The convention of the feature `conventional-commits` of Cardinal; a project that turns the feature off follows its
-own, stated in its `CLAUDE.md` or `AGENTS.md`.
+own, stated in its `CLAUDE.md`.
 
 Follow the Conventional Commits format:
 
@@ -57,9 +57,7 @@ Use one of:
 ## Language and style
 
 - English only.
-- Describe only what is in the diff; do not invent context.
 - No emojis, markdown headings or code fences.
-- When the user commits, output only the commit message, with no preamble.
 
 ## Examples
 

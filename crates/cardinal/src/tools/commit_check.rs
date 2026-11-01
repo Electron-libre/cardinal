@@ -10,7 +10,7 @@ use super::cardinal_changes::{expectation, METRICS, RULE_METRIC, WASTE_METRIC};
 use super::{config_list, repo_root};
 use crate::features;
 
-const TYPES: [&str; 9] = [
+pub(super) const TYPES: [&str; 9] = [
     "feat", "fix", "refactor", "docs", "test", "perf", "build", "ci", "chore",
 ];
 pub(super) const BUILT_IN_SCOPES: [&str; 2] = ["docs", "cardinal"];
@@ -79,6 +79,29 @@ pub(super) fn attribution_banned() -> bool {
     })
 }
 
+/// The violations of the convention by the message of `lines`, line numbers counted from 1 (FEA-21).
+fn convention_violations(lines: &[&str], scopes: &[String], errors: &mut Vec<String>) {
+    check_subject(lines.first().copied().unwrap_or(""), scopes, errors);
+    if lines.get(1).is_some_and(|l| !l.is_empty()) {
+        errors.push("a blank line must separate the subject from the body".into());
+    }
+    for (i, line) in lines.iter().enumerate() {
+        let n = i + 1;
+        if i > 0 && line.chars().count() > 72 {
+            errors.push(format!(
+                "line {n} is {} chars, wrap at 72",
+                line.chars().count()
+            ));
+        }
+        if i > 0 && (line.starts_with('#') || line.starts_with("```")) {
+            errors.push(format!("line {n}: no markdown headings or code fences"));
+        }
+        if line.chars().any(is_emoji) {
+            errors.push(format!("line {n}: no emoji"));
+        }
+    }
+}
+
 /// The violations of `message`, empty when it is valid; an attribution is one only when `attribution` is banned, and
 /// the convention is checked only when `scopes` is known (the feature `conventional-commits` on).
 pub(super) fn violations(
@@ -88,37 +111,21 @@ pub(super) fn violations(
 ) -> Vec<String> {
     let lines: Vec<&str> = message.lines().collect();
     let mut errors = Vec::new();
-    let convention = scopes.is_some();
     if let Some(scopes) = scopes {
-        check_subject(lines.first().copied().unwrap_or(""), scopes, &mut errors);
-        if lines.get(1).is_some_and(|l| !l.is_empty()) {
-            errors.push("a blank line must separate the subject from the body".into());
-        }
+        convention_violations(&lines, scopes, &mut errors);
     }
     for (i, line) in lines.iter().enumerate() {
         let n = i + 1;
-        if convention && i > 0 && line.chars().count() > 72 {
-            errors.push(format!(
-                "line {n} is {} chars, wrap at 72",
-                line.chars().count()
-            ));
-        }
         let lower = line.to_lowercase();
         if attribution && ATTRIBUTION.iter().any(|a| lower.contains(a)) {
             errors.push(format!(
                 "line {n}: no Co-Authored-By trailer or AI/tool attribution allowed"
             ));
         }
-        if convention && i > 0 && (line.starts_with('#') || line.starts_with("```")) {
-            errors.push(format!("line {n}: no markdown headings or code fences"));
-        }
         if expectation(line).is_some_and(|e| e.is_err()) {
             errors.push(format!(
                 "line {n}: write `Expected-effect: <metric> <up|down>`, the metric one of {METRICS:?}, `{RULE_METRIC}<rule>` or `{WASTE_METRIC}<rule>`"
             ));
-        }
-        if convention && line.chars().any(is_emoji) {
-            errors.push(format!("line {n}: no emoji"));
         }
     }
     errors

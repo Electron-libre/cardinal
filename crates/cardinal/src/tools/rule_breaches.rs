@@ -8,7 +8,7 @@
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 
-use super::commit_check::BUILT_IN_SCOPES;
+use super::commit_check::{BUILT_IN_SCOPES, TYPES};
 use super::language::{is_hint, Language};
 use super::shell;
 use super::transcripts;
@@ -544,11 +544,6 @@ fn managed_paths(repo: &Path, start: &str) -> Option<HashSet<String>> {
     )
 }
 
-/// The commit types of the convention of the feature `conventional-commits`.
-const COMMIT_TYPES: &[&str] = &[
-    "feat", "fix", "refactor", "docs", "test", "perf", "build", "ci", "chore",
-];
-
 /// Whether a commit message carries an AI or tool attribution.
 fn attributed(message: &str) -> bool {
     message.lines().map(str::to_lowercase).any(|l| {
@@ -574,7 +569,7 @@ fn conventional(subject: &str, scopes: &[String]) -> bool {
         None => (head, None),
     };
     subject.chars().count() <= 72
-        && COMMIT_TYPES.contains(&kind)
+        && TYPES.contains(&kind)
         && scope.is_none_or(|s| {
             s == OLD_SCOPE || BUILT_IN_SCOPES.contains(&s) || scopes.iter().any(|k| k == s)
         })

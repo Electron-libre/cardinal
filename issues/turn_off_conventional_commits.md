@@ -55,6 +55,7 @@ the attribution and `Expected-effect:` checks); only their convention part is ga
 2. [x] Gate the checks: `commit-check` (hence `check-commits`) keeps only the attribution and `Expected-effect:` lines
    when the feature is off, `rule-breaches` drops `commit-format`; verified by tests of `tools_cli.rs` and
    `rule_breaches.rs`; makes true FEA-21, FEA-22; spec `accepted`.
+3. [x] Close the issue: the docs of `base..HEAD` and the fixes of its `high` review.
 
 ## Decisions
 - Mode: autonomous
@@ -113,3 +114,31 @@ Code review: no findings
 not verified: none
 
 decisions needed: none
+
+## Deliverable 3
+
+done: the fixes of the `high` review of `base..HEAD`; `update-docs` found no other stale reference.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `cardinal-commits.just`, the `about` of `commit-check` |
+| code review | see below |
+
+red: none (refactor and docs)
+
+Code review (high): 9 findings
+1. The project's own convention pointed to `AGENTS.md`, a managed file: fixed, `CLAUDE.md` only.
+2. `release` reads the Conventional Commits types: non-goal of `specs/features.md`, follow-up
+   `issues/release_a_project_without_the_commit_convention.md`.
+3. "Describe only what is in the diff" and the language left with the convention: back in `commit-message`.
+4. The `about` of `commit-check` named `AGENTS.md`: fixed.
+5. The comment of `check-commit` named `AGENTS.md`: fixed.
+6. No migration for the texts of a project citing `AGENTS.md`: not fixed, `AGENTS.md` stays a managed file under the
+   same name and a project's prose is not a seeded text (ADR 0017).
+7. `commit-check` resolves the root and reads the configuration more than once: not fixed, a few milliseconds for a
+   command run once per commit.
+8. The `convention &&` guard repeated in `violations`: fixed, the convention checks in `convention_violations`.
+9. `COMMIT_TYPES` of `rule-breaches` duplicated `TYPES`: fixed, shared.

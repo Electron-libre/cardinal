@@ -6,8 +6,7 @@ description: Write a commit message that follows the project's commit convention
 # Write a commit message
 
 The convention lives in [conventional-commits.md](conventional-commits.md) (single source of truth: don't restate
-or drift from it here); a project without that file turned it off and follows its own, stated in its `CLAUDE.md` or
-`AGENTS.md`. This skill is the procedure; `cardinal run commit-check` enforces the mechanical rules.
+or drift from it here); a project without that file turned it off and follows its own, stated in its `CLAUDE.md`. This skill is the procedure; `cardinal run commit-check` enforces the mechanical rules.
 
 ## Procedure
 
@@ -17,7 +16,8 @@ or drift from it here); a project without that file turned it off and follows it
    If the diff mixes unrelated changes, say so and propose splitting it into several commits instead of one
    vague message.
 3. **Write the message**: a subject saying what changed and why it matters, a body only when the why isn't
-   obvious from the subject, in the form the convention sets.
+   obvious from the subject, in the form the convention sets. Describe only what is in the diff; don't invent
+   context. Write it in the language the project requires.
 4. **Validate** by piping the message to the checker; fix the message until it prints nothing:
 
    ```sh

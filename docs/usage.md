@@ -155,9 +155,9 @@ and the `workspace-lock` hooks keep one session per worktree:
 | Recipe | What it does |
 |---|---|
 | `just open-worktree <name> [--path <dir>] [--branch <branch>]` | creates the worktree `../<repo>-<name>` next to the main one (or `<dir>`, relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main worktree, or on that branch as it is when it exists and no worktree has it; copies `.claude/cardinal.local.toml` into it. It takes no issue: the worktree serves issues in turn and keeps its build. Launch a plain `claude` in it. |
-| `just finish-issue <stem> [--force]` | from outside the worktree, removes it and deletes the branch once the branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes |
+| `just close-worktree <name\|path> [--force]` | from outside the worktree, removes it and deletes the branch it has checked out once that branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes nor the main worktree. A name designates `../<repo>-<name>`, then a worktree left under `.claude/worktrees/<name>`, then the worktree of the branch `<name>`, then that branch alone (a `Stale:` branch of `next-issue`) |
 
 The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues).
 
 A worktree the former `start-issue` left under `.claude/worktrees/` is still inside the main one: remove it with
-`finish-issue` once its branch is merged.
+`close-worktree <stem>` once its branch is merged.

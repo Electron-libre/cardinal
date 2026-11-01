@@ -47,7 +47,7 @@ fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
 /// Whether `branch` holds work that `trunk` lacks; true when git cannot tell, so unmerged work is never ignored.
 /// No work when every commit has a patch-equivalent on `trunk` (`git cherry`), or when merging the branch into `trunk`
 /// would change no file (a squash of any number of commits): the merge tree is then the tree of `trunk`. Keep in sync
-/// with `finish` of `worktree.rs`.
+/// with `merged` of `worktree.rs`.
 fn has_own_commits(dir: &Path, trunk: &str, branch: &str) -> bool {
     let branch = format!("refs/heads/{branch}");
     let equivalent = Command::new("git")
@@ -521,7 +521,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     for e in &queue.entries {
         if stale(&e.stem) {
-            println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `just finish-issue {0}`)", e.stem);
+            println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `just close-worktree {0}`)", e.stem);
         }
     }
     std::process::exit(i32::from(queue.drift));

@@ -56,5 +56,5 @@ On a branch other than the trunk, once the user agreed to close the issue:
    Never rebase a pushed branch unasked. The merge is the host's (or the user's).
    No link to the next issue here: the `issues/` of the worktree is the branch's.
 
-`close-issue` refuses an issue of another worktree named by path. `finish-issue` refuses inside the worktree it would remove, and a branch whose work is not
+`close-issue` refuses an issue of another worktree named by path. `close-worktree` refuses inside the worktree it would remove, and a branch whose work is not
 on the main branch unless `--force`.

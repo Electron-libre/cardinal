@@ -179,11 +179,11 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 [`specs/parallel-issues.md`](../specs/parallel-issues.md)). The steps are in
 [workflow.md](workflow.md#parallel-issues); the design:
 
-- **Tool**: `cardinal run worktree` (`just open-worktree`, `just finish-issue`), `issue-claim`, `workspace-lock`,
+- **Tool**: `cardinal run worktree` (`just open-worktree`, `just close-worktree`), `issue-claim`, `workspace-lock`,
   `next-issue` and `close-issue`.
 - **Taken** is the worktree itself, or a branch holding commits not on the main branch (PAR-3): `next-issue` reads
   `git for-each-ref`, `git worktree list`, `git cherry` and `git merge-tree --write-tree`, so every worktree sees it
-  and no file needs cleaning. A leftover branch with neither is listed `Stale:` for `finish-issue` to clean (PAR-4,
+  and no file needs cleaning. A leftover branch with neither is listed `Stale:` for `close-worktree` to clean (PAR-4,
   PAR-6).
 - **Claim**: `cardinal run issue-claim issues/<stem>.md` takes the ref `refs/cardinal/claims/<stem>` by
   compare-and-swap (`git update-ref <ref> <blob> ""`) for the session of `CLAUDE_CODE_SESSION_ID` and its process

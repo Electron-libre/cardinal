@@ -75,7 +75,7 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
 2. [x] `open-worktree` replaces `start-issue`: any name, sibling path or `--path`, branch `<name>` or `--branch`,
    no issue file, no `info/exclude` line, personal configuration copied; ADR 0023, `migrations/6.toml`, docs;
    verified by the behavior test of the tool; makes true PAR-1, PAR-2, PAR-17 (PAR-13 withdrawn).
-3. [ ] `close-worktree` replaces `finish-issue`: a path or a name (sibling, `.claude/worktrees/`, branch checked out,
+3. [x] `close-worktree` replaces `finish-issue`: a path or a name (sibling, `.claude/worktrees/`, branch checked out,
    bare branch), same safety, detached worktree; `Stale:` names it; `migrations/6.toml`, docs, spec and ADR accepted;
    verified by the behavior tests of the tool and of `next-issue`; makes true PAR-4, PAR-6, PAR-7, PAR-10, PAR-11,
    PAR-15, PAR-19.
@@ -103,3 +103,13 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
 - not verified: the recipe through `just` from a subdirectory (`[no-cd]`), only the tool is tested.
 - follow-up: `finish-issue` still names the branch; deliverable 3.
 - Code review: 1 findings; `--path` or `--branch` with no value was ignored: now refused with the usage.
+
+## Deliverable 3
+- done: `just close-worktree <name|path> [--force]` (tool `worktree close`, `[no-cd]`) replaces `finish-issue`: a
+  path, or a name (`<repo>-<name>`, `.claude/worktrees/<name>`, the worktree of branch `<name>`, the branch alone);
+  refuses the main worktree; a detached worktree loses no branch; `Stale:` names it; `migrations/6.toml` names
+  `finish-issue`; spec `accepted`, ADR 0023 `Accepted`.
+- red: PAR-4, PAR-6, PAR-7, PAR-10, PAR-11, PAR-15, PAR-19: `cardinal run worktree close` printed the usage (no
+  `close` subcommand); `next-issue` named `finish-issue a`.
+- not verified: the recipes through `just` (`[no-cd]`), only the tool is tested.
+- Code review: 1 findings; a detached worktree with commits off trunk was removed without `--force`: its HEAD now gets the merge check (test added).

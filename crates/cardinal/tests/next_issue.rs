@@ -190,7 +190,7 @@ fn stale_checks(script: &Path) -> Vec<(&'static str, bool)> {
             "an empty branch does not take the issue and is reported stale",
             out.contains("Next: issues/a.md")
                 && out.contains("Stale: a")
-                && out.contains("finish-issue a"),
+                && out.contains("close-worktree a"),
         ),
         (
             "a branch merged by rebase is reported stale",

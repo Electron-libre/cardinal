@@ -155,7 +155,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "worktree",
-        about: "open <name> [--path <dir>] [--branch <branch>] | finish <stem> [--force]: the user's worktrees",
+        about: "open <name> [--path <dir>] [--branch <branch>] | close <name|path> [--force]: the user's worktrees",
         main: worktree::main,
     },
 ];

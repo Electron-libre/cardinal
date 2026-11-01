@@ -1,6 +1,6 @@
 ---
 id: PAR
-status: draft
+status: accepted
 adrs: [0003, 0008, 0009, 0011, 0018, 0022, 0023]
 ---
 

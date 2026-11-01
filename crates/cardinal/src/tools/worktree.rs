@@ -2,13 +2,15 @@
 //! `open <name> [--path <dir>] [--branch <branch>]` creates the worktree `<main worktree>-<name>`, or `<dir>`
 //! (relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main
 //! worktree, or on that branch as it is when it exists and no worktree has it checked out.
-//! `finish <stem> [--force]` removes the worktree of the branch `<stem>` and that branch once the
+//! `close <name|path> [--force]` removes a worktree and the branch it has checked out once that
 //! branch is merged into the branch of the main worktree (ancestor, or every commit has a patch-equivalent there,
 //! or a merge into it would change no file, which covers a rebase and a squash of any number of commits); `--force` also
 //! accepts a branch whose work is not on it, after the user agreed, and still refuses a worktree with uncommitted
-//! changes or holding another worktree. It also removes a worktree left under `<main worktree>/.claude/worktrees/`
-//! by the former `start-issue`. `open` runs from any worktree; `finish` too, except from inside the worktree it would remove (it refuses and names the main worktree, `--force` or not).
-//! Usage: `just open-worktree foo`, `just finish-issue foo` (`just finish-issue foo --force`).
+//! changes or holding another worktree, and the main worktree. A name designates `<main worktree>-<name>`, then a
+//! worktree the former `start-issue` left under `<main worktree>/.claude/worktrees/`, then the worktree of the branch
+//! `<name>`, then that branch checked out nowhere. `open` runs from any worktree; `close` too, except from inside the
+//! worktree it would remove (it refuses and names the main worktree, `--force` or not).
+//! Usage: `just open-worktree foo`, `just close-worktree foo` (`just close-worktree foo --force`).
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -50,24 +52,31 @@ fn main_worktree(cwd: &Path) -> Result<(PathBuf, Option<String>), String> {
     Ok((PathBuf::from(path), branch))
 }
 
-/// The path of the worktree that has `branch` checked out.
-fn worktree_of(cwd: &Path, branch: &str) -> Option<PathBuf> {
-    let list = git(cwd, &["worktree", "list", "--porcelain"]).ok()?;
-    list.split("\n\n").find_map(|record| {
-        let on = record
-            .lines()
-            .any(|l| l.strip_prefix("branch refs/heads/") == Some(branch));
-        on.then(|| {
-            record
+/// Every worktree, the main one first, with the branch it has checked out (`None` when detached).
+fn worktrees(cwd: &Path) -> Result<Vec<(PathBuf, Option<String>)>, String> {
+    let list = git(cwd, &["worktree", "list", "--porcelain"])?;
+    Ok(list
+        .split("\n\n")
+        .filter_map(|record| {
+            let path = record.lines().find_map(|l| l.strip_prefix("worktree "))?;
+            let branch = record
                 .lines()
-                .find_map(|l| l.strip_prefix("worktree "))
-                .map(PathBuf::from)
+                .find_map(|l| l.strip_prefix("branch refs/heads/"))
+                .map(str::to_string);
+            Some((PathBuf::from(path), branch))
         })
-        .flatten()
-    })
+        .collect())
 }
 
-/// Where the former `start-issue` put the worktree of an issue (ADR 0008), still accepted by `finish`.
+/// The path of the worktree that has `branch` checked out.
+fn worktree_of(cwd: &Path, branch: &str) -> Option<PathBuf> {
+    worktrees(cwd)
+        .ok()?
+        .into_iter()
+        .find_map(|(path, b)| (b.as_deref() == Some(branch)).then_some(path))
+}
+
+/// Where the former `start-issue` put the worktree of an issue (ADR 0008), still accepted by `close`.
 fn nested(main: &Path, stem: &str) -> PathBuf {
     main.join(WORKTREES).join(stem)
 }
@@ -89,14 +98,6 @@ fn worktrees_inside(main: &Path, dir: &Path) -> Result<Vec<PathBuf>, String> {
         .map(PathBuf::from)
         .filter(|w| w != dir && w.starts_with(dir))
         .collect())
-}
-
-fn valid_stem(stem: &str) -> bool {
-    !stem.is_empty()
-        && !stem.starts_with('-')
-        && stem
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
 }
 
 /// A name for a path and a branch: ASCII letters, digits, `.`, `_` and `-`, not opening on `-` or `.` (PAR-2).
@@ -185,66 +186,121 @@ fn open(
     Ok(dir.display().to_string())
 }
 
-fn finish(cwd: &Path, stem: &str, force: bool) -> Result<String, String> {
-    if !valid_stem(stem) {
-        return Err(format!("not an issue stem: {stem}"));
+/// What `close` acts on: a worktree (none for a branch checked out nowhere) and its branch (none when detached).
+struct Target {
+    dir: Option<PathBuf>,
+    branch: Option<String>,
+}
+
+/// What `arg` designates (PAR-19): a path, or a name, in this order the worktree at `<main>-<name>`, the one at
+/// `<main>/.claude/worktrees/<name>`, the worktree that has the branch `<name>` checked out, a branch checked out nowhere.
+fn designate(cwd: &Path, main: &Path, arg: &str) -> Result<Target, String> {
+    let all = worktrees(main)?;
+    let at = |dir: &Path| {
+        let dir = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+        all.iter()
+            .find(|(w, _)| *w == dir || std::fs::canonicalize(w).is_ok_and(|w| w == dir))
+            .map(|(w, b)| Target {
+                dir: Some(w.clone()),
+                branch: b.clone(),
+            })
+    };
+    let none = || format!("{arg} designates no worktree nor branch: nothing was removed");
+    if arg.contains('/') || arg.starts_with('.') {
+        let path = lexical(&std::path::absolute(cwd.join(arg)).map_err(|e| e.to_string())?);
+        return at(&path).ok_or_else(none);
     }
-    let (main, branch) = main_worktree(cwd)?;
-    let trunk = branch.ok_or("the main worktree has no branch checked out")?;
-    if !git_ok(
-        &main,
-        &["rev-parse", "--verify", "-q", &format!("refs/heads/{stem}")],
+    if !valid_name(arg) {
+        return Err(none());
+    }
+    let places = [sibling(main, arg), Some(nested(main, arg))];
+    if let Some(found) = places.iter().flatten().find_map(|dir| at(dir)) {
+        return Ok(found);
+    }
+    if let Some(dir) = worktree_of(main, arg) {
+        return Ok(Target {
+            dir: Some(dir),
+            branch: Some(arg.to_string()),
+        });
+    }
+    if git_ok(
+        main,
+        &["rev-parse", "--verify", "-q", &format!("refs/heads/{arg}")],
     ) {
-        return Err(format!("no branch {stem}"));
+        return Ok(Target {
+            dir: None,
+            branch: Some(arg.to_string()),
+        });
     }
-    let found = worktree_of(&main, stem);
-    let dir = found
-        .clone()
-        .filter(|f| sibling(&main, stem).as_ref() == Some(f))
-        .unwrap_or_else(|| nested(&main, stem));
-    // Removing the directory the caller stands in breaks its shell: refuse, whatever `--force` says.
-    let inside = std::fs::canonicalize(cwd)
-        .ok()
-        .zip(std::fs::canonicalize(&dir).ok())
-        .is_some_and(|(here, target)| here.starts_with(target));
-    if inside {
-        return Err(format!("the current directory is inside {}: run finish-issue from the main worktree {}; nothing was removed", dir.display(), main.display()));
-    }
-    let ancestor = git_ok(&main, &["merge-base", "--is-ancestor", stem, &trunk]);
+    Err(none())
+}
+
+/// Whether `branch` is merged into `trunk`, and whether as an ancestor (which `git branch -d` knows).
+fn merged(main: &Path, branch: &str, trunk: &str) -> (bool, bool) {
+    let ancestor = git_ok(main, &["merge-base", "--is-ancestor", branch, trunk]);
     // A rebase leaves every commit with a patch-equivalent (`-`) on trunk.
     let equivalent = ancestor
-        || git(&main, &["cherry", &trunk, stem])
+        || git(main, &["cherry", trunk, branch])
             .is_ok_and(|c| !c.lines().any(|l| l.starts_with('+')));
     // A squash: merging the branch into trunk would change no file, so the merge tree is trunk's tree
     // (keep in sync with `has_own_commits` of `next_issue.rs`; git before 2.38 lacks `--write-tree` and counts as not merged).
     let merged = equivalent || {
-        let tree = git(&main, &["merge-tree", "--write-tree", &trunk, stem])
+        let tree = git(main, &["merge-tree", "--write-tree", trunk, branch])
             .ok()
             .and_then(|t| t.lines().next().map(str::to_string));
-        tree.is_some() && tree == git(&main, &["rev-parse", &format!("{trunk}^{{tree}}")]).ok()
+        tree.is_some() && tree == git(main, &["rev-parse", &format!("{trunk}^{{tree}}")]).ok()
     };
-    if !merged && !force {
-        return Err(format!("the branch {stem} is not merged into {trunk}: merge it first, or pass --force to drop it (it deletes work that is not on {trunk}; squash detection needs git 2.38); nothing was removed"));
-    }
-    match found {
-        Some(found) if found != dir => {
+    (merged, ancestor)
+}
+
+fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
+    let (main, trunk) = main_worktree(cwd)?;
+    let target = designate(cwd, &main, arg)?;
+    if let Some(dir) = &target.dir {
+        if std::fs::canonicalize(dir).ok() == std::fs::canonicalize(&main).ok() {
             return Err(format!(
-                "the branch {stem} is checked out in {}, not in {}: nothing was removed",
-                found.display(),
-                dir.display()
+                "{arg} designates the main worktree {}: it is never removed",
+                main.display()
             ));
         }
-        Some(_) if !dir.exists() => {
+        // Removing the directory the caller stands in breaks its shell: refuse, whatever `--force` says.
+        let inside = std::fs::canonicalize(cwd)
+            .ok()
+            .zip(std::fs::canonicalize(dir).ok())
+            .is_some_and(|(here, target)| here.starts_with(target));
+        if inside {
+            return Err(format!("the current directory is inside {}: run close-worktree from the main worktree {}; nothing was removed", dir.display(), main.display()));
+        }
+    }
+    // the commits to keep: the branch, or the HEAD of a detached worktree that still exists
+    let head = match (&target.branch, &target.dir) {
+        (Some(branch), _) => Some(branch.clone()),
+        (None, Some(dir)) if dir.exists() => Some(git(dir, &["rev-parse", "HEAD"])?),
+        (None, _) => None,
+    };
+    let mut ancestor = false;
+    if let Some(head) = &head {
+        let trunk = trunk
+            .as_deref()
+            .ok_or("the main worktree has no branch checked out to compare the branch with")?;
+        let (is_merged, is_ancestor) = merged(&main, head, trunk);
+        ancestor = is_ancestor;
+        if !is_merged && !force {
+            return Err(format!("{head} is not merged into {trunk}: merge it first, or pass --force to drop it (it deletes work that is not on {trunk}; squash detection needs git 2.38); nothing was removed"));
+        }
+    }
+    match &target.dir {
+        Some(dir) if !dir.exists() => {
             git(&main, &["worktree", "prune"])?;
         }
-        Some(_) => {
-            if !git(&dir, &["status", "--porcelain"])?.is_empty() {
+        Some(dir) => {
+            if !git(dir, &["status", "--porcelain"])?.is_empty() {
                 return Err(format!(
                     "{} has uncommitted changes: nothing was removed",
                     dir.display()
                 ));
             }
-            if let Some(inner) = worktrees_inside(&main, &dir)?.first() {
+            if let Some(inner) = worktrees_inside(&main, dir)?.first() {
                 return Err(format!(
                     "{} holds the worktree {}: remove that one first; nothing was removed",
                     dir.display(),
@@ -255,13 +311,23 @@ fn finish(cwd: &Path, stem: &str, force: bool) -> Result<String, String> {
         }
         None => {}
     }
-    // `-d` only knows ancestors; the other cases were checked above or forced.
-    git(&main, &["branch", if ancestor { "-d" } else { "-D" }, stem])?;
-    Ok(format!("removed the worktree and the branch {stem}"))
+    let mut removed = Vec::new();
+    if let Some(dir) = &target.dir {
+        removed.push(format!("the worktree {}", dir.display()));
+    }
+    if let Some(branch) = &target.branch {
+        // `-d` only knows ancestors; the other cases were checked above or forced.
+        git(
+            &main,
+            &["branch", if ancestor { "-d" } else { "-D" }, branch],
+        )?;
+        removed.push(format!("the branch {branch}"));
+    }
+    Ok(format!("removed {}", removed.join(" and ")))
 }
 
 const USAGE: &str =
-    "usage: cardinal run worktree open <name> [--path <dir>] [--branch <branch>] | finish <stem> [--force]";
+    "usage: cardinal run worktree open <name> [--path <dir>] [--branch <branch>] | close <name|path> [--force]";
 
 pub(super) fn main(args: &[String]) -> u8 {
     let args: Vec<String> = args.to_vec();
@@ -294,9 +360,9 @@ pub(super) fn main(args: &[String]) -> u8 {
                 _ => Err(USAGE.to_string()),
             }
         }
-        ["finish", stem] => finish(Path::new("."), stem, false),
-        ["finish", stem, "--force"] | ["finish", "--force", stem] => {
-            finish(Path::new("."), stem, true)
+        ["close", target] => close(Path::new("."), target, false),
+        ["close", target, "--force"] | ["close", "--force", target] => {
+            close(Path::new("."), target, true)
         }
         _ => Err(USAGE.to_string()),
     };

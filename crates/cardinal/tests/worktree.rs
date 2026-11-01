@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal tool worktree` (`open` and `finish`) against a throwaway git repository.
+//! Behavior test for `cardinal tool worktree` (`open` and `close`) against a throwaway git repository.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -62,8 +62,9 @@ impl Ctx {
         self.root.join(format!("repo-{name}"))
     }
 
-    fn sibling(&self, stem: &str) -> PathBuf {
-        self.wt(stem)
+    /// Where the former `start-issue` put the worktrees (ADR 0008).
+    fn nested(&self, stem: &str) -> PathBuf {
+        self.repo.join(".claude/worktrees").join(stem)
     }
 
     fn entries(&self) -> usize {
@@ -203,43 +204,32 @@ fn open_refuses_and_changes_nothing(c: &Ctx) -> Checks {
 }
 
 // spec: PAR-6
-fn finish_needs_a_merged_branch(c: &Ctx) -> Checks {
+fn close_needs_a_merged_branch(c: &Ctx) -> Checks {
     std::fs::write(c.wt("x").join("work.txt"), "work\n").unwrap();
     git_ok(&c.wt("x"), &["add", "-A"]);
     git_ok(&c.wt("x"), &["commit", "-qm", "work", "--no-verify"]);
-    let (unmerged, _) = c.run(&c.repo, &["finish", "x"]);
+    let (unmerged, _) = c.run(&c.repo, &["close", "x"]);
     let kept = c.wt("x").is_dir() && branch_exists(&c.repo, "x");
     git_ok(&c.repo, &["merge", "-q", "--ff-only", "x"]);
-    let (merged, _) = c.run(&c.repo, &["finish", "x"]);
+    let (merged, _) = c.run(&c.repo, &["close", "x"]);
     vec![
         (
-            "finish refuses an unmerged branch and keeps both",
+            "close refuses an unmerged branch and keeps both",
             !unmerged && kept,
         ),
         (
-            "finish removes the worktree and the branch once merged",
+            "close removes the worktree and the branch once merged",
             merged && !c.wt("x").exists() && !branch_exists(&c.repo, "x"),
         ),
     ]
 }
 
 // spec: PAR-7
-fn finish_removes_only_a_clean_worktree(c: &Ctx) -> Checks {
+fn close_removes_only_a_clean_worktree(c: &Ctx) -> Checks {
     std::fs::write(c.wt("y").join("dirty.txt"), "wip\n").unwrap();
-    let (dirty, _) = c.run(&c.repo, &["finish", "y"]);
-    let elsewhere = c.root.join("elsewhere");
-    git_ok(
-        &c.repo,
-        &[
-            "worktree",
-            "add",
-            "-q",
-            "-b",
-            "w",
-            elsewhere.to_str().unwrap(),
-        ],
-    );
-    let (stranger, _) = c.run(&c.repo, &["finish", "w"]);
+    let (dirty, _) = c.run(&c.repo, &["close", "y"]);
+    let (by_branch, _) = c.run(&c.repo, &["close", "trunk", "--force"]);
+    let (by_path, _) = c.run(&c.wt("y"), &["close", c.repo.to_str().unwrap(), "--force"]);
     // an agent worktree nested in the issue worktree is ignored there, so `git status` alone does not see it
     let (ok, _) = c.run(&c.repo, &["open", "z"]);
     let agent = c.wt("z").join(".claude/worktrees/agent");
@@ -255,35 +245,35 @@ fn finish_removes_only_a_clean_worktree(c: &Ctx) -> Checks {
         ],
     );
     std::fs::write(agent.join("wip.txt"), "wip\n").unwrap();
-    let (holding, _) = c.run(&c.repo, &["finish", "z", "--force"]);
+    let (holding, _) = c.run(&c.repo, &["close", "z", "--force"]);
     let held = agent.join("wip.txt").is_file() && c.wt("z").is_dir();
     git_ok(
         &c.repo,
         &["worktree", "remove", "--force", agent.to_str().unwrap()],
     );
-    let (freed, _) = c.run(&c.repo, &["finish", "z"]);
+    let (freed, _) = c.run(&c.repo, &["close", "z"]);
     vec![
         (
-            "finish refuses a worktree with uncommitted changes",
+            "close refuses a worktree with uncommitted changes",
             !dirty && c.wt("y").is_dir() && branch_exists(&c.repo, "y"),
         ),
         (
-            "finish refuses, even with --force, a worktree holding another worktree",
+            "close refuses, even with --force, a worktree holding another worktree",
             ok && !holding && held,
         ),
         (
-            "finish removes it once the inner worktree is gone",
+            "close removes it once the inner worktree is gone",
             freed && !c.wt("z").exists() && !branch_exists(&c.repo, "z"),
         ),
         (
-            "finish does not remove a worktree that is not the one of the stem",
-            !stranger && elsewhere.is_dir() && branch_exists(&c.repo, "w"),
+            "close refuses the main worktree, named by its branch or its path",
+            !by_branch && !by_path && c.repo.join(".git").is_dir(),
         ),
     ]
 }
 
 // spec: PAR-15
-fn finish_removes_a_legacy_sibling(c: &Ctx) -> Checks {
+fn close_removes_a_legacy_nested_worktree(c: &Ctx) -> Checks {
     git_ok(
         &c.repo,
         &[
@@ -292,10 +282,10 @@ fn finish_removes_a_legacy_sibling(c: &Ctx) -> Checks {
             "-q",
             "-b",
             "l",
-            c.sibling("l").to_str().unwrap(),
+            c.nested("l").to_str().unwrap(),
         ],
     );
-    let (merged, _) = c.run(&c.repo, &["finish", "l"]);
+    let (merged, _) = c.run(&c.repo, &["close", "l"]);
     git_ok(
         &c.repo,
         &[
@@ -304,26 +294,89 @@ fn finish_removes_a_legacy_sibling(c: &Ctx) -> Checks {
             "-q",
             "-b",
             "k",
-            c.sibling("k").to_str().unwrap(),
+            c.nested("k").to_str().unwrap(),
         ],
     );
-    commit_file(&c.sibling("k"), "k.txt");
-    let (unmerged, _) = c.run(&c.repo, &["finish", "k"]);
-    let (inside, _) = c.run(&c.sibling("k"), &["finish", "k", "--force"]);
-    let kept = c.sibling("k").is_dir() && branch_exists(&c.repo, "k");
-    let (forced, _) = c.run(&c.repo, &["finish", "k", "--force"]);
+    commit_file(&c.nested("k"), "k.txt");
+    let (unmerged, _) = c.run(&c.repo, &["close", "k"]);
+    let (inside, _) = c.run(&c.nested("k"), &["close", "k", "--force"]);
+    let kept = c.nested("k").is_dir() && branch_exists(&c.repo, "k");
+    let (forced, _) = c.run(&c.repo, &["close", "k", "--force"]);
     vec![
         (
-            "finish removes a merged worktree left at <repo>-<stem>",
-            merged && !c.sibling("l").exists() && !branch_exists(&c.repo, "l"),
+            "close removes a merged worktree left under .claude/worktrees/",
+            merged && !c.nested("l").exists() && !branch_exists(&c.repo, "l"),
         ),
         (
-            "finish refuses an unmerged one, and from inside it, keeping both",
+            "close refuses an unmerged one, and from inside it, keeping both",
             !unmerged && !inside && kept,
         ),
         (
-            "finish --force removes it",
-            forced && !c.sibling("k").exists() && !branch_exists(&c.repo, "k"),
+            "close --force removes it",
+            forced && !c.nested("k").exists() && !branch_exists(&c.repo, "k"),
+        ),
+    ]
+}
+
+// spec: PAR-19
+fn close_designates_by_path_name_or_branch(c: &Ctx) -> Checks {
+    // a worktree reused on another branch than its name
+    let (opened, _) = c.run(&c.repo, &["open", "a", "--branch", "b"]);
+    let (by_name, _) = c.run(&c.repo, &["close", "a"]);
+    let named = opened && !c.wt("a").exists() && !branch_exists(&c.repo, "b");
+    // a worktree at a path of the user's, named by its branch, then by its path
+    let elsewhere = c.root.join("elsewhere");
+    let (opened_w, _) = c.run(&c.repo, &["open", "w", "--path", "../elsewhere"]);
+    let (by_branch, _) = c.run(&c.repo, &["close", "w"]);
+    let branched = opened_w && !elsewhere.exists() && !branch_exists(&c.repo, "w");
+    let (opened_p, _) = c.run(&c.repo, &["open", "p", "--path", "../elsewhere"]);
+    let (by_path, _) = c.run(&c.repo, &["close", "../elsewhere"]);
+    let pathed = opened_p && !elsewhere.exists() && !branch_exists(&c.repo, "p");
+    // a merged branch checked out nowhere, such as a stale branch of the former `start-issue`
+    git_ok(&c.repo, &["branch", "stale"]);
+    let (bare, _) = c.run(&c.repo, &["close", "stale"]);
+    // a detached worktree: removed, no branch to delete
+    let detached = c.root.join("detached");
+    git_ok(
+        &c.repo,
+        &[
+            "worktree",
+            "add",
+            "-q",
+            "--detach",
+            detached.to_str().unwrap(),
+        ],
+    );
+    commit_file(&detached, "detached.txt");
+    let (unmerged, _) = c.run(&c.repo, &["close", "../detached"]);
+    let detached_kept = detached.join("detached.txt").is_file();
+    let (gone, _) = c.run(&c.repo, &["close", "../detached", "--force"]);
+    let before = c.entries();
+    let (nothing, msg) = c.run(&c.repo, &["close", "nothing-here"]);
+    vec![
+        (
+            "close <name> removes <repo>-<name> and the branch it has checked out",
+            by_name && named,
+        ),
+        (
+            "close <branch> removes the worktree that has it checked out",
+            by_branch && branched,
+        ),
+        (
+            "close <path> removes the worktree at that path",
+            by_path && pathed,
+        ),
+        (
+            "close deletes a merged branch checked out nowhere",
+            bare && !branch_exists(&c.repo, "stale"),
+        ),
+        (
+            "close refuses a detached worktree with commits off trunk, and --force removes it",
+            !unmerged && detached_kept && gone && !detached.exists(),
+        ),
+        (
+            "close fails, removing nothing, when nothing is designated",
+            !nothing && msg.contains("nothing-here") && c.entries() == before,
         ),
     ]
 }
@@ -335,7 +388,7 @@ fn commit_file(wt: &Path, name: &str) {
 }
 
 // spec: PAR-6
-fn finish_accepts_a_patch_equivalent_branch(c: &Ctx) -> Checks {
+fn close_accepts_a_patch_equivalent_branch(c: &Ctx) -> Checks {
     for stem in ["r", "m"] {
         let (ok, _) = c.run(&c.repo, &["open", stem]);
         assert!(ok);
@@ -345,22 +398,22 @@ fn finish_accepts_a_patch_equivalent_branch(c: &Ctx) -> Checks {
     git_ok(&c.repo, &["cherry-pick", "r"]);
     git_ok(&c.repo, &["merge", "-q", "--squash", "m"]);
     git_ok(&c.repo, &["commit", "-qm", "squash m", "--no-verify"]);
-    let (rebased, _) = c.run(&c.repo, &["finish", "r"]);
-    let (squashed, _) = c.run(&c.repo, &["finish", "m"]);
+    let (rebased, _) = c.run(&c.repo, &["close", "r"]);
+    let (squashed, _) = c.run(&c.repo, &["close", "m"]);
     vec![
         (
-            "finish accepts a rebased branch",
+            "close accepts a rebased branch",
             rebased && !c.wt("r").exists() && !branch_exists(&c.repo, "r"),
         ),
         (
-            "finish accepts a branch squashed from one commit",
+            "close accepts a branch squashed from one commit",
             squashed && !c.wt("m").exists() && !branch_exists(&c.repo, "m"),
         ),
     ]
 }
 
 // spec: PAR-6
-fn finish_accepts_a_squash_of_several_commits(c: &Ctx) -> Checks {
+fn close_accepts_a_squash_of_several_commits(c: &Ctx) -> Checks {
     for stem in ["s", "t"] {
         let (ok, _) = c.run(&c.repo, &["open", stem]);
         assert!(ok);
@@ -372,63 +425,72 @@ fn finish_accepts_a_squash_of_several_commits(c: &Ctx) -> Checks {
             &["commit", "-qm", &format!("squash {stem}"), "--no-verify"],
         );
     }
-    let (squashed, _) = c.run(&c.repo, &["finish", "s"]);
+    let (squashed, _) = c.run(&c.repo, &["close", "s"]);
     // trunk rewrites a squashed file: the content of `t` is no longer all on trunk, so it counts as unmerged.
     std::fs::write(c.repo.join("t1.txt"), "rewritten\n").unwrap();
     git_ok(&c.repo, &["commit", "-qam", "rewrite t1", "--no-verify"]);
-    let (rewritten, _) = c.run(&c.repo, &["finish", "t"]);
+    let (rewritten, _) = c.run(&c.repo, &["close", "t"]);
     vec![
         (
-            "finish accepts a branch squashed from several commits",
+            "close accepts a branch squashed from several commits",
             squashed && !c.wt("s").exists() && !branch_exists(&c.repo, "s"),
         ),
         (
-            "finish keeps a squashed branch whose content trunk changed afterwards",
+            "close keeps a squashed branch whose content trunk changed afterwards",
             !rewritten && c.wt("t").is_dir() && branch_exists(&c.repo, "t"),
         ),
     ]
 }
 
 // spec: PAR-10
-fn finish_forces_work_that_is_not_on_trunk(c: &Ctx) -> Checks {
+fn close_forces_work_that_is_not_on_trunk(c: &Ctx) -> Checks {
     let (ok, _) = c.run(&c.repo, &["open", "u"]);
     assert!(ok);
     commit_file(&c.wt("u"), "u1.txt");
-    let (plain, msg) = c.run(&c.repo, &["finish", "u"]);
+    let (plain, msg) = c.run(&c.repo, &["close", "u"]);
     let kept = c.wt("u").is_dir() && branch_exists(&c.repo, "u");
     std::fs::write(c.wt("u").join("dirty.txt"), "wip\n").unwrap();
-    let (dirty, _) = c.run(&c.repo, &["finish", "u", "--force"]);
+    let (dirty, _) = c.run(&c.repo, &["close", "u", "--force"]);
     let dirty_kept = c.wt("u").is_dir() && branch_exists(&c.repo, "u");
     std::fs::remove_file(c.wt("u").join("dirty.txt")).unwrap();
-    let (forced, _) = c.run(&c.repo, &["finish", "u", "--force"]);
+    let (forced, _) = c.run(&c.repo, &["close", "u", "--force"]);
     vec![
-        ("finish refuses work that is not on trunk without --force, names --force and keeps both", !plain && kept && msg.contains("--force")),
-        ("finish --force still refuses a worktree with uncommitted changes", !dirty && dirty_kept),
-        ("finish --force removes the worktree and the branch", forced && !c.wt("u").exists() && !branch_exists(&c.repo, "u")),
+        (
+            "close refuses work that is not on trunk without --force, names --force and keeps both",
+            !plain && kept && msg.contains("--force"),
+        ),
+        (
+            "close --force still refuses a worktree with uncommitted changes",
+            !dirty && dirty_kept,
+        ),
+        (
+            "close --force removes the worktree and the branch",
+            forced && !c.wt("u").exists() && !branch_exists(&c.repo, "u"),
+        ),
     ]
 }
 
 // spec: PAR-11
-fn finish_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
+fn close_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
     let (ok, _) = c.run(&c.repo, &["open", "c"]);
     assert!(ok);
     let sub = c.wt("c").join("issues");
-    let (inside, msg) = c.run(&c.wt("c"), &["finish", "c"]);
-    let (below, _) = c.run(&sub, &["finish", "c"]);
-    let (forced, _) = c.run(&sub, &["finish", "c", "--force"]);
+    let (inside, msg) = c.run(&c.wt("c"), &["close", "c"]);
+    let (below, _) = c.run(&sub, &["close", "c"]);
+    let (forced, _) = c.run(&sub, &["close", "c", "--force"]);
     let kept = c.wt("c").is_dir() && branch_exists(&c.repo, "c");
     commit_file(&c.wt("c"), "c.txt");
-    let (unmerged, unmerged_msg) = c.run(&c.wt("c"), &["finish", "c"]);
-    let (outside_unmerged, _) = c.run(&c.repo, &["finish", "c"]);
+    let (unmerged, unmerged_msg) = c.run(&c.wt("c"), &["close", "c"]);
+    let (outside_unmerged, _) = c.run(&c.repo, &["close", "c"]);
     git_ok(&c.repo, &["merge", "-q", "--ff-only", "c"]);
-    let (outside, _) = c.run(&c.repo, &["finish", "c"]);
+    let (outside, _) = c.run(&c.repo, &["close", "c"]);
     vec![
         (
-            "finish refuses from the worktree to remove and names the main worktree",
+            "close refuses from the worktree to remove and names the main worktree",
             !inside && msg.contains(c.repo.to_str().unwrap()),
         ),
         (
-            "finish refuses from a subdirectory of it, with or without --force",
+            "close refuses from a subdirectory of it, with or without --force",
             !below && !forced,
         ),
         ("a refusal keeps the worktree and the branch", kept),
@@ -437,7 +499,7 @@ fn finish_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
             !unmerged && unmerged_msg.contains("inside") && !outside_unmerged,
         ),
         (
-            "finish from the main worktree still removes it",
+            "close from the main worktree still removes it",
             outside && !c.wt("c").exists() && !branch_exists(&c.repo, "c"),
         ),
     ]
@@ -471,13 +533,14 @@ fn worktree() {
         open_creates_the_worktree(&c),
         open_copies_the_personal_configuration(&c),
         open_refuses_and_changes_nothing(&c),
-        finish_needs_a_merged_branch(&c),
-        finish_removes_only_a_clean_worktree(&c),
-        finish_removes_a_legacy_sibling(&c),
-        finish_accepts_a_patch_equivalent_branch(&c),
-        finish_accepts_a_squash_of_several_commits(&c),
-        finish_forces_work_that_is_not_on_trunk(&c),
-        finish_refuses_from_inside_the_worktree(&c),
+        close_needs_a_merged_branch(&c),
+        close_removes_only_a_clean_worktree(&c),
+        close_removes_a_legacy_nested_worktree(&c),
+        close_designates_by_path_name_or_branch(&c),
+        close_accepts_a_patch_equivalent_branch(&c),
+        close_accepts_a_squash_of_several_commits(&c),
+        close_forces_work_that_is_not_on_trunk(&c),
+        close_refuses_from_inside_the_worktree(&c),
     ] {
         for (name, ok) in checks {
             println!("{} - {name}", if ok { "ok  " } else { "FAIL" });

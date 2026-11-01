@@ -1,6 +1,6 @@
 # 0023. Worktrees open next to the main one, with no issue
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-01
 
 ## Context

@@ -31,9 +31,10 @@ next-issue *args:
 open-worktree name *flags:
     cardinal run worktree open {{name}} {{flags}}
 
-# Remove the worktree and the branch of an issue once its branch is merged into the main branch (fast-forward, rebase or squash); `--force` also drops work not on the main branch, only after the user agreed.
-finish-issue stem *flags:
-    cardinal run worktree finish {{stem}} {{flags}}
+# Remove a worktree (`<name>` for `../<repo>-<name>`, a path, or a branch) and its branch once merged into the main branch (fast-forward, rebase or squash); `--force` also drops work not on the main branch, only after the user agreed.
+[no-cd]
+close-worktree target *flags:
+    cardinal run worktree close {{target}} {{flags}}
 
 # Prepare a release: no argument prints the proposed version; `<version>` writes its CHANGELOG.md section to reread and commit; `<version> --tag` then creates the local tag (never pushed).
 release *args:

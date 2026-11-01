@@ -50,7 +50,7 @@ The work done before this file existed is in `issues/done/`.
   - [declare_the_hook_only_features](issues/done/declare_the_hook_only_features.md)
   - [declare_the_file_only_features](issues/declare_the_file_only_features.md)
   - [let_a_feature_need_another](issues/done/let_a_feature_need_another.md)
-  - [split_the_managed_recipes_by_feature](issues/split_the_managed_recipes_by_feature.md)
+  - [split_the_managed_recipes_by_feature](issues/done/split_the_managed_recipes_by_feature.md)
   - [turn_off_the_review_gate](issues/turn_off_the_review_gate.md)
   - [turn_off_the_workspace_lock](issues/turn_off_the_workspace_lock.md)
   - [turn_off_conventional_commits](issues/turn_off_conventional_commits.md)

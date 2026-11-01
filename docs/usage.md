@@ -62,6 +62,13 @@ keeps a file the project edited, reported `kept`), installs nothing of them and 
 `check` reports nothing. Removing a name from `disabled` adds them back at the next `sync`. A name the source does not
 declare fails `sync`, writing nothing.
 
+| Feature | Turns off |
+|---|---|
+| `no-ai-attribution` | the rule against AI attribution and the checks of the binary that enforce it |
+| `lint-gate` | the Stop hook that runs the project's lint, for a lint that runs in CI |
+| `format-code` | the hook that formats each edited file, for an editor that formats |
+| `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |
+
 ### The installed launcher
 
 The installed `cardinal` is the launcher of every project of the machine, not a binary of the pinned revision. A

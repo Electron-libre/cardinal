@@ -62,6 +62,9 @@ sequenceDiagram
   its work tree, when the file is named like one of the `format_files`, else `cargo fmt` for a `.rs` file; it prints
   nothing (FMT-1 to FMT-4).
 
+Each code hook, like the `language-hint` hook, is also a feature of `features.toml`: a project whose lint runs in CI,
+or whose editor formats, drops the hook call with `disabled` (FEA-16, `specs/features.md`).
+
 The hooks that run cargo do not trust `CLAUDE_PROJECT_DIR`: a session that entered another worktree keeps it on the
 main one, where another agent may work. `lint-gate` checks the work tree of the event's `cwd` (CLG-6) and
 `format-code` runs `cargo fmt` from the directory of the edited file. For the same reason the seeded `justfile` asks

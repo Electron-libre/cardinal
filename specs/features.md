@@ -29,6 +29,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-13** (deterministic) `files/AGENTS.md` must not hold the rule against AI attribution: a project that turns the feature off loads it nowhere.
 - **FEA-14** (deterministic) `update` must not refuse a revision for a hook the installed `cardinal` cannot run (BIN-16) when that hook is an entry of a feature the project turns off.
 - **FEA-15** (deterministic) `sync` must not seed a path of `seed/` that is also a file of a feature the project turns off.
+- **FEA-16** (deterministic) The source of Cardinal must declare the features `lint-gate`, `format-code` and `language-hint`, each made of the one hook entry of `entries/.claude/settings.json` whose command is `cardinal run <feature>`, and no file.
 
 ## Scenarios
 
@@ -47,4 +48,6 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - Turning off the core of `cardinal` (`sync`, `check`, the lock, the formats and migrations).
 - Rewriting the seeded files of a project whose feature is turned off: the `attribution` of its seeded
   `.claude/settings.json` stays the project's to change.
-- Declaring the features other than `no-ai-attribution`: each comes with its own issue.
+- Declaring the features other than `no-ai-attribution` and the hooks of FEA-16: each comes with its own issue.
+- Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
+  loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).

@@ -616,3 +616,48 @@ fn the_attribution_rule_lives_in_its_feature_alone() {
         &fs::read_to_string(root.join("files/AGENTS.md")).unwrap()
     ));
 }
+
+// spec: FEA-16
+/// Each hook-only feature is the one hook entry that runs its tool, as `sync` prints it, and no file.
+#[test]
+fn the_hook_only_features_are_their_hook_entry() {
+    let root = repo_root();
+    let features: toml::Table = fs::read_to_string(root.join("features.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let settings: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(root.join("entries/.claude/settings.json")).unwrap(),
+    )
+    .unwrap();
+    for feature in ["lint-gate", "format-code", "language-hint"] {
+        let command = format!("cardinal run {feature}");
+        let mut declared = Vec::new();
+        for (event, groups) in settings["hooks"].as_object().unwrap() {
+            for group in groups.as_array().unwrap() {
+                for hook in group["hooks"].as_array().unwrap() {
+                    if hook["command"] == command.as_str() {
+                        let matcher = group["matcher"]
+                            .as_str()
+                            .map(|m| format!("{m} "))
+                            .unwrap_or_default();
+                        declared.push(format!("hook {event} {matcher}{command}"));
+                    }
+                }
+            }
+        }
+        assert_eq!(declared.len(), 1, "{feature}: {declared:?}");
+        let table = features
+            .get(feature)
+            .and_then(|t| t.as_table())
+            .unwrap_or_else(|| panic!("features.toml declares no {feature}"));
+        assert!(table.get("files").is_none(), "{feature}: {table:?}");
+        let entries: Vec<&str> = table["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e.as_str().unwrap())
+            .collect();
+        assert_eq!(entries, declared, "{feature}");
+    }
+}

@@ -6,3 +6,17 @@
 # warning of `check` and rule `commit-attribution` of `rule-breaches`.
 [no-ai-attribution]
 files = [".claude/rules/no-ai-attribution.md"]
+
+# The Stop hook that blocks the end of a turn while the project's lint reports a problem (specs/lint-gate.md), for a
+# project whose lint runs elsewhere, such as in CI.
+[lint-gate]
+entries = ["hook Stop cardinal run lint-gate"]
+
+# The hook that formats each edited file (specs/format-hook.md), for a project whose editor formats.
+[format-code]
+entries = ["hook PostToolUse Edit|Write cardinal run format-code"]
+
+# The Stop hook that sends the agent back when its reply is not in the `user_language` (specs/language-hint.md); rule
+# `user-language` of `rule-breaches` still applies, the rule being the user's.
+[language-hint]
+entries = ["hook Stop cardinal run language-hint"]

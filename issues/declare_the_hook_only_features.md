@@ -36,3 +36,28 @@ Optional features
 # Hints
 * A feature's entry is matched on the exact `hook <event> <matcher> <command>` text: a renamed command in the fragment
   must be renamed in `features.toml` in the same commit, or `sync` fails (FEA-6).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Declare `lint-gate`, `format-code` and `language-hint` in `features.toml`, each its single hook entry. No code in
+`sync`; rule `user-language` keeps applying when `language-hint` is off (non-goal in `specs/features.md`).
+
+## Plan
+1. [x] Hook-only features: the three tables in `features.toml`, a test of the source that each names exactly the hook
+   entry of its command, the docs (`docs/architecture.md` hooks table); verified by the source test and a `sync`
+   dry-run with the three turned off; makes true FEA-16.
+
+## Decisions
+- Mode: autonomous
+- Rule `user-language` keeps applying when `language-hint` is off (question 1 a): a non-goal of `specs/features.md`, no code.
+- Base commit: 36d9afe9f2be68b3990fac6d10ffe9a30572d4ec
+
+## Deliverable 1
+
+- done: `lint-gate`, `format-code` and `language-hint` declared in `features.toml`; docs in `docs/usage.md`,
+  `docs/gates.md`, `README.md`.
+- red: FEA-16: `features.toml declares no lint-gate`.
+- Verified by hand: a fresh project with the three in `disabled` gets the three hooks `removed` by `sync`, `check` passes.

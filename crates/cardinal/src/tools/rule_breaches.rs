@@ -237,11 +237,13 @@ struct Finding {
 }
 
 /// What a session is checked against: the work tree of each `cwd` of its calls, to make paths relative, the managed
-/// paths, the conversation language, and the repository and `start` the committed files are read at.
+/// paths, the conversation language, whether the review gate is on, and the repository and `start` the committed
+/// files are read at.
 struct Context {
     worktrees: HashMap<String, PathBuf>,
     managed: Option<HashSet<String>>,
     language: Option<Language>,
+    gate: bool,
     repo: PathBuf,
     start: String,
 }
@@ -351,9 +353,10 @@ impl Verdict {
         if path.is_empty() {
             return;
         }
-        if Path::new(path)
-            .file_name()
-            .is_some_and(|n| n == "claude-review-waived")
+        if context.gate
+            && Path::new(path)
+                .file_name()
+                .is_some_and(|n| n == "claude-review-waived")
         {
             self.add("review-waiver", blocked, &call.location, String::new());
         }
@@ -457,6 +460,8 @@ impl Verdict {
                     }
                     let before = self.findings.len();
                     match call.name.as_str() {
+                        // a project that turned the review gate off has none of its rules to breach (FEA-26)
+                        "Bash" if !context.gate => {}
                         "Bash" => self.check_bash(call, blocked, &mut refused),
                         "Skill"
                             if call.input["skill"]
@@ -506,7 +511,10 @@ impl Verdict {
                     text,
                     call,
                 } => {
-                    if call.is_some_and(|i| flagged.contains(&i)) || !text.contains("Refused:") {
+                    if !context.gate
+                        || call.is_some_and(|i| flagged.contains(&i))
+                        || !text.contains("Refused:")
+                    {
                         continue;
                     }
                     if text.contains("Refused: only the user waives") {
@@ -701,10 +709,14 @@ fn record(path: &Path) -> Option<Record> {
     let config = committed_config(&repo, &start_text);
     // the personal file has no history: read as it is now, as the transcripts are (BRE-14)
     let language = Language::of(&repo, config.as_ref());
+    let gate = !config
+        .as_ref()
+        .is_some_and(|c| features::turns_off(c, features::REVIEW_GATE));
     let context = Context {
         worktrees,
         managed: managed_paths(&repo, &start_text),
         language,
+        gate,
         repo: repo.clone(),
         start: start_text.clone(),
     };

@@ -20,6 +20,8 @@ const DISABLED: &str = "disabled";
 pub const NO_AI_ATTRIBUTION: &str = "no-ai-attribution";
 /// The feature whose checks hold the commit messages to Conventional Commits.
 pub const CONVENTIONAL_COMMITS: &str = "conventional-commits";
+/// The feature whose hooks and native git hook refuse a commit its code review did not see.
+pub const REVIEW_GATE: &str = "review-gate";
 
 /// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34); and the
 /// features it needs (FEA-17).

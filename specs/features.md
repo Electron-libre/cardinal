@@ -39,6 +39,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-23** (deterministic) The source of Cardinal must declare the feature `review-gate`, made of the hook entries of `entries/.claude/settings.json` whose command is `cardinal run review-gate check` or `cardinal run review-gate record`, the deny rules of REV-19 and the file `cardinal-review.just` (`waive-review`); turned off, `sync` removes the native gate it installed (SYN-60).
 - **FEA-24** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check` must not report `missing: native review gate` nor `modified: native review gate` (SYN-23).
 - **FEA-25** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check`, `sync` and `update` must not print the warnings of SYN-24.
+- **FEA-26** (deterministic) `rule-breaches` must not apply rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` (BRE-4, BRE-5, BRE-6, BRE-21) to a session whose `.claude/cardinal.toml` committed at its `start` (as BRE-14 reads it) turns off the feature `review-gate`: no finding of theirs, and they apply to no such session.
 
 ## Scenarios
 
@@ -54,6 +55,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-21) Given `disabled = ["conventional-commits"]` and the message `Added the parser.` with a body line of 90 characters, when `commit-check` reads it, then it prints nothing and exits 0; with a `Co-Authored-By:` line, it reports that line only.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 - (FEA-23, SYN-60) Given a project that turned `review-gate` off, when it removes the name from `disabled` and runs `sync`, then the hooks, the deny rules, `cardinal-review.just` and the native gate are back, a user's `pre-commit` chained again (SYN-19).
+- (FEA-26) Given a session started after a commit that sets `disabled = ["review-gate"]`, with a `git add -A` and a commit skipping the git hooks, when `rule-breaches` reads it, then it reports no `stage-everything` nor `no-verify` finding and its summary has no row for the four rules.
 
 ## Non-goals
 

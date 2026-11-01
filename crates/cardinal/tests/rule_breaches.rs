@@ -1138,6 +1138,55 @@ fn stage_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: FEA-26
+fn gate_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("gate-off");
+    let repo = new_repo(&tmp.join("off"));
+    let config = "[cardinal]\nsource = \"x\"\nrev = \"r1\"\ndisabled = [\"review-gate\"]\n";
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(".claude/cardinal.toml", config)],
+    );
+    let projects = tmp.join("projects");
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("go");
+    t.run("a1", "Bash", &bash("git add -A"), None);
+    t.run(
+        "a2",
+        "Bash",
+        &bash("git commit -m x"),
+        Some("Refused: run a code review first"),
+    );
+    t.run("a3", "Bash", &bash("git commit --no-verify -m x"), None);
+    t.run("a4", "Bash", &bash("just waive-review"), None);
+    t.run(
+        "a5",
+        "Write",
+        &json!({"file_path": repo.join(".git/claude-review-waived"), "content": "SECRET"}),
+        Some("Refused: only the user waives the review"),
+    );
+    t.write(&projects.join("-off/s.jsonl"));
+    let (ok, out) = run(dir, &projects, false);
+    let (_, summary) = run(dir, &projects, true);
+    let rules = [
+        "no-verify",
+        "stage-everything",
+        "review-waiver",
+        "review-before-commit",
+    ];
+    let quiet = |text: &str| !rules.iter().any(|r| text.contains(&format!("{r}\t")));
+    if !quiet(&out) || !quiet(&summary) {
+        println!("{out}{summary}");
+    }
+    vec![(
+        "a session of a project that turned off review-gate is not checked against its rules"
+            .to_string(),
+        ok && quiet(&out) && quiet(&summary),
+    )]
+}
+
 #[test]
 fn rule_breaches() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1155,6 +1204,7 @@ fn rule_breaches() {
         .chain(routing_checks(&dir, &tmp))
         .chain(waste_checks(&dir, &tmp))
         .chain(stage_checks(&dir, &tmp))
+        .chain(gate_off_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

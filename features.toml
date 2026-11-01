@@ -28,7 +28,8 @@ entries = ["hook Stop cardinal run language-hint"]
 
 # The review gate (specs/review-gate.md): its two hooks, the deny rules of its waiver and the recipe `waive-review`, for
 # a project that reviews in pull requests or a solo user; `sync` then removes the native git gate it installed and
-# gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too.
+# gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too,
+# and the rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` of `rule-breaches`.
 [review-gate]
 files = ["cardinal-review.just"]
 entries = [

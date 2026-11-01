@@ -53,7 +53,8 @@ sequenceDiagram
   moves `pre-commit.user` back in its place (SYN-60); a gate left alone would refuse every commit.
 - **Turned off**: the gate is the feature `review-gate` of `features.toml` (FEA-23): a project that reviews in pull
   requests, or a solo user, lists it in `disabled`, and `sync` removes its hooks, the deny rules, `waive-review` and
-  the native gate; `check` then expects none of them (FEA-24, FEA-25).
+  the native gate; `check` then expects none of them (FEA-24, FEA-25), and `rule-breaches` no longer counts its rules
+  in that project's sessions (FEA-26).
 
 ## The code hooks
 

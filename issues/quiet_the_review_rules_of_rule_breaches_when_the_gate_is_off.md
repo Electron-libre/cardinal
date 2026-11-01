@@ -29,3 +29,32 @@ Optional features
 
 # Resources
 * `crates/cardinal/src/tools/rule_breaches.rs`, `specs/features.md` FEA-11 and FEA-22, `features.toml`.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+`rule-breaches` drops the four rules of the review gate for a session whose project turned `review-gate` off. These
+rules read the session's calls, not its commits: the configuration judged is the one committed at the session's
+`start` (as BRE-14 reads it), not the one "as of that commit" of FEA-11 and FEA-22. The refusals of the hook are out of scope.
+
+## Plan
+1. [x] Quiet the four rules: `Context` carries whether the configuration at `start` turns `review-gate` off, and the
+   rules of `check_bash`, `check_edit` and the refusals read from the errors are skipped then; `features.toml` and the
+   docs name it; verified by a test of `tests/rule_breaches.rs` (a session with `git add -A` and a commit skipping the
+   hooks, its project turning the gate off); makes true FEA-26.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 806fb57eacbca9f6d86d0ee8faf5f67d47792a2e
+- Configuration judged: the one committed at the session's `start` (1 a).
+
+## Summary of deliverable 1
+- done: `rule-breaches` skips the four rules of the review gate for a session whose configuration at `start` turns
+  `review-gate` off; `features.toml` and `docs/gates.md` say it.
+- red: FEA-26: `FAIL - a session of a project that turned off review-gate is not checked against its rules` (the
+  session was reported `stage-everything`).
+- Code review: 2 findings, none fixed: both feared that the skip of `check_bash` and of the `Refused:` errors silenced
+  other rules; `check_bash` applies only the four rules and the error branch adds only `review-waiver` and
+  `review-before-commit`.

@@ -607,6 +607,38 @@ fn commit_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: FEA-11
+fn attribution_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("attribution-off");
+    let repo = new_repo(&tmp.join("off"));
+    let config = "[cardinal]\nsource = \"x\"\nrev = \"r1\"\ndisabled = [\"no-ai-attribution\"]\n";
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(".claude/cardinal.toml", config)],
+    );
+    commit_at(
+        &repo,
+        "2026-02-01T10:10:00Z",
+        "docs: z\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+        &[("a", "1")],
+    );
+    let projects = tmp.join("projects");
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("SECRET start");
+    t.ts = "2026-02-01T11:00:00.000Z".to_string();
+    t.typed("ok");
+    t.write(&projects.join("-off").join("s1.jsonl"));
+    let (ok, out) = run(dir, &projects, false);
+    let (_, summary) = run(dir, &projects, true);
+    vec![(
+        "a commit of a project that turned off no-ai-attribution is not checked for an attribution"
+            .to_string(),
+        ok && !out.contains("commit-attribution") && !summary.contains("commit-attribution"),
+    )]
+}
+
 const FRENCH: &str = "Le livrable est fait : les tests passent et la revue ne trouve rien, donc je committe puis je passe au suivant dans la foulée.";
 const ENGLISH: &str = "The deliverable is done: the tests pass and the review finds nothing, so I commit it and move on to the next one with the plan.";
 /// French with no French stop word and many `an` and `as`, also French words: an English block for the old lists.
@@ -1080,6 +1112,7 @@ fn rule_breaches() {
         .into_iter()
         .chain(summary_checks(&dir, &tmp))
         .chain(commit_checks(&dir, &tmp))
+        .chain(attribution_off_checks(&dir, &tmp))
         .chain(language_checks(&dir, &tmp))
         .chain(language_kind_checks(&dir, &tmp))
         .chain(personal_language_checks(&dir, &tmp))

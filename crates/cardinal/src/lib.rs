@@ -778,9 +778,10 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
         done(path, Outcome::Added) || (root.join(path).is_file() && !done(path, Outcome::Removed))
     };
     let gated = gate::manages(&new_lock.entries, new_lock.files.keys());
+    let attribution = !features::is_off(root, features::NO_AI_ATTRIBUTION);
     report.warnings = match &merge.settings {
-        Some(settings) => settings::warnings_of(settings, gated, &present),
-        None => settings::warnings(base, gated, &present),
+        Some(settings) => settings::warnings_of(settings, gated, &present, attribution),
+        None => settings::warnings(base, gated, &present, attribution),
     };
     report.warnings.extend(merge.warning);
     report
@@ -1185,7 +1186,9 @@ fn check_with(root: &Path, ci: bool) -> Result<Checked> {
             )
         }))
         .collect();
-    let mut warnings = settings::warnings(root, gated, &|path| root.join(path).is_file());
+    let attribution = !features::is_off(root, features::NO_AI_ATTRIBUTION);
+    let mut warnings =
+        settings::warnings(root, gated, &|path| root.join(path).is_file(), attribution);
     if source_and_rev(root).is_ok_and(|(source, _)| is_git_url(&source)) {
         warnings.extend(format_hint(lock.format));
     }

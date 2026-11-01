@@ -1,0 +1,8 @@
+# The features of the managed content a project may turn off with `disabled` in the `[cardinal]` table of its
+# `.claude/cardinal.toml` (specs/features.md, ADR 0025): `files` are paths under files/, `entries` are managed entries
+# of entries/.claude/settings.json as `sync` prints them.
+
+# The rule against AI attribution, and the checks of `commit-check`, `check-commits`, `check-issue`, the attribution
+# warning of `check` and rule `commit-attribution` of `rule-breaches`.
+[no-ai-attribution]
+files = [".claude/rules/no-ai-attribution.md"]

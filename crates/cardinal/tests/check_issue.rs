@@ -167,3 +167,28 @@ fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     cmd.arg("tool").arg(stem);
     cmd
 }
+
+// spec: FEA-9
+/// A co-author trailer is flagged, unless the project turns off the feature `no-ai-attribution`.
+#[test]
+fn an_attribution_line_is_flagged_unless_the_project_turns_off_the_ban() {
+    let body = GOOD.replace("Make it work.", "Co-Authored-By: someone");
+    let (ok, out) = check_front_matter(&body);
+    assert!(!ok && out.contains("attribution line"), "{out}");
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join("issues/done")).unwrap();
+    std::fs::create_dir_all(tmp.path().join(".claude")).unwrap();
+    std::fs::write(
+        tmp.path().join(".claude/cardinal.toml"),
+        "[cardinal]\nsource = \"x\"\ndisabled = [\"no-ai-attribution\"]\n",
+    )
+    .unwrap();
+    std::fs::write(tmp.path().join("issues/a.md"), &body).unwrap();
+    let out = tool_command("check_issue.rs")
+        .arg("issues/a.md")
+        .current_dir(tmp.path())
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(out.status.success() && stdout.is_empty(), "{stdout}");
+}

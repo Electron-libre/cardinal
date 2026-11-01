@@ -317,6 +317,37 @@ fn commit_check_exits_2_when_the_configuration_cannot_be_read() {
     }
 }
 
+// spec: FEA-8
+#[test]
+fn commit_checks_accept_an_attribution_when_the_project_turns_off_the_ban() {
+    let repo = project(Some(
+        "[cardinal]\nsource = \"x\"\ndisabled = [\"no-ai-attribution\"]\n\n[project]\ncommit_scopes = []\n",
+    ));
+    let message = "feat: add flag\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n";
+    let (code, stdout, stderr) = tool(repo.path(), &["commit-check"], message);
+    assert_eq!((code, stdout.as_str()), (0, ""), "{stderr}");
+    let (_, stdout, _) = tool(
+        repo.path(),
+        &["commit-check"],
+        "Feat: Big.\n\nCo-Authored-By: x\n",
+    );
+    assert!(
+        stdout.contains("unknown type") && !stdout.contains("attribution"),
+        "{stdout}"
+    );
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", "chore: start"],
+    );
+    git(repo.path(), &["tag", "base"]);
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", message],
+    );
+    let (code, stdout, _) = tool(repo.path(), &["check-commits", "base", "HEAD"], "");
+    assert_eq!(code, 0, "{stdout}");
+}
+
 #[test]
 fn check_commits_validates_every_non_merge_commit_of_the_range() {
     let repo = project(Some("[project]\ncommit_scopes = []\n"));

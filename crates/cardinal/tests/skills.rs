@@ -527,7 +527,7 @@ const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
     (
         "commit-message",
         "Co-Authored-By",
-        "`AGENTS.md` holds the attribution rule, the checker enforces it",
+        "`.claude/rules/no-ai-attribution.md` holds the attribution rule, the checker enforces it",
     ),
     (
         "issue-workflow",
@@ -589,4 +589,30 @@ fn seeded_roadmap_is_seeded() {
             "the seeded roadmap '{doc}' is not seeded"
         );
     }
+}
+
+// spec: FEA-12, FEA-13
+/// The rule against AI attribution lives in the files of the feature `no-ai-attribution`, so a project that turns it off
+/// loads it nowhere.
+#[test]
+fn the_attribution_rule_lives_in_its_feature_alone() {
+    let root = repo_root();
+    let features: toml::Table = fs::read_to_string(root.join("features.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let files: Vec<&str> = features["no-ai-attribution"]["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_str().unwrap())
+        .collect();
+    assert!(!files.is_empty(), "{features:?}");
+    let holds = |text: &str| text.contains("Co-Authored-By") && text.contains("attribution");
+    assert!(files
+        .iter()
+        .any(|f| holds(&fs::read_to_string(root.join("files").join(f)).unwrap())));
+    assert!(!holds(
+        &fs::read_to_string(root.join("files/AGENTS.md")).unwrap()
+    ));
 }

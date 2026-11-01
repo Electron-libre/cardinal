@@ -7,6 +7,7 @@ use std::io::Read;
 
 use super::cardinal_changes::{expectation, METRICS, RULE_METRIC, WASTE_METRIC};
 use super::{config_list, repo_root};
+use crate::features;
 
 const TYPES: [&str; 9] = [
     "feat", "fix", "refactor", "docs", "test", "perf", "build", "ci", "chore",
@@ -64,8 +65,16 @@ fn check_subject(subject: &str, scopes: &[String], errors: &mut Vec<String>) {
     }
 }
 
-/// The violations of `message`, empty when it is valid.
-pub(super) fn violations(message: &str, scopes: &[String]) -> Vec<String> {
+/// Whether the project of the repository root refuses an AI or tool attribution: true unless it turns off the feature
+/// `no-ai-attribution` (FEA-8).
+pub(super) fn attribution_banned() -> bool {
+    repo_root().map_or(true, |root| {
+        !features::is_off(&root, features::NO_AI_ATTRIBUTION)
+    })
+}
+
+/// The violations of `message`, empty when it is valid; an attribution is one only when `attribution` is banned.
+pub(super) fn violations(message: &str, scopes: &[String], attribution: bool) -> Vec<String> {
     let lines: Vec<&str> = message.lines().collect();
     let mut errors = Vec::new();
     check_subject(lines.first().copied().unwrap_or(""), scopes, &mut errors);
@@ -81,7 +90,7 @@ pub(super) fn violations(message: &str, scopes: &[String]) -> Vec<String> {
             ));
         }
         let lower = line.to_lowercase();
-        if ATTRIBUTION.iter().any(|a| lower.contains(a)) {
+        if attribution && ATTRIBUTION.iter().any(|a| lower.contains(a)) {
             errors.push(format!(
                 "line {n}: no Co-Authored-By trailer or AI/tool attribution allowed"
             ));
@@ -114,7 +123,7 @@ pub(super) fn main(_args: &[String]) -> u8 {
             return 2;
         }
     };
-    let errors = violations(&message, &scopes);
+    let errors = violations(&message, &scopes, attribution_banned());
     for e in &errors {
         println!("{e}");
     }

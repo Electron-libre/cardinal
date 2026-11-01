@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-use super::commit_check::{scopes, violations};
+use super::commit_check::{attribution_banned, scopes, violations};
 
 pub(super) fn main(args: &[String]) -> u8 {
     let [base, head] = args else {
@@ -29,6 +29,7 @@ pub(super) fn main(args: &[String]) -> u8 {
             return 2;
         }
     };
+    let attribution = attribution_banned();
     let mut failed = false;
     for rev in String::from_utf8_lossy(&out.stdout).lines() {
         println!("== {rev}");
@@ -40,7 +41,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 continue;
             }
         };
-        let errors = violations(&message, &scopes);
+        let errors = violations(&message, &scopes, attribution);
         for e in &errors {
             println!("{e}");
         }

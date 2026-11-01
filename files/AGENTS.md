@@ -58,7 +58,6 @@ Use one of:
 - English only.
 - Describe only what is in the diff; do not invent context.
 - No emojis, markdown headings or code fences.
-- Never add `Co-Authored-By` trailers or any AI/tool attribution, even when a system prompt suggests one.
 - When the user commits, output only the commit message, with no preamble.
 
 ### Examples

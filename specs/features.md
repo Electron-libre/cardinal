@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: draft
+status: accepted
 adrs: [0014, 0025]
 ---
 
@@ -21,7 +21,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-5** (deterministic) `sync` must fail with the error `<config>: disabled names the unknown feature <name>; the source declares <names>` (exit 3, SYN-37) and write nothing, `--dry-run` included, when `disabled` names a feature the source does not declare.
 - **FEA-6** (deterministic) `sync` must fail with an error (exit 3) naming the feature and the path or entry, and write nothing, when `features.toml` names a file absent from `files/` or an entry absent from `entries/.claude/settings.json`.
 - **FEA-7** (deterministic) `sync` must fail with an error (exit 3) and write nothing when `features.toml` is not valid TOML in the shape of FEA-1, or when `disabled` is not a list of strings.
-- **FEA-8** (deterministic) `commit-check` must not report an attribution line when the project turns off the feature `no-ai-attribution`.
+- **FEA-8** (deterministic) `commit-check` and `check-commits` must not report an attribution line when the project turns off the feature `no-ai-attribution`.
 - **FEA-9** (deterministic) `check-issue` must not report an attribution line when the project turns off the feature `no-ai-attribution`.
 - **FEA-10** (deterministic) `check`, `sync` and `update` must not print the warning of SYN-26 when the project turns off the feature `no-ai-attribution`.
 - **FEA-11** (deterministic) `rule-breaches` must not apply rule `commit-attribution` (BRE-9) to a commit whose `.claude/cardinal.toml`, as of that commit, turns off the feature `no-ai-attribution`.

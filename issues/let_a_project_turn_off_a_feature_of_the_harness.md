@@ -84,7 +84,7 @@ scope: the other features, dependencies between features, a personal opt-out.
 ## Plan
 1. [x] Turn off a feature at sync: `features.toml`, `disabled`, files and entries left out, errors, format 7, ADR
    0025; verified by sync and check tests through the binary; makes true FEA-1 to FEA-7. ~600 lines.
-2. [ ] Feature `no-ai-attribution`: the rule moves from `files/AGENTS.md` to `files/.claude/rules/no-ai-attribution.md`,
+2. [x] Feature `no-ai-attribution`: the rule moves from `files/AGENTS.md` to `files/.claude/rules/no-ai-attribution.md`,
    declared in `features.toml`, and `commit-check`, `check-issue`, the SYN-26 warning and rule `commit-attribution`
    read `disabled`; verified by the CLI tests of each tool and a test of the source; makes true FEA-8 to FEA-13.
    ~400 lines.
@@ -104,3 +104,12 @@ scope: the other features, dependencies between features, a personal opt-out.
   `features::left_out` replaced by an empty `Left` (the file still added, `sync` exit 0 on an unknown name); FEA-4
   holds by construction (nothing out of the lock is reported) and its test passed red too.
 - not verified: a real consumer with a git source synced to format 7.
+
+## Deliverable 2
+- done: the rule moved to `files/.claude/rules/no-ai-attribution.md`, declared in `features.toml`; `commit-check`,
+  `check-commits` (FEA-8 widened to it: the CI would refuse the trailer otherwise), `check-issue`, the SYN-26 warning
+  and rule `commit-attribution` read `disabled`; spec accepted.
+- red: FEA-8, FEA-9, FEA-10, FEA-11, FEA-12, FEA-13: each new test failed before the code (attribution reported by
+  `commit-check` and `check-issue`, the SYN-26 warning printed, the `commit-attribution` row present, no
+  `features.toml`).
+- not verified: a consumer that turns the feature off and commits with a co-author trailer through Claude Code.

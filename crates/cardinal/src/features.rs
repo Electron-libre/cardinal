@@ -16,6 +16,9 @@ use crate::{config_of, CONFIG, TABLE};
 pub const SOURCE: &str = "features.toml";
 /// The key of the `[cardinal]` table that lists the features the project turns off.
 const DISABLED: &str = "disabled";
+/// The feature whose checks refuse an AI or tool attribution in commits and issues.
+pub const NO_AI_ATTRIBUTION: &str = "no-ai-attribution";
+
 /// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34).
 #[derive(Debug, Default)]
 struct Feature {
@@ -92,6 +95,25 @@ pub fn disabled(root: &Path) -> Result<Vec<String>> {
         None => Ok(Vec::new()),
         Some(value) => strings(value).with_context(|| format!("{CONFIG}: [{TABLE}] {DISABLED}")),
     }
+}
+
+/// Whether the configuration `config` turns off the feature `name`.
+pub fn turns_off(config: &toml::Table, name: &str) -> bool {
+    config
+        .get(TABLE)
+        .and_then(|t| t.get(DISABLED))
+        .and_then(toml::Value::as_array)
+        .is_some_and(|names| names.iter().any(|n| n.as_str() == Some(name)))
+}
+
+/// Whether the project at `root` turns off the feature `name`; false when its configuration cannot be read, so a check
+/// stays on rather than silently off.
+#[must_use]
+pub fn is_off(root: &Path, name: &str) -> bool {
+    fs::read_to_string(config_of(root))
+        .ok()
+        .and_then(|text| text.parse::<toml::Table>().ok())
+        .is_some_and(|config| turns_off(&config, name))
 }
 
 /// What `sync` leaves out of `files` and `entries`, the managed content of `source`, for the project at `root`. An

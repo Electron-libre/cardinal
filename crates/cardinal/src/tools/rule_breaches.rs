@@ -12,6 +12,7 @@ use super::commit_check::BUILT_IN_SCOPES;
 use super::language::{is_hint, Language};
 use super::shell;
 use super::transcripts;
+use crate::features;
 
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
@@ -582,6 +583,13 @@ fn conventional(subject: &str, scopes: &[String]) -> bool {
         && !description.ends_with('.')
 }
 
+/// Whether the configuration of `commit` in `repo` turns off the feature `no-ai-attribution`.
+fn attribution_off(repo: &Path, commit: &str) -> bool {
+    shown(repo, commit, &CONFIGS)
+        .and_then(|t| t.parse::<toml::Table>().ok())
+        .is_some_and(|config| features::turns_off(&config, features::NO_AI_ATTRIBUTION))
+}
+
 /// The `commit_scopes` of the configuration of `commit` in `repo`, the one `just check-commit` read.
 fn commit_scopes(repo: &Path, commit: &str) -> Vec<String> {
     let config = shown(repo, commit, &CONFIGS).and_then(|t| t.parse::<toml::Table>().ok());
@@ -643,11 +651,13 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
             continue;
         };
         let verdict = &mut record.verdict;
-        verdict
-            .applied
-            .extend(["commit-attribution", "commit-format"]);
-        if attributed(message) {
-            verdict.add("commit-attribution", false, "", hash.to_string());
+        verdict.applied.insert("commit-format");
+        // a project that turned the ban off at that commit has no attribution rule to breach (FEA-11)
+        if !attribution_off(repo, full) {
+            verdict.applied.insert("commit-attribution");
+            if attributed(message) {
+                verdict.add("commit-attribution", false, "", hash.to_string());
+            }
         }
         if !conventional(
             message.lines().next().unwrap_or_default(),

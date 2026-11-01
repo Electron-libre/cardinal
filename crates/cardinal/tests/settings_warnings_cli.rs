@@ -310,3 +310,23 @@ fn the_shipped_settings_entries_deny_the_waiver_to_the_agent() {
     let run = home.harness(root.path(), &["check"]);
     assert!(!run.stderr.contains("lacks the deny rule"), "{run:?}");
 }
+
+// spec: FEA-10
+#[test]
+fn no_attribution_warning_when_the_project_turns_off_the_ban() {
+    let home = Home::new();
+    let (source, root) = project(&home);
+    put(source.path(), "features.toml", "[no-ai-attribution]\n");
+    let config = get(root.path(), CONFIG).unwrap();
+    let config = config.replacen(
+        "[cardinal]\n",
+        "[cardinal]\ndisabled = [\"no-ai-attribution\"]\n",
+        1,
+    );
+    put(root.path(), CONFIG, &config);
+    put(root.path(), SETTINGS, "{}");
+    let sync = home.ok(root.path(), &["sync"]);
+    assert!(warnings(&sync).is_empty(), "{sync:?}");
+    let run = check(&home, &root);
+    assert!(warnings(&run).is_empty(), "{run:?}");
+}

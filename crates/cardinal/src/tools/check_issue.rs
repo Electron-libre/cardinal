@@ -2,6 +2,7 @@
 //! (`specs/check-issue.md`).
 //! Usage: `just check-issue issues/foo.md`. Prints one line per problem, exit 1 if any.
 
+use crate::features;
 use std::path::Path;
 
 use super::next_issue;
@@ -98,12 +99,18 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
                 .to_string(),
         );
     }
+    // the root of the project holds `issues/` (FEA-9)
+    let root = path
+        .parent()
+        .and_then(Path::parent)
+        .unwrap_or(Path::new(""));
+    let attribution = !features::is_off(root, features::NO_AI_ATTRIBUTION);
     for (i, line) in text.lines().enumerate() {
         let n = i + 1;
         if line.contains("/home/") || line.contains("~/") || line.contains("/Users/") {
             out.push(format!("line {n}: private path"));
         }
-        if line.to_ascii_lowercase().contains("co-authored-by") {
+        if attribution && line.to_ascii_lowercase().contains("co-authored-by") {
             out.push(format!("line {n}: attribution line"));
         }
     }

@@ -76,13 +76,11 @@ pub enum State {
 
 /// What `sync` will do about the gate, decided before anything is written.
 #[derive(Debug)]
-pub struct Plan {
-    hooks: PathBuf,
-    state: State,
-    /// Whether the gate is wanted: if not, ours is removed.
-    wanted: bool,
-    /// Whether a hook of the user is chained to the gate, read before the gate is written or removed.
-    chained: bool,
+pub enum Plan {
+    /// Write the gate over what the hooks directory holds as `pre-commit`.
+    Install { hooks: PathBuf, state: State },
+    /// Remove ours, the source no longer managing the gate; `chained` when a hook of the user goes back in its place.
+    Remove { hooks: PathBuf, chained: bool },
 }
 
 /// The output of `git args` run in `dir`, `None` when it fails. The repository is the project's, not the one a hook or an
@@ -193,12 +191,7 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
         // a gate left in place would refuse every commit, nothing recording a review any more
         let ours = matches!(state, State::Modified | State::UpToDate);
         let chained = fs::symlink_metadata(hooks.join(CHAINED)).is_ok();
-        return Ok(ours.then_some(Plan {
-            hooks,
-            state,
-            wanted: false,
-            chained,
-        }));
+        return Ok(ours.then_some(Plan::Remove { hooks, chained }));
     }
     if state == State::Foreign && hooks.join(CHAINED).exists() {
         bail!(
@@ -207,34 +200,32 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
             hooks.join(CHAINED).display()
         );
     }
-    Ok(Some(Plan {
-        hooks,
-        state,
-        wanted: true,
-        chained: false,
-    }))
+    Ok(Some(Plan::Install { hooks, state }))
 }
 
 impl Plan {
     /// What the report says, in order.
     #[must_use]
     pub fn outcomes(&self) -> Vec<(String, Outcome)> {
-        let mut out = Vec::new();
-        if !self.wanted {
-            out.push((GATE.to_string(), Outcome::Removed));
-            if self.chained {
-                out.push(("pre-commit.user -> pre-commit".to_string(), Outcome::Moved));
+        let state = match self {
+            Plan::Install { state, .. } => state,
+            Plan::Remove { chained, .. } => {
+                let mut out = vec![(GATE.to_string(), Outcome::Removed)];
+                if *chained {
+                    out.push(("pre-commit.user -> pre-commit".to_string(), Outcome::Moved));
+                }
+                return out;
             }
-            return out;
-        }
-        if self.state == State::Redirected {
+        };
+        let mut out = Vec::new();
+        if *state == State::Redirected {
             let why = "not installed: core.hooksPath is set, so git reads its hooks elsewhere; add `cardinal run review-gate native` to your own pre-commit, run from the top of the work tree";
             return vec![(GATE.to_string(), Outcome::Skipped(why))];
         }
-        if self.state == State::Foreign {
+        if *state == State::Foreign {
             out.push(("pre-commit -> pre-commit.user".to_string(), Outcome::Moved));
         }
-        let outcome = match self.state {
+        let outcome = match state {
             State::Missing | State::Foreign => Outcome::Added,
             State::Modified => Outcome::Updated,
             State::UpToDate | State::Redirected => Outcome::Unchanged,
@@ -243,50 +234,60 @@ impl Plan {
         out
     }
 
-    /// Write the hook, or remove it when it is no longer wanted.
+    /// Whether the plan removes the gate.
+    #[must_use]
+    pub fn removes(&self) -> bool {
+        matches!(self, Plan::Remove { .. })
+    }
+
+    /// Write the hook, or remove it.
     ///
     /// # Errors
     /// When a file cannot be moved, written or removed.
     pub fn apply(&self) -> Result<()> {
-        if !self.wanted {
-            return self.uninstall();
+        match self {
+            Plan::Install { hooks, state } => install(hooks, state),
+            Plan::Remove { hooks, chained } => uninstall(hooks, *chained),
         }
-        if matches!(self.state, State::UpToDate | State::Redirected) {
-            return Ok(());
-        }
-        let hook = self.hooks.join("pre-commit");
-        // the new hook is complete before the hook of the user moves, so a failure never leaves the repository
-        // with no hook at all
-        let staged = self.hooks.join("pre-commit.cardinal-new");
-        write(&staged, SCRIPT.as_bytes())?;
-        set_executable(&staged, true)?;
-        if self.state == State::Foreign {
-            let chained = self.hooks.join(CHAINED);
-            if fs::symlink_metadata(&hook)?.is_symlink() {
-                // a relative link would point elsewhere once moved: keep the target it reaches now
-                let target = fs::canonicalize(&hook)?;
-                fs::remove_file(&hook)?;
-                symlink(&target, &chained)?;
-            } else {
-                fs::rename(&hook, &chained)?;
-            }
-        } else if self.state == State::Modified {
-            // never write through a link
-            fs::remove_file(&hook)?;
-        }
-        fs::rename(&staged, &hook)?;
-        Ok(())
     }
+}
 
-    /// Remove the gate and put the hook of the user it chained back in its place, a link moved as a link.
-    fn uninstall(&self) -> Result<()> {
-        let hook = self.hooks.join("pre-commit");
-        if self.chained {
-            // one rename replaces the gate, so the repository is never left without the user's hook
-            fs::rename(self.hooks.join(CHAINED), &hook)?;
-        } else {
-            fs::remove_file(&hook)?;
-        }
-        Ok(())
+fn install(hooks: &Path, state: &State) -> Result<()> {
+    if matches!(state, State::UpToDate | State::Redirected) {
+        return Ok(());
     }
+    let hook = hooks.join("pre-commit");
+    // the new hook is complete before the hook of the user moves, so a failure never leaves the repository
+    // with no hook at all
+    let staged = hooks.join("pre-commit.cardinal-new");
+    write(&staged, SCRIPT.as_bytes())?;
+    set_executable(&staged, true)?;
+    if *state == State::Foreign {
+        let chained = hooks.join(CHAINED);
+        if fs::symlink_metadata(&hook)?.is_symlink() {
+            // a relative link would point elsewhere once moved: keep the target it reaches now
+            let target = fs::canonicalize(&hook)?;
+            fs::remove_file(&hook)?;
+            symlink(&target, &chained)?;
+        } else {
+            fs::rename(&hook, &chained)?;
+        }
+    } else if *state == State::Modified {
+        // never write through a link
+        fs::remove_file(&hook)?;
+    }
+    fs::rename(&staged, &hook)?;
+    Ok(())
+}
+
+/// Remove the gate and put the hook of the user it chained back in its place, a link moved as a link.
+fn uninstall(hooks: &Path, chained: bool) -> Result<()> {
+    let hook = hooks.join("pre-commit");
+    if chained {
+        // one rename replaces the gate, so the repository is never left without the user's hook
+        fs::rename(hooks.join(CHAINED), &hook)?;
+    } else {
+        fs::remove_file(&hook)?;
+    }
+    Ok(())
 }

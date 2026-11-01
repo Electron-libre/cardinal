@@ -706,21 +706,15 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
         &fs::read_to_string(root.join("entries/.claude/settings.json")).unwrap(),
     )
     .unwrap();
-    let mut declared = Vec::new();
-    for rule in [
-        "Bash(just waive-review)",
-        "Bash(just waive-review *)",
-        "Edit(//**/claude-review-waived)",
-    ] {
-        assert!(
-            settings["permissions"]["deny"]
-                .as_array()
-                .unwrap()
-                .contains(&rule.into()),
-            "{rule}"
-        );
-        declared.push(format!("deny {rule}"));
-    }
+    // the deny rules of the waiver (REV-19), read from the entries so that a new one is declared too
+    let mut declared: Vec<String> = settings["permissions"]["deny"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|rule| rule.as_str().unwrap())
+        .filter(|rule| rule.contains("waive-review") || rule.contains("claude-review-waived"))
+        .map(|rule| format!("deny {rule}"))
+        .collect();
     for (event, groups) in settings["hooks"].as_object().unwrap() {
         for group in groups.as_array().unwrap() {
             for hook in group["hooks"].as_array().unwrap() {

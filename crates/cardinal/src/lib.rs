@@ -711,9 +711,11 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
     let (files, wanted) = turned_on(root, source, &all_files, wanted)?;
     // decided first: a hook of the user that cannot be chained stops the sync before it writes anything
     let gate = gate::plan(root, gate::manages(&wanted, files.iter()))?;
-    // installed or removed before the managed files are written, so a failure leaves the project as it was
+    // installed before the managed files are written, so a failure leaves the project as it was
     if let (Some(gate), false) = (&gate, options.dry_run) {
-        gate.apply()?;
+        if !gate.removes() {
+            gate.apply()?;
+        }
     }
     let mut report = Report::default();
 
@@ -736,7 +738,9 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
     }
     report.entries.extend(merge.outcomes);
 
-    if let Some(gate) = gate {
+    // removed only when the lock no longer records the gate: settings left alone keep its hooks (SYN-60)
+    let gate = gate.filter(|gate| !gate.removes() || !gate::manages(&merge.lock, files.iter()));
+    if let Some(gate) = &gate {
         report.entries.extend(gate.outcomes());
     }
 
@@ -765,6 +769,10 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
     let rewritten = rewrite_seeded(root, &migrations, &file_set, &as_left, options, &mut report)?;
     if !options.dry_run {
         write_lock(root, &new_lock, format)?;
+        // removed last: a sync that fails before leaves the gate its lock still records, the next one removes it
+        if let Some(gate) = gate.filter(gate::Plan::removes) {
+            gate.apply()?;
+        }
     }
     // judged on the project as the sync leaves it, or would under `--dry-run`
     let done = |path: &str, outcome| report.outcome(path) == Some(outcome);

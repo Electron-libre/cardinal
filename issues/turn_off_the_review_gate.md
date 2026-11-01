@@ -98,3 +98,36 @@ review-gate`; FEA-24, FEA-25: none, their test passed at once (the checks follow
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Deliverable 3: docs and `high` review fixes
+
+done: `docs/usage.md` says `sync` removes the gate; the gate is removed after the lock is written and only when that
+lock records no gate (settings left alone keep it); `gate::Plan` is an enum; tests cover the older mark, settings left
+alone, and read the deny rules from the entries; `specs/sync.md` scenario and non-goal (shared hooks of worktrees).
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | traced |
+| docs | `docs/usage.md`, `specs/sync.md` |
+| code review | `/code-review high` on the issue, then `/code-review low` |
+
+red: SYN-60: none, the test of settings left alone was written with the fix.
+
+Code review (`high`): 10 findings
+1. `rule-breaches` still applies the gate's rules: outside the requirements, issue
+   `issues/quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off.md`.
+2. Gate removed while the lock of left-alone settings records it: fixed (removal judged on the lock written).
+3. Worktrees share the hooks: not fixed, as the install already does; non-goal in `specs/sync.md`.
+4. Removal before a failing write: fixed (removed after the lock is written).
+5. A symlink restored absolute: not fixed, the install already made it absolute; SYN-60 says the target it reaches.
+6. Three `git` calls per sync with no gate: not fixed, negligible next to a sync.
+7. `Plan` with dead fields: fixed (an enum).
+8. Dangling `pre-commit.user` at install: pre-existing, issue `issues/guard_a_dangling_chained_hook_at_the_gate_install.md`.
+9. The older mark untested: fixed.
+10. The deny rules hardcoded in the test: fixed (read from the entries).
+
+Code review (`low`): no findings
+
+not verified: none. decisions needed: none.

@@ -572,16 +572,19 @@ fn sync_removes_the_gate_once_the_source_no_longer_manages_it() {
     assert!(fs::symlink_metadata(pre_commit(&root)).is_err());
     assert_eq!(home.ok(root.path(), &["sync"]).outcome(GATE), None);
 
-    // an edited gate, or one of an older revision, is ours too
-    let (source, root) = synced(&home);
-    let managed = get(root.path(), ".git/hooks/pre-commit").unwrap();
-    fs::write(pre_commit(&root), managed.replace("cardinal: review", "x")).unwrap();
-    drop_gate(&source);
-    assert_eq!(
-        home.ok(root.path(), &["sync"]).outcome(GATE),
-        Some("removed")
-    );
-    assert!(fs::symlink_metadata(pre_commit(&root)).is_err());
+    // an edited gate, or one of the revisions that wrote the other mark, is ours too
+    for (from, to) in [
+        ("cardinal: review", "x"),
+        ("# harness: native", "# cardinal: native"),
+    ] {
+        let (source, root) = synced(&home);
+        let managed = get(root.path(), ".git/hooks/pre-commit").unwrap();
+        fs::write(pre_commit(&root), managed.replace(from, to)).unwrap();
+        drop_gate(&source);
+        let sync = home.ok(root.path(), &["sync"]);
+        assert_eq!(sync.outcome(GATE), Some("removed"), "{to}: {sync:?}");
+        assert!(fs::symlink_metadata(pre_commit(&root)).is_err(), "{to}");
+    }
 }
 
 // spec: SYN-60
@@ -723,4 +726,17 @@ fn a_review_gate_turned_off_is_removed_and_checked_no_more() {
     let sync = home.ok(root.path(), &["sync"]);
     assert_eq!(sync.outcome(GATE), Some("added"), "{sync:?}");
     assert_eq!(sync.outcome(MOVED), Some("moved"), "{sync:?}");
+}
+
+// spec: SYN-60
+#[test]
+fn a_gate_whose_settings_are_left_alone_stays() {
+    let home = Home::new();
+    let (source, root) = synced(&home);
+    // settings sync cannot read keep the review hook, and the lock records it still
+    put(root.path(), ".claude/settings.json", "{ not json");
+    drop_gate(&source);
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), None, "{sync:?}");
+    assert!(get(root.path(), ".git/hooks/pre-commit").is_some_and(|t| t.contains(GATE)));
 }

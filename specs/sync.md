@@ -73,7 +73,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - **SYN-57** (deterministic) When `.claude/cardinal.toml` is not valid TOML or its `[cardinal].source` is not a non-empty string, `.github/install_cardinal.sh` must fail (exit 1) with `no source read from .claude/cardinal.toml` on stderr and run no install.
 - **SYN-58** (deterministic) When the runner has no `python3` of version 3.11 or later (the first with `tomllib`), `.github/install_cardinal.sh` must fail (exit 1) with an error on stderr that names Python 3.11 and run no install.
 - **SYN-59** (deterministic) After `sync` into a git repository, git must ignore `.claude/cardinal.local.toml`, the personal configuration (ADR 0018), which `sync` and `check` never read, write nor report.
-- **SYN-60** (deterministic) When the project is the top of a git repository whose `core.hooksPath` is unset and whose source, as the project turns it on (FEA-3), manages no hook of the review gate (SYN-22), `sync` must remove a `pre-commit` of the hooks directory that carries the mark of SYN-18 (up to date, edited or of an older revision), report `removed: native review gate`, and move a `pre-commit.user` back to `pre-commit` reporting `moved: pre-commit.user -> pre-commit`, keeping its content, its mode and, for a symbolic link, its target; a `pre-commit` without the mark and a `pre-commit.user` with no gate of ours are left untouched; `--dry-run` reports the same and writes nothing. A gate left in place would refuse every commit, no review hook being there to record one.
+- **SYN-60** (deterministic) When the project is the top of a git repository whose `core.hooksPath` is unset and whose source, as the project turns it on (FEA-3), manages no hook of the review gate (SYN-22) and the lock it writes records none (settings it leaves alone, SYN-29, keep the hooks and the gate), `sync` must remove a `pre-commit` of the hooks directory that carries the mark of SYN-18 (up to date, edited or of an older revision), report `removed: native review gate`, and move a `pre-commit.user` back to `pre-commit` reporting `moved: pre-commit.user -> pre-commit`, keeping its content, its mode and, for a symbolic link, the target it reaches; a `pre-commit` without the mark and a `pre-commit.user` with no gate of ours are left untouched; `--dry-run` reports the same and writes nothing. A gate left in place would refuse every commit, no review hook being there to record one.
 
 ## Scenarios
 
@@ -123,10 +123,13 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - (SYN-56) Given a `rev` that is not a string, when the installer runs, then it installs with no `rev`, as `cardinal` reads none.
 - (SYN-57) Given a `source = ""` or a `source = 1`, when the installer runs, then it fails with the no-source error.
 - (SYN-60) Given a gate installed with a user's `pre-commit` chained, when the project turns the feature `review-gate` off and runs `sync`, then the user's hook is `pre-commit` again and a commit runs it; a second `sync` reports nothing about the gate.
+- (SYN-60) Given a `.claude/settings.json` that is not valid JSON, when the source no longer manages the gate, then `sync` leaves the gate: the lock still records its hooks.
 - (SYN-60) Given `core.hooksPath` set, when the source no longer manages the gate, then `sync` touches no hook, the one under `.git/hooks` included.
 
 ## Non-goals
 
+- The worktrees of one repository share its hooks directory (SYN-21): a `sync` in one of them installs or removes
+  the gate for all, as its own `.claude/cardinal.toml` says.
 - Installing the gate under a `core.hooksPath` the project sets itself.
 - Merging a local change with a source change: a drifted file is fixed in the central repository.
 - Fetching more than a branch, tag or commit of a git source.

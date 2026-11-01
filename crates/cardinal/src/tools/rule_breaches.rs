@@ -673,7 +673,7 @@ fn record(path: &Path) -> Option<Record> {
     let (Some((start, start_text)), Some(end)) = (place.start.clone(), place.end) else {
         return None;
     };
-    let repo = repository(&cwd).filter(|_| !cwd.is_empty())?;
+    let repo = repository(&cwd, &place.issues)?;
     let revision = revision(&repo, &start_text);
     if revision.is_empty() {
         return None;

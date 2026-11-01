@@ -256,8 +256,12 @@ pub fn git_bytes(dir: &Path, args: &[&str]) -> Option<Vec<u8>> {
 
 /// The main worktree of the repository holding `cwd`: a linked worktree counts with its main repository, a submodule
 /// or a separate git directory is its own work tree. A removed worktree under `<repo>/.claude/worktrees/` (ADR 0008),
-/// or a removed `<repo>-<x>` (ADR 0003, ADR 0023), counts with `<repo>` when that one still exists, the longest first.
-pub fn repository(cwd: &str) -> Option<PathBuf> {
+/// or a removed `<repo>-<x>` (ADR 0003, ADR 0023), counts with `<repo>` when that one still exists; `None` for an
+/// empty `cwd`.
+pub fn repository(cwd: &str, branches: &[String]) -> Option<PathBuf> {
+    if cwd.is_empty() {
+        return None;
+    }
     let dir = Path::new(cwd);
     if !dir.exists() {
         let nested = dir
@@ -266,16 +270,14 @@ pub fn repository(cwd: &str) -> Option<PathBuf> {
             .and_then(|a| a.parent()?.parent());
         if let Some(found) = nested
             .filter(|r| r.exists())
-            .and_then(|r| repository(r.to_str()?))
+            .and_then(|r| repository(r.to_str()?, &[]))
         {
             return Some(found);
         }
-        let name = dir.file_name()?.to_string_lossy().into_owned();
-        return name
-            .rmatch_indices('-')
-            .map(|(i, _)| dir.with_file_name(&name[..i]))
-            .filter(|r| r.exists())
-            .find_map(|r| repository(r.to_str()?));
+        return dir
+            .ancestors()
+            .take_while(|a| !a.exists())
+            .find_map(|gone| sibling(gone, branches));
     }
     let common = PathBuf::from(git(
         dir,
@@ -286,6 +288,25 @@ pub fn repository(cwd: &str) -> Option<PathBuf> {
     } else {
         git(dir, &["rev-parse", "--show-toplevel"]).map(PathBuf::from)
     }
+}
+
+/// The repository of a removed `<repo>-<x>`: `<repo>` when it is the top level of a git work tree, `<x>` a branch of
+/// the session first, else the longest such `<repo>`.
+fn sibling(gone: &Path, branches: &[String]) -> Option<PathBuf> {
+    let name = gone.file_name()?.to_str()?;
+    let by_branch = branches
+        .iter()
+        .filter_map(|b| name.strip_suffix(&format!("-{b}")));
+    let by_prefix = name.rmatch_indices('-').map(|(i, _)| &name[..i]);
+    by_branch
+        .chain(by_prefix)
+        .filter(|r| !r.is_empty())
+        .map(|r| gone.with_file_name(r))
+        .filter(|r| {
+            git(r, &["rev-parse", "--show-toplevel"])
+                .is_some_and(|top| r.canonicalize().is_ok_and(|r| Path::new(&top) == r))
+        })
+        .find_map(|r| repository(r.to_str()?, &[]))
 }
 
 /// The project of a session: the name of its repository, else the last component of `cwd`.

@@ -438,13 +438,9 @@ pub(super) fn main(args: &[String]) -> u8 {
             }
             let id = path.file_stem().unwrap().to_string_lossy().into_owned();
             let cwd = session.place.cwd.clone().unwrap_or_default();
-            let repo = repositories.entry(cwd.clone()).or_insert_with(|| {
-                if cwd.is_empty() {
-                    None
-                } else {
-                    repository(&cwd)
-                }
-            });
+            let repo = repositories
+                .entry(cwd.clone())
+                .or_insert_with(|| repository(&cwd, &session.place.issues));
             let start = session.place.start_text();
             let revision = repo
                 .as_deref()

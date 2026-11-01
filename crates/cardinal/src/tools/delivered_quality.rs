@@ -646,7 +646,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         };
         let resolved = repositories
             .entry(cwd.clone())
-            .or_insert_with(|| repository(&cwd));
+            .or_insert_with(|| repository(&cwd, &place.issues));
         if repo.is_some() && *resolved == repo {
             found.push(Session {
                 branches: place.issues,

@@ -186,6 +186,29 @@ fn first_session(worktree: &Path) -> String {
     .concat()
 }
 
+/// The sessions of removed worktrees named apart from their branches, next to `repo` and to a repository `myrepo-docs`.
+fn renamed_worktrees(tmp: &Path, repo: &Path, proj: &Path) {
+    let docs = tmp.join("myrepo-docs");
+    git_repo(&docs);
+    std::fs::create_dir_all(repo.join("plain")).unwrap();
+    for (id, cwd, branch) in [
+        ("s7", tmp.join("myrepo-feat"), "issue-b"),
+        ("s8", tmp.join("myrepo-docs-fix"), "docs-fix"),
+        ("s9", tmp.join("myrepo-docs-x/crates"), "main"),
+        ("s10", repo.join("plain-x"), "main"),
+    ] {
+        let session = line(
+            "user",
+            &cwd,
+            "2026-10-26T09:00:00.000Z",
+            &format!(
+                ",\"gitBranch\":\"{branch}\",\"message\":{{\"role\":\"user\",\"content\":\"ok\"}}"
+            ),
+        );
+        std::fs::write(proj.join(format!("{id}.jsonl")), session).unwrap();
+    }
+}
+
 /// Builds the fixture projects directory; returns (projects dir, main repository).
 fn fixture(tmp: &Path) -> (PathBuf, PathBuf) {
     let repo = tmp.join("myrepo");
@@ -251,14 +274,7 @@ fn fixture(tmp: &Path) -> (PathBuf, PathBuf) {
         ",\"gitBranch\":\"gone_nested\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}",
     );
     std::fs::write(proj.join("s5.jsonl"), s5).unwrap();
-    let renamed = tmp.join("myrepo-feat");
-    let s7 = line(
-        "user",
-        &renamed,
-        "2026-10-26T09:00:00.000Z",
-        ",\"gitBranch\":\"issue-b\",\"message\":{\"role\":\"user\",\"content\":\"ok\"}",
-    );
-    std::fs::write(proj.join("s7.jsonl"), s7).unwrap();
+    renamed_worktrees(tmp, &repo, &proj);
     let inline_subagent = line(
         "assistant",
         &repo,
@@ -298,11 +314,14 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let s5 = rows.get("s5").unwrap_or(&empty);
     let s6 = rows.get("s6").unwrap_or(&empty);
     let s7 = rows.get("s7").unwrap_or(&empty);
+    let s8 = rows.get("s8").unwrap_or(&empty);
+    let s9 = rows.get("s9").unwrap_or(&empty);
+    let s10 = rows.get("s10").unwrap_or(&empty);
     let col =
         |r: &HashMap<String, String>, c: &str| r.get(c).cloned().unwrap_or_else(|| "<none>".into());
     vec![
         ("the script succeeds", out.status.success()),
-        ("header names every column, one row per session, none for the sub-agent", rows.len() == 7),
+        ("header names every column, one row per session, none for the sub-agent", rows.len() == 10),
         ("a message repeated on 3 lines is one turn; the sub-agent adds one", col(s1, "turns") == "3"),
         ("tool calls count every tool_use block, sub-agent included", col(s1, "tool_calls") == "4"),
         ("tokens are added once per message, sub-agent included", col(s1, "input_tokens") == "1011" && col(s1, "output_tokens") == "22"),
@@ -325,6 +344,9 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         ("a removed issue worktree counts with its repository", col(s4, "project") == "myrepo"),
         ("a removed worktree under .claude/worktrees counts with its repository", col(s5, "project") == "myrepo"),
         ("a removed worktree named apart from its branches counts with its repository", col(s7, "project") == "myrepo"),
+        ("the branch of the session names the repository of a removed worktree first", col(s8, "project") == "myrepo"),
+        ("else the longest repository among the prefixes of a removed ancestor", col(s9, "project") == "myrepo-docs"),
+        ("a prefix that is not the top level of a work tree is no repository", col(s10, "project") == "plain-x"),
         ("unreadable lines are counted, sub-agent included", col(s1, "unreadable_lines") == "2"),
         ("unknown line types are counted", col(s1, "unknown_lines") == "1"),
         ("assistant lines without usage are missing fields, metadata lines without timestamp are not", col(s1, "missing_fields") == "1"),

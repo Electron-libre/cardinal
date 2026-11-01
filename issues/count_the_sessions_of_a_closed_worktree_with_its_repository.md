@@ -49,8 +49,12 @@ remove` leaves no record in the main git directory (no `worktrees/` entry, no pa
 
 ## Plan
 1. [x] Link a removed `<repo>-<x>` to `<repo>` whatever `<x>`: `repository()` tries the prefixes of the name, the
-   longest first, drops its branch argument (5 callers); verified by a `session_metrics.rs` session in
+   longest first, drops its branch argument (5 callers, restored by deliverable 2); verified by a `session_metrics.rs` session in
    `myrepo-feat` on branch `issue-b` counted as `myrepo`; makes true EVA-7 (amended).
+
+2. [x] Fixes of the `high` review of the issue: the branch match comes first again, a prefix must be the top level
+   of a work tree, a missing ancestor is matched too, the empty `cwd` guard moves into `repository()`; verified by
+   three more sessions of `session_metrics.rs`; makes true EVA-7 (amended again).
 
 ## Decisions
 - Mode: autonomous
@@ -64,5 +68,18 @@ remove` leaves no record in the main git directory (no `worktrees/` entry, no pa
   `repository()` no longer takes the session's branches, so its per-`cwd` cache in the four readers is now exact.
 - red: EVA-7: `FAIL - a removed worktree named apart from its branches counts with its repository`
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+
+- done: review fixes of `0162c22..d2ca9df` (high): branch suffix first then the longest prefix, a prefix counts only
+  as the top level of a work tree, missing ancestors are matched, an empty prefix and an empty `cwd` give nothing.
+- red: none (the three new checks guard the review's scenarios: branch with a dash, plain directory in a repository,
+  session started in a subdirectory)
+- Code review: 1 findings: a missing prefix passed the top-level check (None == None), fixed by requiring both sides.
+- High review, not fixed: an unrelated removed clone `<repo>-<x>` counts with `<repo>` in delivered-quality too
+  (decision 1 a); `rule-breaches` resolves the repository per session without the per-`cwd` cache of the others
+  (unchanged by this issue, a few `git` calls per session).
 - not verified: none
 - decisions needed: none

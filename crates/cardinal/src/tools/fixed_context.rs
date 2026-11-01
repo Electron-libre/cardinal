@@ -247,13 +247,9 @@ pub(super) fn main(args: &[String]) -> u8 {
                 }
             }
             let cwd = place.cwd.clone().unwrap_or_default();
-            let repo = repositories.entry(cwd.clone()).or_insert_with(|| {
-                if cwd.is_empty() {
-                    None
-                } else {
-                    repository(&cwd)
-                }
-            });
+            let repo = repositories
+                .entry(cwd.clone())
+                .or_insert_with(|| repository(&cwd, &place.issues));
             let (Some(repo), Some((start, text))) = (repo.clone(), &place.start) else {
                 continue;
             };

@@ -108,6 +108,29 @@ fn lock(dir: &Path) -> String {
     std::fs::read_to_string(path).unwrap_or_default()
 }
 
+/// Leave work in progress in `dir`: an untracked file.
+fn dirty(dir: &Path) {
+    std::fs::write(dir.join("wip"), "wip").unwrap();
+}
+
+/// Claim the issue `stem` in the state `working` for `session` of process `pid` (CLM-1).
+fn claim(dir: &Path, stem: &str, session: &str, pid: &str) {
+    let blob = dir.join(".git").join("claim-blob");
+    std::fs::write(
+        &blob,
+        format!(
+            "session {session}\npid {pid}\nworktree {}\nbranch trunk\nstate working\n",
+            dir.display()
+        ),
+    )
+    .unwrap();
+    let oid = git(dir, &["hash-object", "-w", blob.to_str().unwrap()]);
+    git(
+        dir,
+        &["update-ref", &format!("refs/cardinal/claims/{stem}"), &oid],
+    );
+}
+
 fn live() -> String {
     std::process::id().to_string()
 }
@@ -170,6 +193,7 @@ fn check_refuses_another_session_while_the_holder_runs() {
     let r = repo();
     let other = Other::new();
     hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(2), "{err}");
     assert!(
@@ -184,6 +208,7 @@ fn check_refuses_another_session_while_the_holder_runs() {
 fn two_sessions_taking_the_lock_at_once_leave_one_holder() {
     for _ in 0..10 {
         let r = repo();
+        dirty(&r.main);
         let other = Other::new();
         let a = spawn("check", &r.main, "a", &live(), None);
         let b = spawn("check", &r.main, "b", &other.pid(), None);
@@ -206,10 +231,60 @@ fn start_takes_the_lock_or_tells_the_agent_the_worktree_is_busy() {
     assert_eq!(code, Some(0));
     assert!(out.is_empty(), "{out}");
     assert!(lock(&r.main).contains("session a\n"));
+    dirty(&r.main);
     let (code, out, _) = hook("start", &r.main, "b", &live());
     assert_eq!(code, Some(0), "SessionStart cannot block");
     assert!(out.contains("busy") && out.contains("refused"), "{out}");
     assert!(lock(&r.main).contains("session a\n"));
+}
+
+// spec: WSL-10
+#[test]
+fn a_holder_with_nothing_in_progress_hands_the_lock_over() {
+    let r = repo();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(0), "a clean worktree and no claim: {err}");
+    assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
+    dirty(&r.main);
+    let (code, _, err) = hook("check", &r.main, "a", &other.pid());
+    assert_eq!(
+        code,
+        Some(2),
+        "the old holder is refused once b has work in progress: {err}"
+    );
+    assert!(lock(&r.main).contains("session b\n"));
+}
+
+// spec: WSL-10
+#[test]
+fn start_takes_over_the_lock_of_a_holder_with_nothing_in_progress() {
+    let r = repo();
+    let other = Other::new();
+    hook("start", &r.main, "a", &other.pid());
+    let (code, out, _) = hook("start", &r.main, "b", &live());
+    assert_eq!(code, Some(0));
+    assert!(out.is_empty(), "no busy warning: {out}");
+    assert!(lock(&r.main).contains("session b\n"));
+}
+
+// spec: WSL-10
+#[test]
+fn a_holder_with_a_working_claim_keeps_the_lock_in_a_clean_worktree() {
+    let r = repo();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    claim(&r.main, "foo", "a", &other.pid());
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(2), "claimed by its session: {err}");
+    claim(&r.main, "foo", "cleared", &other.pid());
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(2), "claimed by its process: {err}");
+    claim(&r.main, "foo", "z", &dead());
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(0), "a claim of another session: {err}");
+    assert!(lock(&r.main).contains("session b\n"));
 }
 
 // spec: WSL-6

@@ -52,3 +52,38 @@ Longer autonomy
 * The decision runs under the mutex of `take`, and reads git (status, claim refs) there: keep it within the 2 s wait
   of `Mutex::take`, or a slow `git status` lets the call through unlocked.
 * A hook must never block a session when git fails (WSL-7): an unreadable status means "not clean", never a crash.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A live holder with a clean worktree (`git status --porcelain` empty, untracked and `issues/` included) and no
+`working` claim of its session or process hands the lock over at `check` and `start`. No delay, no `close-issue` hook.
+
+## Plan
+1. [x] Hand over the lock of a holder with nothing in progress: `take` checks the work in progress of a live holder
+   (outside the mutex, re-checked holder unchanged under it), the WSL-3/4/5 tests get a dirty worktree, new tests of
+   the handover and of a claimed holder; verified by `crates/cardinal/tests/workspace_lock.rs`; makes true WSL-3,
+   WSL-4, WSL-5, WSL-10.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 1529a70cf5b401608bfb4621ff7ebc430f308830
+- Untracked files not ignored count as work in progress (1 a); changes under `issues/` count (2 a); `start` takes
+  the lock over as `check` does (3 a).
+
+## Summary of deliverable 1
+done: a live holder with a clean worktree and no `working` claim of its session or process hands the lock over at
+`check` and `start`; the git reads run before the mutex, and the holder they judged must still hold the lock under it.
+
+| check | result |
+|---|---|
+| tests | `just check` green (12 tests of `workspace_lock`) |
+| lint | clean |
+| specs | `specs/workspace-lock.md` accepted, WSL-10 traced |
+| docs | ADR 0024, `issue-workflow` details |
+| code review | see below |
+
+red: WSL-10: `a clean worktree and no claim: Refused: another live session (a) works in this worktree`
+Code review: no findings

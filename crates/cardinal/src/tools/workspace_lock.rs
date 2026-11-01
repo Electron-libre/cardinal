@@ -2,7 +2,8 @@
 //! runs, and the others are refused their edits and commands, so two sessions never share its files, index and
 //! review marker. The lock is the file `cardinal-session` of the git directory of the worktree, holding the
 //! `session_id` of the hook event and the process of the session (`CLAUDE_PID`); a process that no longer runs frees
-//! it. Every change of the lock happens under a mutex directory beside it, created atomically.
+//! it, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims. Every change
+//! of the lock happens under a mutex directory beside it, created atomically.
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
 
@@ -11,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 
-use super::issue_claim::alive;
+use super::issue_claim::{self, alive};
 
 /// A mutex older than this was left by a process that died holding it.
 const STALE_MUTEX: Duration = Duration::from_secs(10);
@@ -92,16 +93,53 @@ impl Drop for Mutex {
     }
 }
 
-/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4): `Ok` when it holds it, else the live holder.
-fn take(path: &Path, me: &Holder) -> Result<(), Holder> {
-    if read(path).as_ref() == Some(me) {
+/// Whether `holder` keeps the lock of the worktree of `cwd` from `me`: another session of another process that runs and
+/// has work in progress (WSL-3, WSL-10).
+fn keeps(holder: &Holder, me: &Holder, cwd: &Path) -> bool {
+    holder.session != me.session
+        && holder.pid != me.pid
+        && alive(&holder.pid)
+        && in_progress(holder, cwd)
+}
+
+/// Whether `holder` has work in progress (WSL-10): a change or an untracked file in the worktree of `cwd`, or an issue
+/// claimed `working` by its session or process; an unreadable status counts as work in progress.
+fn in_progress(holder: &Holder, cwd: &Path) -> bool {
+    let status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(cwd)
+        .output()
+        .ok()
+        .filter(|o| o.status.success());
+    let Some(status) = status else {
+        return true;
+    };
+    !status.stdout.is_empty()
+        || issue_claim::all(cwd).iter().any(|(_, _, c)| {
+            c.state == "working" && (c.session == holder.session || c.pid == holder.pid)
+        })
+}
+
+/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it.
+fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), Holder> {
+    let before = read(path);
+    if before.as_ref() == Some(me) {
         return Ok(());
     }
+    // Read git before the mutex, so a slow status never holds it: the holder seen here must still hold it under the mutex.
+    let kept = before.as_ref().is_some_and(|h| keeps(h, me, cwd));
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
     match read(path) {
-        Some(h) if h.session != me.session && h.pid != me.pid && alive(&h.pid) => Err(h),
+        Some(h)
+            if h.session != me.session
+                && h.pid != me.pid
+                && alive(&h.pid)
+                && (kept || before.as_ref() != Some(&h)) =>
+        {
+            Err(h)
+        }
         _ => {
             let tmp = path.with_extension(format!("tmp{}", std::process::id()));
             if std::fs::write(&tmp, me.text()).is_ok() {
@@ -150,7 +188,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         session: session.to_string(),
         pid,
     };
-    let Err(holder) = take(&path, &me) else {
+    let Err(holder) = take(&path, &me, Path::new(cwd)) else {
         return 0;
     };
     if mode == "start" {

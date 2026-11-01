@@ -51,6 +51,5 @@ In a linked worktree, once the user agreed to close the issue:
    No link to the next issue here: the `issues/` of the worktree is the branch's, so `close-issue` prints the next
    issue in the main worktree.
 
-`close-issue` refuses in a linked worktree and an issue of one named by path from the main one, so an issue is never
-closed on an issue branch. `finish-issue` refuses inside the worktree it would remove, and a branch whose work is not
+`close-issue` refuses an issue of another worktree named by path. `finish-issue` refuses inside the worktree it would remove, and a branch whose work is not
 on the main branch unless `--force`.

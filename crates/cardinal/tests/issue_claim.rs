@@ -269,6 +269,32 @@ fn a_merge_pending_claim_is_listed_until_the_trunk_holds_the_closed_issue() {
     assert!(claim_text(&r.main, "a").is_empty(), "dropped once merged");
 }
 
+// spec: CLM-7
+#[test]
+fn close_issue_frees_the_claim_on_the_trunk_and_marks_it_merge_pending_elsewhere() {
+    let r = repo();
+    claim(&r.ws, "s1", &live(), "a");
+    let (code, out) = tool(&r.ws, "", "", &["close-issue", "issues/a.md"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(r.ws.join("issues/done/a.md").is_file());
+    assert_eq!(
+        claim_text(&r.main, "a"),
+        format!(
+            "session s1\npid {}\nworktree {}\nbranch ws\nstate merge pending\n",
+            live(),
+            top(&r.ws)
+        )
+    );
+    assert!(out.contains("merge pending"), "{out}");
+    claim(&r.main, "s2", &live(), "b");
+    let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/b.md"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert_eq!(claim_text(&r.main, "b"), "", "deleted on the trunk");
+    std::fs::write(r.main.join("issues/c.md"), "---\npriority: low\n---\n# C\n").unwrap();
+    let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/c.md"]);
+    assert_eq!(code, Some(0), "no claim still closes: {out}");
+}
+
 // spec: CLM-8
 #[test]
 fn a_claim_is_no_branch_nor_tag() {

@@ -5,12 +5,13 @@
 //! (`../issues/foo.md` from `docs/`), so no document keeps pointing at the old path; the relative links of the moved
 //! issue are rebased so they still resolve from `issues/done/`. The files are those git lists (tracked and
 //! untracked, not ignored), so the issue worktrees nested under `.claude/worktrees/` keep their own files.
-//! Refuses to run in a linked git worktree, and to close an issue of one named by path from elsewhere: an issue
-//! is closed at merge time, on the main worktree. Ends on the issue `next-issue` then offers.
+//! Runs in any worktree, but refuses to close an issue of another worktree named by path. Frees the claim of the
+//! issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge brings the
+//! close to the trunk. Ends on the issue `next-issue` then offers.
 //! Usage: `just close-issue issues/foo.md`; `just close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
-use super::repo_files;
+use super::{issue_claim, repo_files};
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -382,37 +383,62 @@ fn repo_root(dir: &Path) -> Option<std::path::PathBuf> {
         .then(|| std::path::PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()))
 }
 
-/// The top of the worktree of `dir` and the path of the main worktree, when they differ.
-fn linked_worktree(dir: &Path) -> Option<(std::path::PathBuf, String)> {
-    let top = repo_root(dir)?;
+/// The git common directory of the repository of `dir` and the top of its worktree, canonical.
+fn worktree_of(dir: &Path) -> Option<(std::path::PathBuf, std::path::PathBuf)> {
     let out = Command::new("git")
-        .args(["worktree", "list", "--porcelain"])
+        .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
         .current_dir(dir)
         .output()
-        .ok()?;
-    let list = String::from_utf8_lossy(&out.stdout);
-    if list.split("\n\n").next()?.lines().any(|l| l == "bare") {
-        return None;
-    }
-    let main = list.lines().find_map(|l| l.strip_prefix("worktree "))?;
-    let same = std::fs::canonicalize(main).ok()? == std::fs::canonicalize(&top).ok()?;
-    (!same).then(|| (top, main.to_string()))
+        .ok()
+        .filter(|o| o.status.success())?;
+    let common = std::fs::canonicalize(String::from_utf8_lossy(&out.stdout).trim()).ok()?;
+    Some((common, std::fs::canonicalize(repo_root(dir)?).ok()?))
 }
 
-/// Exit with an error when `dir` is in a linked worktree (PAR-8).
-fn refuse_linked_worktree(dir: &Path) {
-    if let Some((top, main)) = linked_worktree(dir) {
+/// Exit with an error when the issues `dir` belong to another worktree of the repository of the current directory
+/// (PAR-18).
+fn refuse_other_worktree(dir: &Path) {
+    let (Some(here), Some((common, there))) = (worktree_of(Path::new(".")), worktree_of(dir))
+    else {
+        return;
+    };
+    if here.0 == common && here.1 != there {
         eprintln!(
-            "{} is a linked worktree: merge its branch, then close the issue in the main worktree {main}",
-            top.display()
+            "{} is an issue of another worktree ({}): close it there",
+            dir.display(),
+            there.display()
         );
         std::process::exit(1);
     }
 }
 
+/// Free the claim of `stem` in the repository of `dir` (CLM-7): delete it on the trunk, else mark it `merge pending`
+/// on the current branch.
+fn free_claim(dir: &Path, stem: &str) {
+    let Some((old, mut claim)) = issue_claim::read(dir, stem) else {
+        return;
+    };
+    let branch = issue_claim::current_branch(dir);
+    if issue_claim::trunk(dir).is_some_and(|t| t == branch) {
+        if issue_claim::delete(dir, stem, &old) {
+            println!("claim of {stem} released");
+        }
+        return;
+    }
+    claim.state = "merge pending".into();
+    claim.branch = branch;
+    if issue_claim::write(dir, stem, &claim, Some(&old)) {
+        println!(
+            "claim of {stem}: merge pending ({}) until the trunk holds the close",
+            claim.branch
+        );
+    } else {
+        eprintln!("the claim of {stem} changed during the close: it was left as is");
+    }
+}
+
 /// `--relink`: rewrite the references to every issue of `issues/done`.
 fn relink_closed() -> u8 {
-    refuse_linked_worktree(Path::new("."));
     let stems: HashSet<String> = std::fs::read_dir("issues/done")
         .into_iter()
         .flatten()
@@ -455,8 +481,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         eprintln!("{arg} is not an issue file directly under an `issues/` directory");
         std::process::exit(1);
     }
-    refuse_linked_worktree(Path::new("."));
-    refuse_linked_worktree(dir);
+    refuse_other_worktree(dir);
     let done = dir.join("done");
     let target = done.join(name);
     if target.exists() {
@@ -508,6 +533,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         }
         None => eprintln!("not inside a git repository: references to {stem} were not updated"),
     }
+    free_claim(dir, stem);
     println!("{}", super::next_issue::next(dir));
     0
 }

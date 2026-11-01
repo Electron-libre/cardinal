@@ -98,8 +98,9 @@ sequenceDiagram
 - The agent never creates, enters or leaves a worktree: a session entered with `EnterWorktree` or `claude --worktree`
   is isolated by Claude Code, which refuses every command it cannot prove stays there.
 - While the branch or the worktree exists, `just next-issue` skips the issue for every other session.
-- An issue is closed only in the main worktree: `close-issue` refuses in a linked one. A branch prioritizes only
-  its own issues, so two branches never conflict over the order.
+- `close-issue` runs in the worktree of the issue, never on an issue of another worktree; on a branch other than
+  the trunk it leaves the claim `merge pending`, which `next-issue` drops once the trunk holds the close. A branch
+  prioritizes only its own issues, so two branches never conflict over the order.
 - `just check-cardinal` before the merge catches a hook the installed `cardinal` would refuse once merged; run the
   `cargo install` it prints first.
 - The project's own tools run on `.` may read the nested worktrees: [usage.md](usage.md#parallel-issues-in-worktrees)

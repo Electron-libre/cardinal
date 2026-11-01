@@ -15,9 +15,9 @@ fn run(script: &Path, cwd: &Path, arg: &str) -> (bool, String) {
     )
 }
 
-// spec: PAR-8
-/// An issue is closed at merge time, on the main worktree, never on an issue's worktree.
-fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
+// spec: PAR-18
+/// An issue is closed in the worktree that holds it, the main one or a linked one, never from another worktree.
+fn closes_only_in_its_own_worktree(script: &Path) -> Vec<(&'static str, bool)> {
     let root = std::fs::canonicalize(tempfile::tempdir().unwrap().keep()).unwrap();
     let _ = std::fs::remove_dir_all(&root);
     let main = root.join("repo");
@@ -53,23 +53,22 @@ fn refuses_a_linked_worktree(script: &Path) -> Vec<(&'static str, bool)> {
         "foo",
         linked.to_str().unwrap(),
     ]);
-    let (in_linked, out) = run(script, &linked, "issues/foo.md");
-    let untouched = linked.join("issues/foo.md").is_file();
-    let (relink, _) = run(script, &linked, "--relink");
     let (by_path, by_path_out) = run(script, &main, "../repo-foo/issues/foo.md");
     let untouched_by_path = linked.join("issues/foo.md").is_file();
     let (from_linked, _) = run(script, &linked, "../repo/issues/foo.md");
     let main_untouched = main.join("issues/foo.md").is_file();
+    let (in_linked, out) = run(script, &linked, "issues/foo.md");
+    let (relink, _) = run(script, &linked, "--relink");
     let (in_main, _) = run(script, &main, "issues/foo.md");
     let out = vec![
         (
-            "a linked worktree is refused, naming the main one",
-            !in_linked && out.contains("linked worktree") && untouched,
+            "a linked worktree closes its own issue",
+            in_linked && linked.join("issues/done/foo.md").is_file() && out.contains("moved"),
         ),
-        ("--relink is refused there too", !relink),
+        ("--relink runs there too", relink),
         (
             "the linked worktree's issue is refused by path from the main one",
-            !by_path && by_path_out.contains("linked worktree") && untouched_by_path,
+            !by_path && by_path_out.contains("another worktree") && untouched_by_path,
         ),
         (
             "the main worktree's issue is refused by path from a linked one",
@@ -483,7 +482,7 @@ fn close_issue() {
         ok && staged && out.contains("git mv"),
     );
 
-    for (name, ok) in refuses_a_linked_worktree(&script)
+    for (name, ok) in closes_only_in_its_own_worktree(&script)
         .into_iter()
         .chain(skips_the_nested_worktrees(&script))
         .chain(relinks_the_markdown_links(&script))

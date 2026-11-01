@@ -149,6 +149,16 @@ pub(super) fn current_branch(dir: &Path) -> String {
     git(dir, &["symbolic-ref", "--short", "-q", "HEAD"], None).unwrap_or_else(|| "HEAD".into())
 }
 
+/// The trunk: the branch checked out by the main worktree, if any.
+pub(super) fn trunk(dir: &Path) -> Option<String> {
+    let list = git(dir, &["worktree", "list", "--porcelain"], None)?;
+    list.split("\n\n")
+        .next()?
+        .lines()
+        .find_map(|l| l.strip_prefix("branch refs/heads/"))
+        .map(str::to_string)
+}
+
 /// Claim the issue file `issue` for the session of the environment (CLM-1 to CLM-4, CLM-9).
 fn claim(issue: &str) -> Result<String, String> {
     let path = Path::new(issue);

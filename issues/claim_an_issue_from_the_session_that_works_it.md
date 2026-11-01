@@ -163,7 +163,7 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 1. [x] Issue claims: `cardinal run issue-claim` and the claims read by `next-issue` (taken, `session ended`,
    `Merge pending:`, dropped once merged); verified by tests through the binary on temporary repositories; makes true
    CLM-1 to CLM-6, CLM-8, CLM-9 (~700 lines).
-2. [ ] Close frees the claim: `close-issue` runs in any worktree, deletes the claim on the trunk, sets it
+2. [x] Close frees the claim: `close-issue` runs in any worktree, deletes the claim on the trunk, sets it
    `merge pending` elsewhere; verified by tests through the binary; makes true CLM-7, PAR-18 (PAR-8 withdrawn)
    (~250 lines).
 3. [ ] Workspace lock: measure what a hook receives (`CLAUDE_PID`, the `session_id` after `/clear`), then
@@ -189,3 +189,12 @@ recipes (question 2). Means beyond the issue: the agent's commands already recei
 - checks: tests pass (`tests/issue_claim.rs`, 8), clippy clean, specs checked, docs (`docs/architecture.md`).
 - red: CLM-1, CLM-2, CLM-3, CLM-4, CLM-5, CLM-6, CLM-8, CLM-9: `cardinal: unknown tool `issue-claim``.
 - not verified: a claim on macOS (`kill -0` assumed).
+
+## Deliverable 2: close frees the claim
+
+- done: `close-issue` runs in any worktree (refusing an issue of another worktree of the same repository), deletes
+  the claim on the trunk and sets it `merge pending` on another branch; `specs/issue-claim.md` and
+  `specs/parallel-issues.md` accepted.
+- checks: tests pass (`tests/issue_claim.rs`, `tests/close_issue.rs`), clippy clean, specs checked, docs
+  (`docs/architecture.md`, `docs/workflow.md`, `details.md`).
+- red: CLM-7, PAR-18: `FAIL - a linked worktree closes its own issue`.

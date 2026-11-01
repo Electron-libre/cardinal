@@ -55,10 +55,10 @@ Decide at `sync` time, not at run time, so that a feature turned off costs nothi
 6. Pilot with the attribution ban only (its four places), then one issue per other feature, each small.
 
 # Specs
-* `specs/sync.md`: new requirements for the features turned off (not copied, not added, removed, recorded, not
-  reported by `check`, refused when needed), and an amendment of SYN-26, SYN-33 and SYN-36.
-* `specs/rule-breaches.md`: the attribution breach is not counted in a project that turned the ban off.
-* The spec of `commit-check`, if one covers it (to find at step 1).
+* `specs/features.md` (new, FEA-1 to FEA-13); SYN-26 and BRE-9 are narrowed by FEA-10 and FEA-11, not reworded.
+
+# Milestone
+Optional features
 
 # Resources
 * `docs/architecture.md`, ADR 0007, 0013, 0014, 0017, 0018.
@@ -71,3 +71,36 @@ Decide at `sync` time, not at run time, so that a feature turned off costs nothi
 * `cardinal.local.toml` holds personal preferences (ADR 0018); whether a person may turn off a feature for
   themselves only (the language hint) or only the project may (the review gate, a team rule) is a decision of step 1.
 * The fixed context budget (SYN-38) should drop when a skill is turned off: a quick way to show the gain.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A source declares features in `features.toml`; a project turns some off with `disabled` in `[cardinal]`; `sync` treats
+their files and entries as unmanaged, the binary's checks of a feature stay quiet. Pilot: `no-ai-attribution`. Out of
+scope: the other features, dependencies between features, a personal opt-out.
+
+## Plan
+1. [x] Turn off a feature at sync: `features.toml`, `disabled`, files and entries left out, errors, format 7, ADR
+   0025; verified by sync and check tests through the binary; makes true FEA-1 to FEA-7. ~600 lines.
+2. [ ] Feature `no-ai-attribution`: the rule moves from `files/AGENTS.md` to `files/.claude/rules/no-ai-attribution.md`,
+   declared in `features.toml`, and `commit-check`, `check-issue`, the SYN-26 warning and rule `commit-attribution`
+   read `disabled`; verified by the CLI tests of each tool and a test of the source; makes true FEA-8 to FEA-13.
+   ~400 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 8e94d11bac17a61fb4fce098245715bd55c5edc3
+- An unknown name in `disabled` fails the sync (FEA-5): a typo must not leave a feature on silently.
+- Only the project turns a feature off (`.claude/cardinal.toml`), not the personal file: `sync` writes committed files.
+- A text of a shared file that belongs to a feature moves to a file of its own, not marked blocks stripped at sync.
+- The milestone `Optional features` comes first among the open ones.
+
+## Deliverable 1
+- done: `features.toml` read by `sync`, `disabled` of `[cardinal]`, the files and entries of a feature turned off left
+  out (removed, kept when edited, out of the lock), errors for an unknown name and a bad declaration, format 7.
+- red: FEA-1, FEA-2, FEA-3, FEA-5, FEA-6, FEA-7: 7 of the 8 tests of `tests/features_cli.rs` failed with the call to
+  `features::left_out` replaced by an empty `Left` (the file still added, `sync` exit 0 on an unknown name); FEA-4
+  holds by construction (nothing out of the lock is reported) and its test passed red too.
+- not verified: a real consumer with a git source synced to format 7.

@@ -24,7 +24,7 @@ pub const PERSONAL_CONFIG: &str = ".claude/cardinal.local.toml";
 /// Hashes of the managed files as last written, relative to the project root.
 pub const LOCK: &str = ".claude/cardinal.lock";
 /// The table of the configuration that names the source and its pinned revision.
-const TABLE: &str = "cardinal";
+pub(crate) const TABLE: &str = "cardinal";
 /// The lowest format this `cardinal` syncs: the first whose issues are ordered by the rank of each file alone (SYN-51,
 /// ADR 0020).
 const MIN_FORMAT: u32 = 5;
@@ -34,13 +34,14 @@ const MIN_FORMAT: u32 = 5;
 pub const NOT_A_REFUSAL: u8 = 3;
 /// The format of the managed content this `cardinal` reads, and every lower one down to `MIN_FORMAT` (SYN-40): equal
 /// to the `cardinal-format` of its revision (SYN-43).
-pub const FORMAT: u32 = 6;
+pub const FORMAT: u32 = 7;
 /// The file of the source that declares the format its content needs, relative to the source.
 const SOURCE_FORMAT: &str = "cardinal-format";
 
 mod budget;
 pub use budget::warnings as budget_warnings;
 mod entries;
+mod features;
 mod gate;
 mod launcher;
 mod memory;
@@ -705,8 +706,18 @@ fn sync_from(root: &Path, source: &Path, options: SyncOptions) -> Result<Report>
         ..
     } = previous.unwrap_or_default();
     let wanted = entries::of_source(source)?;
-    // decided first: a hook of the user that cannot be chained stops the sync before it writes anything
     let files = list(&managed)?;
+    // the features the project turns off are content the source does not manage (FEA-3), judged before any write
+    let left = features::left_out(root, source, &files, &wanted)?;
+    let wanted: Vec<_> = wanted
+        .into_iter()
+        .filter(|e| !left.entries.contains(e))
+        .collect();
+    let files: Vec<String> = files
+        .into_iter()
+        .filter(|f| !left.files.contains(f))
+        .collect();
+    // decided first: a hook of the user that cannot be chained stops the sync before it writes anything
     let gate = gate::plan(root, gate::manages(&wanted, files.iter()))?;
     // installed before the managed files are written, so a failure leaves the project as it was
     if let (Some(gate), false) = (&gate, options.dry_run) {

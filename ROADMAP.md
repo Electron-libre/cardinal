@@ -39,6 +39,15 @@ The work done before this file existed is in `issues/done/`.
   - [tell_the_issue_workflow_when_to_consult_the_advisor](issues/done/tell_the_issue_workflow_when_to_consult_the_advisor.md)
   - [compare_an_advised_executor_with_a_solo_model](issues/done/compare_an_advised_executor_with_a_solo_model.md)
 
+## Optional features
+
+- Goal: let a project turn off the parts of the harness that do not fit its flow, at no cost in tokens or time.
+- Why: every consumer gets the whole harness; a user whose flow differs (an AI co-author trailer, another commit
+  convention, no parallel agents, issues tracked elsewhere) cannot drop a part without a conflict at each sync.
+- State: in issues
+- Issues:
+  - [let_a_project_turn_off_a_feature_of_the_harness](issues/let_a_project_turn_off_a_feature_of_the_harness.md)
+
 ## Longer autonomy
 
 - Goal: let one session drive several issues in a row, stopping the user once for the plans of the batch.

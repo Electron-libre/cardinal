@@ -42,6 +42,11 @@ the source it was synced from. A managed file whose hash differs from the lock w
 conflict instead of overwriting it and `check` fails. The fix belongs in this repository, then `sync` everywhere;
 there is deliberately no merge.
 
+A source may group managed files and entries into named features in `features.toml`; a project lists those it
+turns off in the `disabled` list of its `[cardinal]` table, and `sync` handles them as content the source does not
+manage, so the removal, conflict and lock rules above apply unchanged and `check` knows nothing of features
+([ADR 0025](adr/0025-a-project-turns-off-a-feature-at-sync.md), spec [`specs/features.md`](../specs/features.md)).
+
 Everything that differs between projects is a value of `.claude/cardinal.toml`, not code:
 
 | Read by | Keys |
@@ -49,7 +54,7 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 | the tools | `commit_scopes`, `root_docs`, `skipped_dirs`, `spec_files`, `internal_dirs`, `release_breaking_files` |
 | the hooks and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `release_version_command` |
 | `deliverable-size` | `deliverable_size_limit`, `issue_size_limit` |
-| `cardinal` itself | `fixed_context_budget` |
+| `cardinal` itself | `fixed_context_budget`, and `disabled` of the `[cardinal]` table |
 | the skills, through the agent | `roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language` |
 
 The change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else

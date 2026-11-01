@@ -14,6 +14,7 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - `seed/`: project-owned starting points, copied once.
 - `entries/.claude/settings.json`: the hooks and allow and deny rules `sync` keeps in each project's `.claude/settings.json`
   (declare a new hook here).
+- `features.toml`: the features of the managed content a project may turn off (`disabled`, `specs/features.md`).
 - `crates/cardinal/`: the `cardinal` binary (`init`, `sync`, `check`, `run` for the tools of `src/tools/`).
 - `fixtures/replay/`: the project `just replay <rev> <runs>` copies to run headless (`claude -p`, billed) against a
   revision and grade: its issue is handed with a validated plan, its held-out test is in `grade/` (`skipped_dirs`).

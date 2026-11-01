@@ -38,6 +38,30 @@ copies it into each worktree it opens.
 With a local directory source (this repository), `cardinal run` builds the source's crate with `cargo`, so a hook runs
 the tools of the working tree, or of the last build that compiled.
 
+### Features a project turns off
+
+The source groups some managed files and settings entries into named features in `features.toml`
+([specs/features.md](../specs/features.md), ADR 0025):
+
+```toml
+[no-ai-attribution]                      # a feature, by name
+files = [".claude/rules/no-ai-attribution.md"]   # paths under files/
+entries = []                             # entries as `sync` prints them, e.g. "hook Stop cardinal run language-hint"
+```
+
+A project turns features off in the `[cardinal]` table of `.claude/cardinal.toml`, never in the personal file:
+
+```toml
+[cardinal]
+source = "..."
+disabled = ["no-ai-attribution"]
+```
+
+`sync` then handles their files and entries as ones the source does not manage: it removes what it installed (and
+keeps a file the project edited, reported `kept`), installs nothing of them and leaves them out of the lock, so
+`check` reports nothing. Removing a name from `disabled` adds them back at the next `sync`. A name the source does not
+declare fails `sync`, writing nothing.
+
 ### The installed launcher
 
 The installed `cardinal` is the launcher of every project of the machine, not a binary of the pinned revision. A

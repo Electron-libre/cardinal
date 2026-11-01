@@ -58,3 +58,39 @@ Longer autonomy
 
 # Hints
 * The agent still never creates, enters or leaves a worktree (ADR 0011): these recipes stay the user's.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+The recipes open and remove a worktree with no issue attached: `open-worktree <name>` at `../<repo>-<name>` (or a
+given path and branch), `close-worktree <name|path>` under the safety of `finish-issue`. Out of scope: the claim, the
+lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
+
+## Plan
+1. [x] Move the tool: `issue_worktree.rs` becomes `worktree.rs` (source and test), no other edit, the tool keeps
+   its name `issue-worktree` until deliverable 2 (an edit of a moved file counts it twice); verified by `just check`;
+   makes true nothing new (a pure move, counted apart).
+2. [ ] `open-worktree` replaces `start-issue`: any name, sibling path or `--path`, branch `<name>` or `--branch`,
+   no issue file, no `info/exclude` line, personal configuration copied; ADR 0023, `migrations/6.toml`, docs;
+   verified by the behavior test of the tool; makes true PAR-1, PAR-2, PAR-17 (PAR-13 withdrawn).
+3. [ ] `close-worktree` replaces `finish-issue`: a path or a name (sibling, `.claude/worktrees/`, branch checked out,
+   bare branch), same safety, detached worktree; `Stale:` names it; `migrations/6.toml`, docs, spec and ADR accepted;
+   verified by the behavior tests of the tool and of `next-issue`; makes true PAR-4, PAR-6, PAR-7, PAR-10, PAR-11,
+   PAR-15, PAR-19.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 18385b986653a0ceb7e988b70256510f64ba33e3
+- Q1 a: `open-worktree` checks out an existing branch checked out nowhere as it is.
+- Q2 a: PAR-3 stays for the branches of the former `start-issue`.
+- Q3 a: `start-issue` and `finish-issue` are removed, declared in `migrations/6.toml`, no alias.
+- Q4 a: `warn_when_starting_a_blocked_issue` is withdrawn in deliverable 2 (moved to `issues/done/`, marked withdrawn).
+
+## Deliverable 1
+- done: `issue_worktree.rs` moved to `worktree.rs` (source and test, exact renames); spec draft and ADR 0023 draft
+  committed with it.
+- red: none (a move, no new test).
+- not verified: nothing.
+- Code review: 1 findings; the `issue-worktree` entry had moved in `TOOLS`: put back in place.

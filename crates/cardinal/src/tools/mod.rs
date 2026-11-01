@@ -17,7 +17,6 @@ mod delivered_quality;
 mod fixed_context;
 mod format_code;
 mod issue_claim;
-mod issue_worktree;
 mod language;
 mod language_hint;
 mod lint_gate;
@@ -31,6 +30,7 @@ mod shell;
 mod spec_coverage;
 mod transcripts;
 mod workspace_lock;
+mod worktree;
 
 pub(crate) use fixed_context::description_bytes;
 
@@ -111,7 +111,7 @@ pub const TOOLS: &[Tool] = &[
     Tool {
         name: "issue-worktree",
         about: "start <issue> | finish <stem> [--force]: the worktree and branch of an issue",
-        main: issue_worktree::main,
+        main: worktree::main,
     },
     Tool {
         name: "language-hint",

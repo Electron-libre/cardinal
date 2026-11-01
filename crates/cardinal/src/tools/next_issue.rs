@@ -47,7 +47,7 @@ fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
 /// Whether `branch` holds work that `trunk` lacks; true when git cannot tell, so unmerged work is never ignored.
 /// No work when every commit has a patch-equivalent on `trunk` (`git cherry`), or when merging the branch into `trunk`
 /// would change no file (a squash of any number of commits): the merge tree is then the tree of `trunk`. Keep in sync
-/// with `finish` of `issue_worktree.rs`.
+/// with `finish` of `worktree.rs`.
 fn has_own_commits(dir: &Path, trunk: &str, branch: &str) -> bool {
     let branch = format!("refs/heads/{branch}");
     let equivalent = Command::new("git")

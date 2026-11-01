@@ -181,6 +181,7 @@ fn sync_refuses_a_features_file_or_a_disabled_key_of_another_shape() {
         "hint = 1\n",
         "[hint]\nfiles = \"sub/b.txt\"\n",
         "[hint]\nhooks = []\n",
+        "[hint]\nneeds = \"other\"\n",
         "[hint\n",
     ] {
         let home = Home::new();
@@ -210,4 +211,71 @@ fn sync_never_seeds_the_path_of_a_file_turned_off() {
     let run = home.ok(root.path(), &["sync"]);
     assert_eq!(run.outcome("sub/b.txt"), Some("removed"), "{run:?}");
     assert!(get(root.path(), "sub/b.txt").is_none(), "{run:?}");
+}
+
+// spec: FEA-17
+#[test]
+fn sync_refuses_a_feature_needing_one_the_source_does_not_declare() {
+    let home = Home::new();
+    let (source, root) = with_features(&home);
+    put(
+        source.path(),
+        "features.toml",
+        &format!("{FEATURES}needs = [\"gone\"]\n"),
+    );
+    let before = snapshot(root.path());
+    let run = home.harness(root.path(), &["sync"]);
+    assert_eq!(run.code, Some(3), "{run:?}");
+    assert!(
+        run.stderr
+            .contains("the feature hint needs the feature gone, which it does not declare"),
+        "{run:?}"
+    );
+    assert_eq!(snapshot(root.path()), before);
+}
+
+/// The features `a` and `b` of no content, whose `needs` are `a_needs` and `b_needs`.
+fn needing(a_needs: &str, b_needs: &str) -> String {
+    format!("[a]\nneeds = {a_needs}\n[b]\nneeds = {b_needs}\n")
+}
+
+// spec: FEA-18
+#[test]
+fn sync_refuses_to_turn_off_a_feature_one_left_on_needs() {
+    for (features, disabled, needed, by) in [
+        (needing("[\"b\"]", "[]"), "[\"b\"]", "b", "a"),
+        (needing("[\"b\"]", "[\"a\"]"), "[\"a\"]", "a", "b"),
+    ] {
+        let home = Home::new();
+        let (source, root) = with_features(&home);
+        put(source.path(), "features.toml", &features);
+        disable(&root, disabled);
+        let before = snapshot(root.path());
+        for args in [&["sync"][..], &["sync", "--dry-run"]] {
+            let run = home.harness(root.path(), args);
+            assert_eq!(run.code, Some(3), "{features}: {run:?}");
+            let said =
+                format!(".claude/cardinal.toml: disabled turns off {needed}, which {by} needs");
+            assert!(run.stderr.contains(&said), "{features}: {run:?}");
+            assert_eq!(snapshot(root.path()), before);
+        }
+    }
+}
+
+// spec: FEA-17, FEA-18
+#[test]
+fn sync_judges_the_needs_of_the_features_left_on_only() {
+    for (features, disabled) in [
+        (needing("[\"b\"]", "[]"), "[\"a\", \"b\"]"),
+        (needing("[\"b\"]", "[\"a\"]"), "[\"a\", \"b\"]"),
+        (needing("[\"a\"]", "[]"), "[\"b\"]"),
+        (needing("[\"b\"]", "[]"), "[]"),
+    ] {
+        let home = Home::new();
+        let (source, root) = with_features(&home);
+        put(source.path(), "features.toml", &features);
+        disable(&root, disabled);
+        let run = home.harness(root.path(), &["sync"]);
+        assert_eq!(run.code, Some(0), "{features} {disabled}: {run:?}");
+    }
 }

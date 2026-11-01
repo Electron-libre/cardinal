@@ -19,11 +19,13 @@ const DISABLED: &str = "disabled";
 /// The feature whose checks refuse an AI or tool attribution in commits and issues.
 pub const NO_AI_ATTRIBUTION: &str = "no-ai-attribution";
 
-/// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34).
+/// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34); and the
+/// features it needs (FEA-17).
 #[derive(Debug, Default)]
 struct Feature {
     files: Vec<String>,
     entries: Vec<String>,
+    needs: Vec<String>,
 }
 
 /// What `sync` leaves out: the managed files and the managed entries of the features the project turns off.
@@ -57,17 +59,24 @@ fn of_source(source: &Path) -> Result<BTreeMap<String, Feature>> {
                 }
             }
         };
-        let (files, entries) = (list("files")?, list("entries")?);
+        let (files, entries, needs) = (list("files")?, list("entries")?, list("needs")?);
         if let Some(key) = feature
             .keys()
-            .find(|k| !matches!(k.as_str(), "files" | "entries"))
+            .find(|k| !matches!(k.as_str(), "files" | "entries" | "needs"))
         {
             bail!(
-                "{}: {name}.{key} is not `files` nor `entries`",
+                "{}: {name}.{key} is not `files`, `entries` nor `needs`",
                 path.display()
             );
         }
-        features.insert(name, Feature { files, entries });
+        features.insert(
+            name,
+            Feature {
+                files,
+                entries,
+                needs,
+            },
+        );
     }
     Ok(features)
 }
@@ -118,7 +127,8 @@ pub fn is_off(root: &Path, name: &str) -> bool {
 
 /// What `sync` leaves out of `files` and `entries`, the managed content of `source`, for the project at `root`. An
 /// error when the project names a feature the source does not declare (FEA-5), or a feature names a file or an entry
-/// the source does not manage (FEA-6).
+/// the source does not manage (FEA-6), needs a feature the source does not declare (FEA-17), or when the project turns
+/// off a feature that one it leaves on needs (FEA-18).
 pub fn left_out(root: &Path, source: &Path, files: &[String], entries: &[Entry]) -> Result<Left> {
     let features = of_source(source)?;
     for (name, feature) in &features {
@@ -135,10 +145,14 @@ pub fn left_out(root: &Path, source: &Path, files: &[String], entries: &[Entry])
                 crate::entries::FRAGMENT
             );
         }
+        if let Some(needed) = feature.needs.iter().find(|n| !features.contains_key(*n)) {
+            bail!("{SOURCE}: the feature {name} needs the feature {needed}, which it does not declare");
+        }
     }
+    let disabled = disabled(root)?;
     let mut left = Left::default();
-    for name in disabled(root)? {
-        let Some(feature) = features.get(&name) else {
+    for name in &disabled {
+        let Some(feature) = features.get(name) else {
             let names: Vec<&str> = features.keys().map(String::as_str).collect();
             bail!(
                 "{CONFIG}: {DISABLED} names the unknown feature {name}; the source declares {}",
@@ -156,6 +170,12 @@ pub fn left_out(root: &Path, source: &Path, files: &[String], entries: &[Entry])
                 .filter(|e| feature.entries.contains(&e.to_string()))
                 .cloned(),
         );
+    }
+    // Only the features left on are judged, so a cycle in `needs` never blocks turning all of it off.
+    for (name, feature) in features.iter().filter(|(n, _)| !disabled.contains(n)) {
+        if let Some(needed) = feature.needs.iter().find(|n| disabled.contains(n)) {
+            bail!("{CONFIG}: {DISABLED} turns off {needed}, which {name} needs");
+        }
     }
     Ok(left)
 }

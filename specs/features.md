@@ -20,7 +20,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-4** (deterministic) `check` must not report a file or an entry of a feature the project turned off, once a `sync` ran with it turned off.
 - **FEA-5** (deterministic) `sync` must fail with the error `<config>: disabled names the unknown feature <name>; the source declares <names>` (exit 3, SYN-37) and write nothing, `--dry-run` included, when `disabled` names a feature the source does not declare.
 - **FEA-6** (deterministic) `sync` must fail with an error (exit 3) naming the feature and the path or entry, and write nothing, when `features.toml` names a file absent from `files/` or an entry absent from `entries/.claude/settings.json`.
-- **FEA-7** (deterministic) `sync` must fail with an error (exit 3) and write nothing when `features.toml` is not valid TOML in the shape of FEA-1, or when `disabled` is not a list of strings.
+- **FEA-7** (deterministic) `sync` must fail with an error (exit 3) and write nothing when `features.toml` is not valid TOML in the shape of FEA-1 and FEA-17, or when `disabled` is not a list of strings.
 - **FEA-8** (deterministic) `commit-check` and `check-commits` must not report an attribution line when the project turns off the feature `no-ai-attribution`.
 - **FEA-9** (deterministic) `check-issue` must not report an attribution line when the project turns off the feature `no-ai-attribution`.
 - **FEA-10** (deterministic) `check`, `sync` and `update` must not print the warning of SYN-26 when the project turns off the feature `no-ai-attribution`.
@@ -30,6 +30,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-14** (deterministic) `update` must not refuse a revision for a hook the installed `cardinal` cannot run (BIN-16) when that hook is an entry of a feature the project turns off.
 - **FEA-15** (deterministic) `sync` must not seed a path of `seed/` that is also a file of a feature the project turns off.
 - **FEA-16** (deterministic) The source of Cardinal must declare the features `lint-gate`, `format-code` and `language-hint`, each made of the one hook entry of `entries/.claude/settings.json` whose command is `cardinal run <feature>`, and no file.
+- **FEA-17** (deterministic) `sync` must read the features a feature needs from the optional `needs` list of strings of its table in `features.toml`, and fail with an error (exit 3) naming the feature and the name, writing nothing, when `needs` names a feature `features.toml` does not declare.
+- **FEA-18** (deterministic) `sync` must fail with the error `<config>: disabled turns off <needed>, which <feature> needs` (exit 3, SYN-37) and write nothing, `--dry-run` included, when `disabled` turns off a feature that a feature left on needs.
 
 ## Scenarios
 
@@ -38,11 +40,14 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-3) Given a project that turned a feature off, when it removes the name from `disabled` and runs `sync`, then the files and entries of the feature are added back.
 - (FEA-3) Given a feature whose entry is a hook, when the project turns it off, then `sync` removes the hook object from `.claude/settings.json`, and a group left empty with it (SYN-31).
 - (FEA-5) Given `disabled = ["no-ai-atribution"]`, when `sync` runs, then it fails naming the unknown feature and the features the source declares.
+- (FEA-18) Given `a` needs `b`, when `disabled = ["b"]`, then `sync` fails naming `b` and `a`; when `disabled = ["a", "b"]`, then it succeeds: only the features left on are judged.
+- (FEA-18) Given `a` and `b` need each other, when `disabled = ["a", "b"]`, then `sync` succeeds: a cycle in `needs` is harmless, each feature being judged against the ones left on; when `disabled = ["a"]`, then it fails naming `a` and `b`.
+- (FEA-17) Given `a` with `needs = ["a"]`, then `sync` accepts it: a feature needing itself is never turned off while left on.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 
 ## Non-goals
 
-- Features that need one another: no feature of the source needs another yet; the first that does adds the rule.
+- Turning on or off a needed feature by itself: `sync` refuses the list and leaves the project to complete it.
 - A person turning off a feature for themselves in `.claude/cardinal.local.toml`: `disabled` changes the committed
   files of the project, so it is the project's choice (ADR 0018).
 - Turning off the core of `cardinal` (`sync`, `check`, the lock, the formats and migrations).

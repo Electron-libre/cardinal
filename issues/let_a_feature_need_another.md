@@ -32,3 +32,39 @@ Optional features
 # Hints
 * A cycle in `needs` is harmless for this check (each feature is judged against the ones left on), but say so in the
   spec.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A feature of `features.toml` lists in `needs` the features it needs; `sync` refuses an unknown name there, and a
+`disabled` list that turns off a feature one left on needs (exit 3, writing nothing). Out of scope: declaring `needs`
+in Cardinal's own `features.toml` (no feature of it needs another yet; the skill features come with their issues), so
+no `cardinal-format` raise: an older `cardinal` refuses the key (FEA-7) rather than misreading it.
+
+## Plan
+1. [x] `needs` in `features::left_out`: parse it (FEA-7 shape), refuse an unknown name, refuse a needed feature
+   turned off, spec amended and `docs/architecture.md` updated; verified by binary tests in
+   `crates/cardinal/tests/features_cli.rs` (cycle and self-need included); makes true FEA-17, FEA-18.
+
+## Decisions
+- Mode: autonomous
+- Base commit: d6dd9e9f04e90e8bf1a6c48e091cff16b62f5fd1
+
+## Deliverable 1
+done: `needs` in `features.toml`, read by `features::left_out`; `sync` refuses an unknown needed feature and a
+`disabled` that turns off a feature one left on needs; spec accepted, usage and architecture docs updated.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | FEA-17, FEA-18 traced, spec accepted |
+| docs | `docs/usage.md`, `docs/architecture.md`, `features.toml` header |
+| code review | see below |
+
+red: FEA-17, FEA-18: `features.toml: a.needs is not \`files\` nor \`entries\``
+Code review: no findings
+
+not verified: none. decisions needed: none.

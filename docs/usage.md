@@ -47,6 +47,7 @@ The source groups some managed files and settings entries into named features in
 [no-ai-attribution]                      # a feature, by name
 files = [".claude/rules/no-ai-attribution.md"]   # paths under files/
 entries = []                             # entries as `sync` prints them, e.g. "hook Stop cardinal run language-hint"
+needs = []                               # features it needs, left on while it is
 ```
 
 A project turns features off in the `[cardinal]` table of `.claude/cardinal.toml`, never in the personal file:
@@ -60,7 +61,8 @@ disabled = ["no-ai-attribution"]
 `sync` then handles their files and entries as ones the source does not manage: it removes what it installed (and
 keeps a file the project edited, reported `kept`), installs nothing of them and leaves them out of the lock, so
 `check` reports nothing. Removing a name from `disabled` adds them back at the next `sync`. A name the source does not
-declare fails `sync`, writing nothing.
+declare fails `sync`, writing nothing, as does a `disabled` that turns off a feature one left on `needs`: the error
+names both, and turning both off is accepted.
 
 | Feature | Turns off |
 |---|---|

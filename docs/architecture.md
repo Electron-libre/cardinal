@@ -46,7 +46,8 @@ there is deliberately no merge.
 
 A source may group managed files and entries into named features in `features.toml`; a project lists those it
 turns off in the `disabled` list of its `[cardinal]` table, and `sync` handles them as content the source does not
-manage, so the removal, conflict and lock rules above apply unchanged and `check` knows nothing of features
+manage, so the removal, conflict and lock rules above apply unchanged and `check` knows nothing of features; `sync`
+refuses a `disabled` list that turns off a feature one left on `needs`
 ([ADR 0025](adr/0025-a-project-turns-off-a-feature-at-sync.md), spec [`specs/features.md`](../specs/features.md)).
 
 Everything that differs between projects is a value of `.claude/cardinal.toml`, not code:

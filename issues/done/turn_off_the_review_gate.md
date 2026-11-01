@@ -131,3 +131,5 @@ Code review (`high`): 10 findings
 Code review (`low`): no findings
 
 not verified: none. decisions needed: none.
+
+Done: every deliverable committed; nothing left in this issue (follow-ups filed above).

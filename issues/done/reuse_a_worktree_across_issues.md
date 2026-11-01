@@ -125,7 +125,7 @@ lock, the agent's rules (ADR 0011 stands). ADR 0023 supersedes ADR 0008.
 - red: PAR-2, PAR-6, PAR-10, PAR-19: on the code of deliverable 3 the test panicked at `worktree.rs:486` after
   `open --path .claude/worktrees/q` was accepted.
 - Code review (high): 8 findings; 1, 3, 4, 5, 6, 8 fixed; 2 became
-  `issues/count_the_sessions_of_a_closed_worktree_with_its_repository.md` (EVA-7, outside PAR); 7 not fixed: the
+  `issues/done/count_the_sessions_of_a_closed_worktree_with_its_repository.md` (EVA-7, outside PAR); 7 not fixed: the
   renames sit in `migrations/6.toml`, format 6 being unreleased, and a recipe rename raises no format (ADR 0014), so
   a consumer already synced to an unreleased format 6 gets no warning.
 - not verified: the recipes through `just` (`[no-cd]`).

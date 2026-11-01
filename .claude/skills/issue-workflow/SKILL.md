@@ -116,8 +116,8 @@ again. Then set `Plan: validated` and the base commit. The spec file is the reco
    count first, `cardinal run delivered-quality` reads it) with what was done about each, then the lists `not verified` (state it plainly) and `decisions needed`, empty when nothing applies. Wait for the
    user's validation. Don't commit before it. In autonomous mode, write this summary in the issue and go on.
 7. **Track**: tick the deliverable in the issue's `# Tracking` and note decisions or follow-ups.
-8. **Commit**: after validation (autonomous mode: right after step 7), run `skill:commit-message` (message per `AGENTS.md`, validated by its
-   checker). Commit only the files of this deliverable (leave unrelated or personal files such as
+8. **Commit**: after validation (autonomous mode: right after step 7), run `skill:commit-message` (message per the project's convention,
+   validated by its checker). Commit only the files of this deliverable (leave unrelated or personal files such as
    `settings.local.json`) and report the hash. If the user wants to commit themselves, output
    just the message.
 

@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: accepted
+status: draft
 adrs: [0014, 0025]
 ---
 
@@ -33,6 +33,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-17** (deterministic) `sync` must read the features a feature needs from the optional `needs` list of strings of its table in `features.toml`, and fail with an error (exit 3) naming the feature and the name, writing nothing, when `needs` names a feature `features.toml` does not declare.
 - **FEA-18** (deterministic) `sync` must fail with the error `<config>: disabled turns off <needed>, which <feature> needs` (exit 3, SYN-37) and write nothing, `--dry-run` included, when `disabled` turns off a feature that a feature left on needs.
 - **FEA-19** (deterministic) The source of Cardinal must keep the recipes of a part a feature may leave out in a managed file of their own, which `files/cardinal.just` imports with `import?`: `cardinal-commits.just` (`check-commit`, `check-commits`), `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), `cardinal-specs.just` (`check-specs`, `spec-coverage`) and `cardinal-review.just` (`waive-review`); `cardinal.just` keeps `open-worktree`, `close-worktree`, `release` and `check-cardinal`, and `just` must load a `justfile` importing `cardinal.just` with any of the four missing.
+- **FEA-20** (deterministic) The source of Cardinal must declare the feature `conventional-commits`, whose files hold the commit message convention (Conventional Commits: subject, type, scope, body, footer, style); none of them being `files/AGENTS.md` nor the `SKILL.md` of `skill:commit-message`, which the other skills call to commit.
+- **FEA-21** (deterministic) `commit-check` and `check-commits` must report nothing but the attribution lines (FEA-8) and the malformed `Expected-effect:` lines, reading no `commit_scopes`, when the project turns off the feature `conventional-commits`.
+- **FEA-22** (deterministic) `rule-breaches` must not apply rule `commit-format` (BRE-9) to a commit whose `.claude/cardinal.toml`, as of that commit, turns off the feature `conventional-commits`.
 
 ## Scenarios
 
@@ -45,6 +48,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-18) Given `a` and `b` need each other, when `disabled = ["a", "b"]`, then `sync` succeeds: a cycle in `needs` is harmless, each feature being judged against the ones left on; when `disabled = ["a"]`, then it fails naming `a` and `b`.
 - (FEA-17) Given `a` with `needs = ["a"]`, then `sync` accepts it: a feature needing itself is never turned off while left on.
 - (FEA-19) Given a `justfile` importing `cardinal.just` and no `cardinal-specs.just`, when `just --list` runs, then it lists the other recipes and fails on none.
+- (FEA-21) Given `disabled = ["conventional-commits"]` and the message `Added the parser.` with a body line of 90 characters, when `commit-check` reads it, then it prints nothing and exits 0; with a `Co-Authored-By:` line, it reports that line only.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 
 ## Non-goals
@@ -57,6 +61,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   `.claude/settings.json` stays the project's to change.
 - The recipes of a project's own files that need a recipe of a part left out (the seeded `check: check-specs`) and
   the CI job that runs one: each comes with the issue of its feature.
+- Checking a project's own commit convention when it turns off `conventional-commits`: `commit-check` and the CI job
+  `commits` stay, for the attribution and the `Expected-effect:` footers that the measure reads.
+- The commit types that `delivered-quality` reads (QUA-3): a project with its own convention counts no `fix`.
 - Declaring the features other than `no-ai-attribution` and the hooks of FEA-16: each comes with its own issue.
 - Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
   loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).

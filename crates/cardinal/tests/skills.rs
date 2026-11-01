@@ -618,6 +618,35 @@ fn the_attribution_rule_lives_in_its_feature_alone() {
     ));
 }
 
+// spec: FEA-20
+/// The commit convention lives in the files of the feature `conventional-commits`, not in `AGENTS.md` nor in the
+/// procedure of `skill:commit-message` that the other skills call, so a project that turns it off keeps its own.
+#[test]
+fn the_commit_convention_lives_in_its_feature_alone() {
+    let root = repo_root();
+    let features: toml::Table = fs::read_to_string(root.join("features.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let files: Vec<&str> = features["conventional-commits"]["files"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_str().unwrap())
+        .collect();
+    let holds = |text: &str| text.contains("Conventional Commits") && text.contains("`refactor`");
+    assert!(files
+        .iter()
+        .any(|f| holds(&fs::read_to_string(root.join("files").join(f)).unwrap())));
+    for shared in ["AGENTS.md", ".claude/skills/commit-message/SKILL.md"] {
+        assert!(!files.contains(&shared), "{shared}");
+        assert!(
+            !holds(&fs::read_to_string(root.join("files").join(shared)).unwrap()),
+            "{shared}"
+        );
+    }
+}
+
 // spec: FEA-16
 /// Each hook-only feature is the one hook entry that runs its tool, as `sync` prints it, and no file.
 #[test]

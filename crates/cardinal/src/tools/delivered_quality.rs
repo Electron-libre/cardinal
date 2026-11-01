@@ -41,7 +41,7 @@ struct Commit {
 }
 
 impl Commit {
-    /// The Conventional Commits type of its subject (`AGENTS.md`), empty when it has none.
+    /// The Conventional Commits type of its subject (feature `conventional-commits`), empty when it has none.
     fn kind(&self) -> &str {
         let head = self.subject.split(':').next().unwrap_or_default();
         let kind = head

@@ -7,6 +7,10 @@
 [no-ai-attribution]
 files = [".claude/rules/no-ai-attribution.md"]
 
+# The commit message convention (Conventional Commits), for a project with its own.
+[conventional-commits]
+files = [".claude/skills/commit-message/conventional-commits.md"]
+
 # The Stop hook that blocks the end of a turn while the project's lint reports a problem (specs/lint-gate.md), for a
 # project whose lint runs elsewhere, such as in CI.
 [lint-gate]

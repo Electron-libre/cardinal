@@ -544,7 +544,7 @@ fn managed_paths(repo: &Path, start: &str) -> Option<HashSet<String>> {
     )
 }
 
-/// The commit types of `AGENTS.md`.
+/// The commit types of the convention of the feature `conventional-commits`.
 const COMMIT_TYPES: &[&str] = &[
     "feat", "fix", "refactor", "docs", "test", "perf", "build", "ci", "chore",
 ];

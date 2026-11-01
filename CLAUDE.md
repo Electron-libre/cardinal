@@ -24,7 +24,8 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - Parallel agents: the user opens a worktree (`git worktree add` or `just open-worktree`) and launches
   `claude` in it; the agent claims each issue (`cardinal run issue-claim`), one session per worktree (`workspace-lock`
   hooks), and never creates or enters a worktree, see `docs/architecture.md`.
-- `AGENTS.md`: commit message format (Conventional Commits, enforced by `just check-commit`);
+- `.claude/skills/commit-message/conventional-commits.md`: commit message format (Conventional Commits, enforced by
+  `just check-commit`);
   `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session.
 
 This repository is its own first consumer: its `.claude/`, `AGENTS.md`, `cardinal*.just`, `script/` and

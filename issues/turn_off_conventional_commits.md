@@ -36,3 +36,55 @@ Optional features
 
 # Hints
 * `Expected-effect:` footers are read by `commit-check`: they belong to the measure, not to the convention.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A feature `conventional-commits` holding the commit convention, which a project turns off to keep its own: the
+convention leaves `AGENTS.md` for a file of the feature, and `commit-check`, `check-commits` and rule `commit-format`
+go quiet on it. Means differing from the issue: the recipes, the CI job and `skill:commit-message` stay (they carry
+the attribution and `Expected-effect:` checks); only their convention part is gated, so no `needs` is required.
+
+## Plan
+1. [x] Move the convention: `files/.claude/skills/commit-message/conventional-commits.md` gets the commit section of
+   `files/AGENTS.md`; `commit-message` and `issue-workflow` point to it (else to the project's own convention);
+   `features.toml` declares `conventional-commits`; `just sync`; verified by a test in `tests/skills.rs`; makes true
+   FEA-20.
+2. [ ] Gate the checks: `commit-check` (hence `check-commits`) keeps only the attribution and `Expected-effect:` lines
+   when the feature is off, `rule-breaches` drops `commit-format`; verified by tests of `tools_cli.rs` and
+   `rule_breaches.rs`; makes true FEA-21, FEA-22; spec `accepted`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f6423729ff8c1b86fbafc47e9b1e3cb3e4776a54
+- The convention lives beside the skill (`commit-message/conventional-commits.md`), loaded on demand, not in a rule
+  loaded by every session.
+- With the feature off, `commit-check` keeps only the attribution and `Expected-effect:` lines: the style rules
+  (wrap at 72, emoji, markdown) belong to the convention.
+
+## Deliverable 1
+
+done: the convention moved from `files/AGENTS.md` to `commit-message/conventional-commits.md`, declared as the
+feature `conventional-commits`; `commit-message`, `issue-workflow`, `CLAUDE.md` and the references to the types point
+to it.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (FEA-19 warnings predate the issue) |
+| docs | `CLAUDE.md`, QUA-3, BRE-9 |
+| code review | see below |
+
+red: FEA-20: `the_commit_convention_lives_in_its_feature_alone` panicked at the index `features["conventional-commits"]`
+(no such feature).
+
+Code review: 1 finding
+- The comment of `features.toml` described the gating of deliverable 2 ahead of its code: cut to the files; the
+  checks join it with deliverable 2.
+
+not verified: none
+
+decisions needed: none

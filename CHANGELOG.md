@@ -4,6 +4,43 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `just release <version>` from the commits,
 then reread before the release is committed.
 
+## [2.0.0] - 2026-11-01
+
+### Breaking
+
+- stop reading the format 4 issues/queue.md in next-issue
+- sync the format 5 and higher only
+- order the issues by priority and dependencies
+
+### Added
+
+- review the existing instructions in audit-instructions
+- count the changed lines of a deliverable with a tool
+- count the staging of every file in rule-breaches
+- refuse a git add of every file before a commit
+- add a recipe that replays the fixture issue headless
+- stop editing issues/queue.md in close-issue
+- check the priority and dependencies of a new issue
+- prioritize the issues instead of ranking them
+- claim an issue for the session that works it
+- free the claim of an issue when it is closed
+- keep one Claude Code session per worktree
+- claim the issue at the start of issue-workflow
+- open a worktree with no issue attached
+- close a worktree by its name, path or branch
+
+### Fixed
+
+- settle what the high review of the audit found
+- let git count the untracked files of deliverable-size
+- read a shell line once for the staging gate and rule
+- grade a replay run on its end, commits, review and test
+- keep the age of a renamed issue in next-issue
+- free merged claims and keep claims to their worktree
+- refuse the worktree closes that could drop the wrong work
+- count a removed worktree with its repository by name
+- prefer the branch match for a removed worktree
+
 ## [1.2.0] - 2026-10-31
 
 ### Milestones

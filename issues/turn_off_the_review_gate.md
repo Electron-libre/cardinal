@@ -48,7 +48,7 @@ commit (nothing records a review any more).
 ## Plan
 1. [x] Uninstall: `sync` removes a marked `pre-commit` when the source, as turned on, manages no gate, and moves
    `pre-commit.user` back (dry-run reports, writes nothing); verified by tests of `tests/gate_cli.rs`; makes true SYN-60.
-2. [ ] Feature: declare `review-gate` in `features.toml`, docs (`docs/gates.md`, `specs/README`-level mentions);
+2. [x] Feature: declare `review-gate` in `features.toml`, docs (`docs/gates.md`, `specs/README`-level mentions);
    verified by a test of the declared feature and a `sync`/`check` test with it off (no missing gate, no deny-rule
    warning, gate back once on again); makes true FEA-23, FEA-24, FEA-25.
 
@@ -76,5 +76,25 @@ red: SYN-60: `sync_removes_the_gate_once_the_source_no_longer_manages_it` failed
 Code review: 1 findings
 - An edited gate is removed (`State::Modified`): kept, as decided at validation; the install already rewrites an
   edited gate (SYN-20), its script says `do not edit`, and the gates of older revisions read as edited.
+
+not verified: none. decisions needed: none.
+
+## Deliverable 2
+
+done: `features.toml` declares `review-gate`; `check` and the SYN-24 warnings follow the lock, as the issue expected:
+no code change for them. Specs `sync.md` and `features.md` accepted.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | traced, accepted |
+| docs | README, `docs/usage.md`, `docs/gates.md`, `docs/architecture.md` |
+| code review | `/code-review low` |
+
+red: FEA-23: `the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe` panicked on `features.toml declares no
+review-gate`; FEA-24, FEA-25: none, their test passed at once (the checks follow the lock).
+
+Code review: no findings
 
 not verified: none. decisions needed: none.

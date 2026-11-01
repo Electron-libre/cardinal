@@ -51,6 +51,9 @@ sequenceDiagram
   launcher that cannot run the tool (exit 3), is a warning, not a refusal.
 - **Uninstall**: once the source no longer manages a hook of the gate, `sync` removes the `pre-commit` it marked and
   moves `pre-commit.user` back in its place (SYN-60); a gate left alone would refuse every commit.
+- **Turned off**: the gate is the feature `review-gate` of `features.toml` (FEA-23): a project that reviews in pull
+  requests, or a solo user, lists it in `disabled`, and `sync` removes its hooks, the deny rules, `waive-review` and
+  the native gate; `check` then expects none of them (FEA-24, FEA-25).
 
 ## The code hooks
 

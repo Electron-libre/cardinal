@@ -71,6 +71,7 @@ names both, and turning both off is accepted.
 | `lint-gate` | the Stop hook that runs the project's lint, for a lint that runs in CI |
 | `format-code` | the hook that formats each edited file, for an editor that formats |
 | `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |
+| `review-gate` | the review gate, for a project that reviews in pull requests or a solo user: its two hooks (the refusals of `--no-verify` and `git add -A` with them), the deny rules of the waiver, `waive-review`, and the native git `pre-commit`, which `sync` removes, a chained hook of yours put back |
 
 ### The installed launcher
 

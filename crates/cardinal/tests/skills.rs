@@ -692,6 +692,69 @@ fn the_hook_only_features_are_their_hook_entry() {
     }
 }
 
+// spec: FEA-23
+/// The feature `review-gate` is every hook entry running the gate and the deny rules of its waiver, as `sync` prints
+/// them, with the recipe of the waiver.
+#[test]
+fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
+    let root = repo_root();
+    let features: toml::Table = fs::read_to_string(root.join("features.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let settings: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(root.join("entries/.claude/settings.json")).unwrap(),
+    )
+    .unwrap();
+    let mut declared = Vec::new();
+    for rule in [
+        "Bash(just waive-review)",
+        "Bash(just waive-review *)",
+        "Edit(//**/claude-review-waived)",
+    ] {
+        assert!(
+            settings["permissions"]["deny"]
+                .as_array()
+                .unwrap()
+                .contains(&rule.into()),
+            "{rule}"
+        );
+        declared.push(format!("deny {rule}"));
+    }
+    for (event, groups) in settings["hooks"].as_object().unwrap() {
+        for group in groups.as_array().unwrap() {
+            for hook in group["hooks"].as_array().unwrap() {
+                let command = hook["command"].as_str().unwrap();
+                if command.starts_with("cardinal run review-gate ") {
+                    let matcher = group["matcher"]
+                        .as_str()
+                        .map(|m| format!("{m} "))
+                        .unwrap_or_default();
+                    declared.push(format!("hook {event} {matcher}{command}"));
+                }
+            }
+        }
+    }
+    assert_eq!(declared.len(), 5, "{declared:?}");
+    let table = features
+        .get("review-gate")
+        .and_then(|t| t.as_table())
+        .expect("features.toml declares no review-gate");
+    let strings = |key: &str| -> Vec<String> {
+        let mut list: Vec<String> = table[key]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e.as_str().unwrap().to_string())
+            .collect();
+        list.sort();
+        list
+    };
+    declared.sort();
+    assert_eq!(strings("entries"), declared);
+    assert_eq!(strings("files"), ["cardinal-review.just"]);
+}
+
 // spec: FEA-19
 /// The recipes of each part a feature may leave out live in a file of their own, which `cardinal.just` imports
 /// optionally: `just` loads every recipe with all the files, and the others with any one missing.

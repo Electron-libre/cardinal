@@ -1,5 +1,5 @@
 //! The native review gate `sync` installs, run as the binary on temp dirs, and the `pre-commit` it writes, run with
-//! `/bin/sh` (SYN-18 to SYN-23, SYN-60, BIN-9, BIN-14).
+//! `/bin/sh` (SYN-18 to SYN-23, SYN-60, BIN-9, BIN-14, FEA-24, FEA-25).
 #![cfg(unix)]
 
 mod common;
@@ -671,4 +671,56 @@ fn dry_run_reports_the_removal_and_writes_nothing() {
     assert_eq!(dry.outcome(GATE), Some("removed"), "{dry:?}");
     assert_eq!(dry.outcome(RESTORED), Some("moved"), "{dry:?}");
     assert_eq!(snapshot(&hooks), before);
+}
+
+/// Set `disabled` in the `[cardinal]` table of the project's configuration.
+fn disable(root: &TempDir, value: &str) {
+    let config = get(root.path(), CONFIG).unwrap();
+    let config: String = config
+        .lines()
+        .filter(|l| !l.starts_with("disabled = "))
+        .flat_map(|l| [l, "\n"])
+        .collect();
+    let config = config.replacen(
+        "[cardinal]\n",
+        &format!("[cardinal]\ndisabled = {value}\n"),
+        1,
+    );
+    put(root.path(), CONFIG, &config);
+}
+
+// spec: FEA-24, FEA-25, SYN-60
+#[test]
+fn a_review_gate_turned_off_is_removed_and_checked_no_more() {
+    let home = Home::new();
+    let (source, root) = gated(&home);
+    let entry = format!("hook PostToolUse Skill {RECORD}");
+    put(
+        source.path(),
+        "features.toml",
+        &format!("[review-gate]\nentries = [\"{entry}\"]\n"),
+    );
+    user_hook(&root, 0);
+    let sync = home.ok(root.path(), &["sync"]);
+    // the source manages no deny rule of the waiver: the warnings of SYN-24
+    assert!(sync.stderr.contains("lacks the deny rule"), "{sync:?}");
+
+    disable(&root, "[\"review-gate\"]");
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), Some("removed"), "{sync:?}");
+    assert_eq!(sync.outcome(RESTORED), Some("moved"), "{sync:?}");
+    assert!(!sync.stderr.contains("deny rule"), "{sync:?}");
+    let run = check(&home, &root, false);
+    assert_problems(&run, &[]);
+    assert!(!run.stderr.contains("deny rule"), "{run:?}");
+    // no gate is expected any more, not even a missing one
+    fs::remove_file(pre_commit(&root)).unwrap();
+    assert_problems(&check(&home, &root, false), &[]);
+    user_hook(&root, 0);
+
+    // turned on again: the gate is back, the user's hook chained again
+    disable(&root, "[]");
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), Some("added"), "{sync:?}");
+    assert_eq!(sync.outcome(MOVED), Some("moved"), "{sync:?}");
 }

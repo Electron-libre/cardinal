@@ -25,3 +25,16 @@ entries = ["hook PostToolUse Edit|Write cardinal run format-code"]
 # `user-language` of `rule-breaches` still applies, the rule being the user's.
 [language-hint]
 entries = ["hook Stop cardinal run language-hint"]
+
+# The review gate (specs/review-gate.md): its two hooks, the deny rules of its waiver and the recipe `waive-review`, for
+# a project that reviews in pull requests or a solo user; `sync` then removes the native git gate it installed and
+# gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too.
+[review-gate]
+files = ["cardinal-review.just"]
+entries = [
+    "deny Bash(just waive-review)",
+    "deny Bash(just waive-review *)",
+    "deny Edit(//**/claude-review-waived)",
+    "hook PreToolUse Bash cardinal run review-gate check",
+    "hook PostToolUse Skill cardinal run review-gate record",
+]

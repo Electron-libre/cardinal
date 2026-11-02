@@ -757,7 +757,6 @@ fn the_file_only_features_are_their_files() {
             .and_then(|t| t.as_table())
             .unwrap_or_else(|| panic!("features.toml declares no {feature}"));
         assert!(table.get("entries").is_none(), "{feature}: {table:?}");
-        assert!(table.get("needs").is_none(), "{feature}: {table:?}");
         let mut files: Vec<String> = table["files"]
             .as_array()
             .unwrap()
@@ -765,8 +764,13 @@ fn the_file_only_features_are_their_files() {
             .map(|f| f.as_str().unwrap().to_string())
             .collect();
         files.sort();
+        let mut expected = expected;
+        expected.sort();
         assert!(!expected.is_empty(), "{feature}");
         assert_eq!(files, expected, "{feature}");
+        if feature == "issue-files" {
+            assert!(table.get("needs").is_none(), "{feature}: {table:?}");
+        }
     }
 }
 

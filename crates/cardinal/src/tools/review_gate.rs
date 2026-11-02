@@ -616,7 +616,7 @@ fn refusal(cwd: &Path, index: Option<&Path>) -> Option<Refusal> {
 /// Tells the agent the commit waits for a review, and to have the user fix a waiver the hook could not use, then exits 2.
 fn refuse(refusal: Refusal) -> ! {
     eprintln!("Refused: {}.", refusal.why);
-    eprintln!("Run /code-review low on the current diff with the Skill tool (issue-workflow, step 3.5), fix what it finds, then commit.");
+    eprintln!("Run /code-review low on the current diff with the Skill tool, fix what it finds, then commit.");
     if let Some((waiver, failed)) = refusal.broken_waiver {
         eprintln!("The review waiver {} could not be {failed}, so it waives nothing: ask the user to fix that file.", waiver.display());
     }

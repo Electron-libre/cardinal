@@ -47,6 +47,7 @@ workflow skill, the seeded `ROADMAP.md` (the project's), rewording the skills th
 ## Plan
 1. [x] Declare `issue-files` in `features.toml` (files only, no `needs`), its row in the test of the file-only
    features, the README and the docs; verified by `the_file_only_features_are_their_files`; makes true FEA-30.
+2. [x] Fixes of the `high` review of the whole issue; verified by `just check`.
 
 ## Decisions
 - Mode: autonomous
@@ -68,5 +69,30 @@ done: feature `issue-files` declared (3 skills, `cardinal-issues.just`), FEA-30 
 
 red: FEA-30: `features.toml declares no issue-files`
 Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2 (high review of the issue)
+done: the refusal of the review gate no longer names `issue-workflow`; the test of the file-only features sorts its
+expected list and checks `needs` for `issue-files` only; follow-up issue for the readers of `issues/`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a (no behaviour documented changed) |
+| code review | low, see below |
+
+red: none
+Code review: no findings (low); high: 9 findings
+- fixed: the refusal of the review gate cited `issue-workflow, step 3.5`, a skill the feature leaves out.
+- fixed: the expected files of the test were not sorted after the concat; the `needs` check ran for FEA-27 too.
+- issue `issues/leave_the_issues_directory_alone_with_the_issue_files_off.md`: `review-gate` and `deliverable-size`
+  leave out `issues/`, `validation-stop` reads it, with the feature off.
+- not fixed, decided at the plan: the seeded `ROADMAP.md` stays (its milestones then go `done` by hand), the skills
+  citing `skill:create-issue` stay worded (non-goals of FEA).
+- not fixed: `sync` leaves the emptied skill directories, as for every feature; a directory with no `SKILL.md`
+  loads nothing.
 not verified: none
 decisions needed: none

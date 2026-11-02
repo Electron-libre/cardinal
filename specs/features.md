@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: draft
+status: accepted
 adrs: [0014, 0025]
 ---
 

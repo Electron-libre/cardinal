@@ -237,13 +237,14 @@ struct Finding {
 }
 
 /// What a session is checked against: the work tree of each `cwd` of its calls, to make paths relative, the managed
-/// paths, the conversation language, whether the review gate is on, and the repository and `start` the committed
-/// files are read at.
+/// paths, the conversation language, whether the review gate and the issue files are on, and the repository and
+/// `start` the committed files are read at.
 struct Context {
     worktrees: HashMap<String, PathBuf>,
     managed: Option<HashSet<String>>,
     language: Option<Language>,
     gate: bool,
+    issues: bool,
     repo: PathBuf,
     start: String,
 }
@@ -367,7 +368,8 @@ impl Verdict {
                 self.add("managed-copy", blocked, &call.location, rel.clone());
             }
         }
-        if main {
+        // a project that turned the issue files off has no validation stop to breach (FEA-38)
+        if main && context.issues {
             if let Some(rel) = relative
                 .as_ref()
                 .filter(|r| *plan_proposed && !PLAN_DIRS.iter().any(|d| r.starts_with(d)))
@@ -712,11 +714,15 @@ fn record(path: &Path) -> Option<Record> {
     let gate = !config
         .as_ref()
         .is_some_and(|c| features::turns_off(c, features::REVIEW_GATE));
+    let issues = !config
+        .as_ref()
+        .is_some_and(|c| features::turns_off(c, features::ISSUE_FILES));
     let context = Context {
         worktrees,
         managed: managed_paths(&repo, &start_text),
         language,
         gate,
+        issues,
         repo: repo.clone(),
         start: start_text.clone(),
     };

@@ -1188,6 +1188,46 @@ fn gate_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     )]
 }
 
+// spec: FEA-38
+fn issue_files_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("issue-files-off");
+    let repo = new_repo(&tmp.join("off"));
+    let config = "[cardinal]\nsource = \"x\"\nrev = \"r1\"\ndisabled = [\"issue-files\"]\n";
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(".claude/cardinal.toml", config)],
+    );
+    let projects = tmp.join("projects");
+    let mut t = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+    t.typed("go");
+    t.run(
+        "p1",
+        "Write",
+        &json!({"file_path": repo.join("issues/x.md"), "content": "# Tracking\n\nPlan: proposed\n"}),
+        None,
+    );
+    t.run(
+        "p2",
+        "Write",
+        &json!({"file_path": repo.join("src/main.rs"), "content": "fn main() {}\n"}),
+        None,
+    );
+    t.write(&projects.join("-off/s.jsonl"));
+    let (ok, out) = run(dir, &projects, false);
+    let (_, summary) = run(dir, &projects, true);
+    let quiet = |text: &str| !text.contains("validation-stop\t");
+    if !quiet(&out) || !quiet(&summary) {
+        println!("{out}{summary}");
+    }
+    vec![(
+        "a session of a project that turned off issue-files is not checked against validation-stop"
+            .to_string(),
+        ok && quiet(&out) && quiet(&summary),
+    )]
+}
+
 #[test]
 fn rule_breaches() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1206,6 +1246,7 @@ fn rule_breaches() {
         .chain(waste_checks(&dir, &tmp))
         .chain(stage_checks(&dir, &tmp))
         .chain(gate_off_checks(&dir, &tmp))
+        .chain(issue_files_off_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

@@ -56,6 +56,6 @@ so the install over a user's `pre-commit` fails changing nothing. Out of scope: 
 - `high` review: 9 findings. Fixed: the duplicated test of `plan`, the comment naming the removed `exists()`, errors
   other than NotFound read as absent, the duplicated test. Not fixed: the refusal message (a dangling link does
   exist as an entry, `merge them by hand` holds). Became issues:
-  `issues/keep_the_gate_install_unchanged_on_failure.md` (a dangling user `pre-commit`, the link removed before its
+  `issues/done/keep_the_gate_install_unchanged_on_failure.md` (a dangling user `pre-commit`, the link removed before its
   replacement, the rename racing `plan`), `issues/name_the_chained_hook_conflict_in_check.md` (`check` reports
   `missing` for a conflict `sync` refuses).

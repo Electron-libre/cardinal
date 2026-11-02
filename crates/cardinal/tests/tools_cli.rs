@@ -263,6 +263,16 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
     check_messages(repo.path(), cases);
 }
 
+#[test]
+fn commit_check_passes_the_trailer_of_who_validated() {
+    let repo = project(Some("[project]\ncommit_scopes = [\"sync\"]\n"));
+    let message = "feat(sync): add progress\n\nValidated-by: Jane Doe <jane@example.com>\n";
+    check_messages(
+        repo.path(),
+        vec![("Validated-by trailer", message.into(), "")],
+    );
+}
+
 /// Each case: a name, a message, and the hint its refusal must hold (empty: the message is valid).
 fn check_messages(repo: &Path, cases: Vec<(&str, String, &str)>) {
     for (name, message, hint) in cases {

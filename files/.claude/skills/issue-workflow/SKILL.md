@@ -18,7 +18,7 @@ commands (another session works in this worktree), stop and tell the user what i
 stop when a branch `<stem>` exists (an issue worktree of the former `start-issue`). Details: [details.md](details.md).
 
 Read the issue file. No `# Tracking` section: start at step 1. If `# Tracking` says `Plan: proposed`, the plan was never
-validated: redo the stop of step 2. Otherwise (`Plan: validated`, or no marker: planned before it existed) show where it stands in two `next` / `left` lines (the next unchecked
+validated: redo the stop of step 2. Otherwise (`Plan: validated`, signed or not, or no marker: planned before it existed) show where it stands in two `next` / `left` lines (the next unchecked
 deliverable with the recorded mode, the deliverables left by name) and continue at step 3 in the mode recorded there (none recorded:
 validation at each deliverable), unless the issue changes a capability whose spec is missing, still `draft` with no validated
 requirements, or not named in its `# Specs` section: then write the spec as step 1 says, keeping `# Tracking` as it is, and validate it (step 2) first. A plan whose
@@ -83,7 +83,8 @@ Show, and nothing else:
 
 **Wait for the user.** Apply their answers and corrections to the files (the answers go to `## Decisions`). When an
 answer changes the plan itself (deliverables, their order) rather than a detail, show the new plan lines and stop
-again. Then set `Plan: validated` and the base commit. The spec file is the record of the requirements; `## Decisions` doesn't copy them.
+again. Then set `Plan: validated by <name> <<email>> on <YYYY-MM-DD>` (the `user.name` and `user.email` of `git config`, today's
+date) and the base commit. The signature states who validated, it proves nothing: the agent reads that identity too. The spec file is the record of the requirements; `## Decisions` doesn't copy them.
 
 ## 3. For each deliverable, in order
 
@@ -116,9 +117,11 @@ again. Then set `Plan: validated` and the base commit. The spec file is the reco
    deliverable with no test), then the line `Code review: <n> findings` (`Code review: no findings` if it came back clean; the
    count first, `cardinal run delivered-quality` reads it) with what was done about each, then the lists `not verified` (state it plainly) and `decisions needed`, empty when nothing applies. Wait for the
    user's validation. Don't commit before it. In autonomous mode, write this summary in the issue and go on.
-7. **Track**: tick the deliverable in the issue's `# Tracking` and note decisions or follow-ups.
+7. **Track**: tick the deliverable in the issue's `# Tracking`, ending its line with who validated it at step 6 (`(validated by
+   <name> <<email>> on <YYYY-MM-DD>)`) or `(autonomous)` in autonomous mode, and note decisions or follow-ups.
 8. **Commit**: after validation (autonomous mode: right after step 7), run `skill:commit-message` (message per the project's convention,
-   validated by its checker). Commit only the files of this deliverable (leave unrelated or personal files such as
+   validated by its checker), with the trailer `Validated-by: <name> <<email>>` of step 7 for a deliverable a person
+   validated, none for an autonomous one. Commit only the files of this deliverable (leave unrelated or personal files such as
    `settings.local.json`) and report the hash. If the user wants to commit themselves, output
    just the message.
 

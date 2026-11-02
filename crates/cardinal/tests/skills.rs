@@ -163,8 +163,18 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
-        "set `Plan: validated`",
-        "the validation is recorded so a resume skips the stop",
+        "set `Plan: validated by <name> <<email>> on <YYYY-MM-DD>`",
+        "the validation is recorded, with who and when, so a resume skips the stop",
+    ),
+    (
+        "issue-workflow",
+        "`Validated-by: <name> <<email>>`",
+        "the commit of a deliverable a person validated names that person",
+    ),
+    (
+        "issue-workflow",
+        "`(autonomous)`",
+        "an autonomous deliverable never claims a human validation",
     ),
     (
         "issue-workflow",

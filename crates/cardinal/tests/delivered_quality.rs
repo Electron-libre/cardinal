@@ -68,13 +68,13 @@ fn toml(rev: &str) -> String {
 const ALPHA: &str = "# SECRET alpha\n\nRun the code review.\n\n# Tracking\n\n## Plan\n1. [x] SECRET one\n2. [x] two\n   3. [ ] not a plan line\n\n## Decisions\n1. [x] not in the plan\n\n## Deliverable 1\n```sh\n# a comment, not a heading\n```\n| code review | low |\n- Code review: 6 findings, 1 finding dismissed.\n- code review (low): 1 finding; second review: no findings\n- Code review: no findings.\n\n# Notes\n- Code review: 4 findings, after the Tracking section.\n";
 
 /// The commits after `alpha` is closed: fixes in and out of the window, reverts of `gap` and of `alpha`, a fix on a
-/// side branch.
+/// side branch, each changing its own line of `src/a.rs`, which `alpha` wrote.
 fn commits_after_close(repo: &Path, gap: &str) {
     commit_at(
         repo,
         "2026-01-10T00:00:00Z",
         "fix(files): later",
-        &[("src/a.rs", Some("c"))],
+        &[("src/a.rs", Some("b1\nc2\na3\na4\na5\na6\na7\n"))],
     );
     commit_at(
         repo,
@@ -102,32 +102,32 @@ fn commits_after_close(repo: &Path, gap: &str) {
         repo,
         "2026-01-12T00:00:00Z",
         "Revert \"feat(files): a\"",
-        &[("src/a.rs", Some("d"))],
+        &[("src/a.rs", Some("b1\nc2\nd3\na4\na5\na6\na7\n"))],
     );
     commit_at(
         repo,
         "2026-01-13T00:00:00Z",
         "revert(files): a",
-        &[("src/a.rs", Some("e"))],
+        &[("src/a.rs", Some("b1\nc2\nd3\ne4\na5\na6\na7\n"))],
     );
     commit_at(
         repo,
         "2026-02-20T00:00:00Z",
         "fix(files): too late",
-        &[("src/a.rs", Some("f"))],
+        &[("src/a.rs", Some("b1\nc2\nd3\ne4\nf5\na6\na7\n"))],
     );
     commit_at(
         repo,
         "2026-01-04T23:00:00Z",
         "fix(files): rebased after the close",
-        &[("src/a.rs", Some("h"))],
+        &[("src/a.rs", Some("b1\nc2\nd3\ne4\nf5\nh6\na7\n"))],
     );
     sh(repo, &["checkout", "-q", "-b", "side"]);
     commit_at(
         repo,
         "2026-01-09T00:00:00Z",
         "fix(files): on a side branch",
-        &[("src/a.rs", Some("g"))],
+        &[("src/a.rs", Some("b1\nc2\nd3\ne4\nf5\nh6\ng7\n"))],
     );
     sh(repo, &["checkout", "-q", "main"]);
 }
@@ -158,7 +158,7 @@ fn fixture(tmp: &Path) -> PathBuf {
         "2026-01-03T00:00:00Z",
         "feat(files): SECRET a",
         &[
-            ("src/a.rs", Some("a")),
+            ("src/a.rs", Some("a1\na2\na3\na4\na5\na6\na7\n")),
             ("docs/arch.md", Some("a")),
             (".claude/harness.lock", Some("a")),
             (".claude/cardinal.lock", Some("a")),
@@ -170,7 +170,7 @@ fn fixture(tmp: &Path) -> PathBuf {
         "2026-01-04T00:00:00Z",
         "fix(files): gap",
         &[
-            ("src/a.rs", Some("b")),
+            ("src/a.rs", Some("b1\na2\na3\na4\na5\na6\na7\n")),
             ("issues/alpha.md", Some(&format!("{ALPHA}x\n"))),
         ],
     );
@@ -295,7 +295,7 @@ fn git_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             has(&r, "alpha", "fixes_in_issue", "1") && has(&r, "beta", "fixes_in_issue", "0"),
         ),
         (
-            "a later fix of its files counts, docs, lock, side branch and window excluded"
+            "a later fix of its lines counts, docs, lock, side branch and window excluded"
                 .to_string(),
             has(&r, "alpha", "fixes_after", "2") && has(&r, "beta", "fixes_after", "0"),
         ),
@@ -1150,6 +1150,101 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     vec![("the summary sums the columns per revision in the order they were used, an empty value leaving its sum empty".to_string(), ok && lines == expected)]
 }
 
+/// Two issues sharing `src/a.rs`, renamed `src/b.rs` after both closed, and the fixes of the lines of each: `alpha`
+/// wrote `x1` to `x3`, `beta` `y4` and `src/c.rs`; the line `-- x0`, written before them, reads `--- x0` in the diff
+/// of the fix that removes it.
+fn blame_fixture(tmp: &Path) -> PathBuf {
+    let repo = tmp.join("blame");
+    std::fs::create_dir_all(&repo).unwrap();
+    sh(&repo, &["init", "-q", "-b", "main"]);
+    let (alpha, beta) = ("# alpha\n\n# Tracking\n", "# beta\n\n# Tracking\n");
+    let steps = [
+        (
+            "2026-02-01T00:00:00Z",
+            "docs: open the issues",
+            vec![
+                ("issues/alpha.md", Some("# alpha\n")),
+                ("issues/beta.md", Some("# beta\n")),
+                ("src/a.rs", Some("-- x0\n")),
+            ],
+        ),
+        (
+            "2026-02-02T00:00:00Z",
+            "feat: alpha",
+            vec![
+                ("src/a.rs", Some("-- x0\nx1\nx2\nx3\n")),
+                ("issues/alpha.md", Some(alpha)),
+            ],
+        ),
+        (
+            "2026-02-03T00:00:00Z",
+            "docs: close alpha",
+            vec![
+                ("issues/alpha.md", None),
+                ("issues/done/alpha.md", Some(alpha)),
+            ],
+        ),
+        (
+            "2026-02-04T00:00:00Z",
+            "feat: beta",
+            vec![
+                ("src/a.rs", Some("-- x0\nx1\nx2\nx3\ny4\n")),
+                ("src/c.rs", Some("c1\nc2\n")),
+                ("issues/beta.md", Some(beta)),
+            ],
+        ),
+        (
+            "2026-02-05T00:00:00Z",
+            "docs: close beta",
+            vec![
+                ("issues/beta.md", None),
+                ("issues/done/beta.md", Some(beta)),
+            ],
+        ),
+        (
+            "2026-02-05T12:00:00Z",
+            "fix: a line of alpha in a file of beta",
+            vec![("src/a.rs", Some("x1\nw2\nx3\ny4\n"))],
+        ),
+        (
+            "2026-02-06T00:00:00Z",
+            "refactor: rename",
+            vec![("src/a.rs", None), ("src/b.rs", Some("x1\nw2\nx3\ny4\n"))],
+        ),
+        (
+            "2026-02-07T00:00:00Z",
+            "fix: a line of alpha",
+            vec![("src/b.rs", Some("z1\nw2\nx3\ny4\n"))],
+        ),
+        (
+            "2026-02-08T00:00:00Z",
+            "fix: insert below a line of beta",
+            vec![("src/c.rs", Some("c1\nnew\nc2\n"))],
+        ),
+        (
+            "2026-02-09T00:00:00Z",
+            "fix: insert at the top",
+            vec![("src/c.rs", Some("top\nc1\nnew\nc2\n"))],
+        ),
+    ];
+    for (date, message, files) in steps {
+        commit_at(&repo, date, message, &files);
+    }
+    repo
+}
+
+// spec: QUA-4
+fn blame_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let repo = blame_fixture(tmp);
+    let (_, out) = run(dir, &repo, &[]);
+    let r = rows(&out);
+    vec![(
+        "a fix counts only against the issue that wrote its lines, across a rename, an insertion by the line above it"
+            .to_string(),
+        [has(&r, "alpha", "fixes_after", "2"), has(&r, "beta", "fixes_after", "1")] == [true; 2],
+    )]
+}
+
 #[test]
 fn delivered_quality() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1157,6 +1252,7 @@ fn delivered_quality() {
     let tmp = scratch.path().to_path_buf();
     let checks: Vec<_> = git_checks(&dir, &tmp)
         .into_iter()
+        .chain(blame_checks(&dir, &tmp))
         .chain(review_checks(&dir, &tmp))
         .chain(fence_checks(&dir, &tmp))
         .chain(start_checks(&dir, &tmp))

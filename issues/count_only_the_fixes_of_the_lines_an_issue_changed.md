@@ -16,6 +16,11 @@ delivered.
   main setup, 10.18 per issue.
 * Per group (last 17 with issues): from 4.45 to 29.36 per issue, swinging up and down with no two-group trend.
 * `reverts_after` is 0 in every group.
+* Measured 2026-11-03 on this repository (168 done issues, 30-day window, local `main`): the file-level count gives
+  2,693 `fixes_after`, 16.0 per issue; counting a fix only when `git blame -M -C` of its first parent attributes a
+  line it removes or changes to a commit of the issue gives 223, 1.33 per issue (89 issues with at least one);
+  also counting, for a hunk that only adds lines, the line right above it gives 284, 1.69 per issue. The blame alone
+  removes ~92% of the count: the file threshold and a shorter window are left out.
 
 # Approach
 1. Measure first: for a sample of issues of this repository, how many counted fixes change lines the issue added or
@@ -37,3 +42,33 @@ Lean agent loop
 
 # Hints
 * Blame must run on the parent of the fix commit, and a renamed file must keep its history.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+A `fix` counts in `fixes_after` of an issue only when it changes a line a commit of the issue wrote (`git blame` of
+its first parent, renames and moves followed), not any line of a file it touched; `reverts_after` and the window stay.
+Out of scope: the file-sharing threshold and a shorter window (the measure makes them needless).
+
+## Plan
+1. [x] Count the fixes by blame: one blame per fix commit (its removed lines, all paths but `issues/`, `docs/` and
+   the lock), cached and matched against the commits of each issue; spec QUA-4 amended; verified by behaviour tests
+   of `crates/cardinal/tests/delivered_quality.rs` (two issues sharing a file, a renamed file, a pure insertion,
+   the window); makes true QUA-4. (autonomous)
+
+## Deliverable 1
+- done: `fixes_after` counts a fix only when `git blame -M -C` of its first parent gives one of the lines it removes
+  or changes (or the line right above a pure insertion) to a commit of the issue; on this repository, 380 fixes for
+  168 issues (2.26 per issue) against 2,693 (16.0) by file; run time 8.0 s to 9.3 s.
+- red: QUA-4: `alpha.fixes_after: expected "2", got Some("1")`, `beta.fixes_after: expected "1", got Some("3")`
+- Code review: 1 finding: a removed line starting with `-- ` read as a file header (`--- `) dropped the later hunks
+  of its file; fixed (a header only between `diff --git` and the first hunk), proven by a `-- x0` line in the fixture.
+- not verified: the other repositories of the Findings (only this one was rerun).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 555b84dc768c5397f015d7e753dda935474719be
+- A fix that only adds lines counts when the line right above its hunk was written by the issue (1 a).
+- The former file-level count is not kept as a column (2 a).

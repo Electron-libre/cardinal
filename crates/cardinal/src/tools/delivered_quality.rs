@@ -1,6 +1,6 @@
 //! Measure what happened to the work of each done issue of a repository (`specs/delivered-quality.md`): one
 //! tab-separated row per file of `issues/done/`, with the commits of the issue, the fixes inside it, and the fixes
-//! and reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
+//! of the lines it wrote and the reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
 //! span, the tokens of its messages, and the lines it changed in the specs and in the docs. With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
 //! is printed.
@@ -472,6 +472,83 @@ fn reverts(commit: &Commit, files: &BTreeSet<&str>, own: &[&Commit]) -> bool {
     cited || typed && commit.paths.iter().any(|p| files.contains(p.as_str()))
 }
 
+/// Whether `path` says nothing of an issue's work (QUA-4): an issue file, a doc or the lock of the sync.
+fn unrelated(path: &str) -> bool {
+    UNRELATED_PREFIXES.iter().any(|d| path.starts_with(d)) || UNRELATED_FILES.contains(&path)
+}
+
+/// The commits that last wrote, at the first parent of `fix`, the lines it removes or changes and, above a hunk that
+/// only adds lines, the line right above it (QUA-4), in the paths `unrelated` leaves; renames followed, lines moved or
+/// copied from another file of the same commit included. Empty for a root commit.
+fn blamed(repo: &Path, fix: &str) -> HashSet<String> {
+    let parent = format!("{fix}^");
+    let Some(diff) = git(
+        repo,
+        &[
+            "-c",
+            "core.quotePath=false",
+            "diff",
+            "-M",
+            "-U0",
+            "--no-color",
+            "--no-ext-diff",
+            &parent,
+            fix,
+        ],
+    ) else {
+        return HashSet::new();
+    };
+    let mut ranges: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+    let mut path = None;
+    // the `--- ` header of a file sits between its `diff --git` line and its first hunk; inside a hunk it is a
+    // removed line starting with `-- `
+    let mut header = false;
+    for line in diff.lines() {
+        if line.starts_with("diff --git ") {
+            header = true;
+        } else if line.starts_with("@@ ") {
+            header = false;
+        }
+        if let Some(old) = line.strip_prefix("--- ").filter(|_| header) {
+            path = old
+                .strip_prefix("a/")
+                .map(|p| p.trim_end_matches('\t'))
+                .filter(|p| !unrelated(p));
+        } else if let (Some(path), Some(hunk)) = (path, line.strip_prefix("@@ -")) {
+            let old = hunk.split(' ').next().unwrap_or_default();
+            let (start, count) = old.split_once(',').unwrap_or((old, "1"));
+            let (Ok(start), Ok(count)) = (start.parse::<usize>(), count.parse::<usize>()) else {
+                continue;
+            };
+            // a hunk that only adds lines sits below its `start`, 0 at the top of the file
+            let count = count.max(1);
+            if start > 0 {
+                ranges
+                    .entry(path)
+                    .or_default()
+                    .push(format!("{start},{}", start + count - 1));
+            }
+        }
+    }
+    let mut writers = HashSet::new();
+    for (path, ranges) in ranges {
+        let mut args = vec!["blame", "--porcelain", "-M", "-C"];
+        for range in &ranges {
+            args.extend(["-L", range]);
+        }
+        args.extend([parent.as_str(), "--", path]);
+        let Some(blame) = git(repo, &args) else {
+            continue;
+        };
+        writers.extend(blame.lines().filter_map(|l| {
+            let hash = l.split(' ').next()?;
+            (hash.len() == 40 && hash.chars().all(|c| c.is_ascii_hexdigit()))
+                .then(|| hash.to_string())
+        }));
+    }
+    writers
+}
+
 /// What a session tells of the issue it worked on, at a timestamp.
 enum Event {
     Validation,
@@ -751,6 +828,7 @@ fn issue_row(
     path: &Path,
     window: Duration,
     docs: &DocFiles,
+    blames: &mut HashMap<String, HashSet<String>>,
 ) -> Option<Row> {
     let stem = path.file_stem()?.to_string_lossy().into_owned();
     let own = issue_commits(repo, log, &stem);
@@ -760,15 +838,19 @@ fn issue_row(
     let files: BTreeSet<&str> = mine
         .iter()
         .flat_map(|c| c.paths.iter().map(String::as_str))
-        .filter(|p| {
-            !UNRELATED_PREFIXES.iter().any(|d| p.starts_with(d)) && !UNRELATED_FILES.contains(p)
-        })
+        .filter(|p| !unrelated(p))
         .collect();
     let end = log[close].date + window;
     let later: Vec<&Commit> = log[close + 1..].iter().filter(|c| c.date <= end).collect();
     let fixes_after = later
         .iter()
-        .filter(|c| c.kind() == "fix" && c.paths.iter().any(|p| files.contains(p.as_str())))
+        .filter(|c| c.kind() == "fix")
+        .filter(|c| {
+            let writers = blames
+                .entry(c.hash.clone())
+                .or_insert_with(|| blamed(repo, &c.hash));
+            mine.iter().any(|m| writers.contains(&m.hash))
+        })
         .count();
     let reverts_after = later.iter().filter(|c| reverts(c, &files, &mine)).count();
     let fixes_in = mine
@@ -896,6 +978,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         .ok()
         .and_then(|root| read_sessions(&root, &repo));
     let docs = DocFiles::read(&repo);
+    let mut blames = HashMap::new();
     let mut rows: Vec<Row> = sorted_entries(&repo.join("issues/done"))
         .iter()
         .filter(|p| p.extension().is_some_and(|e| e == "md"))
@@ -907,6 +990,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 p,
                 Duration::days(window_days),
                 &docs,
+                &mut blames,
             )
         })
         .collect();

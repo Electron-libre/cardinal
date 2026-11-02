@@ -47,6 +47,9 @@ from the current configuration (out of scope).
    `CONFIGS`, `features::turns_off`) and `classify` applies it; the warning is printed when the current config
    turns the feature off or a commit is read without it, with the second line when no file is listed; verified by
    tests of `crates/cardinal/tests/release.rs` (the scenarios of REL-11 and REL-12); makes true REL-11, REL-12. (autonomous)
+2. [x] Fixes of the `high` review: the warning follows the commits read without the convention only;
+   `commit_config` shared by `release` and `rule-breaches`; `release_breaking_files` read once; `docs/usage.md`
+   names the minor of a release spanning the turn off; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -70,3 +73,21 @@ from the current configuration (out of scope).
 - Code review: no findings
 - not verified: none
 - decisions needed: none
+
+## Deliverable 2
+- done: fixes of the `high` review (6 findings).
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | REL-11 amended: the warning when a commit is read without the convention |
+| docs | `docs/usage.md` |
+| code review | no findings |
+
+- red: none (refactor and a narrower warning condition, kept green by the REL-11 tests).
+- High review: 6 findings; fixed: the warning on the working-tree config, the duplicated `commit_config`, the double
+  read of `release_breaking_files`, the docs saying major or patch only; not fixed: the `[harness]` table (features
+  came after the rename of ADR 0015, no `[harness] disabled` ever existed) and one `git show` per commit (a release
+  spans tens of commits).
+- Code review: no findings

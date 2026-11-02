@@ -9,7 +9,7 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::transcripts::{shown, CONFIGS};
+use super::transcripts::commit_config;
 use crate::features;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
@@ -240,21 +240,17 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
         .lines()
         .filter_map(Version::parse)
         .max();
+    let breaking_files = super::config_list(root, "release_breaking_files").unwrap_or_default();
     let commits = match last {
-        Some(last) => commits(root, last)?,
+        Some(last) => commits(root, last, &breaking_files)?,
         None => Vec::new(),
     };
-    if features::is_off(root, features::CONVENTIONAL_COMMITS)
-        || commits.iter().any(|c| !c.convention)
-    {
+    if commits.iter().any(|c| !c.convention) {
         eprintln!(
             "release: {} is off: the version is proposed from release_breaking_files only",
             features::CONVENTIONAL_COMMITS
         );
-        if super::config_list(root, "release_breaking_files")
-            .unwrap_or_default()
-            .is_empty()
-        {
+        if breaking_files.is_empty() {
             eprintln!(
                 "release: release_breaking_files lists no file: the commits written with {} off are a patch",
                 features::CONVENTIONAL_COMMITS
@@ -276,8 +272,7 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
 
 /// The non-merge commits since the tag of `last`, oldest first, each read with the convention of its own revision
 /// (REL-11, REL-12).
-fn commits(root: &Path, last: Version) -> Result<Vec<Commit>, String> {
-    let breaking_files = super::config_list(root, "release_breaking_files").unwrap_or_default();
+fn commits(root: &Path, last: Version, breaking_files: &[String]) -> Result<Vec<Commit>, String> {
     let log = git(
         root,
         &[
@@ -300,8 +295,7 @@ fn commits(root: &Path, last: Version) -> Result<Vec<Commit>, String> {
                 fields.next().unwrap_or_default(),
             );
             // as `rule-breaches` reads it (FEA-22): a revision with no readable configuration follows the convention
-            let convention = !shown(root, hash, &CONFIGS)
-                .and_then(|t| t.parse::<toml::Table>().ok())
+            let convention = !commit_config(root, hash)
                 .is_some_and(|c| features::turns_off(&c, features::CONVENTIONAL_COMMITS));
             let touches_listed = files
                 .lines()

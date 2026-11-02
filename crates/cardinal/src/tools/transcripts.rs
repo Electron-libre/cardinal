@@ -362,6 +362,11 @@ pub fn shown(repo: &Path, commit: &str, paths: &[&str]) -> Option<String> {
         .find_map(|path| git(repo, &["show", &format!("{commit}:{path}")]))
 }
 
+/// The configuration of `commit` in `repo`, the one `just check-commit` read; `None` when it has none or it is invalid.
+pub fn commit_config(repo: &Path, commit: &str) -> Option<toml::Table> {
+    shown(repo, commit, &CONFIGS).and_then(|t| t.parse().ok())
+}
+
 /// The text of the first of `paths` as committed on the default branch of `repo` at `at`, in the last commit touching
 /// one of them (the new and the old name of a file); `None` when it cannot be read.
 pub fn committed_file(repo: &Path, at: &str, paths: &[&str]) -> Option<String> {

@@ -151,7 +151,7 @@ A consumer of Cardinal pins a version with `cardinal update --rev v<version>` an
 changed since its last pin.
 
 A project that turns off `conventional-commits` gets no type read: a commit is breaking only when it changes a file of
-`release_breaking_files`, the proposal is a major or a patch, `release` warns so on stderr (and says when that list is
+`release_breaking_files`, the proposal is a major or a patch (a minor only from a `feat` written before the turn off), `release` warns so on stderr (and says when that list is
 empty: every such commit is a patch), and the section lists the other subjects whole under `Changed`. Each commit is
 read with the setting of its own revision, so a release spanning the turn off still reads the commits written before
 it as Conventional Commits.

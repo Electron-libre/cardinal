@@ -19,9 +19,9 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use transcripts::{
-    committed_config, committed_file, for_each_numbered_line, git, project_name, projects,
-    projects_root, repository, result_text, revision, sessions, shown, subagents, user_command,
-    user_turn, Place, CONFIGS, LOCKS,
+    commit_config, committed_config, committed_file, for_each_numbered_line, git, project_name,
+    projects, projects_root, repository, result_text, revision, sessions, subagents, user_command,
+    user_turn, Place, LOCKS,
 };
 
 const HEADER: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
@@ -586,11 +586,6 @@ fn conventional(subject: &str, scopes: &[String]) -> bool {
         && !description.is_empty()
         && !description.starts_with(char::is_uppercase)
         && !description.ends_with('.')
-}
-
-/// The configuration of `commit` in `repo`, the one `just check-commit` read; `None` when it has none or it is invalid.
-fn commit_config(repo: &Path, commit: &str) -> Option<toml::Table> {
-    shown(repo, commit, &CONFIGS).and_then(|t| t.parse().ok())
 }
 
 /// The `commit_scopes` of the configuration of a commit.

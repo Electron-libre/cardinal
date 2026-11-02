@@ -2,5 +2,5 @@
 
 ## Reports to the user
 
-What the agent shows the user follows `.claude/rules/reports-to-the-user.md`, which Claude Code loads in every
-session.
+The agent talks to the user as `.claude/rules/user-language.md` says, and what it shows them follows
+`.claude/rules/reports-to-the-user.md`; Claude Code loads both in every session.

@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: accepted
+status: draft
 adrs: [0014, 0025]
 ---
 
@@ -40,6 +40,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-24** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check` must not report `missing: native review gate` nor `modified: native review gate` (SYN-23).
 - **FEA-25** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check`, `sync` and `update` must not print the warnings of SYN-24.
 - **FEA-26** (deterministic) `rule-breaches` must not apply rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` (BRE-4, BRE-5, BRE-6, BRE-21) to a session whose `.claude/cardinal.toml` committed at its `start` (as BRE-14 reads it) turns off the feature `review-gate`: no finding of theirs, and they apply to no such session.
+- **FEA-27** (deterministic) The source of Cardinal must declare the features `harness-measure`, made of the files of `files/.claude/skills/evaluate-harness/` and `files/.claude/skills/audit-instructions/`, `report-style`, made of the file `.claude/rules/reports-to-the-user.md`, and `github-ci`, made of the files of `files/.github/`; none of them with an entry.
+- **FEA-28** (deterministic) `check`, `sync` and `update` must not print the warnings of SYN-28 when the project turns off the feature `harness-measure`.
+- **FEA-29** (deterministic) The rule that the agent talks to the user in the `user_language` must be in a managed file of no feature, `.claude/rules/user-language.md`, and not in `.claude/rules/reports-to-the-user.md`, which holds only the format of the reports.
 
 ## Scenarios
 
@@ -72,8 +75,10 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - The commit types that `delivered-quality` reads (QUA-3) and `release` (the version and the changelog): a project
   with its own convention counts no `fix`, and its release is proposed as a patch
   (`issues/release_a_project_without_the_commit_convention.md`).
-- Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16 and
-  `review-gate`: each comes with its own issue.
+- Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16,
+  `review-gate` and those of FEA-27: each comes with its own issue.
+- Rewording the managed files that cite a file of `harness-measure` or `report-style` (the two skills cite each other,
+  `AGENTS.md` names the rule): a citation of a file left out reads as absent, and nothing loads or checks it.
 - Keeping the refusals of `cardinal run review-gate check` (`--no-verify`, `core.hooksPath`, a `git add` of every
   file: REV-12, REV-21) when `review-gate` is off: they go with its hook.
 - Rewording the skills that mention the gate (`skill:issue-workflow` keeps its mandatory review): a project that

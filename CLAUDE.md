@@ -26,7 +26,8 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
   hooks), and never creates or enters a worktree, see `docs/architecture.md`.
 - `.claude/skills/commit-message/conventional-commits.md`: commit message format (Conventional Commits, enforced by
   `just check-commit`);
-  `.claude/rules/reports-to-the-user.md`: the language and the format of the reports to the user, loaded in every session.
+  `.claude/rules/user-language.md` and `.claude/rules/reports-to-the-user.md`: the language and the format of the reports
+  to the user, loaded in every session.
 
 This repository is its own first consumer: its `.claude/`, `AGENTS.md`, `cardinal*.just`, `script/` and
 `specs/README.md` are copies of `files/`. After changing `files/`, run `just sync`; `just check-cardinal`

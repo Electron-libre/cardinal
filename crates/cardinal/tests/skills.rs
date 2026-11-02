@@ -464,14 +464,27 @@ fn skills_do_not_point_to_an_always_on_rule() {
     assert!(failures.is_empty(), "{failures:#?}");
 }
 
-/// The language of the conversation is said once, in the always-on rule, not in each skill.
+// spec: FEA-29
+/// The language of the conversation is said once, in the always-on rule of no feature, not in each skill nor in the
+/// rule of the report style, which a project may turn off.
 #[test]
 fn the_user_language_is_said_once_in_the_always_on_rule() {
     let root = repo_root();
-    let rule = fs::read_to_string(root.join(".claude/rules/reports-to-the-user.md")).unwrap();
+    let rule = fs::read_to_string(root.join("files/.claude/rules/user-language.md")).unwrap();
     assert!(
         rule.contains("`user_language`"),
         "the rule names no `user_language`"
+    );
+    let style =
+        fs::read_to_string(root.join("files/.claude/rules/reports-to-the-user.md")).unwrap();
+    assert!(
+        !style.contains("`user_language`"),
+        "the report style restates the language"
+    );
+    let features = fs::read_to_string(root.join("features.toml")).unwrap();
+    assert!(
+        !features.contains("user-language.md"),
+        "a feature holds the language rule"
     );
     let copies: Vec<String> = skill_dirs(&root)
         .into_iter()

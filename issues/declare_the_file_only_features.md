@@ -34,3 +34,31 @@ Optional features
 
 # Hints
 * The fixed context budget (SYN-38) shows the gain: compare `cardinal check` before and after on a consumer.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Declare `harness-measure`, `report-style` and `github-ci` as file-only features (FEA-27) and quiet the SYN-28 warning
+with `harness-measure` off (FEA-28). The rule holds the language rule too: it moves to `.claude/rules/user-language.md`,
+in no feature (FEA-29), so turning off the report style keeps the language. No rewording of the citations (non-goal).
+
+## Plan
+1. [x] Split the rule: `user-language.md` takes the language paragraph, `reports-to-the-user.md` keeps the format,
+   `AGENTS.md` names both; verified by a test of `skills.rs`; makes true FEA-29.
+2. [ ] Declare the three features in `features.toml` and gate the retention warning on `harness-measure`; verified by a
+   test of `skills.rs` (the declared files) and one of `retention_cli.rs` (no warning with the feature off); makes true
+   FEA-27, FEA-28.
+
+## Decisions
+- Mode: autonomous
+- Base commit: c5e4fc54f321bddb2fb5dd3566260139c3a7a873
+- Q1: a, the language rule moves to `.claude/rules/user-language.md`, in no feature.
+
+## Summary of deliverable 1
+- done: the language rule lives in `.claude/rules/user-language.md`, `reports-to-the-user.md` keeps the format only,
+  `AGENTS.md` names both.
+- red: FEA-29: `the_user_language_is_said_once_in_the_always_on_rule` panicked, `files/.claude/rules/user-language.md`
+  not found.
+- Code review: no findings

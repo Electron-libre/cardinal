@@ -55,6 +55,11 @@ flowchart TD
 - **Autonomous mode** (the default) lifts the stop of step 3.6: the summary of each deliverable is written in the
   issue instead and the agent chains into the next one, until a question, a finding or a check it cannot settle.
   What it never lifts is in the skill, section "Autonomous mode".
+- **A queue of issues**: handed the next few issues (3 at most), the session claims them through `next-issue`, writes
+  their plans, stops once for all of them, then chains them in autonomous mode, checking before each one that the
+  issues done left its plan valid; one final report and one close request. The main loop drives it, no subagent per
+  issue ([ADR 0026](adr/0026-a-queue-of-issues-is-chained-by-the-main-loop.md)); the steps are in the skill's
+  `details.md`, "Drive a queue".
 - **Size limit**: an issue too large for one session is split at step 2 (the limits are in step 1 of the skill);
   `cardinal run deliverable-size` counts a deliverable at step 3.5 and what the issue changed since its base commit.
 - **Delegated exploration**: only a wide search (the git history, many files of a large repository) at step 1 or 3.1

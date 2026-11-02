@@ -1,12 +1,13 @@
 ---
 name: issue-workflow
-description: Drive an issue file from `issues/` to done in validated deliverables (understanding, spec and plan written in the issue then validated in one stop, then per deliverable test, code, docs, review, human validation, issue update, commit). Use when the user hands over an issue file (e.g. `issues/foo.md`) or says to start, continue or resume an issue, so the process doesn't have to be re-explained in each prompt.
+description: Drive an issue file from `issues/` to done in validated deliverables (understanding, spec and plan written in the issue then validated in one stop, then per deliverable test, code, docs, review, human validation, issue update, commit). Use when the user hands over an issue file (e.g. `issues/foo.md`) or says to start, continue or resume an issue, or hands over the next few issues of the queue to chain, so the process doesn't have to be re-explained in each prompt.
 ---
 
 # Work an issue
 
 The user hands over an issue file in `issues/`. Never skip a validation stop: they are what makes the autonomy safe.
 The only ones the user can lift are those of step 3.6 and 3.8, through the Autonomous mode.
+Handed the next few issues of the queue to chain, follow [details.md](details.md), "Drive a queue".
 
 ## 0. Resume or start
 
@@ -140,7 +141,8 @@ can switch it at any time.
 
 - **Lifted**: step 3.6 stops and the wait before step 3.8. Write the 3.6 summary in the issue instead, then commit
   locally and chain into the next deliverable.
-- **Never lifted**: the review of step 3.5 and its checks, the `high` review of the whole issue, the stop of step 2;
+- **Never lifted**: the review of step 3.5 and its checks, the `high` review of the whole issue, the stop of step 2
+  (in a queue: grouped, never lifted);
   no push, deletion or history rewrite unasked.
 - **Stops the chain**: a blocking question, a decision the summary needs from the user, a review finding you can't
   settle, a failing check you can't fix (never commit or build on a red base). After the last deliverable, give the
@@ -152,7 +154,8 @@ When an advisor tool is available, consult it at these moments:
 
 - the plan written in `# Tracking`, before the stop of step 2 (on a resume or a re-stop, only if the plan changed);
 - a test or a check still red after a fix (step 3.3 or 3.5), before trying another approach;
-- after the `update-docs` of the whole issue, before its `high` review.
+- after the `update-docs` of the whole issue, before its `high` review;
+- the stale plan check of a queue that finds an overlap ([details.md](details.md), "Drive a queue"), before going on.
 
 Follow the advice unless a step fails empirically or primary evidence (code, test output, the spec) contradicts it;
 then consult once more to reconcile. The advisor never replaces a review or a stop. No minimum number of calls.

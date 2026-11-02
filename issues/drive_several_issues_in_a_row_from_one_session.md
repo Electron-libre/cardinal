@@ -68,3 +68,52 @@ Longer autonomy
   intent) is caught only if the subagent sees it on rereading, or by the `high` review. Keep batches small and
   batch only independent issues.
 * An issue that depends on another of the batch waits for it to be done, then gets its own step 2 stop.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+Let the user hand the agent the next 2 or 3 ready issues: one grouped plan stop, then the issues chained in autonomous
+mode, with a stale plan check between two of them and one final report. Out of scope: parallel issues, a new tool.
+Means: the main loop chains the issues itself, no orchestrator subagent (ADR 0026 draft).
+
+## Plan
+1. [x] Queue mode of `skill:issue-workflow`: a section in `details.md` (take the issues by `next-issue` then
+   `issue-claim` one after the other on a clean tree, step 1 of each with its `Rests on:`, one grouped step 2 stop
+   crossing them, the chain, the stale plan check, the stops, the final report and grouped close), its entry in
+   `SKILL.md` (description, step 2 "grouped, never lifted", Autonomous mode, an Advisor moment for the stale plan
+   check), ADR 0026, `just sync`; verified by new required passages in `crates/cardinal/tests/skills.rs`, red first. (autonomous)
+2. [ ] Docs and `high` review fixes of the whole issue (steps 3.2 to 3.8).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 6565ce13ef2bf1c6e0f47d52ca58d846c2352fb5
+- Answers of the plan stop: the main loop chains the issues (1 a); a section of `details.md` with a short entry in
+  `SKILL.md` (2 a); 3 issues at most per batch (3 a).
+- No spec: a harness change (skill text), proved by the required passages of `tests/skills.rs` like the other modes.
+- Taking N issues needs no tool change: once one is claimed, `next-issue` skips it and offers the next ready one, so
+  the batch holds only ready issues; the claims are all taken before any file is written (CLM-9 wants a clean tree).
+- `/code-review high` inside a subagent: not verified; moot with the main loop, where the reviews run as today.
+- Measure: QUA-8 counts the preparation of issues 2 and 3 with issue 1 (it runs before issue 1's first commit);
+  accepted, the per-issue tokens of a queue are approximate.
+
+## Summary of deliverable 1
+done: section "Drive a queue" in `details.md`, its entry in `SKILL.md` (description, intro, never lifted, Advisor),
+ADR 0026 accepted, `docs/workflow.md`, synced.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | n/a (harness) |
+| docs | `docs/workflow.md`, ADR 0026 |
+| code review | see below |
+
+red: none (no spec): `tests/skills.rs` failed on the 6 missing passages of the queue before the text.
+Code review: 1 findings
+- The plan signature had replaced `Plan: proposed` in the Approach text instead of the `# Tracking` line: fixed, both
+  lines restored.
+
+not verified: a real queue run (the text is proved by its required passages only).
+decisions needed: none.

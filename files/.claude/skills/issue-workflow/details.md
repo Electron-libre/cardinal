@@ -60,3 +60,32 @@ On a branch other than the trunk, once the user agreed to close the issue:
 
 `close-issue` refuses an issue of another worktree named by path. `close-worktree` refuses inside the worktree it would remove, and a branch whose work is not
 on the main branch unless `--force`.
+
+## Drive a queue
+
+When the user hands over the next few issues ("the next 2 issues", "chain the queue"), the session drives them one
+after the other, with no orchestrator subagent (ADR 0026): the reviews, the gates and the claims work as for one issue,
+and the `# Tracking` of each issue keeps the state, so a compaction or a resumed session picks the queue up from the
+files. A queue holds 3 issues at most, the number the user gave if smaller.
+
+1. **Take**: on a clean worktree, run `just next-issue`, claim the issue it offers (`issue-claim`), and repeat until
+   the queue is full: a claimed issue is skipped, so the next run offers the next ready one, never a blocked one. Take
+   every claim before writing any file (a new claim needs a clean worktree, CLM-9).
+2. **Prepare**: step 1 for each issue, in order. Each plan adds to its `## Decisions` a line `Rests on:` naming the
+   spec ids, ADRs and files it reads or changes.
+3. **One grouped stop**: the stop of step 2 for every issue at once, the links and summaries issue by issue, then one
+   questions table numbered across the queue. Cross the `Rests on:` of each plan with what the plans before it change,
+   and raise each overlap as a question (keep, drop the issue from the queue, reorder). The stop is grouped, never
+   lifted. A dropped issue gets its claim freed (`git update-ref -d refs/cardinal/claims/<stem>`) and its `# Tracking`
+   stays `Plan: proposed`. Apply the answers and sign each plan as step 2 says; the base commit of each issue is set
+   when it starts.
+4. **Chain**: steps 3.1 to 3.8 of each issue in autonomous mode, its `high` review included. Before the next issue,
+   check that `just check` is green, the commits of the issue are in `git log` and its `# Tracking` is ticked.
+5. **Stale plan check**, before each issue after the first: cross the files of `git diff --name-only <base of the
+   first issue>..HEAD` and the decisions the issues done added with the `Rests on:` of this one, and reread what
+   overlaps. No overlap: go. An overlap without impact: note it in `## Decisions` and go. An overlap that changes the
+   plan: stop the chain, set the issue back to `Plan: proposed` and do its own step 2 stop; the issues done stay
+   committed.
+6. **Stops the chain**: the stops of the Autonomous mode, plus a stale plan.
+7. **Final report**: a table `issue | commits | state` (`done`, `stopped: <why>`, `not started`), then one request to
+   close the issues done; on the user's agreement, close each as the Rules of `SKILL.md` say, one commit per close.

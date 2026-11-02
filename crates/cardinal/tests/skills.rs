@@ -217,6 +217,36 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "the advisor never lifts the reviews nor the stop of step 2",
     ),
     (
+        "issue-workflow",
+        "## Drive a queue",
+        "section chaining a few issues from one session",
+    ),
+    (
+        "issue-workflow",
+        "3 issues at most",
+        "a queue stays small, the context of the session grows with it",
+    ),
+    (
+        "issue-workflow",
+        "grouped, never lifted",
+        "a queue groups the plan stops of its issues, it never skips them",
+    ),
+    (
+        "issue-workflow",
+        "`Rests on:`",
+        "each plan of a queue says what it rests on, for the overlap and stale plan checks",
+    ),
+    (
+        "issue-workflow",
+        "stale plan check",
+        "before each issue of a queue, the work already done is crossed with its plan",
+    ),
+    (
+        "issue-workflow",
+        "no orchestrator subagent",
+        "the main loop drives the queue, so the reviews, gates and claims work as for one issue (ADR 0026)",
+    ),
+    (
         "update-docs",
         "skill:commit-message",
         "a commit of the docs goes through the checker of commit-message",

@@ -424,3 +424,56 @@ fn refuses_to_tag_with_an_untracked_file() {
     assert!(!release(dir.path(), &["0.2.0", "--tag"]).status.success());
     assert_eq!(git(dir.path(), &["tag", "-l", "v0.2.0"]), "");
 }
+
+const OFF: &str = "[cardinal]\ndisabled = [\"conventional-commits\"]\n\n[project]\nrelease_breaking_files = [\"format\"]\n";
+const WARNING: &str =
+    "release: conventional-commits is off: the version is proposed from release_breaking_files only";
+
+fn stderr(out: &Output) -> String {
+    String::from_utf8_lossy(&out.stderr).to_string()
+}
+
+// spec: REL-11
+#[test]
+fn without_the_convention_only_a_listed_file_is_breaking_and_release_warns() {
+    let dir = repo();
+    config(dir.path(), OFF);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: a", "a.txt");
+    commit(dir.path(), "feat!: drop b", "b.txt");
+    commit(dir.path(), "Change c\n\nBREAKING CHANGE: c moved", "c.txt");
+    let out = release(dir.path(), &[]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(stdout(&out), "0.2.1\n", "no type read: a patch");
+    assert!(stderr(&out).contains(WARNING), "{out:?}");
+    let out = release(dir.path(), &["0.2.1"]);
+    assert!(out.status.success(), "{out:?}");
+    assert!(stderr(&out).contains(WARNING), "{out:?}");
+
+    let dir = repo();
+    config(dir.path(), OFF);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Raise the format", "format");
+    assert_eq!(proposed(dir.path()), "1.0.0");
+}
+
+// spec: REL-12
+#[test]
+fn without_the_convention_the_section_lists_the_whole_subjects_under_changes() {
+    let dir = repo();
+    config(dir.path(), OFF);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Raise the format", "format");
+    commit(dir.path(), "Add a flag", "a.txt");
+    commit(dir.path(), "fix: repair a link", "b.txt");
+    let out = release(dir.path(), &["1.0.0"]);
+    assert!(out.status.success(), "{out:?}");
+    let today = chrono::Local::now().format("%Y-%m-%d");
+    assert!(
+        changelog(dir.path()).ends_with(&format!(
+            "## [1.0.0] - {today}\n\n### Breaking\n\n- Raise the format\n\n### Changes\n\n- Add a flag\n- fix: repair a link\n"
+        )),
+        "{}",
+        changelog(dir.path())
+    );
+}

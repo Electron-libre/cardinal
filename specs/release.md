@@ -24,6 +24,8 @@ reads in the changelog what changed since its last pin.
 - **REL-7** (deterministic) `release <version> --tag` must create the annotated tag `v<version>` on `HEAD`, its message the changelog section of the version, and print the command that pushes it.
 - **REL-10** (deterministic) `release <version> --tag` must refuse, with a non-zero exit and no tag, when the work tree has uncommitted changes or untracked files, when `CHANGELOG.md` of `HEAD` has no section for the version, or when the tag exists.
 - **REL-8** (deterministic) `release` must never push.
+- **REL-11** (deterministic) When `.claude/cardinal.toml` turns off the feature `conventional-commits`, `release` must count a commit as breaking only when it changes a file of `release_breaking_files`, read no commit type nor `BREAKING CHANGE:` footer, propose a major when a commit since the last tag is breaking and a patch otherwise, and print to stderr, with or without a version, the warning `release: conventional-commits is off: the version is proposed from release_breaking_files only`; its stdout with no version stays the version alone.
+- **REL-12** (deterministic) When `.claude/cardinal.toml` turns off the feature `conventional-commits`, `release <version>` must write, in place of `### Added` and `### Fixed`, a subsection `### Changes` after `### Breaking`, holding one line `- <subject>` per non-merge commit since the last version tag that is not breaking, oldest first; the lines of `### Breaking` hold the whole subject too.
 - **REL-9** (deterministic) `release <version>` must list under `### Milestones`, first in the section, every milestone of the `roadmap` documents of `.claude/cardinal.toml` whose `State:` is `done` and that has no `Released:` line, and add to each of them the line `- Released: v<version>` after its `State:` line.
 
 ## Scenarios
@@ -36,6 +38,9 @@ reads in the changelog what changed since its last pin.
 - (REL-4) Given a `CHANGELOG.md` whose first section is `## [Unreleased]` above `## [0.2.0]`, when `release 0.3.0` runs, then its section lands between them.
 - (REL-4) Given no version tag and any commits, when `release 0.2.0` runs, then the section `0.2.0` holds only `First numbered release.`.
 - (REL-4) Given the commits `feat!: drop the old flag`, `feat: add a flag`, `fix: repair a link` and `chore: tidy` since the last tag, when `release` writes the section, then Breaking holds `- drop the old flag`, Added `- add a flag`, Fixed `- repair a link`, and `tidy` is not listed.
+- (REL-11) Given `disabled = ["conventional-commits"]`, the tag `v0.2.0` and since it the commits `feat: a` and `Add b`, when `release` runs, then it prints `0.2.1` and warns on stderr.
+- (REL-11) Given `disabled = ["conventional-commits"]`, `release_breaking_files = ["format"]` and since the tag `v0.2.0` a commit `Raise the format` that changes `format`, when `release` runs, then it prints `1.0.0`.
+- (REL-12) Given `disabled = ["conventional-commits"]` and since the last tag the commits `Raise the format` (changing a listed file), `Add a flag` and `fix: repair a link`, when `release 1.0.0` runs, then Breaking holds `- Raise the format`, Changes `- Add a flag` and `- fix: repair a link`, and there is no Added nor Fixed.
 - (REL-9) Given `ROADMAP.md` with a milestone `done` released as `v0.2.0`, one `done` with no `Released:` line and one `in issues`, when `release 0.3.0` runs, then only the second is listed and gains `- Released: v0.3.0`.
 - (REL-10) Given `release 0.3.0` ran and its changes are not committed yet, when `release 0.3.0 --tag` runs, then it is refused and no tag exists.
 

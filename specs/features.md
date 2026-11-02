@@ -79,9 +79,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   project's (SYN-4), which drops the dependency itself; the seeds of FEA-33 serve the projects seeded after it.
 - Checking a project's own commit convention when it turns off `conventional-commits`: `commit-check` and the CI job
   `commits` stay, for the attribution and the `Expected-effect:` footers that the measure reads.
-- The commit types that `delivered-quality` reads (QUA-3) and `release` (the version and the changelog): a project
-  with its own convention counts no `fix`, and its release is proposed as a patch
-  (`issues/release_a_project_without_the_commit_convention.md`).
+- The commit types that `delivered-quality` reads (QUA-3): a project with its own convention counts no `fix`;
+  `release` reads none either and says so (REL-11, REL-12).
 - Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16,
   `review-gate`, those of FEA-27, `issue-files`, `specs` and `workspace-lock`: each comes with its own issue.
 - Rewording the skills of `harness-measure`, which cite each other: a citation of a file left out reads as absent,

@@ -1,4 +1,5 @@
-//! `release [<version> [--tag]]`: a numbered release of the project from its Conventional Commits
+//! `release [<version> [--tag]]`: a numbered release of the project from its Conventional Commits, or from its
+//! `release_breaking_files` only when it turns off `conventional-commits`
 //! (`specs/release.md`). With no version, print the version proposed from the commits since the last `vX.Y.Z` tag.
 //! With one, write its section of `CHANGELOG.md` and run the project's `release_version_command`, for the user to
 //! reread and commit; with `--tag` too, once that commit is made, create the annotated tag `v<version>` on `HEAD`.
@@ -7,6 +8,8 @@
 use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use crate::features;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
 pub(crate) const HEADER: &str = "# Changelog
@@ -54,6 +57,8 @@ enum Kind {
     Breaking,
     Added,
     Fixed,
+    /// A commit not breaking of a project that turns off `conventional-commits` (REL-12).
+    Changed,
     Unlisted,
 }
 
@@ -152,6 +157,7 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
             (Kind::Breaking, "Breaking"),
             (Kind::Added, "Added"),
             (Kind::Fixed, "Fixed"),
+            (Kind::Changed, "Changes"),
         ] {
             let mut lines = String::new();
             for c in commits.iter().filter(|c| c.kind == kind) {
@@ -225,8 +231,15 @@ fn tag_release(root: &Path, version: Version) -> Result<(), String> {
 }
 
 /// The proposed version, the last version tag reachable from `HEAD`, and the commits since it, none with no tag
-/// (REL-1).
+/// (REL-1, REL-11).
 fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), String> {
+    let convention = !features::is_off(root, features::CONVENTIONAL_COMMITS);
+    if !convention {
+        eprintln!(
+            "release: {} is off: the version is proposed from release_breaking_files only",
+            features::CONVENTIONAL_COMMITS
+        );
+    }
     let last = git(root, &["tag", "--merged", "HEAD", "--list", "v*"])?
         .lines()
         .filter_map(Version::parse)
@@ -234,7 +247,7 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
     let Some(last @ Version(major, minor, patch)) = last else {
         return Ok((Version(0, 1, 0), None, Vec::new()));
     };
-    let commits = commits(root, last)?;
+    let commits = commits(root, last, convention)?;
     let proposal = if commits.iter().any(|c| c.kind == Kind::Breaking) {
         Version(major + 1, 0, 0)
     } else if commits.iter().any(|c| c.kind == Kind::Added) {
@@ -245,8 +258,9 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
     Ok((proposal, Some(last), commits))
 }
 
-/// The non-merge commits since the tag of `last`, oldest first.
-fn commits(root: &Path, last: Version) -> Result<Vec<Commit>, String> {
+/// The non-merge commits since the tag of `last`, oldest first; without the `convention`, read from the files
+/// they change only, with their whole subject (REL-11, REL-12).
+fn commits(root: &Path, last: Version, convention: bool) -> Result<Vec<Commit>, String> {
     let breaking_files = super::config_list(root, "release_breaking_files").unwrap_or_default();
     let log = git(
         root,
@@ -267,7 +281,18 @@ fn commits(root: &Path, last: Version) -> Result<Vec<Commit>, String> {
             let touches_listed = files
                 .lines()
                 .any(|f| breaking_files.iter().any(|b| b == f.trim()));
-            classify(message, touches_listed)
+            if convention {
+                classify(message, touches_listed)
+            } else {
+                Commit {
+                    kind: if touches_listed {
+                        Kind::Breaking
+                    } else {
+                        Kind::Changed
+                    },
+                    description: message.lines().next().unwrap_or("").trim().into(),
+                }
+            }
         })
         .collect())
 }

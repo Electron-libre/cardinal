@@ -84,7 +84,8 @@ Show, and nothing else:
 **Wait for the user.** Apply their answers and corrections to the files (the answers go to `## Decisions`). When an
 answer changes the plan itself (deliverables, their order) rather than a detail, show the new plan lines and stop
 again. Then set `Plan: validated by <name> <<email>> on <YYYY-MM-DD>` (the `user.name` and `user.email` of `git config`, today's
-date) and the base commit. The signature states who validated, it proves nothing: the agent reads that identity too. The spec file is the record of the requirements; `## Decisions` doesn't copy them.
+date; either unset: ask the user, never guess one) and the base commit. The signature states who validated, it proves
+nothing: the agent reads that identity too. The spec file is the record of the requirements; `## Decisions` doesn't copy them.
 
 ## 3. For each deliverable, in order
 
@@ -109,7 +110,7 @@ date) and the base commit. The signature states who validated, it proves nothing
    Re-run `just check` after the fixes.
    The native `pre-commit` hook (`cardinal run review-gate native`) enforces it: `git commit` fails while the diff holds a file
    the last review never saw, so write the tracking and the summary of steps 6 and 7 in the issue **before**
-   the review (fixes to reviewed files pass; a diff under `issues/` only, or the close of an issue with the references and the milestone state `close-issue` rewrote, needs no review). Only the user can
+   the review, all but the signature of step 7, which waits for the validation of step 6 (fixes to reviewed files pass; a diff under `issues/` only, or the close of an issue with the references and the milestone state `close-issue` rewrote, needs no review). Only the user can
    waive the review: never do it yourself ([details.md](details.md), "Review waiver").
 6. **Human review (STOP, except in autonomous mode)**: show one line `done` (what changed, not the diff), a table `check | result` (tests, lint, specs, docs, code
    review), one line `red:` opening with the ids its tests trace, then the failure message the test of step 3.2 gave before

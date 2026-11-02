@@ -33,7 +33,7 @@ flowchart TD
   start(["issues/NAME.md"]) --> resume{"Tracking section?"}
   resume -->|none| prepare["1. Prepare in the files:<br/>understanding, spec draft, plan"]
   resume -->|"Plan: proposed"| validate
-  resume -->|"Plan: validated"| gather
+  resume -->|"Plan: validated by ..."| gather
   prepare --> validate[["2. STOP: the user validates<br/>the plan and answers the questions"]]
   validate --> gather["3.1 Gather"]
   gather --> red["3.2 Test first: it fails<br/>for the right reason"]
@@ -41,8 +41,8 @@ flowchart TD
   green --> docs["3.4 Docs: update-docs"]
   docs --> review["3.5 just check +<br/>/code-review low"]
   review --> human[["3.6 STOP: the user validates<br/>(lifted in autonomous mode)"]]
-  human --> track["3.7 Tick the plan line"]
-  track --> commit["3.8 Commit: commit-message"]
+  human --> track["3.7 Tick the plan line:<br/>validated by NAME, or autonomous"]
+  track --> commit["3.8 Commit: commit-message,<br/>Validated-by trailer if validated"]
   commit -->|next deliverable| gather
   commit -->|last one| issuedocs["update-docs<br/>on base..HEAD"]
   issuedocs --> high["/code-review high<br/>on base..HEAD"]

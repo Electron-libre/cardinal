@@ -70,6 +70,10 @@ Out of scope: a proof (a hook on the typed prompt, a GPG/SSH signature). No spec
    3.8 for a validated deliverable only; a resume still reads a bare `Plan: validated`; `just sync`; verified by new
    assertions of `crates/cardinal/tests/skills.rs` and `commit-check` passing a message with the trailer. (autonomous)
 
+2. [x] Fixes of the `high` review: the signature of step 3.7 waits for step 6, an unset git identity is asked, the
+   footer of the commit convention names `Validated-by:`, `docs/workflow.md` shows the signature, a passage pins the
+   resume of a bare `Plan: validated`; verified by `skills.rs`. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: d7d4dc31900f1c31bec563b5c7183b4504a06ab0
@@ -82,3 +86,12 @@ Out of scope: a proof (a hook on the typed prompt, a GPG/SSH signature). No spec
 - checks: `just check` green (fmt, clippy, tests, specs); docs: `docs/workflow.md` keeps the `Plan: validated` prefix.
 - red: none (no spec): the three passages of `skills.rs` missing before the edit of the skill.
 - Code review: no findings
+
+## Summary of deliverable 2
+- done: the fixes of the `high` review (plan line 2).
+- checks: `just check` green; docs: `docs/workflow.md`, `conventional-commits.md`.
+- red: none (no spec): the resume passage was the only new assertion.
+- Not fixed from the `high` review: a stopped autonomous chain stays `(autonomous)` (a decision is not the
+  validation of the deliverable); the `commit-check` test stays a pass-through (decision 2 a); the email in the
+  issue files is the one git already publishes in every commit.
+- Code review: 1 finding (plan line 2 pasted into the Findings): fixed

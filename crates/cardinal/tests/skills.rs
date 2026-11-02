@@ -173,6 +173,11 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
+        "`Plan: validated`, signed or not",
+        "a resume still reads the bare marker of an issue planned before the signature",
+    ),
+    (
+        "issue-workflow",
         "`(autonomous)`",
         "an autonomous deliverable never claims a human validation",
     ),

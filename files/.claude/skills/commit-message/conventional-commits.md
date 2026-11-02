@@ -52,7 +52,8 @@ Use one of:
 ## Footer (optional)
 
 - Separated from the body by a blank line.
-- Used for `BREAKING CHANGE: …` and issue references (`Refs: #123`).
+- Used for `BREAKING CHANGE: …`, issue references (`Refs: #123`) and the person who validated the change
+  (`Validated-by: <name> <<email>>`, set by `skill:issue-workflow`).
 
 ## Language and style
 

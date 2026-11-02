@@ -191,6 +191,33 @@ fn an_attribution_line_is_flagged_unless_the_project_turns_off_the_ban() {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success() && stdout.is_empty(), "{stdout}");
+    // the issue finds the same root, named from the root or from its own directory
+    let check = |file: &str, dir: &std::path::Path| {
+        let out = tool_command("check_issue.rs")
+            .arg(file)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        (
+            out.status.success(),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+        )
+    };
+    let (ok, out) = check("a.md", &tmp.path().join("issues"));
+    assert!(ok && out.is_empty(), "{out}");
+    // the same file is flagged once the project leaves the ban on
+    std::fs::write(
+        tmp.path().join(".claude/cardinal.toml"),
+        "[cardinal]\nsource = \"x\"\n",
+    )
+    .unwrap();
+    for (file, dir) in [
+        ("issues/a.md", tmp.path().to_path_buf()),
+        ("a.md", tmp.path().join("issues")),
+    ] {
+        let (ok, out) = check(file, &dir);
+        assert!(!ok && out.contains("attribution line"), "{file}: {out}");
+    }
 }
 
 // spec: CKI-4
@@ -218,9 +245,7 @@ fn a_done_issue_is_refused_with_one_problem() {
         assert!(
             !out.status.success()
                 && stdout
-                    == format!(
-                        "{file}: a done issue: check-issue checks a new issue of `issues/`\n"
-                    ),
+                    == format!("{file}: a done issue: check-issue checks a new issue of issues/\n"),
             "{file}: {stdout}"
         );
     }

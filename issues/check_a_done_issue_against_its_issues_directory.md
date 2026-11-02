@@ -40,6 +40,14 @@ Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
    done: `check-issue` refuses a file of `issues/done/` with the single CKI-4 problem; spec `accepted`.
    red: CKI-4: `issues/done/a.md: file must be `issues/<snake_case>.md`` and `` `depends_on` names `b`: no `b.md` in `issues/done` nor in `issues/done/done` ``
    Code review: no findings
+2. [x] Fixes of the `high` review: the directory of the issue is resolved once (`issue_dir`) and serves every
+   check, so a new issue named from `issues/` passes; FEA-9 again covers that case and the ban left on; the CKI-4
+   message loses its nested backticks; verified by `crates/cardinal/tests/check_issue.rs`. (autonomous)
+
+   done: `high` review of `df52695..HEAD`, 8 findings: 7 fixed; the helper shared with `issue_claim.rs` is not
+   (its rule differs: an open issue), left as is.
+   red: FEA-9: `a.md: file must be `issues/<snake_case>.md`` for a new issue named from `issues/`
+   Code review: no findings
 
 ## Decisions
 - Mode: autonomous

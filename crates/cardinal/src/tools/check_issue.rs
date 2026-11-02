@@ -17,7 +17,7 @@ fn section_is_empty(text: &str, heading: &str) -> bool {
 }
 
 /// The problems of the keys that order the issue (CKI-1, CKI-2): its `priority` and its `depends_on`.
-fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
+fn front_matter_problems(dir: &Path, stem: &str, text: &str) -> Vec<String> {
     let mut out = Vec::new();
     if next_issue::priority(text).is_none() {
         out.push(
@@ -28,7 +28,6 @@ fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
         out.push("`depends_on` is not a list `[<stem>, <stem>...]` on one line".to_string());
         return out;
     };
-    let dir = path.parent().unwrap_or(Path::new(""));
     for dep in deps {
         if dep == stem {
             out.push("`depends_on` names the issue itself".to_string());
@@ -40,30 +39,27 @@ fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
         .any(|p| p.is_file())
         {
             out.push(format!(
-                "`depends_on` names `{dep}`: no `{dep}.md` in `{0}` nor in `{0}/done`",
-                dir.display()
+                "`depends_on` names `{dep}`: no `{dep}.md` in `issues/` nor in `issues/done/`"
             ));
         }
     }
     out
 }
 
-/// True when the file lies in the `done` directory of an `issues` directory (CKI-4), however it is named.
-fn is_done_issue(path: &Path) -> bool {
-    let dir = std::fs::canonicalize(path)
-        .ok()
-        .and_then(|p| p.parent().map(Path::to_path_buf));
-    dir.is_some_and(|d| {
-        d.file_name().is_some_and(|n| n == "done")
-            && d.parent()
-                .and_then(Path::file_name)
-                .is_some_and(|n| n == "issues")
-    })
+/// The directory of the file, resolved so that a file named from its own directory has one too.
+fn issue_dir(path: &Path) -> std::path::PathBuf {
+    let dir = path
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf())
 }
 
 fn problems(path: &Path, text: &str) -> Vec<String> {
-    if is_done_issue(path) {
-        return vec!["a done issue: check-issue checks a new issue of `issues/`".to_string()];
+    let dir = issue_dir(path);
+    // a done issue always fails the checks of a new one: one problem says why (CKI-4)
+    if dir.ends_with("issues/done") {
+        return vec!["a done issue: check-issue checks a new issue of issues/".to_string()];
     }
     let mut out = Vec::new();
     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
@@ -72,18 +68,10 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         && stem
             .chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
-    if !snake
-        || path
-            .parent()
-            .and_then(Path::file_name)
-            .is_none_or(|d| d != "issues")
-    {
+    if !snake || dir.file_name().is_none_or(|d| d != "issues") {
         out.push("file must be `issues/<snake_case>.md`".to_string());
     }
-    if path
-        .parent()
-        .is_some_and(|d| d.join("done").join(name).exists())
-    {
+    if dir.join("done").join(name).exists() {
         out.push(format!(
             "`issues/done/{name}` already exists: pick another name"
         ));
@@ -101,7 +89,7 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
             out.push(format!("missing section `{required}`"));
         }
     }
-    out.extend(front_matter_problems(path, stem, text));
+    out.extend(front_matter_problems(&dir, stem, text));
     if headings.iter().any(|h| h.trim() == "# Tracking") {
         out.push("`# Tracking` is written by issue-workflow".to_string());
     }
@@ -116,12 +104,7 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         );
     }
     // the root of the project is the nearest ancestor holding its configuration (FEA-9)
-    let root = crate::run::project_root(
-        path.parent()
-            .filter(|dir| !dir.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-        None,
-    );
+    let root = crate::run::project_root(&dir, None);
     let attribution = !root.is_ok_and(|root| features::is_off(&root, features::NO_AI_ATTRIBUTION));
     for (i, line) in text.lines().enumerate() {
         let n = i + 1;

@@ -191,4 +191,13 @@ fn an_attribution_line_is_flagged_unless_the_project_turns_off_the_ban() {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success() && stdout.is_empty(), "{stdout}");
+    // an issue checked in `issues/done/` finds the same root
+    std::fs::write(tmp.path().join("issues/done/b.md"), &body).unwrap();
+    let out = tool_command("check_issue.rs")
+        .arg("issues/done/b.md")
+        .current_dir(tmp.path())
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(!stdout.contains("attribution line"), "{stdout}");
 }

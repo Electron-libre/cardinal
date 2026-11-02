@@ -25,3 +25,28 @@ Optional features
 
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/features.rs` (`is_off`).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+`check-issue` must find the project root (the nearest ancestor of the issue file holding `.claude/cardinal.toml`)
+wherever the file lies, so FEA-9 holds for `issues/done/foo.md`. Out of scope: the other checks of the file name.
+Means: approach 1 (walk up), no git call, so it works outside a repository like the tests' tempdirs.
+
+## Plan
+1. [x] Walk up to the root: `check-issue` takes the nearest ancestor holding `.claude/cardinal.toml` (the
+   grandparent when none does); verified by a test running it on `issues/done/a.md` with the feature off; makes true FEA-9.
+
+## Summary of deliverable 1
+- done: `check-issue` takes as root the nearest ancestor of the file holding `.claude/cardinal.toml`.
+- red: FEA-9: `issues/done/b.md: line 8: attribution line`
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Decisions
+- Mode: autonomous
+- Base commit: 016c2f26d19227d74abb06030835db19bbedab2c
+- Root: walk up to `.claude/cardinal.toml` (approach 1), the grandparent as fallback.

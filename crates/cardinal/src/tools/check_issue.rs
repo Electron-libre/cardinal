@@ -48,6 +48,16 @@ fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
     out
 }
 
+/// The root of the project of the issue file `path` (FEA-9): its nearest ancestor holding `.claude/cardinal.toml`,
+/// wherever the file lies (`issues/`, `issues/done/`), else the grandparent of the file.
+fn project_root(path: &Path) -> &Path {
+    path.ancestors()
+        .skip(1)
+        .find(|dir| dir.join(".claude/cardinal.toml").is_file())
+        .or_else(|| path.parent().and_then(Path::parent))
+        .unwrap_or(Path::new(""))
+}
+
 fn problems(path: &Path, text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
@@ -99,12 +109,7 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
                 .to_string(),
         );
     }
-    // the root of the project holds `issues/` (FEA-9)
-    let root = path
-        .parent()
-        .and_then(Path::parent)
-        .unwrap_or(Path::new(""));
-    let attribution = !features::is_off(root, features::NO_AI_ATTRIBUTION);
+    let attribution = !features::is_off(project_root(path), features::NO_AI_ATTRIBUTION);
     for (i, line) in text.lines().enumerate() {
         let n = i + 1;
         if line.contains("/home/") || line.contains("~/") || line.contains("/Users/") {

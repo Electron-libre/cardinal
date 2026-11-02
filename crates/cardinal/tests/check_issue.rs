@@ -191,13 +191,23 @@ fn an_attribution_line_is_flagged_unless_the_project_turns_off_the_ban() {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success() && stdout.is_empty(), "{stdout}");
-    // an issue checked in `issues/done/` finds the same root
+    // an issue checked in `issues/done/` finds the same root, named from the root or from its own directory
     std::fs::write(tmp.path().join("issues/done/b.md"), &body).unwrap();
-    let out = tool_command("check_issue.rs")
-        .arg("issues/done/b.md")
-        .current_dir(tmp.path())
-        .output()
-        .unwrap();
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(!stdout.contains("attribution line"), "{stdout}");
+    let flagged = |file: &str, dir: &std::path::Path| {
+        let out = tool_command("check_issue.rs")
+            .arg(file)
+            .current_dir(dir)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).contains("attribution line")
+    };
+    assert!(!flagged("issues/done/b.md", tmp.path()));
+    assert!(!flagged("b.md", &tmp.path().join("issues/done")));
+    // the same file is flagged once the project leaves the ban on
+    std::fs::write(
+        tmp.path().join(".claude/cardinal.toml"),
+        "[cardinal]\nsource = \"x\"\n",
+    )
+    .unwrap();
+    assert!(flagged("issues/done/b.md", tmp.path()));
 }

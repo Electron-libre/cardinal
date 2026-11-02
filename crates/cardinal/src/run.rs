@@ -49,7 +49,7 @@ pub fn target() -> String {
 
 /// The nearest directory from `start` up that holds `.claude/cardinal.toml`, else from `fallback` up (the project of the
 /// session, when the agent left it).
-fn project_root(start: &Path, fallback: Option<&Path>) -> Result<PathBuf> {
+pub(crate) fn project_root(start: &Path, fallback: Option<&Path>) -> Result<PathBuf> {
     let nearest = |from: &Path| {
         let from = fs::canonicalize(from).ok()?;
         from.ancestors()

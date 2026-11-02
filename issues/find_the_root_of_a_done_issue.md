@@ -37,12 +37,24 @@ Means: approach 1 (walk up), no git call, so it works outside a repository like 
 
 ## Plan
 1. [x] Walk up to the root: `check-issue` takes the nearest ancestor holding `.claude/cardinal.toml` (the
-   grandparent when none does); verified by a test running it on `issues/done/a.md` with the feature off; makes true FEA-9.
+   grandparent when none does); verified by a test running it on `issues/done/b.md` with the feature off; makes true FEA-9.
+2. [x] Fixes of the `high` review: reuse `run::project_root` (canonical path, `CONFIG`, no dead fallback), a
+   test from `issues/done/` itself and with the ban on; makes true FEA-9.
 
 ## Summary of deliverable 1
 - done: `check-issue` takes as root the nearest ancestor of the file holding `.claude/cardinal.toml`.
 - red: FEA-9: `issues/done/b.md: line 8: attribution line`
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Summary of deliverable 2
+- done: the `high` review findings fixed on the issue's change.
+- red: FEA-9: `b.md` run from `issues/done/` was flagged (the old walk stopped at the cwd)
+- Code review: no findings
+- not fixed: no repository boundary on the walk up, the same as `run::project_root`, which resolves the project of
+  every `cardinal run`; the `depends_on` and name checks of a done issue go to
+  `issues/check_a_done_issue_against_its_issues_directory.md`.
 - not verified: none
 - decisions needed: none
 

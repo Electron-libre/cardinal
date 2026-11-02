@@ -213,3 +213,27 @@ fn says_nothing_of_the_retention_under_ci() {
         assert!(retention(&run).is_empty(), "{args:?}: {run:?}");
     }
 }
+
+// spec: FEA-28
+#[test]
+fn no_retention_warning_when_the_project_turns_off_the_measure_of_the_harness() {
+    let home = Home::new();
+    put(home.path(), "config/settings.json", "{}");
+    let source = source();
+    put(source.path(), "files/a.txt", "a");
+    put(source.path(), "features.toml", "[harness-measure]\n");
+    let root = tempfile::tempdir().unwrap();
+    home.ok(root.path(), &["init", source.path().to_str().unwrap()]);
+    let config = std::fs::read_to_string(root.path().join(".claude/cardinal.toml")).unwrap();
+    let config = config.replacen(
+        "[cardinal]\n",
+        "[cardinal]\ndisabled = [\"harness-measure\"]\n",
+        1,
+    );
+    put(root.path(), ".claude/cardinal.toml", &config);
+    for args in [&["sync"][..], &["sync", "--dry-run"], &["check"]] {
+        let run = home.harness(root.path(), args);
+        assert_eq!(run.code, Some(0), "{args:?}: {run:?}");
+        assert!(retention(&run).is_empty(), "{args:?}: {run:?}");
+    }
+}

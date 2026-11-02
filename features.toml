@@ -39,3 +39,17 @@ entries = [
     "hook PreToolUse Bash cardinal run review-gate check",
     "hook PostToolUse Skill cardinal run review-gate record",
 ]
+
+# The skills that measure the harness and audit the instructions, for a project that does not evaluate Cardinal; the
+# warning of `check`, `sync` and `update` on the retention of the transcripts they read (SYN-28) goes too.
+[harness-measure]
+files = [".claude/skills/audit-instructions/SKILL.md", ".claude/skills/evaluate-harness/SKILL.md"]
+
+# The format of the reports to the user (tables, no narration), for a project with its own; the language of the
+# conversation stays, in a rule of its own (FEA-29).
+[report-style]
+files = [".claude/rules/reports-to-the-user.md"]
+
+# The GitHub CI job and the installer it runs, for a project not on GitHub.
+[github-ci]
+files = [".github/install_cardinal.sh", ".github/workflows/cardinal.yml"]

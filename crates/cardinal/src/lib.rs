@@ -1175,10 +1175,14 @@ fn in_ci() -> bool {
         .is_ok_and(|v| !matches!(v.trim().to_lowercase().as_str(), "" | "0" | "false"))
 }
 
-/// The warnings on the retention of the transcripts (SYN-28), printed by `check`, `sync` and `update`; none under CI.
-/// Kept out of `check` and `sync`, which read the project only: these read the user settings too.
+/// The warnings on the retention of the transcripts (SYN-28), printed by `check`, `sync` and `update`; none under CI
+/// nor when the project turns off the measure of the harness that reads them (FEA-28). Kept out of `check` and `sync`,
+/// which read the project only: these read the user settings too.
 #[must_use]
 pub fn retention_warnings(root: &Path) -> Vec<String> {
+    if features::is_off(root, features::HARNESS_MEASURE) {
+        return Vec::new();
+    }
     let user = config_dir().map(|dir| dir.join("settings.json"));
     retention_with(root, in_ci(), user.as_deref())
 }

@@ -705,6 +705,73 @@ fn the_hook_only_features_are_their_hook_entry() {
     }
 }
 
+// spec: FEA-27
+/// The features made of managed files only are every file of their directory or the one file they name, and no entry.
+#[test]
+fn the_file_only_features_are_their_files() {
+    let root = repo_root();
+    let features: toml::Table = fs::read_to_string(root.join("features.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let under = |dirs: &[&str]| -> Vec<String> {
+        let mut files: Vec<String> = dirs
+            .iter()
+            .flat_map(|dir| {
+                walkdir(&root.join("files").join(dir))
+                    .into_iter()
+                    .map(move |f| format!("{dir}/{f}"))
+            })
+            .collect();
+        files.sort();
+        files
+    };
+    for (feature, expected) in [
+        (
+            "harness-measure",
+            under(&[
+                ".claude/skills/audit-instructions",
+                ".claude/skills/evaluate-harness",
+            ]),
+        ),
+        (
+            "report-style",
+            vec![".claude/rules/reports-to-the-user.md".to_string()],
+        ),
+        ("github-ci", under(&[".github"])),
+    ] {
+        let table = features
+            .get(feature)
+            .and_then(|t| t.as_table())
+            .unwrap_or_else(|| panic!("features.toml declares no {feature}"));
+        assert!(table.get("entries").is_none(), "{feature}: {table:?}");
+        let mut files: Vec<String> = table["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|f| f.as_str().unwrap().to_string())
+            .collect();
+        files.sort();
+        assert!(!expected.is_empty(), "{feature}");
+        assert_eq!(files, expected, "{feature}");
+    }
+}
+
+/// The files under `dir`, relative to it, with `/` separators.
+fn walkdir(dir: &Path) -> Vec<String> {
+    let mut files = Vec::new();
+    for entry in fs::read_dir(dir).unwrap().flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if path.is_dir() {
+            files.extend(walkdir(&path).into_iter().map(|f| format!("{name}/{f}")));
+        } else {
+            files.push(name);
+        }
+    }
+    files
+}
+
 // spec: FEA-23
 /// The feature `review-gate` is every hook entry running the gate and the deny rules of its waiver, as `sync` prints
 /// them, with the recipe of the waiver.

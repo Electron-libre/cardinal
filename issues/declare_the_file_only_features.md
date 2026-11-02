@@ -47,7 +47,7 @@ in no feature (FEA-29), so turning off the report style keeps the language. No r
 ## Plan
 1. [x] Split the rule: `user-language.md` takes the language paragraph, `reports-to-the-user.md` keeps the format,
    `AGENTS.md` names both; verified by a test of `skills.rs`; makes true FEA-29.
-2. [ ] Declare the three features in `features.toml` and gate the retention warning on `harness-measure`; verified by a
+2. [x] Declare the three features in `features.toml` and gate the retention warning on `harness-measure`; verified by a
    test of `skills.rs` (the declared files) and one of `retention_cli.rs` (no warning with the feature off); makes true
    FEA-27, FEA-28.
 
@@ -62,3 +62,11 @@ in no feature (FEA-29), so turning off the report style keeps the language. No r
 - red: FEA-29: `the_user_language_is_said_once_in_the_always_on_rule` panicked, `files/.claude/rules/user-language.md`
   not found.
 - Code review: no findings
+
+## Summary of deliverable 2
+- done: `harness-measure`, `report-style` and `github-ci` declared in `features.toml`; the retention warning is quiet
+  with `harness-measure` off; `docs/usage.md` lists the three features.
+- red: FEA-27, FEA-28: `features.toml declares no harness-measure`; the retention warning printed after `sync` with
+  the feature off.
+- Code review: no findings
+- not verified: the fixed context gained on a consumer (the hint of the issue).

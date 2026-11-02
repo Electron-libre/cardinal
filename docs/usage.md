@@ -17,7 +17,7 @@ cardinal run <tool> [args]
 |---|---|
 | `sync` | copies the managed files (`files/`), seeds the missing project-owned ones (`seed/`), adds the hooks and the allow and deny rules of Cardinal to `.claude/settings.json` (or removes those the source dropped), installs the git `pre-commit` review gate (removes it, a chained hook of yours put back, once the project turns off `review-gate`). A managed file edited locally is a conflict: fix it in the source, or `--force` to overwrite it. |
 | `update` | git source only: resolves the revision (default: the head of the default branch), syncs to it, then pins the commit in `rev`. It refuses a revision whose hooks run a `cardinal` subcommand the installed one does not know, and names the `cargo install` to run first (see below). |
-| `check` | fails when a managed file was modified or deleted, the git review gate is missing, or a hook runs a `cardinal` subcommand the installed one refuses. It warns when `.claude/settings.json` lacks a deny rule of the review waiver, runs a missing hook or leaves the attribution on (unless the project turns off `no-ai-attribution`), and when Claude Code keeps the transcripts less than a year (`sync` and `update` warn too). |
+| `check` | fails when a managed file was modified or deleted, the git review gate is missing, or a hook runs a `cardinal` subcommand the installed one refuses. It warns when `.claude/settings.json` lacks a deny rule of the review waiver, runs a missing hook or leaves the attribution on (unless the project turns off `no-ai-attribution`), and when Claude Code keeps the transcripts less than a year (`sync` and `update` warn too; unless the project turns off `harness-measure`). |
 | `run` | runs a tool of Cardinal with the binary of the pinned revision, fetched (release asset) or built once into the cache; `cardinal run` alone lists the tools. |
 
 The seeded `.claude/settings.json` allows no command of a stack: `just` and the read-only `git` commands, next to
@@ -72,6 +72,9 @@ names both, and turning both off is accepted.
 | `format-code` | the hook that formats each edited file, for an editor that formats |
 | `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |
 | `review-gate` | the review gate, for a project that reviews in pull requests or a solo user: its two hooks (the refusals of `--no-verify` and `git add -A` with them), the deny rules of the waiver, `waive-review`, the native git `pre-commit`, which `sync` removes, a chained hook of yours put back; rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` of `rule-breaches` skip the sessions that start once the change is committed on the default branch |
+| `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts they read |
+| `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
+| `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
 
 ### The installed launcher
 

@@ -183,8 +183,8 @@ just release 1.2.0 --tag  # tags v1.2.0 locally; the push is yours
 | Message | Fix |
 |---|---|
 | `needs a cardinal that reads the format <n>` | run the `cardinal upgrade …` it prints |
-| a `cargo install …` to run, with no Rust | that `cardinal` predates `cardinal upgrade`: download the latest release again (step 1) |
+| a `cargo install …` to run, with no Rust | `rev` is not a commit: `cardinal update` pins one, then retry; otherwise that `cardinal` predates `cardinal upgrade`: download the latest release again (step 1) |
 | `no .claude/cardinal.toml` | `cardinal init <source>` first |
 | `no .claude/cardinal.lock` | `cardinal update` (or `cardinal sync`) first |
 | `no issues directory` from `just next-issue` | no issue yet: create one (step 5) |
-| a hook refuses every command after an update | the installed `cardinal` is too old: run the `cardinal upgrade …` that `cardinal update` or `cardinal check` printed |
+| a hook refuses every command after an update | the installed `cardinal` is too old to even skip what it does not know: download the latest release again (step 1) |

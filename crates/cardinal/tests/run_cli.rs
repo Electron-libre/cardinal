@@ -553,10 +553,20 @@ fn launcher_copy() -> (TempDir, PathBuf, Vec<u8>) {
     (dir, copy, bytes)
 }
 
+/// The `cardinal` on the `PATH` of the home of `l`.
+fn on_path(l: &Launcher) -> String {
+    fs::read_to_string(l.home.path().join("bin/cardinal")).unwrap()
+}
+
 /// `<launcher> upgrade <args>` with the home of `l`.
 fn upgrade(l: &Launcher, launcher: &Path, args: &[&str]) -> Run {
+    upgrade_with_path(l, launcher, args, &l.home.path_var())
+}
+
+/// `<launcher> upgrade <args>` with the home of `l` and the `PATH` `path`.
+fn upgrade_with_path(l: &Launcher, launcher: &Path, args: &[&str], path: &std::ffi::OsStr) -> Run {
     let mut cmd = std::process::Command::new(launcher);
-    cmd.env("PATH", l.home.path_var())
+    cmd.env("PATH", path)
         .env("XDG_CACHE_HOME", l.home.cache())
         .env_remove("CLAUDE_PROJECT_DIR")
         .arg("upgrade")
@@ -572,9 +582,15 @@ fn upgrade_replaces_the_running_launcher_with_the_release_asset_of_the_commit() 
     let l = Launcher::new();
     let binary = format!("#!/bin/sh\n{TOOL}");
     l.publish("cardinal", &binary, None);
-    let (_dir, copy, _) = launcher_copy();
+    let (dir, copy, _) = launcher_copy();
+    let path = std::env::join_paths([
+        dir.path().to_path_buf(),
+        l.home.path().join("bin"),
+        l.home.path().join("sys"),
+    ])
+    .unwrap();
 
-    let run = upgrade(&l, &copy, &[SOURCE, COMMIT]);
+    let run = upgrade_with_path(&l, &copy, &[SOURCE, COMMIT], &path);
 
     assert_eq!(run.code, Some(0), "{run:?}");
     assert_eq!(fs::read_to_string(&copy).unwrap(), binary);
@@ -595,6 +611,33 @@ fn upgrade_replaces_the_running_launcher_with_the_release_asset_of_the_commit() 
     assert_eq!(leftovers, ["cardinal"], "a whole file renamed into place");
 }
 
+// spec: BIN-19
+#[test]
+fn upgrade_replaces_the_launcher_on_the_path_not_the_binary_it_runs_from() {
+    let l = Launcher::new();
+    let binary = format!("#!/bin/sh\n{TOOL}");
+    l.publish("cardinal", &binary, None);
+    // the launcher on the path is a symlink into the cache of another commit, as a hand install may leave it
+    let other = l.cached("fedcba9876543210fedcba9876543210fedcba98");
+    script(&other, "exit 0\n");
+    let on_path = l.home.path().join("bin/cardinal");
+    fs::remove_file(&on_path).unwrap();
+    std::os::unix::fs::symlink(&other, &on_path).unwrap();
+    let (_dir, copy, original) = launcher_copy();
+
+    let run = upgrade(&l, &copy, &[SOURCE, COMMIT]);
+
+    assert_eq!(run.code, Some(0), "{run:?}");
+    assert_eq!(fs::read_to_string(&on_path).unwrap(), binary);
+    assert!(!fs::symlink_metadata(&on_path).unwrap().is_symlink());
+    assert_eq!(
+        fs::read_to_string(&other).unwrap(),
+        "#!/bin/sh\nexit 0\n",
+        "the cache of the other commit"
+    );
+    assert_eq!(fs::read(&copy).unwrap(), original, "the binary it ran from");
+}
+
 // spec: BIN-21
 #[test]
 fn upgrade_refuses_what_it_cannot_install_and_leaves_the_launcher_unchanged() {
@@ -612,6 +655,7 @@ fn upgrade_refuses_what_it_cannot_install_and_leaves_the_launcher_unchanged() {
         assert_ne!(run.code, Some(0), "{args:?}: {run:?}");
         assert!(run.stderr.contains(reason), "{args:?}: {run:?}");
         assert_eq!(fs::read(&copy).unwrap(), original, "{args:?}");
+        assert_eq!(on_path(&l), "#!/bin/sh\nexit 0\n", "{args:?}");
     }
 
     let other = "fedcba9876543210fedcba9876543210fedcba98";
@@ -619,4 +663,5 @@ fn upgrade_refuses_what_it_cannot_install_and_leaves_the_launcher_unchanged() {
     assert_ne!(run.code, Some(0), "{run:?}");
     assert!(run.stderr.contains(other), "no asset nor build: {run:?}");
     assert_eq!(fs::read(&copy).unwrap(), original);
+    assert_eq!(on_path(&l), "#!/bin/sh\nexit 0\n");
 }

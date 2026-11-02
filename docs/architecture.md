@@ -118,7 +118,7 @@ flowchart TD
 | the tool's | the tool ran |
 | 1 | a drift or a conflict of `sync` and `check` |
 | 2 | a hook refuses (Claude Code blocks on it) |
-| 3 | the launcher could not run the tool, or `init`, `sync`, `update`, `check` failed (BIN-7, BIN-14, BIN-17, SYN-37) |
+| 3 | the launcher could not run the tool, or `init`, `sync`, `update`, `check`, `upgrade` failed (BIN-7, BIN-14, BIN-17, SYN-37) |
 
 - **Cache**: `<cache>/cardinal/bin/<commit>/<target>/cardinal`, or `<cache>/cardinal/bin/local-<hash of the
   path>/cardinal` for a local source, written next to their place and renamed (BIN-4). A `rev` that is no commit hash
@@ -127,8 +127,9 @@ flowchart TD
 - **Before the rename**: the binary was named `harness`. A commit from before it is fetched from its
   `harness-<commit>` release, or built by a `cargo install` that names no crate (BIN-3, BIN-5).
 - **An older launcher**: the launcher is not of the pinned revision, so a hook running a subcommand it does not know
-  cannot run. `check` names the install to run, `cardinal upgrade <source> <commit>` at a pinned commit, else a `cargo install --force` (BIN-15, BIN-20), and `update` refuses such a revision (BIN-16,
-  `crates/cardinal/src/launcher.rs`). A binary pinned before BIN-7 exits 2 instead of 3 on a tool it does not know,
+  cannot run. `check` names the install to run (BIN-15) and `update` refuses such a revision (BIN-16,
+  `crates/cardinal/src/launcher.rs`): `cardinal upgrade <source> <commit>` at a pinned commit, which fetches the
+  binary as `run` does and renames it over the launcher (BIN-19), else a `cargo install --force` (BIN-20). A binary pinned before BIN-7 exits 2 instead of 3 on a tool it does not know,
   and a launcher installed before BIN-17 on a subcommand it does not know: the hook then refuses.
 
 This repository publishes the binaries (`.github/workflows/release.yml`, its own, not managed): each push to the main

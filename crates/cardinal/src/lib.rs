@@ -469,7 +469,7 @@ fn resolve_in(dir: &Path, url: &str, rev: Option<&str>) -> Result<String> {
     git_output(dir, &["rev-parse", &format!("{rev}^{{commit}}")])
 }
 
-/// Replace the running `cardinal` with the binary of `commit` of the git source `source`, fetched as `run` fetches it
+/// Replace the `cardinal` of the `PATH` (else the running one) with the binary of `commit` of the git source `source`, fetched as `run` fetches it
 /// (BIN-19, BIN-21); `source` is resolved against `root` as the configuration would be. Returns the path replaced.
 ///
 /// # Errors
@@ -491,9 +491,21 @@ pub fn upgrade(root: &Path, source: &str, commit: &str) -> Result<PathBuf> {
         commit,
         &run::Programs::default(),
     )?;
-    let exe = std::env::current_exe().context("finding the running cardinal")?;
+    let exe = launcher_on_path().map_or_else(
+        || std::env::current_exe().context("finding the running cardinal"),
+        Ok,
+    )?;
     run::replace(&binary, &exe)?;
     Ok(exe)
+}
+
+/// The first executable `cardinal` of an absolute directory of the `PATH`, as the shell finds it, its symlinks left as they are: the launcher the hooks run, which `upgrade`
+/// replaces rather than a link target of the cache or the binary it was started from (BIN-19).
+fn launcher_on_path() -> Option<PathBuf> {
+    std::env::split_paths(&std::env::var_os("PATH")?)
+        .filter(|dir| dir.is_absolute())
+        .map(|dir| dir.join("cardinal"))
+        .find(|path| path.is_file() && is_executable(path))
 }
 
 /// A 40 (SHA-1) or 64 (SHA-256) hexadecimal digit commit name, as `update` writes it to `rev`.

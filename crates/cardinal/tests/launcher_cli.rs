@@ -84,6 +84,7 @@ fn check_names_the_cargo_install_of_a_git_source_at_a_revision_that_is_no_commit
         );
         let run = home.harness(root.path(), &["check"]);
         assert_eq!(run.code, Some(1), "{run:?}");
+        assert!(!run.lines().is_empty(), "{run:?}");
         assert!(
             run.lines().iter().all(|p| p.contains(&install)),
             "{rev}: {run:?}"

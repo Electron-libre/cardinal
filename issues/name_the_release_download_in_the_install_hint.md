@@ -67,6 +67,8 @@ already does (release asset checked against its digest, else a cargo build) and 
 2. [x] Hints: `launcher::install` returns `cardinal upgrade <source> <commit>` for a git source at a full commit;
    `docs/tutorial.md` (troubleshooting), `docs/usage.md` ("The installed launcher"), `README.md` (commands); verified
    by the update and check tests of BIN-15, BIN-16 and a format refusal; makes true BIN-20. (autonomous)
+3. [x] Review of the issue: `upgrade` replaces the `cardinal` of the `PATH`, the tutorial and usage rows corrected;
+   verified by a binary test with a symlinked launcher; makes true BIN-19 as amended. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -91,8 +93,23 @@ already does (release asset checked against its digest, else a cargo build) and 
 - red: BIN-20: the SYN-40 and SYN-42 tests found `cargo install --force --git <url> --rev <commit> --locked` where they
   expected `cardinal upgrade <url> <commit>`.
 - not verified: a launcher installed before this change still prints the `cargo install`; the tutorial says to
-  download the latest release then.- Checks: `just check` ok, deliverable-size 104 lines.
+  download the latest release then.
+- Checks: `just check` ok, deliverable-size 104 lines.
 - Code review: 1 findings
   - "the hint runs `cardinal upgrade`, which an older launcher lacks": not fixed, the hint is printed by the running
     launcher (`check`, `sync`, `update`, `init`), which has `upgrade` from this change on; an older one still prints
     its `cargo install`, as the tutorial says.
+
+## Deliverable 3
+- done: the fixes of the `high` review of `d64e774..HEAD`: `upgrade` replaces the first `cardinal` of the `PATH`, a
+  symlink and not its target (BIN-19, BIN-21 amended); the tutorial rows of a printed `cargo install` and of hooks
+  refusing every command; usage no longer promises no Rust for any source; the BIN-20 test fails on an empty output.
+- red: BIN-19: the symlinked launcher kept `exit 0` and the binary it ran from was replaced.
+- Code review (high): 9 findings
+  - fixed: the two tutorial rows, `current_exe` instead of the `PATH` launcher, the usage overclaim, the vacuous
+    assertion, the merged bullet of deliverable 2.
+  - not fixed: resolving a branch `rev` to its commit for the hint (decision of step 2: keep the `cargo install`);
+    a pre-rename `harness` asset installed by `upgrade` (no hint names a commit that old); an unquoted source with
+    spaces in the hint (the `cargo install` hints share it, outside this issue).- Checks: `just check` ok, deliverable-size 90 lines.
+- Code review: 1 findings
+  - fixed: the `PATH` lookup skips a relative directory and a `cardinal` that is not executable.

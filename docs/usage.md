@@ -17,9 +17,9 @@ cardinal upgrade <source> <commit>
 | Command | What it does |
 |---|---|
 | `sync` | copies the managed files (`files/`), seeds the missing project-owned ones (`seed/`), adds the hooks and the allow and deny rules of Cardinal to `.claude/settings.json` (or removes those the source dropped), installs the git `pre-commit` review gate (removes it, a chained hook of yours put back, once the project turns off `review-gate`). A managed file edited locally is a conflict: fix it in the source, or `--force` to overwrite it. |
-| `update` | git source only: resolves the revision (default: the head of the default branch), syncs to it, then pins the commit in `rev`. It refuses a revision whose hooks run a `cardinal` subcommand the installed one does not know, and names the `cargo install` to run first (see below). |
+| `update` | git source only: resolves the revision (default: the head of the default branch), syncs to it, then pins the commit in `rev`. It refuses a revision whose hooks run a `cardinal` subcommand the installed one does not know, and names the install to run first (see below). |
 | `check` | fails when a managed file was modified or deleted, the git review gate is missing, or a hook runs a `cardinal` subcommand the installed one refuses. It warns when `.claude/settings.json` lacks a deny rule of the review waiver, runs a missing hook or leaves the attribution on (unless the project turns off `no-ai-attribution`), and when Claude Code keeps the transcripts less than a year (`sync` and `update` warn too; unless the project turns off `harness-measure`). |
-| `upgrade` | replaces the running `cardinal` with the one of a full commit hash of a git source, fetched as `run` fetches it (the release asset checked against its SHA-256, else a `cargo` build), with no configuration needed; it refuses a short hash or a local source and then leaves the installed one as it is. |
+| `upgrade` | replaces the first `cardinal` of the `PATH` (a symlink, not its target) with the one of a full commit hash of a git source, fetched as `run` fetches it (the release asset checked against its SHA-256, else a `cargo` build), with no configuration needed; it refuses a short hash or a local source and then leaves the installed one as it is. |
 | `run` | runs a tool of Cardinal with the binary of the pinned revision, fetched (release asset) or built once into the cache; `cardinal run` alone lists the tools. |
 
 The seeded `.claude/settings.json` allows no command of a stack: `just` and the read-only `git` commands, next to
@@ -86,8 +86,8 @@ names both, and turning both off is accepted.
 The installed `cardinal` is the launcher of every project of the machine, not a binary of the pinned revision. A
 revision whose hooks call a subcommand it does not know needs its `cardinal` installed first, or every hook refuses and
 the agent can run nothing, the install included. `cardinal update` refuses such a revision and prints the install to
-run: `cardinal upgrade <source> <commit>` for a git source at a full commit, which downloads its release binary and
-needs no Rust, else a `cargo install` (BIN-20); in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
+run: `cardinal upgrade <source> <commit>` for a git source at a full commit, which needs no Rust when the source
+publishes the binary of that commit (a GitHub source, a commit of its main branch), else a `cargo install` (BIN-20); in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
 
 ### Formats and migrations
 

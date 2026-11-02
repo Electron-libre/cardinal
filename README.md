@@ -78,6 +78,7 @@ delivers. Details: [docs/workflow.md](docs/workflow.md).
 
 ## Read next
 
+- [docs/tutorial.md](docs/tutorial.md): a first walk through, from an empty project to a first issue delivered.
 - [docs/usage.md](docs/usage.md): every command in detail, the evaluation, parallel worktrees.
 - [docs/workflow.md](docs/workflow.md): how an issue goes from idea to merge, alone or in parallel.
 - [docs/architecture.md](docs/architecture.md): how Cardinal is built; [docs/gates.md](docs/gates.md) and

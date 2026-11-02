@@ -705,8 +705,8 @@ fn the_hook_only_features_are_their_hook_entry() {
     }
 }
 
-// spec: FEA-27
-/// The features made of managed files only are every file of their directory or the one file they name, and no entry.
+// spec: FEA-27, FEA-30
+/// The features made of managed files only are every file of their directories and the files they name, and no entry.
 #[test]
 fn the_file_only_features_are_their_files() {
     let root = repo_root();
@@ -739,12 +739,25 @@ fn the_file_only_features_are_their_files() {
             vec![".claude/rules/reports-to-the-user.md".to_string()],
         ),
         ("github-ci", under(&[".github"])),
+        (
+            "issue-files",
+            [
+                under(&[
+                    ".claude/skills/create-issue",
+                    ".claude/skills/issue-workflow",
+                    ".claude/skills/prioritize-issues",
+                ]),
+                vec!["cardinal-issues.just".to_string()],
+            ]
+            .concat(),
+        ),
     ] {
         let table = features
             .get(feature)
             .and_then(|t| t.as_table())
             .unwrap_or_else(|| panic!("features.toml declares no {feature}"));
         assert!(table.get("entries").is_none(), "{feature}: {table:?}");
+        assert!(table.get("needs").is_none(), "{feature}: {table:?}");
         let mut files: Vec<String> = table["files"]
             .as_array()
             .unwrap()

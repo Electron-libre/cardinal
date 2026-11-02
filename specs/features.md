@@ -43,6 +43,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-27** (deterministic) The source of Cardinal must declare the features `harness-measure`, made of the files of `files/.claude/skills/evaluate-harness/` and `files/.claude/skills/audit-instructions/`, `report-style`, made of the file `.claude/rules/reports-to-the-user.md`, and `github-ci`, made of the files of `files/.github/`; none of them with an entry.
 - **FEA-28** (deterministic) `check`, `sync` and `update` must not print the warnings of SYN-28 on the user settings when the project turns off the feature `harness-measure`; those on the project's own settings stay, since they sweep the transcripts of every project.
 - **FEA-29** (deterministic) The rule that the agent talks to the user in the `user_language` must be in a managed file of no feature, `.claude/rules/user-language.md`, and not in `.claude/rules/reports-to-the-user.md`, which holds only the format of the reports.
+- **FEA-30** (deterministic) The source of Cardinal must declare the feature `issue-files`, made of the files of `files/.claude/skills/issue-workflow/`, `files/.claude/skills/create-issue/` and `files/.claude/skills/prioritize-issues/` and the file `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), with no entry and no `needs`.
 
 ## Scenarios
 
@@ -76,7 +77,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   with its own convention counts no `fix`, and its release is proposed as a patch
   (`issues/release_a_project_without_the_commit_convention.md`).
 - Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16,
-  `review-gate` and those of FEA-27: each comes with its own issue.
+  `review-gate`, those of FEA-27 and `issue-files`: each comes with its own issue.
 - Rewording the skills of `harness-measure`, which cite each other: a citation of a file left out reads as absent,
   and nothing loads or checks it.
 - Keeping the refusals of `cardinal run review-gate check` (`--no-verify`, `core.hooksPath`, a `git add` of every
@@ -85,3 +86,13 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   turns the gate off reviews as its workflow says, nothing refuses a commit.
 - Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
   loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).
+- Gating the issue tools of the binary when `issue-files` is off: `next-issue`, `close-issue`, `check-issue` and
+  `issue-claim` stay callable, and nothing left on calls them; `workspace-lock` reads no claim, `review-gate` and
+  `deliverable-size` keep leaving `issues/` out, and rules `validation-stop` and `skill-routing-issue-workflow` of
+  `rule-breaches` (BRE-8, BRE-17) apply to no session, their trigger being the `Plan: proposed` that the skill writes.
+- A lighter workflow skill replacing `skill:issue-workflow` when `issue-files` is off: a project tracking its issues
+  elsewhere writes its own.
+- Leaving out the seeded `ROADMAP.md` or its guidance when `issue-files` is off: a seed is the project's (SYN-4), and
+  `release` still reads its milestones.
+- Rewording the skills that cite `skill:create-issue` or `skill:issue-workflow` (`skill:write-spec`,
+  `skill:commit-message`, `skill:audit-instructions`): a citation of a skill left out reads as absent.

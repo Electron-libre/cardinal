@@ -53,3 +53,15 @@ files = [".claude/rules/reports-to-the-user.md"]
 # The GitHub CI job and the installer it runs, for a project not on GitHub.
 [github-ci]
 files = [".github/install_cardinal.sh", ".github/workflows/cardinal.yml"]
+
+# The issue files (`issues/`): the skills that write, order and drive them and their recipes, for a project tracking
+# its issues in another tool. The issue tools of `cardinal run` stay, nothing left on calls them; the seeded
+# `ROADMAP.md` is the project's.
+[issue-files]
+files = [
+    ".claude/skills/create-issue/SKILL.md",
+    ".claude/skills/issue-workflow/SKILL.md",
+    ".claude/skills/issue-workflow/details.md",
+    ".claude/skills/prioritize-issues/SKILL.md",
+    "cardinal-issues.just",
+]

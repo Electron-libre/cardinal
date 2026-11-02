@@ -34,3 +34,39 @@ Optional features
 
 # Hints
 * The seeded `ROADMAP.md` is the project's (SYN-4): the feature cannot remove it.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A feature `issue-files` leaves out the three issue skills and `cardinal-issues.just`; the rest of the harness keeps
+working without `issues/`. Out of scope: gating the binary's issue tools (nothing left on calls them), a replacement
+workflow skill, the seeded `ROADMAP.md` (the project's), rewording the skills that cite the issue skills.
+
+## Plan
+1. [x] Declare `issue-files` in `features.toml` (files only, no `needs`), its row in the test of the file-only
+   features, the README and the docs; verified by `the_file_only_features_are_their_files`; makes true FEA-30.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 32d3f8328b274c154e7f5659943905488ec24746
+- No replacement workflow skill: a project tracking its issues elsewhere writes its own.
+- The seeded `ROADMAP.md` stays as it is (SYN-4; `release` reads its milestones).
+- No `needs` either way: `harness-measure` keeps its per-session measures without issues.
+
+## Summary of deliverable 1
+done: feature `issue-files` declared (3 skills, `cardinal-issues.just`), FEA-30 and its non-goals, usage and README.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md`, `README.md` |
+| code review | low, see below |
+
+red: FEA-30: `features.toml declares no issue-files`
+Code review: no findings
+not verified: none
+decisions needed: none

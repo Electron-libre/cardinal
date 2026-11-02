@@ -16,7 +16,7 @@ size limit of `skill:issue-workflow`, so the review step stops on a number the a
 - **SIZ-1** (deterministic) With no argument, `deliverable-size` must count the added plus removed lines of the working tree (staged and unstaged) against `HEAD` (the empty tree when the branch has no commit yet), plus every line of each untracked file git does not ignore, as `git diff` counts a new file.
 - **SIZ-2** (deterministic) With an argument `<rev>`, `deliverable-size` must count the working tree and its untracked files against `<rev>` instead of `HEAD`.
 - **SIZ-3** (deterministic) With an argument `<a>..<b>`, `deliverable-size` must count the changes between the commits `<a>` and `<b>` alone, leaving out the working tree and the untracked files.
-- **SIZ-4** (deterministic) `deliverable-size` must not count the files under `issues/`, nor the lock files: a file named `*.lock`, `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml` or `go.sum`.
+- **SIZ-4** (deterministic) `deliverable-size` must not count the files under `issues/` (unless the project turns off the feature `issue-files`, FEA-37), nor the lock files: a file named `*.lock`, `package-lock.json`, `npm-shrinkwrap.json`, `pnpm-lock.yaml` or `go.sum`.
 - **SIZ-5** (deterministic) A file renamed with its content unchanged must count 0 lines, whether it was moved by `git mv` or by a plain `mv` that left the new path untracked.
 - **SIZ-6** (deterministic) A file renamed whose content also changed must count every line of its old content as removed and every line of its new content as added, also when the rename and the edit are in different commits of the range.
 - **SIZ-7** (deterministic) A file git reads as binary must count 0 lines, tracked or untracked.

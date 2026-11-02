@@ -72,3 +72,18 @@ off; spec `features` accepted.
 red: FEA-38: FAIL - a session of a project that turned off issue-files is not checked against validation-stop
 (`validation-stop	breach	s.jsonl:4	src/main.rs`)
 Code review: no findings
+
+## Deliverable 4: docs and `high` review of the issue
+done: `docs/gates.md` notes FEA-36; REV-9, REV-20 and SIZ-4 point to their exception; tests and names tightened.
+red: none (fixes of the review on green tests)
+`high` review: 9 findings
+- Fixed: REV-9 and REV-20 silent on FEA-36; SIZ-4 silent on FEA-37; the FEA-38 test had no positive control
+  (now `oversized-result` applies); the FEA-36 test never recorded a review (now a reviewed diff, then a new
+  `issues/x.md` refused as never seen); `staged` ran with the issue files off; the boolean `issues` renamed
+  `issue_files`.
+- Not fixed: the gate reads the work tree's configuration, so an unstaged edit of it restores the exemptions: the
+  gate catches mistakes, not deliberate bypasses (module doc), and every other read of the hook is the work tree's.
+- Not fixed: `deliverable-size <a>..<b>` reads the current configuration, as it already does for its limits.
+- Not fixed: the configuration parsed twice by `deliverable-size` (`limit` and `is_off`): one small file, a shared
+  reader kept.
+Code review: no findings

@@ -1224,7 +1224,8 @@ fn issue_files_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     vec![(
         "a session of a project that turned off issue-files is not checked against validation-stop"
             .to_string(),
-        ok && quiet(&out) && quiet(&summary),
+        // the session is read: the waste rule applies to it
+        ok && quiet(&out) && quiet(&summary) && summary.contains("oversized-result\t"),
     )]
 }
 

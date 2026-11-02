@@ -244,7 +244,7 @@ struct Context {
     managed: Option<HashSet<String>>,
     language: Option<Language>,
     gate: bool,
-    issues: bool,
+    issue_files: bool,
     repo: PathBuf,
     start: String,
 }
@@ -369,7 +369,7 @@ impl Verdict {
             }
         }
         // a project that turned the issue files off has no validation stop to breach (FEA-38)
-        if main && context.issues {
+        if main && context.issue_files {
             if let Some(rel) = relative
                 .as_ref()
                 .filter(|r| *plan_proposed && !PLAN_DIRS.iter().any(|d| r.starts_with(d)))
@@ -714,7 +714,7 @@ fn record(path: &Path) -> Option<Record> {
     let gate = !config
         .as_ref()
         .is_some_and(|c| features::turns_off(c, features::REVIEW_GATE));
-    let issues = !config
+    let issue_files = !config
         .as_ref()
         .is_some_and(|c| features::turns_off(c, features::ISSUE_FILES));
     let context = Context {
@@ -722,7 +722,7 @@ fn record(path: &Path) -> Option<Record> {
         managed: managed_paths(&repo, &start_text),
         language,
         gate,
-        issues,
+        issue_files,
         repo: repo.clone(),
         start: start_text.clone(),
     };

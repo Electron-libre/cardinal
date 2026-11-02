@@ -71,10 +71,10 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
         }
     };
     // with the issue files off, `issues/` counts as any other directory (FEA-37)
-    let issues = !crate::features::is_off(root, crate::features::ISSUE_FILES);
+    let issue_files = !crate::features::is_off(root, crate::features::ISSUE_FILES);
     let mut files: Vec<(u64, String)> = counts(&numstat)
         .into_iter()
-        .filter(|(path, n)| *n > 0 && !left_out(path, issues))
+        .filter(|(path, n)| *n > 0 && !left_out(path, issue_files))
         .map(|(path, n)| (n, path))
         .collect();
     files.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
@@ -202,10 +202,10 @@ fn counts(numstat: &[u8]) -> BTreeMap<String, u64> {
     counts
 }
 
-/// Whether `path` is left out of the count: a lock file, or a file under `issues/` when `issues` holds the issue files.
-fn left_out(path: &str, issues: bool) -> bool {
+/// Whether `path` is left out of the count: a lock file, or a file under `issues/` when `issue_files` is on.
+fn left_out(path: &str, issue_files: bool) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
-    issues && path.starts_with("issues/")
+    issue_files && path.starts_with("issues/")
         || LOCK_FILES
             .iter()
             .any(|p| super::check_specs::name_matches(p, name))

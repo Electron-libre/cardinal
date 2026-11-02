@@ -566,13 +566,16 @@ fn refusal(cwd: &Path, index: Option<&Path>) -> Option<Refusal> {
         }
     }
     // with the issue files off, `issues/` is a directory like any other (FEA-36)
-    let issues = !features::is_off(cwd, features::ISSUE_FILES);
-    if snap.files.is_empty() || issues && snap.files.iter().all(|f| f.starts_with(ISSUES_DIR)) {
+    let issue_files = !features::is_off(cwd, features::ISSUE_FILES);
+    if snap.files.is_empty() || issue_files && snap.files.iter().all(|f| f.starts_with(ISSUES_DIR))
+    {
         return None;
     }
-    let staged = staged(cwd, index);
-    if issues && (records_issues_only(&staged) || records_close_only(cwd, index, &staged)) {
-        return None;
+    if issue_files {
+        let staged = staged(cwd, index);
+        if records_issues_only(&staged) || records_close_only(cwd, index, &staged) {
+            return None;
+        }
     }
     // fail closed: a waiver that cannot be read or stamped could never be spent, so the review alone judges the commit
     let broken_waiver = match waiver {

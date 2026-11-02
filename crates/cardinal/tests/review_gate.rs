@@ -1196,6 +1196,21 @@ fn issues_are_code_with_the_issue_files_off() {
     fs::write(project.join("code.txt"), "one\n").unwrap();
     sh(project, &["add", "-A"]);
     sh(project, &["commit", "-qm", "init"]);
+    fs::write(project.join("code.txt"), "two\n").unwrap();
+    review_done(&hook, project, "code-review");
+    assert_eq!(
+        native_run(&hook, project, &[]).0,
+        0,
+        "the reviewed diff passes"
+    );
+    fs::write(project.join("issues/x.md"), "new\n").unwrap();
+    let (code, stderr) = native_run(&hook, project, &[]);
+    assert!(
+        code == 2 && stderr.contains("never saw"),
+        "a new file under issues/ is one the review never saw: {stderr}"
+    );
+    fs::remove_file(project.join("issues/x.md")).unwrap();
+    fs::write(project.join("code.txt"), "one\n").unwrap();
     fs::write(project.join("issues/i.md"), "two\n").unwrap();
     assert_eq!(
         native_run(&hook, project, &[]).0,

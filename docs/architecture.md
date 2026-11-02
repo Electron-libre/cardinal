@@ -37,7 +37,7 @@ flowchart LR
 |---|---|---|---|
 | Managed | `files/` | skills, `.claude/rules/` (always-on rules, loaded at launch with no import), `.claude/.gitignore` (ignores the personal configuration), `cardinal.just` and the `cardinal-<part>.just` it imports when present (the recipes of a part a feature may leave out), `AGENTS.md`, `specs/README.md`, the CI workflow and its `install_cardinal.sh` | the source: an edit in a project is a conflict |
 | Seeded | `seed/` | `.claude/cardinal.toml` defaults, `.claude/settings.json`, `.claude/update-docs-map.md`, `justfile`, `ROADMAP.md` (the milestones the `roadmap` key points at), `CHANGELOG.md` (the header of the sections `release` writes) | the project, from the first copy |
-| Entries | `entries/.claude/settings.json` | the hooks, the deny rules of the review waiver and the allow rule of `cardinal run` | the source, inside a file the project owns ("Hooks and their declaration") |
+| Entries | `entries/.claude/settings.json` | the hooks, the deny rules of the review waiver, the allow rule of `cardinal run` and the ask rules of `release` | the source, inside a file the project owns ("Hooks and their declaration") |
 
 `.claude/cardinal.lock` records the hash of each managed file and each managed entry as written, and the format of
 the source it was synced from. A managed file whose hash differs from the lock was edited locally: `sync` reports a
@@ -79,8 +79,8 @@ to a commit, previews the sync, and only then syncs and writes the commit to `re
 directory has no revision. `check` compares the project with its lock and never reads the source.
 
 A source declares the format of its managed content in `cardinal-format`; `cardinal` reads up to the `FORMAT` compiled
-in it and refuses a higher one, and a source below the format 5 (the issues ordered by `issues/queue.md`, ADR 0020). A source that
-raises its format declares the names and seeded texts it replaced in `migrations/<n>.toml`
+in it and refuses a higher one, as well as a source below the format 5 (the issues ordered by `issues/queue.md`,
+ADR 0020). A source that raises its format declares the names and seeded texts it replaced in `migrations/<n>.toml`
 (`crates/cardinal/src/migration.rs`, ADR 0014, ADR 0017); [usage.md](usage.md#formats-and-migrations) says what each
 command does with them.
 
@@ -129,8 +129,9 @@ flowchart TD
 - **An older launcher**: the launcher is not of the pinned revision, so a hook running a subcommand it does not know
   cannot run. `check` names the install to run (BIN-15) and `update` refuses such a revision (BIN-16,
   `crates/cardinal/src/launcher.rs`): `cardinal upgrade <source> <commit>` at a pinned commit, which fetches the
-  binary as `run` does and renames it over the launcher (BIN-19), else a `cargo install --force` (BIN-20). A binary pinned before BIN-7 exits 2 instead of 3 on a tool it does not know,
-  and a launcher installed before BIN-17 on a subcommand it does not know: the hook then refuses.
+  binary as `run` does and renames it over the launcher (BIN-19), else a `cargo install --force` (BIN-20). A binary
+  pinned before BIN-7 exits 2 instead of 3 on a tool it does not know, and a launcher installed before BIN-17 on a
+  subcommand it does not know: the hook then refuses.
 
 This repository publishes the binaries (`.github/workflows/release.yml`, its own, not managed): each push to the main
 branch builds `cardinal` for `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl` (static, so they run whatever
@@ -173,7 +174,8 @@ project, besides the personal `settings.local.json`.
 - the settings lack a deny rule of the waiver, run a hook under `.claude/hooks/` the project no longer has, or leave
   the attribution on (SYN-24 to SYN-27);
 - Claude Code keeps the transcripts less than a year outside CI (SYN-28, `settings::retention`), since the evaluation
-  reads the transcripts of several revisions, the user settings left unchecked when the project turns off `harness-measure` (FEA-28);
+  reads the transcripts of several revisions; a project that turns off `harness-measure` leaves the user settings
+  unchecked (FEA-28);
 - the fixed context of the work tree (the memory files a session loads at launch and their imports, the skill
   descriptions, measured by `memory.rs` as `fixed-context` measures a revision) exceeds the `fixed_context_budget`
   (SYN-38, SYN-39, `budget.rs`): always-on text only grows unless something bounds it.

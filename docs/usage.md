@@ -87,7 +87,8 @@ The installed `cardinal` is the launcher of every project of the machine, not a 
 revision whose hooks call a subcommand it does not know needs its `cardinal` installed first, or every hook refuses and
 the agent can run nothing, the install included. `cardinal update` refuses such a revision and prints the install to
 run: `cardinal upgrade <source> <commit>` for a git source at a full commit, which needs no Rust when the source
-publishes the binary of that commit (a GitHub source, a commit of its main branch), else a `cargo install` (BIN-20); in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
+publishes the binary of that commit (a GitHub source, a commit of its main branch), else a `cargo install` (BIN-20).
+`just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
 
 ### Formats and migrations
 
@@ -100,7 +101,8 @@ A source declares the format of its managed content in `cardinal-format`, a whol
 | `check`, `sync`, `update` | the lock was synced from a source of such a format | SYN-42 |
 | `init`, `sync`, `update` | the source is below the format 5, whose tools order the issues by `issues/queue.md` | SYN-51, ADR 0020 |
 
-The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just` (which imports the `cardinal-<part>.just` files).
+The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just`
+(which imports the `cardinal-<part>.just` files).
 
 A source that raises its format declares what changed in `migrations/<n>.toml`, `<n>` the new format (ADR 0017):
 

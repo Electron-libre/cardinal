@@ -16,3 +16,4 @@ Read by `skill:update-docs`.
 | Feature added to `features.toml`, or a file, entry or check of the binary added to one | `features.toml`, `specs/features.md` (a check of the binary is a requirement), `docs/usage.md` (Features a project turns off), `docs/gates.md` when it holds a gate, `README.md` (Optional features) |
 | Column or metric of a transcript reader (`session-metrics`, `cardinal-report`, `Expected-effect:` metrics) | its spec (`specs/evaluation.md`, `cardinal-report.md`, `cardinal-verdicts.md`), `docs/evaluation.md` (the readers table) |
 | Fixture under `fixtures/` or recipe of this repository's `justfile` | `CLAUDE.md` (Index), `docs/evaluation.md` (The replay) |
+| ADR added, or one superseded | `docs/adr/README.md` (Index: its line, and the status of the ADR it supersedes) |

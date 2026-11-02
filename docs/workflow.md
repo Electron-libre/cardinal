@@ -66,9 +66,9 @@ flowchart TD
   goes to a read-only `Explore` subagent, which returns its conclusion with the paths and lines behind it;
   `main_context_peak` in `cardinal-report` measures the effect.
 - **Specs**: when the issue changes what a capability does, in a project that has `specs/README.md` (the feature
-  `specs` on), `skill:write-spec` writes its requirements at step 1
-  and the tests of step 3.2 carry their `// spec: ID` ([specs/README.md](../specs/README.md)). A capability older than its spec gets one
-  read back from its code and tests (`skill:write-spec`, "Bootstrap the spec of an existing capability"), picked from
+  `specs` on), `skill:write-spec` writes its requirements at step 1 and the tests of step 3.2 carry their
+  `// spec: ID` ([specs/README.md](../specs/README.md)). A capability older than its spec gets one read back from its
+  code and tests (`skill:write-spec`, "Bootstrap the spec of an existing capability"), picked from
   `just spec-coverage`.
 - **Advisor**: when an advisor is configured, the agent consults it at the few moments the skill names (section
   "Advisor"); it never replaces a review or a stop. `advisor_calls` in `cardinal-report` measures the effect.
@@ -114,8 +114,9 @@ sequenceDiagram
   prioritizes only its own issues, so two branches never conflict over the order.
 - `just check-cardinal` before the merge catches a hook the installed `cardinal` would refuse once merged; run the
   install it prints first.
-- The project's own tools run on `.` may read the nested worktrees: [usage.md](usage.md#parallel-issues-in-worktrees)
-  says how to keep them out.
+- A worktree the former `start-issue` nested under `.claude/worktrees/` is still read by the project's own tools run
+  on `.`: remove it with `just close-worktree` once its branch is merged
+  ([usage.md](usage.md#parallel-issues-in-worktrees)).
 
 ## Evaluating Cardinal
 
@@ -123,7 +124,7 @@ sequenceDiagram
 whether the agent got more efficient, the delivered work better and the rules better followed
 ([evaluation](evaluation.md)). A commit that changes `files/` names the
 effect it should have in an `Expected-effect: <metric> <up|down>` line (`CLAUDE.md`); the report gives each one a
-verdict, `confounded` when something else changed too. `skill:audit-instructions` reads the
-instructions the user gave over time and proposes the skills, tools, hooks and rules worth adding; each validated proposal becomes
-an issue. Its other mode reviews the shipped instructions for contradictions, duplicates, stale and mechanical
+verdict, `confounded` when something else changed too. `skill:audit-instructions` reads the instructions the user
+gave over time and proposes the skills, tools, hooks and rules worth adding; each validated proposal becomes an
+issue. Its other mode reviews the shipped instructions for contradictions, duplicates, stale and mechanical
 rules, then fixes the accepted ones one family per deliverable.

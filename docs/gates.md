@@ -36,8 +36,8 @@ sequenceDiagram
   holds a file the review never saw (REV-9, REV-10); a fix to a reviewed file passes, documentation is reviewed like
   code, and the temporary index of `git commit -a` (`GIT_INDEX_FILE`) is ignored so the snapshot is the one `record`
   took. Each linked worktree has its own marker and waiver (REV-11, REV-15). The commit of a close passes unreviewed
-  when, outside `issues/`, its index holds only the references `close-issue` rewrites for the moves it records and the milestones it sets
-  `done`, recomputed from the index (REV-20). With the feature `issue-files` off, `issues/` passes unreviewed in no
+  when, outside `issues/`, its index holds only the references `close-issue` rewrites for the moves it records and
+  the milestones it sets `done`, recomputed from the index (REV-20). With the feature `issue-files` off, `issues/` passes unreviewed in no
   case: a project tracking its issues elsewhere may hold its own code there (FEA-36).
 - **check** reads a command only for what would skip the git hook (REV-12): a native hook does not run under
   `--no-verify` or `-n`, nor once `core.hooksPath` points elsewhere. A commit made by another tool is out of reach.
@@ -67,8 +67,8 @@ sequenceDiagram
   `cargo clippy` in a project with a `Cargo.toml` and a changed `.rs` file; in both cases only when the lint state
   (command, commit, changed files) changed since the last passing run (CLG-1, CLG-4, CLG-7). What it prints is billed
   to the agent at each turn: one short line per clippy diagnostic, at most 40 (CLG-2, CLG-3), the first 40 non-blank
-  lines of another lint (CLG-8). An empty `lint_command` turns the gate off, but the hook still runs at each turn; `disabled = ["lint-gate"]`
-  drops its call.
+  lines of another lint (CLG-8). An empty `lint_command` turns the gate off, but the hook still runs at each turn;
+  `disabled = ["lint-gate"]` drops its call.
 - **`format-code`**, after an edit, runs the `format_command` with the edited file as last argument, from the root of
   its work tree, when the file is named like one of the `format_files`, else `cargo fmt` for a `.rs` file; it prints
   nothing (FMT-1 to FMT-4).

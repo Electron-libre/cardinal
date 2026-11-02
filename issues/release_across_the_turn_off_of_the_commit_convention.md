@@ -31,3 +31,42 @@ Optional features
 # Resources
 * `crates/cardinal/src/tools/release.rs` (`commits`, `classify`), `crates/cardinal/src/tools/rule_breaches.rs`
   (FEA-22), `specs/release.md`, `specs/features.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+`release` reads each commit since the last tag with the `conventional-commits` setting of its own revision (as
+FEA-22), not of the current `.claude/cardinal.toml`; a mixed release fills Breaking, Added, Fixed and Changed.
+The warning of REL-11 gains a line when `release_breaking_files` lists no file. `release_breaking_files` stays read
+from the current configuration (out of scope).
+
+## Plan
+1. [x] Per-commit convention: `commits` reads the configuration of each commit (`transcripts::shown` with
+   `CONFIGS`, `features::turns_off`) and `classify` applies it; the warning is printed when the current config
+   turns the feature off or a commit is read without it, with the second line when no file is listed; verified by
+   tests of `crates/cardinal/tests/release.rs` (the scenarios of REL-11 and REL-12); makes true REL-11, REL-12. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2e96b3b6750619d5fe3b3c3224c4ef67804cd484
+- `release_breaking_files` stays read from the current configuration (question 1: a).
+
+## Deliverable 1
+- done: `release` reads each commit with the `conventional-commits` setting of its revision; the warning names an
+  empty `release_breaking_files`.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | REL-11, REL-12 traced, spec `accepted` |
+| docs | `docs/usage.md` (Releases), doc comments of `release.rs` |
+| code review | no findings |
+
+- red: REL-11, REL-12: `left: "0.2.1\n" right: "1.0.0\n"` (the breaking mark written under the convention ignored),
+  the second warning line missing, the section with no `### Added`.
+- Code review: no findings
+- not verified: none
+- decisions needed: none

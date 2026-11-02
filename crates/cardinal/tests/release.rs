@@ -477,3 +477,94 @@ fn without_the_convention_the_section_lists_the_whole_subjects_under_changes() {
         changelog(dir.path())
     );
 }
+
+const ON: &str = "[project]\nrelease_breaking_files = [\"format\"]\n";
+
+// spec: REL-11
+#[test]
+fn each_commit_is_read_with_the_convention_of_its_revision() {
+    let dir = repo();
+    config(dir.path(), ON);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat!: drop the old API", "a.txt");
+    config(dir.path(), OFF);
+    commit(dir.path(), "Add b", "b.txt");
+    let out = release(dir.path(), &[]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        stdout(&out),
+        "1.0.0\n",
+        "the breaking mark written under the convention counts"
+    );
+    assert!(stderr(&out).contains(WARNING), "{out:?}");
+
+    let dir = repo();
+    config(dir.path(), OFF);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Add x", "x.txt");
+    config(dir.path(), ON);
+    commit(dir.path(), "feat: add c", "c.txt");
+    let out = release(dir.path(), &[]);
+    assert_eq!(stdout(&out), "0.3.0\n", "{out:?}");
+    assert!(
+        stderr(&out).contains(WARNING),
+        "a commit written with the convention off: {out:?}"
+    );
+}
+
+// spec: REL-11
+#[test]
+fn the_warning_says_when_no_breaking_file_is_listed() {
+    let second = "release: release_breaking_files lists no file: the commits written with conventional-commits off are a patch";
+    let dir = repo();
+    config(
+        dir.path(),
+        "[cardinal]\ndisabled = [\"conventional-commits\"]\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Add a", "a.txt");
+    let out = release(dir.path(), &[]);
+    assert!(
+        stderr(&out).contains(&format!("{WARNING}\n{second}")),
+        "{out:?}"
+    );
+
+    let dir = repo();
+    config(dir.path(), OFF);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Add a", "a.txt");
+    let out = release(dir.path(), &[]);
+    assert!(!stderr(&out).contains(second), "{out:?}");
+}
+
+// spec: REL-12
+#[test]
+fn a_release_across_the_turn_off_lists_each_commit_by_its_convention() {
+    let dir = repo();
+    config(dir.path(), ON);
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat!: drop the old API", "a.txt");
+    commit(dir.path(), "feat: add a", "b.txt");
+    std::fs::write(dir.path().join(".claude/cardinal.toml"), OFF).unwrap();
+    git(dir.path(), &["add", "-A"]);
+    git(
+        dir.path(),
+        &[
+            "commit",
+            "-qm",
+            "chore: turn the convention off",
+            "--no-verify",
+        ],
+    );
+    commit(dir.path(), "Add b", "c.txt");
+    let out = release(dir.path(), &["1.0.0"]);
+    assert!(out.status.success(), "{out:?}");
+    let today = chrono::Local::now().format("%Y-%m-%d");
+    assert!(
+        changelog(dir.path()).ends_with(&format!(
+            "## [1.0.0] - {today}\n\n### Breaking\n\n- drop the old API\n\n### Added\n\n- add a\n\n### Changed\n\n- chore: turn the convention off\n- Add b\n"
+        )),
+        "{}",
+        changelog(dir.path())
+    );
+}

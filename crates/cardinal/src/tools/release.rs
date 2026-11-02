@@ -1,5 +1,5 @@
 //! `release [<version> [--tag]]`: a numbered release of the project from its Conventional Commits, or from its
-//! `release_breaking_files` only when it turns off `conventional-commits`
+//! `release_breaking_files` only for the commits written while it turned off `conventional-commits`
 //! (`specs/release.md`). With no version, print the version proposed from the commits since the last `vX.Y.Z` tag.
 //! With one, write its section of `CHANGELOG.md` and run the project's `release_version_command`, for the user to
 //! reread and commit; with `--tag` too, once that commit is made, create the annotated tag `v<version>` on `HEAD`.
@@ -9,6 +9,7 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use super::transcripts::{shown, CONFIGS};
 use crate::features;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
@@ -57,7 +58,7 @@ enum Kind {
     Breaking,
     Added,
     Fixed,
-    /// A commit not breaking of a project that turns off `conventional-commits` (REL-12).
+    /// A commit not breaking written while its project turned off `conventional-commits` (REL-12).
     Changed,
     Unlisted,
 }
@@ -65,6 +66,8 @@ enum Kind {
 struct Commit {
     kind: Kind,
     description: String,
+    /// Read with Conventional Commits, the feature `conventional-commits` on in its revision (REL-11).
+    convention: bool,
 }
 
 pub fn main(args: &[String]) -> u8 {
@@ -233,21 +236,34 @@ fn tag_release(root: &Path, version: Version) -> Result<(), String> {
 /// The proposed version, the last version tag reachable from `HEAD`, and the commits since it, none with no tag
 /// (REL-1, REL-11).
 fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), String> {
-    let convention = !features::is_off(root, features::CONVENTIONAL_COMMITS);
-    if !convention {
-        eprintln!(
-            "release: {} is off: the version is proposed from release_breaking_files only",
-            features::CONVENTIONAL_COMMITS
-        );
-    }
     let last = git(root, &["tag", "--merged", "HEAD", "--list", "v*"])?
         .lines()
         .filter_map(Version::parse)
         .max();
-    let Some(last @ Version(major, minor, patch)) = last else {
-        return Ok((Version(0, 1, 0), None, Vec::new()));
+    let commits = match last {
+        Some(last) => commits(root, last)?,
+        None => Vec::new(),
     };
-    let commits = commits(root, last, convention)?;
+    if features::is_off(root, features::CONVENTIONAL_COMMITS)
+        || commits.iter().any(|c| !c.convention)
+    {
+        eprintln!(
+            "release: {} is off: the version is proposed from release_breaking_files only",
+            features::CONVENTIONAL_COMMITS
+        );
+        if super::config_list(root, "release_breaking_files")
+            .unwrap_or_default()
+            .is_empty()
+        {
+            eprintln!(
+                "release: release_breaking_files lists no file: the commits written with {} off are a patch",
+                features::CONVENTIONAL_COMMITS
+            );
+        }
+    }
+    let Some(last @ Version(major, minor, patch)) = last else {
+        return Ok((Version(0, 1, 0), None, commits));
+    };
     let proposal = if commits.iter().any(|c| c.kind == Kind::Breaking) {
         Version(major + 1, 0, 0)
     } else if commits.iter().any(|c| c.kind == Kind::Added) {
@@ -258,9 +274,9 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
     Ok((proposal, Some(last), commits))
 }
 
-/// The non-merge commits since the tag of `last`, oldest first; without the `convention`, read from the files
-/// they change only, with their whole subject (REL-11, REL-12).
-fn commits(root: &Path, last: Version, convention: bool) -> Result<Vec<Commit>, String> {
+/// The non-merge commits since the tag of `last`, oldest first, each read with the convention of its own revision
+/// (REL-11, REL-12).
+fn commits(root: &Path, last: Version) -> Result<Vec<Commit>, String> {
     let breaking_files = super::config_list(root, "release_breaking_files").unwrap_or_default();
     let log = git(
         root,
@@ -269,7 +285,7 @@ fn commits(root: &Path, last: Version, convention: bool) -> Result<Vec<Commit>, 
             "--reverse",
             "--no-merges",
             "--name-only",
-            "--format=%x1e%B%x1f",
+            "--format=%x1e%H%x1f%B%x1f",
             &format!("v{last}..HEAD"),
         ],
     )?;
@@ -277,7 +293,16 @@ fn commits(root: &Path, last: Version, convention: bool) -> Result<Vec<Commit>, 
         .split('\u{1e}')
         .filter(|r| !r.trim().is_empty())
         .map(|record| {
-            let (message, files) = record.split_once('\u{1f}').unwrap_or((record, ""));
+            let mut fields = record.splitn(3, '\u{1f}');
+            let (hash, message, files) = (
+                fields.next().unwrap_or_default(),
+                fields.next().unwrap_or_default(),
+                fields.next().unwrap_or_default(),
+            );
+            // as `rule-breaches` reads it (FEA-22): a revision with no readable configuration follows the convention
+            let convention = !shown(root, hash, &CONFIGS)
+                .and_then(|t| t.parse::<toml::Table>().ok())
+                .is_some_and(|c| features::turns_off(&c, features::CONVENTIONAL_COMMITS));
             let touches_listed = files
                 .lines()
                 .any(|f| breaking_files.iter().any(|b| b == f.trim()));
@@ -298,6 +323,7 @@ fn classify(message: &str, touches_listed: bool, convention: bool) -> Commit {
                 Kind::Changed
             },
             description: subject.into(),
+            convention,
         };
     }
     let (head, description) = subject.split_once(": ").unwrap_or(("", subject));
@@ -316,6 +342,7 @@ fn classify(message: &str, touches_listed: bool, convention: bool) -> Commit {
     Commit {
         kind,
         description: description.trim().into(),
+        convention,
     }
 }
 

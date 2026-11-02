@@ -34,3 +34,38 @@ Longer autonomy
 
 # Hints
 * Check whether `features.toml` should tie the rule to a feature (a project with no release flow).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+Manage the exact allow rule `Bash(just release)` (approach 1), so the proposal runs in auto mode; the forms with
+arguments (changelog, tag) stay unallowed. No feature ties it: the `release` recipe of `files/cardinal.just` is shipped
+to every project. SYN-29 already proves the mechanism; no spec amended.
+
+## Plan
+1. [x] Allow the release proposal: add `Bash(just release)` to `entries/.claude/settings.json`, `just sync`; verified by
+   a test that the repository fragment allows the bare form and no form with arguments.
+
+## Decisions
+- Mode: autonomous
+- Base commit: bcb15d094af4c7c11eeeb6dcab9001edf72e6eae
+
+## Deliverable 1
+
+done: `entries/.claude/settings.json` allows `Bash(just release)` (bare form only); `just sync` added it here.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | none amended (SYN-29 covers the mechanism) |
+| docs | no document lists the managed allow rules |
+| code review | low, see below |
+
+red: none traced: `the_repository_settings_allow_the_release_proposal_only`: `left: [] right: ["Bash(just release)"]`
+
+Code review: no findings
+
+not verified: the auto mode classifier itself (only the allow rule is checked).

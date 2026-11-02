@@ -171,6 +171,25 @@ fn the_repository_settings_once_synced_give_check_nothing_to_warn_of() {
     assert_eq!((run.stdout.as_str(), run.stderr.as_str()), ("", ""));
 }
 
+/// The release proposal runs without a prompt in auto mode; writing the changelog or the tag stays the user's.
+#[test]
+fn the_repository_settings_allow_the_release_proposal_only() {
+    let home = Home::new();
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let root = tempdir().unwrap();
+    home.ok(root.path(), &["init", repo.to_str().unwrap()]);
+    home.ok(root.path(), &["sync"]);
+    let allow = settings(&root)["permissions"]["allow"].clone();
+    let releases: Vec<&str> = allow
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(Value::as_str)
+        .filter(|rule| rule.starts_with("Bash(just release"))
+        .collect();
+    assert_eq!(releases, ["Bash(just release)"]);
+}
+
 // spec: SYN-30
 #[test]
 fn the_lock_records_each_managed_entry() {

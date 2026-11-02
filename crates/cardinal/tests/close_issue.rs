@@ -482,6 +482,85 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: CLS-9
+/// A close of a tracked issue is staged whole, so a bare `git commit` holds it; a file the user had changed stays theirs.
+fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
+    let tmp = std::fs::canonicalize(tempfile::tempdir().unwrap().keep()).unwrap();
+    let git = |args: &[&str]| {
+        let out = Command::new("git")
+            .args([
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "commit.gpgsign=false",
+            ])
+            .args(args)
+            .current_dir(&tmp)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "git {args:?}: {out:?}");
+        String::from_utf8_lossy(&out.stdout).into_owned()
+    };
+    git(&["init", "-q"]);
+    std::fs::create_dir_all(tmp.join("issues")).unwrap();
+    std::fs::create_dir_all(tmp.join("docs")).unwrap();
+    std::fs::write(tmp.join("issues/foo.md"), "# Foo\n\n[bar](bar.md)\n").unwrap();
+    std::fs::write(tmp.join("issues/bar.md"), "# Bar\n").unwrap();
+    std::fs::write(tmp.join("docs/a.md"), "see issues/foo.md\n").unwrap();
+    std::fs::write(tmp.join("docs/b.md"), "see issues/foo.md\n").unwrap();
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "init"]);
+    std::fs::write(tmp.join("docs/b.md"), "see issues/foo.md\nmine\n").unwrap();
+    std::fs::write(
+        tmp.join("issues/foo.md"),
+        "# Foo\n\n[bar](bar.md)\n\n# Tracking\n",
+    )
+    .unwrap();
+    let (ok, out) = run(script, &tmp, "issues/foo.md");
+    let commit = Command::new("git")
+        .args([
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "commit.gpgsign=false",
+        ])
+        .args(["commit", "-q", "-m", "close"])
+        .current_dir(&tmp)
+        .status()
+        .unwrap()
+        .success();
+    let left = git(&["status", "--porcelain"]);
+    let shown = git(&["show", "--stat", "--format=", "HEAD"]);
+    let untracked = tmp.join("issues/baz.md");
+    std::fs::write(&untracked, "# Baz\n").unwrap();
+    let (plain, plain_out) = run(script, &tmp, "issues/baz.md");
+    let _ = std::fs::remove_dir_all(&tmp);
+    vec![
+        (
+            "a bare git commit holds the move and every rewrite of the close",
+            ok && commit
+                && left == " M docs/b.md\n"
+                && shown.contains("docs/a.md")
+                && shown.contains("issues/done/foo.md")
+                && shown.contains("issues/foo.md"),
+        ),
+        (
+            "the close says it is staged and names the file of the user it left out",
+            out.contains(
+                "staged: commit the close with `git commit` (no `git add` of issues/foo.md: git mv staged its removal)"
+            ) && out.contains("not staged: docs/b.md (it held changes of yours)"),
+        ),
+        (
+            "an untracked issue stages nothing and says nothing of it",
+            plain && !plain_out.contains("staged"),
+        ),
+    ]
+}
+
 // spec: CLS-1
 #[test]
 fn close_issue() {
@@ -572,6 +651,7 @@ fn close_issue() {
         .chain(relinks_the_markdown_links(&script))
         .chain(prints_the_next_issue(&script))
         .chain(sets_the_milestone_done(&script))
+        .chain(stages_the_close(&script))
     {
         check(name, ok);
     }

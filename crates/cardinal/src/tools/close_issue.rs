@@ -15,7 +15,7 @@
 use super::{issue_claim, repo_files, roadmap};
 
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const SKIPPED_DIRS: [&str; 3] = [".git", "target", "node_modules"];
@@ -401,11 +401,12 @@ pub(super) fn roadmap_documents(root: &Path, project: &[String]) -> Vec<(String,
 }
 
 /// Set `done` the milestones of the `roadmap` documents of the project of `issues` (relative to `root`) that the close
-/// of `stem` completes, and print them (CLS-8).
-fn set_milestones_done(root: &Path, issues: &[String], stem: &str) {
+/// of `stem` completes, and print them (CLS-8); returns the documents written.
+fn set_milestones_done(root: &Path, issues: &[String], stem: &str) -> Vec<PathBuf> {
     let project = &issues[..issues.len().saturating_sub(1)];
     let closed = HashSet::from([stem.to_string()]);
     let file_of = |p: &[String]| p.iter().fold(root.to_path_buf(), |f, c| f.join(c));
+    let mut written = Vec::new();
     for (document, path) in roadmap_documents(root, project) {
         let file = file_of(&path);
         let Ok(text) = std::fs::read_to_string(&file) else {
@@ -417,26 +418,37 @@ fn set_milestones_done(root: &Path, issues: &[String], stem: &str) {
             continue;
         }
         match std::fs::write(&file, updated) {
-            Ok(()) => names
-                .iter()
-                .for_each(|name| println!("milestone {name} done in {document}")),
+            Ok(()) => {
+                for name in &names {
+                    println!("milestone {name} done in {document}");
+                }
+                written.push(file);
+            }
             Err(e) => eprintln!(
                 "could not set the milestones done in {}: {e}",
                 file.display()
             ),
         }
     }
+    written
 }
 
 /// Rewrite the references to the given closed issues of the `issues/` directory `issues` (relative to `root`) in
-/// every text file under `root`; `moved` is the stem of the issue just moved, whose own links are rebased.
-fn relink(root: &Path, issues: &[String], stems: &HashSet<String>, moved: Option<&str>) {
+/// every text file under `root`; `moved` is the stem of the issue just moved, whose own links are rebased. Returns the
+/// files written.
+fn relink(
+    root: &Path,
+    issues: &[String],
+    stems: &HashSet<String>,
+    moved: Option<&str>,
+) -> Vec<PathBuf> {
     let skipped = skipped_dirs(root);
     let moved = moved.map(|stem| {
         let mut path = issues.to_vec();
         path.extend(["done".to_string(), format!("{stem}.md")]);
         path
     });
+    let mut written = Vec::new();
     for file in text_files(root, &skipped) {
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
@@ -447,9 +459,75 @@ fn relink(root: &Path, issues: &[String], stems: &HashSet<String>, moved: Option
             continue;
         }
         match std::fs::write(&file, updated) {
-            Ok(()) => println!("updated references in {}", file.display()),
+            Ok(()) => {
+                println!("updated references in {}", file.display());
+                written.push(file);
+            }
             Err(e) => eprintln!("could not update {}: {e}", file.display()),
         }
+    }
+    written
+}
+
+/// The output of `git args` run in `root`, `None` when it fails.
+fn git_out(root: &Path, args: &[&str]) -> Option<Vec<u8>> {
+    let out = Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .output()
+        .ok()?;
+    out.status.success().then_some(out.stdout)
+}
+
+/// The files of the work tree of `root` whose content differs from the index, canonical.
+fn unstaged(root: &Path) -> HashSet<PathBuf> {
+    git_out(root, &["diff", "--name-only", "-z"])
+        .unwrap_or_default()
+        .split(|b| *b == 0)
+        .filter(|name| !name.is_empty())
+        .filter_map(|name| {
+            std::fs::canonicalize(root.join(String::from_utf8_lossy(name).as_ref())).ok()
+        })
+        .collect()
+}
+
+/// Stage the close of the tracked issue `old` (relative to `root`), now at `moved`: the issue whole, and each tracked
+/// file of `written` that held no unstaged change before the close (`dirty`), naming the others (CLS-9).
+fn stage_close(
+    root: &Path,
+    old: &str,
+    moved: &Path,
+    written: &[PathBuf],
+    dirty: &HashSet<PathBuf>,
+) {
+    let canonical = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    let (root, moved) = (&canonical(root), canonical(moved));
+    let mut stage = vec![moved.clone()];
+    for file in written {
+        let file = canonical(file);
+        let tracked = || {
+            git_out(
+                root,
+                &["ls-files", "--error-unmatch", "--", &file.to_string_lossy()],
+            )
+            .is_some()
+        };
+        if file == moved || !tracked() {
+            continue;
+        }
+        if dirty.contains(&file) {
+            let shown = file.strip_prefix(root).unwrap_or(&file);
+            println!("not staged: {} (it held changes of yours)", shown.display());
+        } else {
+            stage.push(file);
+        }
+    }
+    let mut add = Command::new("git");
+    add.args(["add", "--"]).args(&stage).current_dir(root);
+    if add.status().is_ok_and(|s| s.success()) {
+        println!("staged: commit the close with `git commit` (no `git add` of {old}: git mv staged its removal)");
+    } else {
+        eprintln!("could not stage the close: add its files before the commit");
     }
 }
 
@@ -633,13 +711,22 @@ pub(super) fn main(args: &[String]) -> u8 {
     match repo_root(dir) {
         Some(root) => {
             let issues = under(&root, dir);
-            relink(
+            let dirty = if tracked {
+                unstaged(&root)
+            } else {
+                HashSet::new()
+            };
+            let mut written = relink(
                 &root,
                 &issues,
                 &HashSet::from([stem.to_string()]),
                 Some(stem),
             );
-            set_milestones_done(&root, &issues, stem);
+            written.extend(set_milestones_done(&root, &issues, stem));
+            if tracked {
+                let old = format!("{}/{}", issues.join("/"), name.display());
+                stage_close(&root, &old, &target, &written, &dirty);
+            }
         }
         None => eprintln!("not inside a git repository: references to {stem} were not updated"),
     }

@@ -39,3 +39,35 @@ commit of a close succeeds on the first attempt.
 
 # Hints
 * `git commit -- <old path>` may fail the same way: test the command that is finally recommended.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+`close-issue` stages what it rewrote (unless the file held unstaged changes of the user) and prints that the close is
+staged and is committed with a bare `git commit`; the skill texts say the same. Out of scope: `--relink`, a commit
+made by the tool itself.
+
+## Plan
+1. [x] Stage the close: `close-issue` stages its rewrites and prints the `staged:` / `not staged:` lines; the Rules of
+   `issue-workflow` and its "Merge back" say to commit with `git commit`, no `git add` of the old path; verified by a
+   test of `crates/cardinal/tests/close_issue.rs` that commits with no `git add` and finds a clean tree; makes true
+   CLS-9. (autonomous)
+
+## Deliverable 1
+- done: `close-issue` stages the moved issue whole and each clean tracked file it rewrote, names the others
+  `not staged:`, prints the `staged:` line; `issue-workflow` (Rules, "Merge back") and `docs/workflow.md` say to commit
+  with a bare `git commit`.
+- red: CLS-9: `FAIL - a bare git commit holds the move and every rewrite of the close`, `FAIL - the close says it is
+  staged and names the file of the user it left out`
+- checks: `just check` ok; 212 changed lines, within.
+- Code review: no findings
+- not verified: a close that sets a milestone `done` is staged by the same path, not tested end to end.
+- Decision: the moved issue is staged whole, its unstaged last tracking included (CLS-9 amended at step 3.2).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 4c2e92a
+- A rewritten file holding unstaged changes of the user stays unstaged and is named (1 a).
+- `--relink` stages nothing (2 a).

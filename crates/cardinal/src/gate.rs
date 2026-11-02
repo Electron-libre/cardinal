@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 use crate::entries::Entry;
 use crate::{is_executable, set_executable, write, Outcome};
@@ -202,11 +202,7 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
         return Ok(Some(Plan::Remove { hooks, chained }));
     }
     if state == State::Foreign && has_chained(&hooks)? {
-        bail!(
-            "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
-            hooks.join("pre-commit").display(),
-            hooks.join(CHAINED).display()
-        );
+        return Err(both_exist(&hooks.join("pre-commit"), &hooks.join(CHAINED)));
     }
     Ok(Some(Plan::Install { hooks, state }))
 }
@@ -268,36 +264,61 @@ fn install(hooks: &Path, state: &State) -> Result<()> {
     // the new hook is complete before the hook of the user moves, so a failure never leaves the repository
     // with no hook at all, and it goes on any failure, so the hooks directory is left as found
     let staged = hooks.join("pre-commit.cardinal-new");
-    let result = stage_and_swap(&hook, &staged, state);
-    if result.is_err() {
+    swap(&hook, &staged, state).inspect_err(|_| {
         let _ = fs::remove_file(&staged);
-    }
-    result
+    })
 }
 
-fn stage_and_swap(hook: &Path, staged: &Path, state: &State) -> Result<()> {
+fn swap(hook: &Path, staged: &Path, state: &State) -> Result<()> {
     write(staged, SCRIPT.as_bytes())?;
     set_executable(staged, true)?;
-    if *state != State::Foreign {
+    match state {
+        // a `pre-commit` written since `plan` is the user's: never replace it
+        State::Missing if link_new(staged, hook)? => {
+            // the gate is in place: a staged name left behind fails nothing
+            let _ = fs::remove_file(staged);
+        }
+        State::Foreign => {
+            let chained = hook.with_file_name(CHAINED);
+            if link_new(hook, &chained)? {
+                // the user's hook is kept as `pre-commit.user`, so one rename replaces it with the gate
+                fs::rename(staged, hook).inspect_err(|_| {
+                    let _ = fs::remove_file(&chained);
+                })?;
+            } else {
+                fs::rename(hook, &chained)?;
+                fs::rename(staged, hook).inspect_err(|_| {
+                    let _ = fs::rename(&chained, hook);
+                })?;
+            }
+        }
         // a rename replaces a link, never writes through it
-        fs::rename(staged, hook)?;
-        return Ok(());
-    }
-    // a link of the directory itself, not of what it reaches, so a link moves as a link, its relative target
-    // unchanged in the same directory, a dangling one included; it fails on a `pre-commit.user` created since
-    // `plan` where a rename would replace it
-    let chained = hook.with_file_name(CHAINED);
-    fs::hard_link(hook, &chained)?;
-    if let Err(e) = fs::remove_file(hook) {
-        let _ = fs::remove_file(&chained);
-        return Err(e.into());
-    }
-    if let Err(e) = fs::rename(staged, hook) {
-        // the hook of the user goes back in its place
-        let _ = fs::rename(&chained, hook);
-        return Err(e.into());
+        _ => fs::rename(staged, hook)?,
     }
     Ok(())
+}
+
+/// Link `from` as `to`, a link of the directory itself rather than of what it reaches, so a link stays a link, its
+/// relative target unchanged in the same directory, a dangling one included. `false` when the file system makes no
+/// hard links: the caller renames instead, `to` checked absent just before.
+///
+/// # Errors
+/// When `to` exists: a rename would replace it.
+fn link_new(from: &Path, to: &Path) -> Result<bool> {
+    let exists = |e: std::io::Error| match e.kind() {
+        std::io::ErrorKind::AlreadyExists => Err(both_exist(from, to)),
+        _ if fs::symlink_metadata(to).is_ok() => Err(both_exist(from, to)),
+        _ => Ok(false),
+    };
+    fs::hard_link(from, to).map_or_else(exists, |()| Ok(true))
+}
+
+fn both_exist(hook: &Path, chained: &Path) -> anyhow::Error {
+    anyhow::anyhow!(
+        "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
+        hook.display(),
+        chained.display()
+    )
 }
 
 /// Remove the gate and put the hook of the user it chained back in its place, a link moved as a link.
@@ -323,7 +344,8 @@ mod tests {
         let hooks = dir.path();
         fs::write(hooks.join("pre-commit"), "user").unwrap();
         fs::write(hooks.join(CHAINED), "kept").unwrap();
-        assert!(install(hooks, &State::Foreign).is_err());
+        let err = install(hooks, &State::Foreign).unwrap_err().to_string();
+        assert!(err.contains("merge them by hand"), "{err}");
         let mut names: Vec<_> = fs::read_dir(hooks)
             .unwrap()
             .map(|e| e.unwrap().file_name())
@@ -335,5 +357,23 @@ mod tests {
             "user"
         );
         assert_eq!(fs::read_to_string(hooks.join(CHAINED)).unwrap(), "kept");
+    }
+
+    // spec: SYN-19 (internal: a `pre-commit` created between `plan` and `apply` is a race the binary cannot stage)
+    #[test]
+    fn the_install_never_replaces_a_hook_written_since_the_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let hooks = dir.path();
+        fs::write(hooks.join("pre-commit"), "user").unwrap();
+        assert!(install(hooks, &State::Missing).is_err());
+        let names: Vec<_> = fs::read_dir(hooks)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(names, ["pre-commit"]);
+        assert_eq!(
+            fs::read_to_string(hooks.join("pre-commit")).unwrap(),
+            "user"
+        );
     }
 }

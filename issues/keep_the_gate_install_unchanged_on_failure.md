@@ -47,6 +47,10 @@ a dangling link then moves like any link (the gate skips a `pre-commit.user` tha
    with a dangling user `pre-commit` link (moved as a link, no staged file) and an internal test of `install` with a
    `pre-commit.user` created after `plan` (error, hooks directory unchanged); makes true SYN-19. (autonomous)
 
+2. [x] Fixes of the `high` review: no `remove_file` between the link and the rename, a rename where the file system
+   makes no hard links, a `pre-commit` written since `plan` never replaced, the refusal names both files; verified by
+   the internal tests of `gate.rs`; makes true SYN-19. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - 1 a: a dangling user `pre-commit` link moves as a link.
@@ -60,3 +64,18 @@ saw `install` succeed over a `pre-commit.user`.
 Code review: 1 findings
 - the final rename did not undo the move: fixed, the user's hook goes back.
 not verified: a failure of `remove_file` or of the final rename (no cheap way to stage it).
+
+## Summary of deliverable 2
+done: the move links then renames over the user's hook (one undo: the link), falls back to a rename where hard
+links fail, refuses a `pre-commit` written since `plan` (Missing), and both refusals say "merge them by hand".
+red: SYN-19: `install` with state `Missing` replaced a `pre-commit` written since the plan.
+Code review: 7 findings (`high`)
+- no hard links on the file system: fixed, rename fallback with `to` checked absent.
+- undo of `remove_file` failing: fixed, the step is gone.
+- `pre-commit` written since `plan` replaced: fixed for `Missing`; `Modified` replaces our own gate, left.
+- extra `remove_file` window: fixed.
+- bare io errors: fixed for the refusal; other io errors keep std's message.
+- rollback error dropped: not fixed, the error returned is the cause; the next `sync` repairs a missing gate.
+- `inspect_err`: applied.
+- low review: an error after the gate was linked in place: fixed, the leftover staged name is ignored.
+not verified: the fallback without hard links (no such file system in the tests).

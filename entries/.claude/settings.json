@@ -1,8 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cardinal run *)",
-      "Bash(just release)"
+      "Bash(cardinal run *)"
     ],
     "deny": [
       "Bash(just waive-review)",

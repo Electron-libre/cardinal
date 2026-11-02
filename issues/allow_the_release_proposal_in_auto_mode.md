@@ -47,9 +47,16 @@ to every project. SYN-29 already proves the mechanism; no spec amended.
 ## Plan
 1. [x] Allow the release proposal: add `Bash(just release)` to `entries/.claude/settings.json`, `just sync`; verified by
    a test that the repository fragment allows the bare form and no form with arguments.
+2. [x] Review fixes, approach 2 instead: drop `Bash(just release)` and its test, the Rules of `issue-workflow` propose
+   the release with `cardinal run release` (already allowed); verified by `just sync` removing the rule (SYN-31).
 
 ## Decisions
 - Mode: autonomous
+- After the `high` review (user, 2026-11-02): approach 2. A consumer may redefine the `release` recipe
+  (`set allow-duplicate-recipes`, e.g. a publish), which `Bash(just release)` would let run without a prompt; `cardinal
+  run release` always runs Cardinal's code, needs no new rule, no feature, no doc change.
+- Follow-up: the writing forms are allowed by `Bash(cardinal run *)`:
+  [keep_writing_the_release_the_users](keep_writing_the_release_the_users.md).
 - Base commit: bcb15d094af4c7c11eeeb6dcab9001edf72e6eae
 
 ## Deliverable 1
@@ -69,3 +76,22 @@ red: none traced: `the_repository_settings_allow_the_release_proposal_only`: `le
 Code review: no findings
 
 not verified: the auto mode classifier itself (only the allow rule is checked).
+
+## Deliverable 2
+
+done: the rule `Bash(just release)` and its test removed (the docs stay true); the Rules propose the release with
+`cardinal run release`; follow-up issue for the writing forms.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | none amended |
+| docs | `issue-workflow` Rules; `docs/architecture.md` and ADR 0013 true again |
+| code review | low, see below |
+
+red: none (an instruction change, no test)
+
+Code review: no findings
+
+not verified: that the classifier allows `cardinal run release` (it is under the allow rule `Bash(cardinal run *)`).

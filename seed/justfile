@@ -5,6 +5,6 @@ default:
     @just --list
 
 # Format, lint and test the project, then check the specs (when the feature `specs` is on). Add the first three, the
-# project's own, quiet on success: the agent reads all of their output.
+# project's own, quiet on success, above the last line: the agent reads all of their output.
 check:
-    @if just --show check-specs >/dev/null 2>&1; then just check-specs; fi
+    @if [ -f cardinal-specs.just ]; then "{{just_executable()}}" check-specs; fi

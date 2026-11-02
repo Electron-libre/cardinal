@@ -45,8 +45,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-29** (deterministic) The rule that the agent talks to the user in the `user_language` must be in a managed file of no feature, `.claude/rules/user-language.md`, and not in `.claude/rules/reports-to-the-user.md`, which holds only the format of the reports.
 - **FEA-30** (deterministic) The source of Cardinal must declare the feature `issue-files`, made of the files of `files/.claude/skills/issue-workflow/`, `files/.claude/skills/create-issue/` and `files/.claude/skills/prioritize-issues/` and the file `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), with no entry and no `needs`.
 - **FEA-31** (deterministic) The source of Cardinal must declare the feature `specs`, made of the files of `files/specs/`, of `files/.claude/skills/write-spec/` and the file `cardinal-specs.just` (`check-specs`, `spec-coverage`), with no entry and no `needs`.
-- **FEA-32** (deterministic) The managed CI workflow must run `just check-specs` only when the project's `just` has the recipe `check-specs`, and must not fail for its absence.
-- **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when `just` has it, and must succeed without it when `cardinal-specs.just` is missing.
+- **FEA-32** (deterministic) The managed CI workflow must run `just check-specs` only when the project has `cardinal-specs.just`, and must not fail for its absence.
+- **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when the project has `cardinal-specs.just`, and must succeed without it when the file is missing.
 - **FEA-34** (deterministic) `skill:issue-workflow` must write a spec, and trace its tests to one, only in a project that has `specs/README.md`, the file the feature `specs` leaves out.
 
 ## Scenarios
@@ -105,4 +105,4 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   `delivered-quality` counts stay callable, and nothing left on calls them; rule `skill-routing-write-spec` of
   `rule-breaches` already applies only where `skill:write-spec` is synced.
 - Rewording `skill:update-docs` and `skill:create-issue`, whose spec lines apply to a capability that has a spec: a
-  project with no spec meets none.
+  project that turns `specs` off and keeps specs of its own traces them its own way.

@@ -60,7 +60,8 @@ flowchart TD
 - **Delegated exploration**: only a wide search (the git history, many files of a large repository) at step 1 or 3.1
   goes to a read-only `Explore` subagent, which returns its conclusion with the paths and lines behind it;
   `main_context_peak` in `cardinal-report` measures the effect.
-- **Specs**: when the issue changes what a capability does, `skill:write-spec` writes its requirements at step 1
+- **Specs**: when the issue changes what a capability does, in a project that has `specs/README.md` (the feature
+  `specs` on), `skill:write-spec` writes its requirements at step 1
   and the tests of step 3.2 carry their `// spec: ID` ([specs/README.md](../specs/README.md)). A capability older than its spec gets one
   read back from its code and tests (`skill:write-spec`, "Bootstrap the spec of an existing capability"), picked from
   `just spec-coverage`.

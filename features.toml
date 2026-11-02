@@ -68,6 +68,7 @@ files = [
 
 # The specs and their tracing: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of
 # `cardinal-specs.just`, for a project that writes no spec. `issue-workflow` skips its spec steps without
-# `specs/README.md`, the CI and the seeded `check` without the recipe; the spec tools of `cardinal run` stay.
+# `specs/README.md`, the CI and the seeded `check` without
+# `cardinal-specs.just`; the spec tools of `cardinal run` stay.
 [specs]
 files = [".claude/skills/write-spec/SKILL.md", "cardinal-specs.just", "specs/README.md", "specs/TEMPLATE.md"]

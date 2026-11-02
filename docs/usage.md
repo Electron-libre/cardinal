@@ -76,7 +76,7 @@ names both, and turning both off is accepted.
 | `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
 | `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill |
-| `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps and the CI its spec step. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
+| `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI and the seeded `check` skip `check-specs` without `cardinal-specs.just`. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
 
 ### The installed launcher
 

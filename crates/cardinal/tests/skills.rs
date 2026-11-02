@@ -885,35 +885,39 @@ fn the_seeded_check_runs_check_specs_only_when_present() {
 }
 
 // spec: FEA-32
-/// The CI step of the specs runs `just check-specs` only when `just` has the recipe.
+/// The CI step of the specs runs `just check-specs` only when the project has `cardinal-specs.just`.
 #[test]
 fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
     let workflow =
         fs::read_to_string(repo_root().join("files/.github/workflows/cardinal.yml")).unwrap();
-    let run: Vec<&str> = workflow
+    let line = workflow
         .lines()
-        .filter(|l| l.contains("just check-specs"))
-        .collect();
-    assert_ne!(run, [] as [&str; 0]);
-    for line in run {
-        assert!(
-            line.contains("just --show check-specs >/dev/null 2>&1"),
-            "{line}"
-        );
-    }
+        .find(|l| l.contains("just check-specs"))
+        .expect("the CI runs just check-specs");
+    let guard = "if [ ! -f cardinal-specs.just ]; then echo";
+    let (before, after) = line.split_once(guard).expect(line);
+    assert!(!before.contains("just check-specs"), "{line}");
+    assert!(
+        after.contains("elif") && after.contains("then just check-specs"),
+        "{line}"
+    );
 }
 
 // spec: FEA-34
-/// `issue-workflow` keys its spec steps on `specs/README.md`, which the feature `specs` leaves out.
+/// `issue-workflow` keys its spec steps, writing one and tracing a test to it, on `specs/README.md`, which the
+/// feature `specs` leaves out.
 #[test]
 fn the_issue_workflow_writes_specs_only_with_the_specs_readme() {
     let skill =
         fs::read_to_string(repo_root().join("files/.claude/skills/issue-workflow/SKILL.md"))
             .unwrap();
-    assert!(
-        skill.contains("in a project that has `specs/README.md`"),
-        "issue-workflow must key its spec steps on specs/README.md"
-    );
+    let flat = skill.split_whitespace().collect::<Vec<_>>().join(" ");
+    for passage in [
+        "**Spec**, when the issue changes what a capability does, in a project that has `specs/README.md`",
+        "When the capability has a spec and the project has `specs/README.md`, the test proves",
+    ] {
+        assert!(flat.contains(passage), "issue-workflow lacks: {passage}");
+    }
 }
 
 // spec: FEA-19

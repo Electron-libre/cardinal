@@ -172,8 +172,9 @@ pub fn problem(root: &Path, expected: bool) -> Option<String> {
     let (hooks, state) = inspect(root)?;
     match state {
         // an unreadable hooks directory is left to `sync` to report
-        State::Foreign if conflicts(&hooks, &state).unwrap_or(false) => Some(format!(
-            "conflict: {GATE} (pre-commit and {CHAINED} both exist: merge your hooks into {CHAINED}, remove pre-commit, then run `cardinal sync`)"
+        _ if conflicts(&hooks, &state).unwrap_or(false) => Some(format!(
+            "conflict: {GATE} ({})",
+            merge_by_hand(&hooks.join("pre-commit"), &hooks.join(CHAINED))
         )),
         State::Missing | State::Foreign => Some(format!("missing: {GATE}")),
         State::Modified => Some(format!("modified: {GATE}")),
@@ -326,10 +327,14 @@ fn link_new(from: &Path, to: &Path) -> Result<bool> {
 }
 
 fn both_exist(hook: &Path, chained: &Path) -> anyhow::Error {
-    anyhow::anyhow!(
-        "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
-        hook.display(),
-        chained.display()
+    anyhow::anyhow!(merge_by_hand(hook, chained))
+}
+
+/// What `sync` refuses and `check` reports when a hook of the user would move onto a `pre-commit.user` that exists.
+fn merge_by_hand(hook: &Path, chained: &Path) -> String {
+    let (hook, chained) = (hook.display(), chained.display());
+    format!(
+        "{hook} and {chained} both exist: merge them by hand into {chained} (replace it if it is a dangling link), remove {hook}, then run `cardinal sync`, which never overwrites a hook of yours"
     )
 }
 

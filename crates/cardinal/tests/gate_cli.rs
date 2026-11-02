@@ -502,7 +502,15 @@ fn check_reports_a_missing_or_modified_gate() {
     assert_problems(&check(&home, &root, false), &[MISSING]);
 }
 
-const CONFLICT: &str = "conflict: native review gate (pre-commit and pre-commit.user both exist: merge your hooks into pre-commit.user, remove pre-commit, then run `cardinal sync`)";
+/// The line of `check`, and the error of `sync`, on a hook of the user and a `pre-commit.user` both in `root`.
+fn conflict(root: &TempDir) -> String {
+    let hooks = root.path().join(".git/hooks");
+    let (hook, chained) = (hooks.join("pre-commit"), hooks.join("pre-commit.user"));
+    let (hook, chained) = (hook.display(), chained.display());
+    format!(
+        "{hook} and {chained} both exist: merge them by hand into {chained} (replace it if it is a dangling link), remove {hook}, then run `cardinal sync`, which never overwrites a hook of yours"
+    )
+}
 
 // spec: SYN-23
 #[test]
@@ -516,9 +524,14 @@ fn check_names_the_chained_hook_conflict_sync_refuses() {
         let (_source, root) = synced(&home);
         user_hook(&root, 0);
         put_chained(root.path());
-        assert_problems(&check(&home, &root, false), &[CONFLICT]);
+        let line = format!("conflict: {GATE} ({})", conflict(&root));
+        assert_problems(&check(&home, &root, false), &[&line]);
         assert_problems(&check(&home, &root, true), &[]);
-        assert_ne!(home.harness(root.path(), &["sync"]).code, Some(0));
+        let before = snapshot(root.path());
+        let sync = home.harness(root.path(), &["sync"]);
+        assert_ne!(sync.code, Some(0), "{sync:?}");
+        assert!(sync.stderr.contains(&conflict(&root)), "{sync:?}");
+        assert_eq!(snapshot(root.path()), before);
     }
     // the merge the line asks for is one `sync` installs
     let home = Home::new();

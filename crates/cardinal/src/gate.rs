@@ -178,6 +178,15 @@ pub fn problem(root: &Path, expected: bool) -> Option<String> {
     }
 }
 
+/// Whether `hooks` holds a `pre-commit.user` of any kind, a dangling link included.
+fn has_chained(hooks: &Path) -> Result<bool> {
+    match fs::symlink_metadata(hooks.join(CHAINED)) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e.into()),
+    }
+}
+
 /// Decide what to do for the project at `root`, whose source manages a hook of the review gate when `has_review_hook`:
 /// install the gate, or remove the one installed before when the source no longer manages it (SYN-60).
 ///
@@ -189,12 +198,13 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
     };
     if !has_review_hook {
         // a gate left in place would refuse every commit, nothing recording a review any more
-        let ours = matches!(state, State::Modified | State::UpToDate);
-        let chained = fs::symlink_metadata(hooks.join(CHAINED)).is_ok();
-        return Ok(ours.then_some(Plan::Remove { hooks, chained }));
+        if !matches!(state, State::Modified | State::UpToDate) {
+            return Ok(None);
+        }
+        let chained = has_chained(&hooks)?;
+        return Ok(Some(Plan::Remove { hooks, chained }));
     }
-    // a dangling link counts too: `exists()` follows it
-    if state == State::Foreign && fs::symlink_metadata(hooks.join(CHAINED)).is_ok() {
+    if state == State::Foreign && has_chained(&hooks)? {
         bail!(
             "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
             hooks.join("pre-commit").display(),

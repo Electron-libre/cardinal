@@ -34,6 +34,8 @@ so the install over a user's `pre-commit` fails changing nothing. Out of scope: 
 ## Plan
 1. [x] Refuse a dangling `pre-commit.user`: a `gate_cli` test (a dangling link, `sync` fails, hooks unchanged), then
    `plan` reads it with `symlink_metadata`; verified by that test; makes true SYN-19 (its new scenario). (autonomous)
+2. [x] Fixes of the `high` review: one test of `pre-commit.user` in `plan`, its errors other than NotFound passed up;
+   the two SYN-19 tests in one; verified by `gate_cli`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -44,3 +46,16 @@ so the install over a user's `pre-commit` fails changing nothing. Out of scope: 
 - checks: tests, lint, specs pass (`just check`); docs n/a (`docs/gates.md` already promises it).
 - red: SYN-19: `sync` succeeded (`code: Some(0)`) and moved the user's `pre-commit` over the dangling link.
 - Code review: no findings
+
+## Deliverable 2
+- done: `plan` reads `pre-commit.user` once and passes up a stat error other than NotFound; the two refusal tests
+  of SYN-19 are one, over a file and a dangling link.
+- checks: tests, lint, specs pass (`just check`); docs n/a (no behaviour seen by the user changed).
+- red: none (refactor under green tests).
+- Code review: 1 finding: a stat error failed a `sync` with no gate to remove; fixed, `pre-commit.user` read only when needed.
+- `high` review: 9 findings. Fixed: the duplicated test of `plan`, the comment naming the removed `exists()`, errors
+  other than NotFound read as absent, the duplicated test. Not fixed: the refusal message (a dangling link does
+  exist as an entry, `merge them by hand` holds). Became issues:
+  `issues/keep_the_gate_install_unchanged_on_failure.md` (a dangling user `pre-commit`, the link removed before its
+  replacement, the rename racing `plan`), `issues/name_the_chained_hook_conflict_in_check.md` (`check` reports
+  `missing` for a conflict `sync` refuses).

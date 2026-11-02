@@ -5,6 +5,7 @@
 mod common;
 
 use std::fs;
+use std::os::unix::fs::symlink;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -237,30 +238,22 @@ fn a_failure_of_the_hook_of_the_user_fails_the_commit() {
 // spec: SYN-19
 #[test]
 fn sync_never_replaces_a_chained_hook_and_fails_changing_nothing() {
-    let home = Home::new();
-    let (_source, root) = gated(&home);
-    user_hook(&root, 0);
-    put(root.path(), ".git/hooks/pre-commit.user", "kept");
-    let before = snapshot(root.path());
-    let sync = home.harness(root.path(), &["sync"]);
-    assert_ne!(sync.code, Some(0), "{sync:?}");
-    assert!(sync.stderr.contains("pre-commit.user"), "{sync:?}");
-    assert_eq!(snapshot(root.path()), before);
-}
-
-// spec: SYN-19
-#[test]
-fn sync_never_replaces_a_dangling_chained_hook_and_fails_changing_nothing() {
-    let home = Home::new();
-    let (_source, root) = gated(&home);
-    user_hook(&root, 0);
-    let chained = root.path().join(".git/hooks/pre-commit.user");
-    std::os::unix::fs::symlink("missing", &chained).unwrap();
-    let before = snapshot(root.path());
-    let sync = home.harness(root.path(), &["sync"]);
-    assert_ne!(sync.code, Some(0), "{sync:?}");
-    assert!(sync.stderr.contains("pre-commit.user"), "{sync:?}");
-    assert_eq!(snapshot(root.path()), before);
+    // a dangling link is a `pre-commit.user` too, though `exists()` says it is not
+    let put_chained: [fn(&Path); 2] = [
+        |root| put(root, ".git/hooks/pre-commit.user", "kept"),
+        |root| symlink("missing", root.join(".git/hooks/pre-commit.user")).unwrap(),
+    ];
+    for put_chained in put_chained {
+        let home = Home::new();
+        let (_source, root) = gated(&home);
+        user_hook(&root, 0);
+        put_chained(root.path());
+        let before = snapshot(root.path());
+        let sync = home.harness(root.path(), &["sync"]);
+        assert_ne!(sync.code, Some(0), "{sync:?}");
+        assert!(sync.stderr.contains("pre-commit.user"), "{sync:?}");
+        assert_eq!(snapshot(root.path()), before);
+    }
 }
 
 // spec: SYN-19, SYN-20
@@ -304,7 +297,7 @@ fn a_symlinked_hook_of_the_user_still_reaches_its_target_once_moved() {
     let (_source, root) = gated(&home);
     script(&root.path().join("scripts/hook"), "echo linked >> ran\n");
     fs::create_dir_all(root.path().join(".git/hooks")).unwrap();
-    std::os::unix::fs::symlink("../../scripts/hook", pre_commit(&root)).unwrap();
+    symlink("../../scripts/hook", pre_commit(&root)).unwrap();
     home.ok(root.path(), &["sync"]);
     assert!(fs::symlink_metadata(pre_commit(&root)).unwrap().is_file());
     let bin = fake_cardinal(0);
@@ -633,7 +626,7 @@ fn removing_the_gate_gives_a_symlinked_hook_of_the_user_back_as_a_link() {
     let (source, root) = gated(&home);
     script(&root.path().join("scripts/hook"), "echo linked >> ran\n");
     fs::create_dir_all(root.path().join(".git/hooks")).unwrap();
-    std::os::unix::fs::symlink("../../scripts/hook", pre_commit(&root)).unwrap();
+    symlink("../../scripts/hook", pre_commit(&root)).unwrap();
     home.ok(root.path(), &["sync"]);
     drop_gate(&source);
     home.ok(root.path(), &["sync"]);

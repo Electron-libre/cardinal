@@ -66,10 +66,10 @@ The work done before this file existed is in `issues/done/`.
 
 - Goal: let one session drive several issues in a row, stopping the user once for the plans of the batch.
 - Why: one session per issue works today; chaining them saves the user the restarts.
-- State: in issues
+- State: done
 - Issues:
   - [let_the_close_of_an_issue_commit_without_a_review](issues/done/let_the_close_of_an_issue_commit_without_a_review.md)
-  - [drive_several_issues_in_a_row_from_one_session](issues/drive_several_issues_in_a_row_from_one_session.md)
+  - [drive_several_issues_in_a_row_from_one_session](issues/done/drive_several_issues_in_a_row_from_one_session.md)
   - [order_the_issues_by_priority_and_dependencies](issues/done/order_the_issues_by_priority_and_dependencies.md)
   - [link_the_next_issue_when_closing_one](issues/done/link_the_next_issue_when_closing_one.md)
   - [warn_when_starting_a_blocked_issue](issues/done/warn_when_starting_a_blocked_issue.md)

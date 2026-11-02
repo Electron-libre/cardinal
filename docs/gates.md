@@ -96,6 +96,9 @@ worktree (per worktree, WSL-9), holding the `session_id` of the event and the pr
 The changes of the lock run under a mutex directory beside it, created atomically, so two sessions starting at once
 leave one holder (WSL-4). A broken event, no git repository or no `CLAUDE_PID` lets the call through (WSL-7).
 
+The three hooks are the feature `workspace-lock` of `features.toml`: a user who never runs two sessions in one
+worktree drops their calls with `disabled`, the issue claims staying (FEA-35, `specs/features.md`).
+
 ## Attribution
 
 No hook guards it: the seeded settings turn it off (`"attribution": {"commit": "", "pr": "", "sessionUrl": false}`),

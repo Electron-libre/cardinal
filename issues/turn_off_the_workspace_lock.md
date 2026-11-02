@@ -29,3 +29,31 @@ Optional features
 * `specs/features.md`, ADR 0025, `features.toml`, `crates/cardinal/src/features.rs`.
 * `issues/done/let_a_project_turn_off_a_feature_of_the_harness.md` (the pilot `no-ai-attribution`).
 * ADR 0022, ADR 0024, `docs/architecture.md` (Parallel agents).
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+A feature `workspace-lock` made of its three hook entries, so a user who never runs parallel sessions drops the hook
+call per tool call. Out of scope: `issue-claim`, which stays on (one call per issue; it orders `next-issue` across
+worktrees and refuses a start on uncommitted changes), so `specs/issue-claim.md` is unchanged.
+
+## Plan
+1. [x] Declare the feature: the table `workspace-lock` in `features.toml` with the three entries; the hook-only test
+   of FEA-16 extended to it (three entries, no file, no `needs`); docs (`docs/architecture.md`, the features list of
+   the README if any); verified by `just check`; makes true FEA-35.
+
+## Decisions
+- Claim: `issue-claim` stays on with the lock off (answer 1 a).
+- Mode: autonomous
+- Base commit: 96cbd50dd203e545c16f571402cb4b9aa78ff45c
+
+## Summaries
+
+### 1. Declare the feature
+- done: `features.toml` declares `workspace-lock` (its three hook entries); the hook-only features test covers it;
+  README, `docs/usage.md`, `docs/gates.md`, `docs/architecture.md` and the details of `issue-workflow` say so.
+- red: FEA-35: `features.toml declares no workspace-lock`
+- not verified: a real consumer synced with `disabled = ["workspace-lock"]` (FEA-3 covers the removal of hook entries).
+- Code review: no findings

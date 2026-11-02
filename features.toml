@@ -26,6 +26,15 @@ entries = ["hook PostToolUse Edit|Write cardinal run format-code"]
 [language-hint]
 entries = ["hook Stop cardinal run language-hint"]
 
+# The worktree lock (specs/workspace-lock.md): its three hooks, for a user who never runs two sessions in one worktree;
+# the hook call of each tool call goes. `issue-claim` stays, still guarding an issue across worktrees.
+[workspace-lock]
+entries = [
+    "hook PreToolUse Bash|Edit|Write|NotebookEdit cardinal run workspace-lock check",
+    "hook SessionEnd cardinal run workspace-lock release",
+    "hook SessionStart cardinal run workspace-lock start",
+]
+
 # The review gate (specs/review-gate.md): its two hooks, the deny rules of its waiver and the recipe `waive-review`, for
 # a project that reviews in pull requests or a solo user; `sync` then removes the native git gate it installed and
 # gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too,

@@ -660,10 +660,10 @@ fn the_commit_convention_lives_in_its_feature_alone() {
     }
 }
 
-// spec: FEA-16
-/// Each hook-only feature is the one hook entry that runs its tool, as `sync` prints it, and no file.
+// spec: FEA-16, FEA-35
+/// Each hook-only feature is the hook entries that run its tool, as `sync` prints them, and no file nor `needs`.
 #[test]
-fn the_hook_only_features_are_their_hook_entry() {
+fn the_hook_only_features_are_their_hook_entries() {
     let root = repo_root();
     let features: toml::Table = fs::read_to_string(root.join("features.toml"))
         .unwrap()
@@ -673,13 +673,19 @@ fn the_hook_only_features_are_their_hook_entry() {
         &fs::read_to_string(root.join("entries/.claude/settings.json")).unwrap(),
     )
     .unwrap();
-    for feature in ["lint-gate", "format-code", "language-hint"] {
-        let command = format!("cardinal run {feature}");
+    for (feature, hooks) in [
+        ("lint-gate", 1),
+        ("format-code", 1),
+        ("language-hint", 1),
+        ("workspace-lock", 3),
+    ] {
+        let tool = format!("cardinal run {feature}");
         let mut declared = Vec::new();
         for (event, groups) in settings["hooks"].as_object().unwrap() {
             for group in groups.as_array().unwrap() {
                 for hook in group["hooks"].as_array().unwrap() {
-                    if hook["command"] == command.as_str() {
+                    let command = hook["command"].as_str().unwrap();
+                    if command == tool || command.starts_with(&format!("{tool} ")) {
                         let matcher = group["matcher"]
                             .as_str()
                             .map(|m| format!("{m} "))
@@ -689,18 +695,21 @@ fn the_hook_only_features_are_their_hook_entry() {
                 }
             }
         }
-        assert_eq!(declared.len(), 1, "{feature}: {declared:?}");
+        assert_eq!(declared.len(), hooks, "{feature}: {declared:?}");
         let table = features
             .get(feature)
             .and_then(|t| t.as_table())
             .unwrap_or_else(|| panic!("features.toml declares no {feature}"));
         assert!(table.get("files").is_none(), "{feature}: {table:?}");
-        let entries: Vec<&str> = table["entries"]
+        assert!(table.get("needs").is_none(), "{feature}: {table:?}");
+        let mut entries: Vec<&str> = table["entries"]
             .as_array()
             .unwrap()
             .iter()
             .map(|e| e.as_str().unwrap())
             .collect();
+        entries.sort_unstable();
+        declared.sort_unstable();
         assert_eq!(entries, declared, "{feature}");
     }
 }

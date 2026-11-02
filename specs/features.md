@@ -48,6 +48,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-32** (deterministic) The managed CI workflow must run `just check-specs` only when the project has `cardinal-specs.just`, and must not fail for its absence.
 - **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when the project has `cardinal-specs.just`, and must succeed without it when the file is missing.
 - **FEA-34** (deterministic) `skill:issue-workflow` must write a spec, and trace its tests to one, only in a project that has `specs/README.md`, the file the feature `specs` leaves out.
+- **FEA-35** (deterministic) The source of Cardinal must declare the feature `workspace-lock`, made of the three hook entries of `entries/.claude/settings.json` whose command is `cardinal run workspace-lock check`, `cardinal run workspace-lock start` or `cardinal run workspace-lock release` (WSL-8), with no file and no `needs`.
 
 ## Scenarios
 
@@ -82,7 +83,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   with its own convention counts no `fix`, and its release is proposed as a patch
   (`issues/release_a_project_without_the_commit_convention.md`).
 - Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16,
-  `review-gate`, those of FEA-27, `issue-files` and `specs`: each comes with its own issue.
+  `review-gate`, those of FEA-27, `issue-files`, `specs` and `workspace-lock`: each comes with its own issue.
 - Rewording the skills of `harness-measure`, which cite each other: a citation of a file left out reads as absent,
   and nothing loads or checks it.
 - Keeping the refusals of `cardinal run review-gate check` (`--no-verify`, `core.hooksPath`, a `git add` of every
@@ -106,3 +107,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   `rule-breaches` already applies only where `skill:write-spec` is synced.
 - Rewording `skill:update-docs` and `skill:create-issue`, whose spec lines apply to a capability that has a spec: a
   project that turns `specs` off and keeps specs of its own traces them its own way.
+- Turning off the issue claims with `workspace-lock`: `issue-claim` stays a step of `skill:issue-workflow`, since it
+  keeps `next-issue` from offering an issue a session of another worktree works and refuses to start an issue on
+  uncommitted changes, at one call per issue; with the lock off, a claim no longer guards a worktree (WSL-10 has no
+  lock to hand over).
+- Rewording `skill:issue-workflow` and its details, which tell the agent to stop when the worktree lock refuses its
+  commands: with the feature off nothing refuses them.

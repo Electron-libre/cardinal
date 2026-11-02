@@ -124,7 +124,7 @@ Code review (`high`): 10 findings
 5. A symlink restored absolute: not fixed, the install already made it absolute; SYN-60 says the target it reaches.
 6. Three `git` calls per sync with no gate: not fixed, negligible next to a sync.
 7. `Plan` with dead fields: fixed (an enum).
-8. Dangling `pre-commit.user` at install: pre-existing, issue `issues/guard_a_dangling_chained_hook_at_the_gate_install.md`.
+8. Dangling `pre-commit.user` at install: pre-existing, issue `issues/done/guard_a_dangling_chained_hook_at_the_gate_install.md`.
 9. The older mark untested: fixed.
 10. The deny rules hardcoded in the test: fixed (read from the entries).
 

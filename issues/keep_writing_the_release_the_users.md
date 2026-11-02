@@ -12,7 +12,7 @@ The Rules of `issue-workflow` say a release is the user's to trigger, and the ag
 allowed, the forms that write ask the user.
 
 # Findings
-* 2026-11-02, the `high` review of `issues/allow_the_release_proposal_in_auto_mode.md`: `entries/.claude/settings.json`
+* 2026-11-02, the `high` review of `issues/done/allow_the_release_proposal_in_auto_mode.md`: `entries/.claude/settings.json`
   allows `Bash(cardinal run *)`, which covers every form of `cardinal run release`; nothing denies the writing forms.
 
 # Approach

@@ -45,6 +45,7 @@ The work done before this file existed is in `issues/done/`.
 - Why: every consumer gets the whole harness; a user whose flow differs (an AI co-author trailer, another commit
   convention, no parallel agents, issues tracked elsewhere) cannot drop a part without a conflict at each sync.
 - State: done
+- Released: v3.0.0
 - Issues:
   - [let_a_project_turn_off_a_feature_of_the_harness](issues/done/let_a_project_turn_off_a_feature_of_the_harness.md)
   - [declare_the_hook_only_features](issues/done/declare_the_hook_only_features.md)
@@ -67,6 +68,7 @@ The work done before this file existed is in `issues/done/`.
 - Goal: let one session drive several issues in a row, stopping the user once for the plans of the batch.
 - Why: one session per issue works today; chaining them saves the user the restarts.
 - State: done
+- Released: v3.0.0
 - Issues:
   - [let_the_close_of_an_issue_commit_without_a_review](issues/done/let_the_close_of_an_issue_commit_without_a_review.md)
   - [drive_several_issues_in_a_row_from_one_session](issues/done/drive_several_issues_in_a_row_from_one_session.md)

@@ -4,6 +4,78 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `just release <version>` from the commits,
 then reread before the release is committed.
 
+## [3.0.0] - 2026-11-02
+
+### Milestones
+
+- Optional features
+- Longer autonomy
+
+### Breaking
+
+- let a project turn off a feature of the harness
+- ask the user before an agent writes a release
+
+### Added
+
+- make the ban on AI attribution a feature to turn off
+- let a project turn off the lint, format and language hooks
+- let a feature need another
+- leave the commit format to a project with its own
+- remove the native gate the source no longer manages
+- let a project turn off the review gate
+- keep the language rule out of the report style
+- declare the features of the managed files only
+- set the milestone done when its last issue closes
+- let the close commit the milestone it sets done
+- allow the release proposal in auto mode
+- let a project turn off the issue files
+- let a project turn off the specs
+- let a project turn off the workspace lock
+- release a project that turns off conventional-commits
+- review the issues directory with the issue files off
+- count the issues directory with the issue files off
+- skip the validation stop rule with the issue files off
+- sign the validations of an issue with the git identity
+- upgrade the installed cardinal to the binary of a commit
+- name cardinal upgrade in the install hint
+- stage the close of an issue for a bare commit
+- chain a queue of a few issues from one session
+
+### Fixed
+
+- hand over the worktree lock of a session with no work
+- judge a changed lock holder instead of refusing it
+- leave the features turned off out of update and the seeds
+- remove the gate only once the lock records none
+- quiet the review rules of rule-breaches with the gate off
+- keep the warnings on the project's own retention
+- read the roadmap of a close as the user writes it
+- propose the release with cardinal run release
+- stop citing issue-workflow in the review refusal
+- gate the specs check on cardinal-specs.just
+- find the project root of an issue checked in issues/done
+- resolve the root of an issue like cardinal run does
+- head the unsorted release section Changed
+- tie the issues exceptions of the gates to the issue files
+- sign a deliverable only once a person validated it
+- upgrade the cardinal of the PATH, not the running one
+- read each commit of a release with its own convention
+- warn of the commits release reads without the convention
+- read the roadmap milestones outside fences and comments
+- close a roadmap fence and comment as Markdown does
+- review the release commit and tag it with cardinal run
+- refuse a done issue in check-issue with one problem
+- resolve the directory of an issue once in check-issue
+- refuse a dangling pre-commit.user at the gate install
+- keep the hooks unchanged when the gate install fails
+- never replace a hook at the gate install
+- name the chained hook conflict in check
+- share the chained hook conflict text of sync and check
+- stage only the close of an issue, names read literally
+- finish a gate install a killed sync left half done
+- keep a queue of issues resumable and its diffs apart
+
 ## [2.0.0] - 2026-11-01
 
 ### Breaking

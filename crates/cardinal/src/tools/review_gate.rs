@@ -11,8 +11,8 @@
 //! the review is over, not when the skill loads. Changes made afterwards (the fixes of the review) pass as long
 //! as they stay in files the review saw. A commit with nothing to commit, an amend of a clean tree
 //! included, one that only touches `issues/` (the work tree, or the index it records), one whose index changes nothing
-//! outside `issues/` but the references `close-issue` rewrote for the issues it moves to `issues/done/`, and a machine
-//! without `git` are not gated. The user waives the
+//! outside `issues/` but the references `close-issue` rewrote for the issues it moves to `issues/done/` and the
+//! milestones it set `done` (recomputed from the index), and a machine without `git` are not gated. The user waives the
 //! review of the next commit by creating `claude-review-waived` in the git directory (`just waive-review`); the hook
 //! stamps it with `HEAD` when it lets a commit through and removes it, without using it, at the first check after
 //! `HEAD` moved (a command that does not commit, such as `--dry-run`, leaves it usable; after a commit the user
@@ -475,8 +475,9 @@ fn records_issues_only(staged: &[Staged]) -> bool {
 
 /// Whether the index git commits differs from `HEAD`, outside `issues/`, only by the rewrites `close-issue` makes for
 /// the issues whose move to `issues/done/` it records: each such file is a regular file `close-issue` rewrites, its
-/// mode kept and its content equal to its `HEAD` content rewritten (REV-20).
-fn records_close_only(cwd: &Path, staged: &[Staged]) -> bool {
+/// mode kept and its content equal to its `HEAD` content rewritten, with, in a `roadmap` document, the milestones that
+/// close completes set `done` (REV-20).
+fn records_close_only(cwd: &Path, index: Option<&Path>, staged: &[Staged]) -> bool {
     let moved =
         |status: &str, path: String| staged.iter().any(|f| f.status == status && f.path == path);
     let closed: HashSet<String> = staged
@@ -491,6 +492,7 @@ fn records_close_only(cwd: &Path, staged: &[Staged]) -> bool {
     }
     let issues = [ISSUES_DIR.trim_end_matches('/').to_string()];
     let text = |id: &str| String::from_utf8(on_index(cwd, None, &["cat-file", "blob", id])?).ok();
+    let roadmaps = super::config_list(cwd, "roadmap").unwrap_or_default();
     staged
         .iter()
         .filter(|f| !f.path.starts_with(ISSUES_DIR))
@@ -506,7 +508,20 @@ fn records_close_only(cwd: &Path, staged: &[Staged]) -> bool {
                 return false;
             };
             let parts: Vec<String> = f.path.split('/').map(str::to_string).collect();
-            close_issue::rewritten(&parts, &before, &issues, &closed, false) == after
+            let rewritten = close_issue::rewritten(&parts, &before, &issues, &closed, false);
+            if !roadmaps.contains(&f.path) {
+                return rewritten == after;
+            }
+            // the milestones the close completes, recomputed with the issues the index holds (CLS-8)
+            let in_index = |p: &[String]| {
+                on_index(
+                    cwd,
+                    index,
+                    &["cat-file", "-e", &format!(":{}", p.join("/"))],
+                )
+                .is_some()
+            };
+            close_issue::milestones_done(&parts, &rewritten, &issues, &closed, in_index).0 == after
         })
 }
 
@@ -545,7 +560,7 @@ fn refusal(cwd: &Path, index: Option<&Path>) -> Option<Refusal> {
         return None;
     }
     let staged = staged(cwd, index);
-    if records_issues_only(&staged) || records_close_only(cwd, &staged) {
+    if records_issues_only(&staged) || records_close_only(cwd, index, &staged) {
         return None;
     }
     // fail closed: a waiver that cannot be read or stamped could never be spent, so the review alone judges the commit

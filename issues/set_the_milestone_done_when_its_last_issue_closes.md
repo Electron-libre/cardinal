@@ -57,7 +57,7 @@ Out of scope: proposing or running the release (stays the agent's proposal, the 
 1. [x] Milestone done at close: a pure `close_issue::milestones_done` (roadmap text, its path, the closed stems, an
    existence test) applied after the relink on each `roadmap` document, with its print; verified by tests of
    `close-issue` in a temporary repository (the CLS-8 scenarios); makes true CLS-8.
-2. [ ] Gate and Rules: `records_close_only` applies the same function to the `HEAD` content of a `roadmap` document
+2. [x] Gate and Rules: `records_close_only` applies the same function to the `HEAD` content of a `roadmap` document
    after the rewrite, the existence read in the index; the Rules of `issue-workflow` drop the manual edit and propose
    the release on the printed line; verified by `close_checks` cases (close with the milestone set passes, a milestone
    with an open issue or not listing the stem refused); makes true REV-20.
@@ -81,6 +81,25 @@ Out of scope: proposing or running the release (stays the agent's proposal, the 
 | code review | see below |
 
 red: CLS-8: `FAIL - only the milestone whose issues are all closed and that lists the closed one is set done`
+Code review: no findings
+
+not verified: none. decisions needed: none.
+
+## Deliverable 2
+
+- done: `records_close_only` replays `close_issue::milestones_done` on the rewritten `HEAD` content of a `roadmap`
+  document, each listed issue looked up in the index git commits; the Rules of `issue-workflow` and its `details.md`
+  leave the milestone state to `close-issue`; module doc of `review_gate.rs`.
+
+| check | result |
+|---|---|
+| tests | `just check` green (`close_checks`: 12 cases; `skills` check of the Rules updated) |
+| lint | clippy -D warnings clean |
+| specs | REV-20 traced, `review-gate` accepted |
+| docs | skill Rules, `details.md`, module doc |
+| code review | see below |
+
+red: REV-20: `FAIL - native lets through the close of an issue with the references and the milestone close-issue rewrote`
 Code review: no findings
 
 not verified: none. decisions needed: none.

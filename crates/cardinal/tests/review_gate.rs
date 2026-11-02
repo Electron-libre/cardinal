@@ -915,12 +915,13 @@ fn first_commit_checks(hook: &Path, project: &Path) -> Vec<(&'static str, bool)>
     out
 }
 
-/// A repository with `issues/foo.md` cited from the roadmap, a doc and another issue, closed by `close-issue` and
+/// A repository with `issues/foo.md` cited from the roadmap (the last open issue of its milestone `Last`), a doc and
+/// another issue, closed by `close-issue` and
 /// staged, then changed by `edit` (which stages what the commit records); whether `native` lets the commit through without any review.
 fn close_passes(hook: &Path, edit: impl Fn(&Path)) -> bool {
     let tmp = tempfile::tempdir().unwrap();
     let project = tmp.path().to_path_buf();
-    for dir in ["issues", "docs", "script"] {
+    for dir in ["issues/done", "docs", "script", ".claude"] {
         fs::create_dir_all(project.join(dir)).unwrap();
     }
     sh(&project, &["init", "-q", "."]);
@@ -934,9 +935,18 @@ fn close_passes(hook: &Path, edit: impl Fn(&Path)) -> bool {
         "---\npriority: low\n---\n# Bar\nAfter [foo](foo.md).\n",
     )
     .unwrap();
+    fs::write(project.join("issues/done/old.md"), "# Old\n").unwrap();
+    fs::write(
+        project.join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    // close-issue sets `Last` done (CLS-8); `Open` still lists `bar`, `Other` does not list `foo`
     fs::write(
         project.join("ROADMAP.md"),
-        "# Roadmap\n\n## Milestone: open\n- [Foo](issues/foo.md)\n- [Bar](issues/bar.md)\n",
+        "# Roadmap\n\n## Open\n- State: in issues\n- Issues:\n  - [Foo](issues/foo.md)\n  - [Bar](issues/bar.md)\n\n\
+## Last\n- State: in issues\n- Issues:\n  - [Foo](issues/foo.md)\n  - [Old](issues/done/old.md)\n\n\
+## Other\n- State: in issues\n- Issues:\n  - [Old](issues/done/old.md)\n",
     )
     .unwrap();
     fs::write(
@@ -980,14 +990,26 @@ fn replace_in(project: &Path, name: &str, from: &str, to: &str, staged: bool) {
 fn close_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     vec![
         (
-            "native lets through the close of an issue with the references close-issue rewrote",
+            "native lets through the close of an issue with the references and the milestone close-issue rewrote",
             close_passes(hook, |_| {}),
         ),
         (
-            "native refuses a close that also sets a milestone done",
+            "native refuses a close that also sets done a milestone with an issue still open",
             !close_passes(hook, |p| {
-                replace_in(p, "ROADMAP.md", "Milestone: open", "Milestone: done", true);
+                let open = "## Open\n- State: in issues";
+                replace_in(p, "ROADMAP.md", open, "## Open\n- State: done", true);
             }),
+        ),
+        (
+            "native refuses a close that also sets done a milestone that does not list the closed issue",
+            !close_passes(hook, |p| {
+                let other = "## Other\n- State: in issues";
+                replace_in(p, "ROADMAP.md", other, "## Other\n- State: done", true);
+            }),
+        ),
+        (
+            "native refuses a milestone set done when the index lacks one of its issues",
+            !close_passes(hook, |p| sh(p, &["rm", "-q", "--", "issues/done/old.md"])),
         ),
         (
             "native refuses a close with an edited word on a rewritten line",

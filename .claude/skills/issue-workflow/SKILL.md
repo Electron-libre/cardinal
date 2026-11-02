@@ -107,7 +107,7 @@ again. Then set `Plan: validated` and the base commit. The spec file is the reco
    Re-run `just check` after the fixes.
    The native `pre-commit` hook (`cardinal run review-gate native`) enforces it: `git commit` fails while the diff holds a file
    the last review never saw, so write the tracking and the summary of steps 6 and 7 in the issue **before**
-   the review (fixes to reviewed files pass; a diff under `issues/` only, or the close of an issue with the references `close-issue` rewrote, needs no review). Only the user can
+   the review (fixes to reviewed files pass; a diff under `issues/` only, or the close of an issue with the references and the milestone state `close-issue` rewrote, needs no review). Only the user can
    waive the review: never do it yourself ([details.md](details.md), "Review waiver").
 6. **Human review (STOP, except in autonomous mode)**: show one line `done` (what changed, not the diff), a table `check | result` (tests, lint, specs, docs, code
    review), one line `red:` opening with the ids its tests trace, then the failure message the test of step 3.2 gave before
@@ -166,9 +166,10 @@ back" (close on the branch, push it, open or update its pull request).
   user whether to close it** (on a branch other than the trunk, see "Merge back"); on their agreement run `just close-issue issues/<name>.md` (moves it to
   `issues/done/` and rewrites `issues/<name>.md` to
   `issues/done/<name>.md` in every other document that cites it, relative Markdown links included) and include the
-  move and those edits in the final commit. Never move it unasked. When it was the last open issue of its milestone
-  in the `roadmap` documents of `.claude/cardinal.toml`, set that milestone `done` in the same commit, then propose a
-  release to the user (`just release` prints the version it would number): theirs to trigger.
+  move and those edits in the final commit. Never move it unasked. When it was the last open issue of its milestone,
+  `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
+  `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
+  the user (`just release` prints the version it would number): theirs to trigger.
   The report of the close ends on a Markdown link to the next issue `close-issue` printed
   (`[<title>](issues/<stem>.md)`), or on its line saying there is none.
 - To know which issue comes next, run `just next-issue` (the first ready issue, its `depends_on` all done, that

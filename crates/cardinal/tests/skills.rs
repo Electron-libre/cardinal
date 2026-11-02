@@ -28,8 +28,8 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
-        "set that milestone `done`",
-        "the roadmap says when a milestone is finished",
+        "`close-issue` sets that milestone `done` itself",
+        "the tool, not the agent, says when a milestone is finished (CLS-8)",
     ),
     (
         "create-issue",

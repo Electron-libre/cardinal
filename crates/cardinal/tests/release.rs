@@ -471,7 +471,7 @@ fn without_the_convention_the_section_lists_the_whole_subjects_under_changes() {
     let today = chrono::Local::now().format("%Y-%m-%d");
     assert!(
         changelog(dir.path()).ends_with(&format!(
-            "## [1.0.0] - {today}\n\n### Breaking\n\n- Raise the format\n\n### Changes\n\n- Add a flag\n- fix: repair a link\n"
+            "## [1.0.0] - {today}\n\n### Breaking\n\n- Raise the format\n\n### Changed\n\n- Add a flag\n- fix: repair a link\n"
         )),
         "{}",
         changelog(dir.path())

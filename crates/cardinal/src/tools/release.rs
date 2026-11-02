@@ -157,7 +157,7 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
             (Kind::Breaking, "Breaking"),
             (Kind::Added, "Added"),
             (Kind::Fixed, "Fixed"),
-            (Kind::Changed, "Changes"),
+            (Kind::Changed, "Changed"),
         ] {
             let mut lines = String::new();
             for c in commits.iter().filter(|c| c.kind == kind) {
@@ -281,25 +281,25 @@ fn commits(root: &Path, last: Version, convention: bool) -> Result<Vec<Commit>, 
             let touches_listed = files
                 .lines()
                 .any(|f| breaking_files.iter().any(|b| b == f.trim()));
-            if convention {
-                classify(message, touches_listed)
-            } else {
-                Commit {
-                    kind: if touches_listed {
-                        Kind::Breaking
-                    } else {
-                        Kind::Changed
-                    },
-                    description: message.lines().next().unwrap_or("").trim().into(),
-                }
-            }
+            classify(message, touches_listed, convention)
         })
         .collect())
 }
 
-/// The kind and description of a commit message; `touches_listed` when it changes a `release_breaking_files` file.
-fn classify(message: &str, touches_listed: bool) -> Commit {
+/// The kind and description of a commit message; `touches_listed` when it changes a `release_breaking_files` file;
+/// without the `convention`, only that file counts and the description is the whole subject (REL-11, REL-12).
+fn classify(message: &str, touches_listed: bool, convention: bool) -> Commit {
     let subject = message.lines().next().unwrap_or("").trim();
+    if !convention {
+        return Commit {
+            kind: if touches_listed {
+                Kind::Breaking
+            } else {
+                Kind::Changed
+            },
+            description: subject.into(),
+        };
+    }
     let (head, description) = subject.split_once(": ").unwrap_or(("", subject));
     let footer = message
         .lines()

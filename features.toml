@@ -9,7 +9,7 @@ files = [".claude/rules/no-ai-attribution.md"]
 
 # The commit message convention (Conventional Commits), for a project with its own: `commit-check`, `check-commits`
 # and rule `commit-format` of `rule-breaches` then check only the attribution and the `Expected-effect:` footers, and
-# `release` proposes the version from `release_breaking_files` only, listing the subjects under `Changes`.
+# `release` proposes the version from `release_breaking_files` only, listing the subjects under `Changed`.
 [conventional-commits]
 files = [".claude/skills/commit-message/conventional-commits.md"]
 

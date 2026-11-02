@@ -67,7 +67,7 @@ names both, and turning both off is accepted.
 | Feature | Turns off |
 |---|---|
 | `no-ai-attribution` | the rule against AI attribution and the checks of the binary that enforce it |
-| `conventional-commits` | the commit convention (`commit-message/conventional-commits.md`), its checks in `commit-check` and `check-commits`, and rule `commit-format` of `rule-breaches`; the attribution and `Expected-effect:` checks stay |
+| `conventional-commits` | the commit convention (`commit-message/conventional-commits.md`), its checks in `commit-check` and `check-commits`, and rule `commit-format` of `rule-breaches`; the attribution and `Expected-effect:` checks stay, and `release` reads no commit type (see Releases) |
 | `lint-gate` | the Stop hook that runs the project's lint, for a lint that runs in CI |
 | `format-code` | the hook that formats each edited file, for an editor that formats |
 | `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |
@@ -146,6 +146,10 @@ from its Conventional Commits, in three steps:
 
 A consumer of Cardinal pins a version with `cardinal update --rev v<version>` and reads in `CHANGELOG.md` what
 changed since its last pin.
+
+A project that turns off `conventional-commits` gets no type read: a commit is breaking only when it changes a file of
+`release_breaking_files`, the proposal is a major or a patch, `release` warns so on stderr, and the section lists the
+other subjects whole under `Changed`.
 
 ## Evaluating Cardinal
 

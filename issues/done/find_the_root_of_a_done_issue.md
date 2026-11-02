@@ -54,7 +54,7 @@ Means: approach 1 (walk up), no git call, so it works outside a repository like 
 - Code review: no findings
 - not fixed: no repository boundary on the walk up, the same as `run::project_root`, which resolves the project of
   every `cardinal run`; the `depends_on` and name checks of a done issue go to
-  `issues/check_a_done_issue_against_its_issues_directory.md`.
+  `issues/done/check_a_done_issue_against_its_issues_directory.md`.
 - not verified: none
 - decisions needed: none
 

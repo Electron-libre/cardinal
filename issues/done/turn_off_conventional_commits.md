@@ -95,7 +95,7 @@ decisions needed: none
 done: with `conventional-commits` off, `commit-check` and `check-commits` read no `commit_scopes` and report only the
 attribution and `Expected-effect:` lines; `rule-breaches` no longer applies `commit-format`; spec `accepted`; docs
 (`usage.md`, `README.md`, `features.toml`). Follow-up from the review of deliverable 1:
-`issues/find_the_root_of_a_done_issue.md`.
+`issues/done/find_the_root_of_a_done_issue.md`.
 
 | check | result |
 |---|---|

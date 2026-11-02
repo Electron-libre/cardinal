@@ -84,7 +84,7 @@ Means: the main loop chains the issues itself, no orchestrator subagent (ADR 002
    crossing them, the chain, the stale plan check, the stops, the final report and grouped close), its entry in
    `SKILL.md` (description, step 2 "grouped, never lifted", Autonomous mode, an Advisor moment for the stale plan
    check), ADR 0026, `just sync`; verified by new required passages in `crates/cardinal/tests/skills.rs`, red first. (autonomous)
-2. [ ] Docs and `high` review fixes of the whole issue (steps 3.2 to 3.8).
+2. [x] Docs and `high` review fixes of the whole issue (steps 3.2 to 3.8). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -116,4 +116,33 @@ Code review: 1 findings
   lines restored.
 
 not verified: a real queue run (the text is proved by its required passages only).
+decisions needed: none.
+
+## Summary of deliverable 2
+done: the `high` review fixes of the queue mode: a `Queue:` line with the base of the queue and a resume rule (also
+in step 0), the plans and drafts of the queue committed after the stop, the mode of each issue kept, the close of
+each issue asked at the stop, no per-issue final summary inside a queue, the chain after a re-validated stale plan,
+a dropped issue's claim freed by compare-and-swap, `docs/workflow.md` and ADR 0026 aligned.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | n/a (harness) |
+| docs | `docs/workflow.md`, ADR 0026 |
+| code review | `high` on the issue, then `low` on the fixes |
+
+red: none (text fixes, the passages of deliverable 1 still hold).
+Code review: 9 findings (`high`), all fixed in the text: close counted after the later issues (closed when done if
+agreed at the stop), drafts of later issues in the diff of the first (queue plans committed after the stop), a
+dropped issue's files (committed with them, `Plan: proposed`), no record of the queue (`Queue:` line, Resume), the
+per-issue end of the Autonomous mode (overridden in a queue), the mode forced autonomous (the recorded one), the
+chain after a stale plan (goes on), a raw delete of the claim (compare-and-swap on the own session), the docs saying
+`next-issue` claims (it offers, `issue-claim` claims).
+
+`low` on the fixes: 3 findings, fixed: a dropped issue loses its own `Queue:` line; the base of the queue is the
+commit of the plans, found by `git log -G`, so no edit is left after it; a queue all ticked is over and its issues
+resume alone.
+
+not verified: a real queue run.
 decisions needed: none.

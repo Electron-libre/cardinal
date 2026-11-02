@@ -18,7 +18,8 @@ issues/<name>.md`; when it refuses (another session's claim, uncommitted changes
 commands (another session works in this worktree), stop and tell the user what it names. In the main worktree, also
 stop when a branch `<stem>` exists (an issue worktree of the former `start-issue`). Details: [details.md](details.md).
 
-Read the issue file. No `# Tracking` section: start at step 1. If `# Tracking` says `Plan: proposed`, the plan was never
+Read the issue file. A `Queue:` line in its `## Decisions`, `Plan: validated` and a plan of that queue not all ticked: resume the queue ([details.md](details.md), "Drive a
+queue"). No `# Tracking` section: start at step 1. If `# Tracking` says `Plan: proposed`, the plan was never
 validated: redo the stop of step 2. Otherwise (`Plan: validated`, signed or not, or no marker: planned before it existed) show where it stands in two `next` / `left` lines (the next unchecked
 deliverable with the recorded mode, the deliverables left by name) and continue at step 3 in the mode recorded there (none recorded:
 validation at each deliverable), unless the issue changes a capability whose spec is missing, still `draft` with no validated

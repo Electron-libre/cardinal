@@ -86,7 +86,8 @@ names both, and turning both off is accepted.
 The installed `cardinal` is the launcher of every project of the machine, not a binary of the pinned revision. A
 revision whose hooks call a subcommand it does not know needs its `cardinal` installed first, or every hook refuses and
 the agent can run nothing, the install included. `cardinal update` refuses such a revision and prints the install to
-run; in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
+run: `cardinal upgrade <source> <commit>` for a git source at a full commit, which downloads its release binary and
+needs no Rust, else a `cargo install` (BIN-20); in this repository, `just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
 
 ### Formats and migrations
 

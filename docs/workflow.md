@@ -108,7 +108,7 @@ sequenceDiagram
   the trunk it leaves the claim `merge pending`, which `next-issue` drops once the trunk holds the close. A branch
   prioritizes only its own issues, so two branches never conflict over the order.
 - `just check-cardinal` before the merge catches a hook the installed `cardinal` would refuse once merged; run the
-  `cargo install` it prints first.
+  install it prints first.
 - The project's own tools run on `.` may read the nested worktrees: [usage.md](usage.md#parallel-issues-in-worktrees)
   says how to keep them out.
 

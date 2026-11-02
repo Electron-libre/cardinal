@@ -1,4 +1,5 @@
-//! The hook commands the installed launcher must accept (spec `specs/tool-binaries.md`, BIN-15, BIN-16).
+//! The hook commands the installed launcher must accept (spec `specs/tool-binaries.md`, BIN-15, BIN-16), and the
+//! install of a newer one (BIN-20).
 //!
 //! The installed `cardinal` is the launcher every hook goes through: a hook
 //! command `cardinal <subcommand> ...` it does not know does not run (it exits 3, BIN-17; a launcher older than BIN-17
@@ -11,9 +12,9 @@ use std::process::{Command, Stdio};
 
 use serde_json::Value;
 
-use crate::is_git_url;
 use crate::run::cargo_url;
 use crate::settings::hook_commands;
+use crate::{is_full_hash, is_git_url};
 
 /// The launcher.
 const LAUNCHER: &str = "cardinal";
@@ -54,11 +55,15 @@ pub fn refused(settings: &Value) -> Vec<String> {
     refused
 }
 
-/// The command that installs the `cardinal` of `rev` of `source`, run from the root of the project; `--force` reinstalls
-/// the same version.
+/// The command that installs the `cardinal` of `rev` of `source`, run from the root of the project (BIN-20): `cardinal
+/// upgrade` at a full commit, which needs no Rust when the commit has a release; else `cargo install`, whose `--force`
+/// reinstalls the same version.
 pub fn install(source: &str, rev: Option<&str>) -> String {
     if !is_git_url(source) {
         return format!("cargo install --force --path {source}/crates/cardinal --locked");
+    }
+    if let Some(commit) = rev.filter(|rev| is_full_hash(rev)) {
+        return format!("{LAUNCHER} upgrade {source} {commit}");
     }
     let rev = rev.map(|rev| format!(" --rev {rev}")).unwrap_or_default();
     format!(

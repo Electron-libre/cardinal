@@ -22,8 +22,8 @@ On another platform, build it with Rust:
 `cargo install --git https://github.com/Electron-libre/cardinal.git --locked`.
 
 The installed `cardinal` serves every project of the machine; `cardinal run` fetches the binary of the revision each
-project pins by itself. When a revision needs a newer `cardinal`, it refuses and says so: download the latest release
-again, then retry.
+project pins by itself. When a revision needs a newer `cardinal`, it refuses and prints the command that installs it,
+`cardinal upgrade <source> <commit>`: run it, then retry.
 
 Claude Code deletes its session transcripts after 30 days; the evaluation of Cardinal reads them, so keep them a year
 in `~/.claude/settings.json`:
@@ -182,8 +182,9 @@ just release 1.2.0 --tag  # tags v1.2.0 locally; the push is yours
 
 | Message | Fix |
 |---|---|
-| `needs a cardinal that reads the format <n>` | download the latest release again (step 1) |
+| `needs a cardinal that reads the format <n>` | run the `cardinal upgrade …` it prints |
+| a `cargo install …` to run, with no Rust | that `cardinal` predates `cardinal upgrade`: download the latest release again (step 1) |
 | `no .claude/cardinal.toml` | `cardinal init <source>` first |
 | `no .claude/cardinal.lock` | `cardinal update` (or `cardinal sync`) first |
 | `no issues directory` from `just next-issue` | no issue yet: create one (step 5) |
-| a hook refuses every command after an update | the installed `cardinal` is too old: download the latest release again (step 1) |
+| a hook refuses every command after an update | the installed `cardinal` is too old: run the `cardinal upgrade …` that `cardinal update` or `cardinal check` printed |

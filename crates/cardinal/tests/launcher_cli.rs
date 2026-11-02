@@ -38,7 +38,7 @@ fn project_with_hooks(home: &Home) -> (TempDir, TempDir) {
     (source, root)
 }
 
-// spec: BIN-15
+// spec: BIN-15, BIN-20
 #[test]
 fn check_fails_on_each_hook_command_whose_subcommand_the_installed_cardinal_refuses() {
     let home = Home::new();
@@ -60,6 +60,35 @@ fn check_fails_on_each_hook_command_whose_subcommand_the_installed_cardinal_refu
     assert!(problems.iter().all(|p| p.contains(&install)), "{run:?}");
     // each subcommand is asked once
     assert_eq!(get(home.path(), "log").unwrap(), "help run\nhelp newcmd\n");
+}
+
+// spec: BIN-20
+#[test]
+fn check_names_the_cargo_install_of_a_git_source_at_a_revision_that_is_no_commit() {
+    let home = Home::new();
+    let (_source, root) = project_with_hooks(&home);
+    install_cardinal_with_run(&home);
+    let source = "https://example.com/owner/repo.git";
+
+    for (rev, install) in [
+        (
+            "rev = \"main\"\n",
+            format!("cargo install --force --git {source} --rev main --locked"),
+        ),
+        ("", format!("cargo install --force --git {source} --locked")),
+    ] {
+        put(
+            root.path(),
+            CONFIG,
+            &format!("[cardinal]\nsource = \"{source}\"\n{rev}"),
+        );
+        let run = home.harness(root.path(), &["check"]);
+        assert_eq!(run.code, Some(1), "{run:?}");
+        assert!(
+            run.lines().iter().all(|p| p.contains(&install)),
+            "{rev}: {run:?}"
+        );
+    }
 }
 
 // spec: BIN-15
@@ -141,7 +170,7 @@ fn url(repo: &Path) -> String {
     format!("file://{}", repo.display())
 }
 
-// spec: BIN-16
+// spec: BIN-16, BIN-20
 #[test]
 fn update_writes_nothing_and_names_the_install_when_the_installed_cardinal_refuses_a_hook() {
     let home = Home::new();
@@ -154,10 +183,7 @@ fn update_writes_nothing_and_names_the_install_when_the_installed_cardinal_refus
     assert_eq!(run.code, Some(3), "{run:?}");
     assert!(run.stderr.contains("`cardinal newcmd`"), "{run:?}");
     assert!(run.stderr.contains("`cardinal newcmd other`"), "{run:?}");
-    let install = format!(
-        "cargo install --force --git {} --rev {head} --locked",
-        url(repo.path())
-    );
+    let install = format!("cardinal upgrade {} {head}", url(repo.path()));
     // one install for all the hooks
     assert_eq!(run.stderr.matches(&install).count(), 1, "{run:?}");
     assert_eq!(get(root.path(), CONFIG), config);
@@ -173,7 +199,7 @@ fn update_writes_nothing_and_names_the_install_when_the_installed_cardinal_refus
     assert_eq!(get(root.path(), "a.txt").as_deref(), Some("a2"));
 }
 
-// spec: BIN-16
+// spec: BIN-16, BIN-20
 #[test]
 fn update_dry_run_warns_of_a_hook_the_installed_cardinal_refuses() {
     let home = Home::new();
@@ -189,7 +215,7 @@ fn update_dry_run_warns_of_a_hook_the_installed_cardinal_refuses() {
             .any(|w| w.starts_with("warning:") && w.contains(text))
     };
     assert!(
-        warned("`cardinal newcmd`") && warned("cargo install"),
+        warned("`cardinal newcmd`") && warned("cardinal upgrade"),
         "{run:?}"
     );
     assert_eq!(get(root.path(), CONFIG), config);

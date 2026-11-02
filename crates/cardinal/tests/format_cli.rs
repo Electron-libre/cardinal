@@ -73,7 +73,7 @@ fn a_source_format_that_is_not_a_whole_number_is_an_error_naming_the_file() {
     assert!(get(root.path(), LOCK).is_none());
 }
 
-// spec: SYN-40
+// spec: SYN-40, BIN-20
 #[test]
 fn update_refuses_a_revision_of_a_newer_format_and_keeps_the_project_as_it_was() {
     let home = Home::new();
@@ -101,10 +101,7 @@ fn update_refuses_a_revision_of_a_newer_format_and_keeps_the_project_as_it_was()
     for args in [&["update"][..], &["update", "--dry-run"]] {
         let run = home.harness(root.path(), args);
         assert_eq!(run.code, Some(3), "{run:?}");
-        let install = format!(
-            "cargo install --force --git {} --rev {head} --locked",
-            url(repo.path())
-        );
+        let install = format!("cardinal upgrade {} {head}", url(repo.path()));
         assert!(
             run.stderr.contains(&format!(
                 "needs a cardinal that reads the format 99, this one reads up to {}: install it with `{install}`",
@@ -134,17 +131,14 @@ fn git_project(home: &Home, declared: &str) -> (TempDir, TempDir, String) {
     (repo, root, commit)
 }
 
-// spec: SYN-40
+// spec: SYN-40, BIN-20
 #[test]
 fn sync_of_an_unpinned_git_source_names_the_commit_it_checked_out() {
     let home = Home::new();
     let (repo, root, commit) = git_project(&home, "99\n");
     let run = home.harness(root.path(), &["sync"]);
     assert_eq!(run.code, Some(3), "{run:?}");
-    let install = format!(
-        "cargo install --force --git {} --rev {commit} --locked",
-        url(repo.path())
-    );
+    let install = format!("cardinal upgrade {} {commit}", url(repo.path()));
     assert!(
         run.stderr.contains(&format!("install it with `{install}`")),
         "{run:?}"
@@ -230,7 +224,7 @@ fn check_sync_and_update_refuse_a_lock_of_a_newer_format_and_write_nothing() {
     }
 }
 
-// spec: SYN-42
+// spec: SYN-42, BIN-20
 #[test]
 fn update_refuses_a_lock_of_a_newer_format_naming_the_pinned_revision() {
     let home = Home::new();
@@ -246,10 +240,7 @@ fn update_refuses_a_lock_of_a_newer_format_naming_the_pinned_revision() {
 
     let run = home.harness(root.path(), &["update"]);
     assert_eq!(run.code, Some(3), "{run:?}");
-    let install = format!(
-        "cargo install --force --git {} --rev {commit} --locked",
-        url(repo.path())
-    );
+    let install = format!("cardinal upgrade {} {commit}", url(repo.path()));
     assert!(
         run.stderr.contains(&format!("install it with `{install}`")),
         "{run:?}"

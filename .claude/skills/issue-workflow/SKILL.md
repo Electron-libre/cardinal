@@ -165,7 +165,7 @@ back" (close on the branch, push it, open or update its pull request).
 
 ## Rules
 
-- After a `cardinal sync` that adds a hook, run `just check-cardinal` at once and the `cargo install` it prints: the
+- After a `cardinal sync` that adds a hook, run `just check-cardinal` at once and the install it prints: the
   live hooks call the installed `cardinal`, and one it refuses blocks every command, the install included.
 - When the issue is fully done, mark it in the issue and say what, if anything, remains. Then **ask the
   user whether to close it** (on a branch other than the trunk, see "Merge back"); on their agreement run `just close-issue issues/<name>.md` (moves it to

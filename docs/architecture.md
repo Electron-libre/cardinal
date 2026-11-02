@@ -127,7 +127,7 @@ flowchart TD
 - **Before the rename**: the binary was named `harness`. A commit from before it is fetched from its
   `harness-<commit>` release, or built by a `cargo install` that names no crate (BIN-3, BIN-5).
 - **An older launcher**: the launcher is not of the pinned revision, so a hook running a subcommand it does not know
-  cannot run. `check` names the `cargo install --force` to run (BIN-15) and `update` refuses such a revision (BIN-16,
+  cannot run. `check` names the install to run, `cardinal upgrade <source> <commit>` at a pinned commit, else a `cargo install --force` (BIN-15, BIN-20), and `update` refuses such a revision (BIN-16,
   `crates/cardinal/src/launcher.rs`). A binary pinned before BIN-7 exits 2 instead of 3 on a tool it does not know,
   and a launcher installed before BIN-17 on a subcommand it does not know: the hook then refuses.
 

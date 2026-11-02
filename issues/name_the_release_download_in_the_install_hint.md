@@ -64,9 +64,9 @@ already does (release asset checked against its digest, else a cargo build) and 
 1. [x] `cardinal upgrade`: the subcommand, through `run::binary_of` then an atomic replace of `current_exe`; verified
    by a binary test with a fake `curl` serving an asset into a copied launcher, and its failures; makes true BIN-19,
    BIN-21. (autonomous)
-2. [ ] Hints: `launcher::install` returns `cardinal upgrade <source> <commit>` for a git source at a full commit;
+2. [x] Hints: `launcher::install` returns `cardinal upgrade <source> <commit>` for a git source at a full commit;
    `docs/tutorial.md` (troubleshooting), `docs/usage.md` ("The installed launcher"), `README.md` (commands); verified
-   by the update and check tests of BIN-15, BIN-16 and a format refusal; makes true BIN-20.
+   by the update and check tests of BIN-15, BIN-16 and a format refusal; makes true BIN-20. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -83,3 +83,16 @@ already does (release asset checked against its digest, else a cargo build) and 
 - red: BIN-19, BIN-21: `error: unrecognized subcommand 'upgrade'`.
 - Checks: `just check` ok, deliverable-size 151 lines.
 - Code review: no findings
+
+## Deliverable 2
+- done: `launcher::install` names `cardinal upgrade <source> <commit>` at a full commit, the `cargo install` otherwise;
+  the tutorial, usage, workflow, architecture and the `issue-workflow` skill say "the install it prints";
+  `specs/tool-binaries.md` back to `accepted`.
+- red: BIN-20: the SYN-40 and SYN-42 tests found `cargo install --force --git <url> --rev <commit> --locked` where they
+  expected `cardinal upgrade <url> <commit>`.
+- not verified: a launcher installed before this change still prints the `cargo install`; the tutorial says to
+  download the latest release then.- Checks: `just check` ok, deliverable-size 104 lines.
+- Code review: 1 findings
+  - "the hint runs `cardinal upgrade`, which an older launcher lacks": not fixed, the hint is printed by the running
+    launcher (`check`, `sync`, `update`, `init`), which has `upgrade` from this change on; an older one still prints
+    its `cargo install`, as the tutorial says.

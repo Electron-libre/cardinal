@@ -502,6 +502,38 @@ fn check_reports_a_missing_or_modified_gate() {
     assert_problems(&check(&home, &root, false), &[MISSING]);
 }
 
+const CONFLICT: &str = "conflict: native review gate (pre-commit and pre-commit.user both exist: merge your hooks into pre-commit.user, remove pre-commit, then run `cardinal sync`)";
+
+// spec: SYN-23
+#[test]
+fn check_names_the_chained_hook_conflict_sync_refuses() {
+    let put_chained: [fn(&Path); 2] = [
+        |root| put(root, ".git/hooks/pre-commit.user", "kept"),
+        |root| symlink("missing", root.join(".git/hooks/pre-commit.user")).unwrap(),
+    ];
+    for put_chained in put_chained {
+        let home = Home::new();
+        let (_source, root) = synced(&home);
+        user_hook(&root, 0);
+        put_chained(root.path());
+        assert_problems(&check(&home, &root, false), &[CONFLICT]);
+        assert_problems(&check(&home, &root, true), &[]);
+        assert_ne!(home.harness(root.path(), &["sync"]).code, Some(0));
+    }
+    // the merge the line asks for is one `sync` installs
+    let home = Home::new();
+    let (_source, root) = synced(&home);
+    user_hook(&root, 0);
+    put(root.path(), ".git/hooks/pre-commit.user", "kept");
+    fs::rename(
+        pre_commit(&root),
+        root.path().join(".git/hooks/pre-commit.user"),
+    )
+    .unwrap();
+    home.ok(root.path(), &["sync"]);
+    assert_problems(&check(&home, &root, false), &[]);
+}
+
 // spec: SYN-22, SYN-23
 #[test]
 fn a_review_hook_named_before_the_rename_gets_no_gate() {

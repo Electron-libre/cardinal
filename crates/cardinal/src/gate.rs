@@ -162,13 +162,19 @@ fn inspect(root: &Path) -> Option<(PathBuf, State)> {
 
 /// The line `check` prints when the project should have the gate and does not (or not as managed), `None` when it is
 /// there, cannot be installed (`core.hooksPath`, no repository) or is not expected. `expected` tells whether the lock
-/// records a managed hook of the review gate, whether or not the settings still hold it.
+/// records a managed hook of the review gate, whether or not the settings still hold it. A conflict on
+/// `pre-commit.user` is named as such: the `sync` that fixes a missing gate refuses it.
 #[must_use]
 pub fn problem(root: &Path, expected: bool) -> Option<String> {
     if !expected {
         return None;
     }
-    match inspect(root)?.1 {
+    let (hooks, state) = inspect(root)?;
+    match state {
+        // an unreadable hooks directory is left to `sync` to report
+        State::Foreign if conflicts(&hooks, &state).unwrap_or(false) => Some(format!(
+            "conflict: {GATE} (pre-commit and {CHAINED} both exist: merge your hooks into {CHAINED}, remove pre-commit, then run `cardinal sync`)"
+        )),
         State::Missing | State::Foreign => Some(format!("missing: {GATE}")),
         State::Modified => Some(format!("modified: {GATE}")),
         State::UpToDate | State::Redirected => None,
@@ -182,6 +188,12 @@ fn has_chained(hooks: &Path) -> Result<bool> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(e) => Err(e.into()),
     }
+}
+
+/// Whether installing the gate over `state` would have to move a `pre-commit` of the user onto a `pre-commit.user`
+/// that exists: `plan` refuses then, and `check` says so rather than send the user to that `sync`.
+fn conflicts(hooks: &Path, state: &State) -> Result<bool> {
+    Ok(*state == State::Foreign && has_chained(hooks)?)
 }
 
 /// Decide what to do for the project at `root`, whose source manages a hook of the review gate when `has_review_hook`:
@@ -201,7 +213,7 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
         let chained = has_chained(&hooks)?;
         return Ok(Some(Plan::Remove { hooks, chained }));
     }
-    if state == State::Foreign && has_chained(&hooks)? {
+    if conflicts(&hooks, &state)? {
         return Err(both_exist(&hooks.join("pre-commit"), &hooks.join(CHAINED)));
     }
     Ok(Some(Plan::Install { hooks, state }))

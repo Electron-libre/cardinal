@@ -18,7 +18,7 @@ with `issue-files` off, `issues/` is a directory like any other for the review g
 * `rule-breaches` counts `issues/` among the plan directories of rule `validation-stop` (`PLAN_DIRS`, BRE-8), and
   its trigger is a `Plan: proposed` written under `issues/`: a project's own workflow skill writing that marker there
   gets breaches of a workflow it turned off.
-* Found by the `high` review of `issues/turn_off_the_issue_files.md`.
+* Found by the `high` review of `issues/done/turn_off_the_issue_files.md`.
 
 # Approach
 1. Gate each of the three readers on `features::is_off(root, "issue-files")` (`rule-breaches`: on the configuration
@@ -33,5 +33,5 @@ with `issue-files` off, `issues/` is a directory like any other for the review g
 Optional features
 
 # Resources
-* `issues/turn_off_the_issue_files.md`, `specs/features.md` (FEA-26 for the session-start reading),
+* `issues/done/turn_off_the_issue_files.md`, `specs/features.md` (FEA-26 for the session-start reading),
   `crates/cardinal/src/features.rs`.

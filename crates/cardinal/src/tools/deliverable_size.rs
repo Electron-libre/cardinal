@@ -10,7 +10,7 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// The lock files, left out with `issues/` (SIZ-4).
+/// The lock files, left out with `issues/` (SIZ-4), which counts when the issue files are off (FEA-37).
 const LOCK_FILES: &[&str] = &[
     "*.lock",
     "package-lock.json",
@@ -70,9 +70,11 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
             working_tree_diff(root, String::from_utf8_lossy(&empty).trim())?
         }
     };
+    // with the issue files off, `issues/` counts as any other directory (FEA-37)
+    let issues = !crate::features::is_off(root, crate::features::ISSUE_FILES);
     let mut files: Vec<(u64, String)> = counts(&numstat)
         .into_iter()
-        .filter(|(path, n)| *n > 0 && !left_out(path))
+        .filter(|(path, n)| *n > 0 && !left_out(path, issues))
         .map(|(path, n)| (n, path))
         .collect();
     files.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
@@ -200,9 +202,10 @@ fn counts(numstat: &[u8]) -> BTreeMap<String, u64> {
     counts
 }
 
-fn left_out(path: &str) -> bool {
+/// Whether `path` is left out of the count: a lock file, or a file under `issues/` when `issues` holds the issue files.
+fn left_out(path: &str, issues: bool) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
-    path.starts_with("issues/")
+    issues && path.starts_with("issues/")
         || LOCK_FILES
             .iter()
             .any(|p| super::check_specs::name_matches(p, name))

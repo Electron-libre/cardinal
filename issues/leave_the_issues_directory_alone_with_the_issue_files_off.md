@@ -48,7 +48,7 @@ themselves, and rule `skill-routing-issue-workflow`, already gated on `skill:iss
 ## Plan
 1. [x] review-gate: drop the `issues/`-only and close exemptions when `features::is_off(root, "issue-files")`; verified
    by tests of `native` on a project with the feature off; makes true FEA-36.
-2. [ ] deliverable-size: count `issues/` when the feature is off; verified by a test through the binary; makes true FEA-37.
+2. [x] deliverable-size: count `issues/` when the feature is off; verified by a test through the binary; makes true FEA-37.
 3. [ ] rule-breaches: no `validation-stop` for a session whose config at `start` turns the feature off; verified by a
    transcript test; makes true FEA-38, spec `accepted`.
 
@@ -59,4 +59,9 @@ themselves, and rule `skill-routing-issue-workflow`, already gated on `skill:iss
 ## Deliverable 1
 done: `review-gate` drops its `issues/`-only and close exemptions when `issue-files` is off.
 red: FEA-36: assertion `left == right` failed: a diff under issues/ only waits for a review (left: 0, right: 2)
+Code review: no findings
+
+## Deliverable 2
+done: `deliverable-size` counts `issues/` when `issue-files` is off.
+red: FEA-37: assertion `left == right` failed: left "1\tsrc/a.rs\n1 changed lines…", right "1\tissues/a.md\n1\tsrc/a.rs\n2 changed lines…"
 Code review: no findings

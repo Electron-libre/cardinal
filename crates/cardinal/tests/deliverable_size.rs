@@ -253,3 +253,20 @@ fn a_git_failure_or_a_bad_limit_exits_3_with_no_count() {
     let outside = tempfile::tempdir().unwrap();
     assert_eq!(size(outside.path(), &[]), (Some(3), String::new()));
 }
+
+// spec: FEA-37
+#[test]
+fn counts_the_issues_with_the_issue_files_off() {
+    let dir = repo(&[(
+        ".claude/cardinal.toml",
+        "[cardinal]\ndisabled = [\"issue-files\"]\n",
+    )]);
+    for path in ["issues/a.md", "Cargo.lock", "src/a.rs"] {
+        write(dir.path(), path, "one\n");
+    }
+    let (_, stdout) = size(dir.path(), &[]);
+    assert_eq!(
+        stdout,
+        "1\tissues/a.md\n1\tsrc/a.rs\n2 changed lines, limit 1000: within\n"
+    );
+}

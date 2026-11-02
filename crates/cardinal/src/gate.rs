@@ -13,9 +13,6 @@ use anyhow::{bail, Result};
 use crate::entries::Entry;
 use crate::{is_executable, set_executable, write, Outcome};
 
-#[cfg(unix)]
-use std::os::unix::fs::symlink;
-
 /// The command of the hooks that run the review gate: the gate exists only where Cardinal manages such a hook, or the
 /// review hook script of an older revision (`LEGACY_HOOK`).
 const REVIEW_TOOL: &str = "cardinal run review-gate";
@@ -269,25 +266,37 @@ fn install(hooks: &Path, state: &State) -> Result<()> {
     }
     let hook = hooks.join("pre-commit");
     // the new hook is complete before the hook of the user moves, so a failure never leaves the repository
-    // with no hook at all
+    // with no hook at all, and it goes on any failure, so the hooks directory is left as found
     let staged = hooks.join("pre-commit.cardinal-new");
-    write(&staged, SCRIPT.as_bytes())?;
-    set_executable(&staged, true)?;
-    if *state == State::Foreign {
-        let chained = hooks.join(CHAINED);
-        if fs::symlink_metadata(&hook)?.is_symlink() {
-            // a relative link would point elsewhere once moved: keep the target it reaches now
-            let target = fs::canonicalize(&hook)?;
-            fs::remove_file(&hook)?;
-            symlink(&target, &chained)?;
-        } else {
-            fs::rename(&hook, &chained)?;
-        }
-    } else if *state == State::Modified {
-        // never write through a link
-        fs::remove_file(&hook)?;
+    let result = stage_and_swap(&hook, &staged, state);
+    if result.is_err() {
+        let _ = fs::remove_file(&staged);
     }
-    fs::rename(&staged, &hook)?;
+    result
+}
+
+fn stage_and_swap(hook: &Path, staged: &Path, state: &State) -> Result<()> {
+    write(staged, SCRIPT.as_bytes())?;
+    set_executable(staged, true)?;
+    if *state != State::Foreign {
+        // a rename replaces a link, never writes through it
+        fs::rename(staged, hook)?;
+        return Ok(());
+    }
+    // a link of the directory itself, not of what it reaches, so a link moves as a link, its relative target
+    // unchanged in the same directory, a dangling one included; it fails on a `pre-commit.user` created since
+    // `plan` where a rename would replace it
+    let chained = hook.with_file_name(CHAINED);
+    fs::hard_link(hook, &chained)?;
+    if let Err(e) = fs::remove_file(hook) {
+        let _ = fs::remove_file(&chained);
+        return Err(e.into());
+    }
+    if let Err(e) = fs::rename(staged, hook) {
+        // the hook of the user goes back in its place
+        let _ = fs::rename(&chained, hook);
+        return Err(e.into());
+    }
     Ok(())
 }
 
@@ -301,4 +310,30 @@ fn uninstall(hooks: &Path, chained: bool) -> Result<()> {
         fs::remove_file(&hook)?;
     }
     Ok(())
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    // spec: SYN-19 (internal: a `pre-commit.user` created between `plan` and `apply` is a race the binary cannot stage)
+    #[test]
+    fn the_move_never_replaces_a_chained_hook_and_leaves_the_hooks_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let hooks = dir.path();
+        fs::write(hooks.join("pre-commit"), "user").unwrap();
+        fs::write(hooks.join(CHAINED), "kept").unwrap();
+        assert!(install(hooks, &State::Foreign).is_err());
+        let mut names: Vec<_> = fs::read_dir(hooks)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        names.sort();
+        assert_eq!(names, ["pre-commit", CHAINED]);
+        assert_eq!(
+            fs::read_to_string(hooks.join("pre-commit")).unwrap(),
+            "user"
+        );
+        assert_eq!(fs::read_to_string(hooks.join(CHAINED)).unwrap(), "kept");
+    }
 }

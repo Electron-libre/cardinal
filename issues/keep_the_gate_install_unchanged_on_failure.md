@@ -30,3 +30,33 @@ failure of the install leaves the hooks directory as it found it, and the move n
 
 # Resources
 * `crates/cardinal/src/gate.rs`, `crates/cardinal/tests/gate_cli.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+Make `gate::install` leave the hooks directory as it found it on any failure, and never replace a `pre-commit.user`.
+Means: the user's `pre-commit` moves in the same directory, so a link moves as a link with its relative target intact:
+`hard_link` (which links the link itself) then `remove_file` replaces both `canonicalize` + `symlink` and `rename`;
+a dangling link then moves like any link (the gate skips a `pre-commit.user` that is not executable, as git did).
+
+## Plan
+1. [x] Move the user's hook without replacing, and clean up on failure: `hard_link` + `remove_file` for the move
+   (fails on an existing `pre-commit.user`), the staged file removed on any error; verified by a `gate_cli.rs` test
+   with a dangling user `pre-commit` link (moved as a link, no staged file) and an internal test of `install` with a
+   `pre-commit.user` created after `plan` (error, hooks directory unchanged); makes true SYN-19. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- 1 a: a dangling user `pre-commit` link moves as a link.
+- Base commit: 08392896ab189f58ba9d93d75124da6cc62705e5
+
+## Summary of deliverable 1
+done: the user's `pre-commit` moves by `hard_link` + `remove_file` (a link as a link, its relative target kept), the
+staged hook and a half-made move are undone on any error (the `Modified` gate is replaced by one rename); the SYN-60 test reads the target the moved link reaches.
+red: SYN-19: `sync` exited 3 with `No such file or directory (os error 2)` on a dangling user link; the internal test
+saw `install` succeed over a `pre-commit.user`.
+Code review: 1 findings
+- the final rename did not undo the move: fixed, the user's hook goes back.
+not verified: a failure of `remove_file` or of the final rename (no cheap way to stage it).

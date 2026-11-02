@@ -305,6 +305,26 @@ fn a_symlinked_hook_of_the_user_still_reaches_its_target_once_moved() {
     assert_eq!(get(root.path(), "ran").as_deref(), Some("linked\n"));
 }
 
+// spec: SYN-19
+#[test]
+fn a_dangling_hook_of_the_user_moves_as_a_link_and_leaves_no_staged_file() {
+    let home = Home::new();
+    let (_source, root) = gated(&home);
+    fs::create_dir_all(root.path().join(".git/hooks")).unwrap();
+    symlink("missing", pre_commit(&root)).unwrap();
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(MOVED), Some("moved"), "{sync:?}");
+    assert_eq!(sync.outcome(GATE), Some("added"), "{sync:?}");
+    let hooks = root.path().join(".git/hooks");
+    assert_eq!(
+        fs::read_link(hooks.join("pre-commit.user")).unwrap(),
+        Path::new("missing")
+    );
+    assert!(!hooks.join("pre-commit.cardinal-new").exists());
+    let bin = fake_cardinal(0);
+    assert_eq!(run_hook(&home, &root, bin.path(), &[]).code, Some(0));
+}
+
 // spec: SYN-20
 #[test]
 fn sync_reinstalls_a_missing_modified_or_non_executable_hook_and_is_idempotent() {
@@ -630,9 +650,11 @@ fn removing_the_gate_gives_a_symlinked_hook_of_the_user_back_as_a_link() {
     home.ok(root.path(), &["sync"]);
     drop_gate(&source);
     home.ok(root.path(), &["sync"]);
-    let target = fs::read_link(pre_commit(&root)).unwrap();
+    assert!(fs::symlink_metadata(pre_commit(&root))
+        .unwrap()
+        .is_symlink());
     assert_eq!(
-        fs::canonicalize(target).unwrap(),
+        fs::canonicalize(pre_commit(&root)).unwrap(),
         fs::canonicalize(root.path().join("scripts/hook")).unwrap()
     );
 }

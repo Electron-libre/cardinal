@@ -85,6 +85,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - (SYN-17) Given an abbreviated hash or a name that does not resolve, the fetch by hash is not tried and the error stays "unknown revision".
 - (SYN-19) Given a user's `pre-commit` that runs a linter, when `sync` runs, then the linter runs after the gate, and a refusal of the gate stops the commit before it.
 - (SYN-19) Given a user's `pre-commit` and a dangling link `pre-commit.user`, when `sync` runs, then it fails changing nothing: the link counts as a `pre-commit.user` that exists.
+- (SYN-19) Given a user's `pre-commit` that is a dangling link, when `sync` runs, then the link moves as a link to `pre-commit.user`, the gate is installed and the hooks directory holds no staged file.
 - (SYN-24, SYN-25, SYN-26) Given a `.claude/settings.json` that cannot be read or is not valid JSON, then `check` prints one warning saying so instead of one per rule, hook or attribution, whether or not the review hook is managed.
 - (SYN-25) Given a hook command that names no file under `.claude/hooks/` (a `just` recipe, a tool on the `PATH`), then it is not reported.
 - (SYN-26) Given an `attribution` whose `commit` is empty but whose `pr` is unset, then the warning is printed: Claude Code adds its default text to the pull requests.

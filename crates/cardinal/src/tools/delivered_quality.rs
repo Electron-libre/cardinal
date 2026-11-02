@@ -16,6 +16,7 @@ use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use transcripts::{
     default_branch, for_each_line, git, is_validation, projects, projects_root, repository,
     revision, sessions, sorted_entries, subagents, typed_text, Place,
@@ -482,11 +483,22 @@ fn unrelated(path: &str) -> bool {
 /// copied from another file of the same commit included. Empty for a root commit.
 fn blamed(repo: &Path, fix: &str) -> HashSet<String> {
     let parent = format!("{fix}^");
-    let Some(diff) = git(
-        repo,
-        &[
-            "-c",
-            "core.quotePath=false",
+    // `-z` gives the paths unquoted, whatever the prefixes and the quoting of the diff headers
+    let Some(status) = git(repo, &["diff", "-M", "--name-status", "-z", &parent, fix]) else {
+        return HashSet::new();
+    };
+    let mut fields = status.split('\0').filter(|f| !f.is_empty());
+    let mut writers = HashSet::new();
+    while let Some(code) = fields.next() {
+        let paired = code.starts_with('R') || code.starts_with('C');
+        let (Some(old), new) = (fields.next(), if paired { fields.next() } else { None }) else {
+            break;
+        };
+        // an added file or the source of a copy holds no line the fix removes
+        if code.starts_with('A') || code.starts_with('C') || unrelated(old) {
+            continue;
+        }
+        let mut args = vec![
             "diff",
             "-M",
             "-U0",
@@ -494,57 +506,59 @@ fn blamed(repo: &Path, fix: &str) -> HashSet<String> {
             "--no-ext-diff",
             &parent,
             fix,
-        ],
-    ) else {
-        return HashSet::new();
-    };
-    let mut ranges: BTreeMap<&str, Vec<String>> = BTreeMap::new();
-    let mut path = None;
-    // the `--- ` header of a file sits between its `diff --git` line and its first hunk; inside a hunk it is a
-    // removed line starting with `-- `
-    let mut header = false;
-    for line in diff.lines() {
-        if line.starts_with("diff --git ") {
-            header = true;
-        } else if line.starts_with("@@ ") {
-            header = false;
+            "--",
+            old,
+        ];
+        args.extend(new);
+        let Some(diff) = git(repo, &args) else {
+            continue;
+        };
+        // a hunk header is the only line of a diff that starts with `@@`: every line of a hunk starts with ` `, `+` or `-`
+        let ranges: Vec<String> = diff
+            .lines()
+            .filter_map(|l| l.strip_prefix("@@ -")?.split(' ').next())
+            .filter_map(|old| {
+                let (start, count) = old.split_once(',').unwrap_or((old, "1"));
+                // a hunk that only adds lines sits below its `start`, 0 at the top of the file
+                let (start, count) = (
+                    start.parse::<usize>().ok()?,
+                    count.parse::<usize>().ok()?.max(1),
+                );
+                (start > 0).then(|| format!("{start},{}", start + count - 1))
+            })
+            .collect();
+        if ranges.is_empty() {
+            continue;
         }
-        if let Some(old) = line.strip_prefix("--- ").filter(|_| header) {
-            path = old
-                .strip_prefix("a/")
-                .map(|p| p.trim_end_matches('\t'))
-                .filter(|p| !unrelated(p));
-        } else if let (Some(path), Some(hunk)) = (path, line.strip_prefix("@@ -")) {
-            let old = hunk.split(' ').next().unwrap_or_default();
-            let (start, count) = old.split_once(',').unwrap_or((old, "1"));
-            let (Ok(start), Ok(count)) = (start.parse::<usize>(), count.parse::<usize>()) else {
-                continue;
-            };
-            // a hunk that only adds lines sits below its `start`, 0 at the top of the file
-            let count = count.max(1);
-            if start > 0 {
-                ranges
-                    .entry(path)
-                    .or_default()
-                    .push(format!("{start},{}", start + count - 1));
-            }
-        }
-    }
-    let mut writers = HashSet::new();
-    for (path, ranges) in ranges {
         let mut args = vec!["blame", "--porcelain", "-M", "-C"];
         for range in &ranges {
             args.extend(["-L", range]);
         }
-        args.extend([parent.as_str(), "--", path]);
-        let Some(blame) = git(repo, &args) else {
+        args.extend([parent.as_str(), "--", old]);
+        // the user's `blame.ignoreRevsFile` makes blame fail in a repository without that file, or skip a commit
+        let Ok(out) = Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args(&args)
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .output()
+        else {
             continue;
         };
-        writers.extend(blame.lines().filter_map(|l| {
-            let hash = l.split(' ').next()?;
-            (hash.len() == 40 && hash.chars().all(|c| c.is_ascii_hexdigit()))
-                .then(|| hash.to_string())
-        }));
+        if !out.status.success() {
+            continue;
+        }
+        // the header line of each blamed group opens with the hash of its commit (40 hex digits, 64 with SHA-256)
+        writers.extend(
+            String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .filter_map(|l| {
+                    let hash = l.split(' ').next()?;
+                    (hash.len() >= 40 && hash.chars().all(|c| c.is_ascii_hexdigit()))
+                        .then(|| hash.to_string())
+                }),
+        );
     }
     writers
 }
@@ -844,7 +858,7 @@ fn issue_row(
     let later: Vec<&Commit> = log[close + 1..].iter().filter(|c| c.date <= end).collect();
     let fixes_after = later
         .iter()
-        .filter(|c| c.kind() == "fix")
+        .filter(|c| c.kind() == "fix" && c.paths.iter().any(|p| !unrelated(p)))
         .filter(|c| {
             let writers = blames
                 .entry(c.hash.clone())

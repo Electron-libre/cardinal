@@ -1151,8 +1151,8 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
 }
 
 /// Two issues sharing `src/a.rs`, renamed `src/b.rs` after both closed, and the fixes of the lines of each: `alpha`
-/// wrote `x1` to `x3`, `beta` `y4` and `src/c.rs`; the line `-- x0`, written before them, reads `--- x0` in the diff
-/// of the fix that removes it.
+/// wrote `x1` to `x3`, `beta` `y4` and `src/c "q".rs` (a name git quotes); the line `-- x0`, written before them,
+/// reads `--- x0` in the diff of the fix that removes it.
 fn blame_fixture(tmp: &Path) -> PathBuf {
     let repo = tmp.join("blame");
     std::fs::create_dir_all(&repo).unwrap();
@@ -1189,7 +1189,7 @@ fn blame_fixture(tmp: &Path) -> PathBuf {
             "feat: beta",
             vec![
                 ("src/a.rs", Some("-- x0\nx1\nx2\nx3\ny4\n")),
-                ("src/c.rs", Some("c1\nc2\n")),
+                ("src/c \"q\".rs", Some("c1\nc2\n")),
                 ("issues/beta.md", Some(beta)),
             ],
         ),
@@ -1219,12 +1219,12 @@ fn blame_fixture(tmp: &Path) -> PathBuf {
         (
             "2026-02-08T00:00:00Z",
             "fix: insert below a line of beta",
-            vec![("src/c.rs", Some("c1\nnew\nc2\n"))],
+            vec![("src/c \"q\".rs", Some("c1\nnew\nc2\n"))],
         ),
         (
             "2026-02-09T00:00:00Z",
             "fix: insert at the top",
-            vec![("src/c.rs", Some("top\nc1\nnew\nc2\n"))],
+            vec![("src/c \"q\".rs", Some("top\nc1\nnew\nc2\n"))],
         ),
     ];
     for (date, message, files) in steps {
@@ -1236,13 +1236,38 @@ fn blame_fixture(tmp: &Path) -> PathBuf {
 // spec: QUA-4
 fn blame_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let repo = blame_fixture(tmp);
+    let counted = |out: &str| {
+        let r = rows(out);
+        [
+            has(&r, "alpha", "fixes_after", "2"),
+            has(&r, "beta", "fixes_after", "1"),
+        ] == [true; 2]
+    };
     let (_, out) = run(dir, &repo, &[]);
-    let r = rows(&out);
-    vec![(
-        "a fix counts only against the issue that wrote its lines, across a rename, an insertion by the line above it"
-            .to_string(),
-        [has(&r, "alpha", "fixes_after", "2"), has(&r, "beta", "fixes_after", "1")] == [true; 2],
-    )]
+    // a user's configuration that changes the diff headers and makes blame fail in a repository without the file
+    let config = tmp.join("gitconfig");
+    std::fs::write(
+        &config,
+        "[diff]\n\tnoprefix = true\n[blame]\n\tignoreRevsFile = .no-such-file\n",
+    )
+    .unwrap();
+    let mut cmd = tool_command(dir.join("delivered_quality.rs"));
+    cmd.arg(&repo)
+        .arg("--projects")
+        .arg(repo.join("no-projects"))
+        .env("GIT_CONFIG_GLOBAL", &config);
+    let configured = String::from_utf8_lossy(&cmd.output().unwrap().stdout).into_owned();
+    vec![
+        (
+            "a fix counts only against the issue that wrote its lines, across a rename, an insertion by the line above it"
+                .to_string(),
+            counted(&out),
+        ),
+        (
+            "the user's git configuration leaves the count unchanged".to_string(),
+            counted(&configured),
+        ),
+    ]
 }
 
 #[test]

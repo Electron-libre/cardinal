@@ -20,7 +20,9 @@ delivered.
   2,693 `fixes_after`, 16.0 per issue; counting a fix only when `git blame -M -C` of its first parent attributes a
   line it removes or changes to a commit of the issue gives 223, 1.33 per issue (89 issues with at least one);
   also counting, for a hunk that only adds lines, the line right above it gives 284, 1.69 per issue. The blame alone
-  removes ~92% of the count: the file threshold and a shorter window are left out.
+  removes ~92% of the count: the file threshold and a shorter window are left out. (A script measured these, over
+  every commit touching the issue file and the files of the issue only; the tool, with the commits of QUA-2 and the
+  renames and moves followed, counts 380, 2.26 per issue.)
 
 # Approach
 1. Measure first: for a sample of issues of this repository, how many counted fixes change lines the issue added or
@@ -57,6 +59,10 @@ Out of scope: the file-sharing threshold and a shorter window (the measure makes
    the lock), cached and matched against the commits of each issue; spec QUA-4 amended; verified by behaviour tests
    of `crates/cardinal/tests/delivered_quality.rs` (two issues sharing a file, a renamed file, a pure insertion,
    the window); makes true QUA-4. (autonomous)
+2. [x] Fixes of the `high` review of the issue: the paths of a fix read from `--name-status -z`, not from the diff
+   headers (`diff.noprefix`, quoted names), blame run without the user's global configuration
+   (`blame.ignoreRevsFile`), SHA-256 hashes read, the fixes of unrelated paths only skipped before any diff; verified
+   by `blame_checks`; makes true QUA-4. (autonomous)
 
 ## Deliverable 1
 - done: `fixes_after` counts a fix only when `git blame -M -C` of its first parent gives one of the lines it removes
@@ -72,3 +78,17 @@ Out of scope: the file-sharing threshold and a shorter window (the measure makes
 - Base commit: 555b84dc768c5397f015d7e753dda935474719be
 - A fix that only adds lines counts when the line right above its hunk was written by the issue (1 a).
 - The former file-level count is not kept as a column (2 a).
+
+## Deliverable 2
+- done: the 9 findings of the `high` review of `555b84d..e811eb2` settled below; same count on this repository
+  (380), 9.4 s.
+- red: QUA-4: with `diff.noprefix` and a missing `blame.ignoreRevsFile` in the global configuration, and a quoted
+  file name, `alpha.fixes_after: expected "2", got Some("0")`, `beta.fixes_after: expected "1", got Some("0")`
+- High review: 9 findings: 1 `noprefix`, 2 `ignoreRevsFile`, 3 SHA-256, 4 quoted names, 6 duplicated header parser,
+  7 path kept across sections: fixed by reading the paths from `--name-status -z` and blaming without the global
+  configuration; 5 cost: the fixes of unrelated paths only are skipped, no parallel blame (9.4 s against 8.0 s
+  before the issue); 8 a fix moving a file into `docs/` is read by its old path, kept (blame reads the old path);
+  9 the two numbers of the Findings explained there.
+- Code review: no findings
+- not verified: a repository whose own configuration sets `blame.ignoreRevsFile` (kept: the repository then holds
+  the file); a SHA-256 repository (no test).

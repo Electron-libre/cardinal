@@ -132,7 +132,7 @@ red: none (refactor and docs)
 Code review (high): 9 findings
 1. The project's own convention pointed to `AGENTS.md`, a managed file: fixed, `CLAUDE.md` only.
 2. `release` reads the Conventional Commits types: non-goal of `specs/features.md`, follow-up
-   `issues/release_a_project_without_the_commit_convention.md`.
+   `issues/done/release_a_project_without_the_commit_convention.md`.
 3. "Describe only what is in the diff" and the language left with the convention: back in `commit-message`.
 4. The `about` of `commit-check` named `AGENTS.md`: fixed.
 5. The comment of `check-commit` named `AGENTS.md`: fixed.

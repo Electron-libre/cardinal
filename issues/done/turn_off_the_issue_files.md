@@ -88,7 +88,7 @@ red: none
 Code review: no findings (low); high: 9 findings
 - fixed: the refusal of the review gate cited `issue-workflow, step 3.5`, a skill the feature leaves out.
 - fixed: the expected files of the test were not sorted after the concat; the `needs` check ran for FEA-27 too.
-- issue `issues/leave_the_issues_directory_alone_with_the_issue_files_off.md`: `review-gate` and `deliverable-size`
+- issue `issues/done/leave_the_issues_directory_alone_with_the_issue_files_off.md`: `review-gate` and `deliverable-size`
   leave out `issues/`, `validation-stop` reads it, with the feature off.
 - not fixed, decided at the plan: the seeded `ROADMAP.md` stays (its milestones then go `done` by hand), the skills
   citing `skill:create-issue` stay worded (non-goals of FEA).

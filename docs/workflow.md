@@ -103,7 +103,7 @@ sequenceDiagram
 - The claim (`cardinal run issue-claim`, step 0 of `issue-workflow`) makes `just next-issue` skip the issue in every
   worktree, the main one included; a branch named after the issue (made by the former `start-issue`) still does too.
 - The `workspace-lock` hooks keep one live session per worktree: a second thread on the same folder has its edits
-  and commands refused.
+  and commands refused. A project that turns the feature `workspace-lock` off loses that guard; the claim stays.
 - `close-issue` runs in the worktree of the issue, never on an issue of another worktree; on a branch other than
   the trunk it leaves the claim `merge pending`, which `next-issue` drops once the trunk holds the close. A branch
   prioritizes only its own issues, so two branches never conflict over the order.

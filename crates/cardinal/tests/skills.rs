@@ -673,19 +673,22 @@ fn the_hook_only_features_are_their_hook_entries() {
         &fs::read_to_string(root.join("entries/.claude/settings.json")).unwrap(),
     )
     .unwrap();
-    for (feature, hooks) in [
-        ("lint-gate", 1),
-        ("format-code", 1),
-        ("language-hint", 1),
-        ("workspace-lock", 3),
+    for (feature, commands) in [
+        ("lint-gate", &[""][..]),
+        ("format-code", &[""]),
+        ("language-hint", &[""]),
+        ("workspace-lock", &[" check", " start", " release"]),
     ] {
-        let tool = format!("cardinal run {feature}");
+        let commands: Vec<String> = commands
+            .iter()
+            .map(|sub| format!("cardinal run {feature}{sub}"))
+            .collect();
         let mut declared = Vec::new();
         for (event, groups) in settings["hooks"].as_object().unwrap() {
             for group in groups.as_array().unwrap() {
                 for hook in group["hooks"].as_array().unwrap() {
-                    let command = hook["command"].as_str().unwrap();
-                    if command == tool || command.starts_with(&format!("{tool} ")) {
+                    let command = hook["command"].as_str().unwrap_or_default();
+                    if commands.iter().any(|c| c == command) {
                         let matcher = group["matcher"]
                             .as_str()
                             .map(|m| format!("{m} "))
@@ -695,7 +698,7 @@ fn the_hook_only_features_are_their_hook_entries() {
                 }
             }
         }
-        assert_eq!(declared.len(), hooks, "{feature}: {declared:?}");
+        assert_eq!(declared.len(), commands.len(), "{feature}: {declared:?}");
         let table = features
             .get(feature)
             .and_then(|t| t.as_table())

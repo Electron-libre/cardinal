@@ -43,6 +43,8 @@ worktrees and refuses a start on uncommitted changes), so `specs/issue-claim.md`
 1. [x] Declare the feature: the table `workspace-lock` in `features.toml` with the three entries; the hook-only test
    of FEA-16 extended to it (three entries, no file, no `needs`); docs (`docs/architecture.md`, the features list of
    the README if any); verified by `just check`; makes true FEA-35.
+2. [x] Fixes of the `high` review: the test names the three exact commands of FEA-35 and tolerates a hook with no
+   command; `docs/workflow.md` says the lock may be off; verified by `just check`.
 
 ## Decisions
 - Claim: `issue-claim` stays on with the lock off (answer 1 a).
@@ -56,4 +58,14 @@ worktrees and refuses a start on uncommitted changes), so `specs/issue-claim.md`
   README, `docs/usage.md`, `docs/gates.md`, `docs/architecture.md` and the details of `issue-workflow` say so.
 - red: FEA-35: `features.toml declares no workspace-lock`
 - not verified: a real consumer synced with `disabled = ["workspace-lock"]` (FEA-3 covers the removal of hook entries).
+- Code review: no findings
+
+### 2. Fixes of the high review
+- done: the test checks the exact commands; `docs/workflow.md` mentions the feature.
+- red: none (the test was green before, it now proves FEA-35 by name).
+- High review: 8 findings. Fixed: the exact commands, the `unwrap` on a hook with no command, the prefix allocated per
+  hook, `docs/workflow.md`. Not fixed: the wording of `issue-workflow` (a non-goal of FEA), the lock file left by a
+  sync with the feature off (a reused process id is a non-goal of WSL), ADR 0022 (ADR 0025 decides the features, as
+  for `review-gate`), `CLAUDE.md` and the README Gates row (this repository keeps the lock; the other gates carry no
+  caveat there either).
 - Code review: no findings

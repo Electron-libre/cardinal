@@ -225,7 +225,7 @@ fn code_spans(line: &str) -> Vec<std::ops::Range<usize>> {
 fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
     let mut spans = vec![];
     let mut offset = 0;
-    let mut fence: Option<&str> = None;
+    let mut fence = None;
     for line in text.split_inclusive('\n') {
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = &line[indent..];

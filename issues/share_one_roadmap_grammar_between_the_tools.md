@@ -52,6 +52,9 @@ Markdown readers (`link_targets` keeps its own link scan, sharing only the fence
    lines), `mark_released`, `milestones_done` and `next_issue::milestones` on it, the fence tracking shared with
    `link_targets`; verified by a test each through the binary (a fenced `## ` line and a commented template
    milestone); makes true REL-9, CLS-8, NXT-10 (amended). ~400 lines. (autonomous)
+2. [x] Fixes of the `high` review: a fence closes on a bare fence of its character at least as long, a comment opened
+   after text or a heading's trailing comment is tracked, an indented code block opens none; verified by unit tests
+   of `roadmap.rs`; makes true REL-9, CLS-8 (internal). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -78,5 +81,34 @@ Code review: no findings
 
 not verified: a comment opened in the middle of a line (`text <!--`) is not tracked; only a line starting with `<!--`
 opens one.
+
+decisions needed: none
+
+## Deliverable 2
+done: the `high` review of `d26d4ee..de10fb2` fixed in `roadmap.rs` (fence length and info string, comment opened
+mid-line, trailing comment of a heading, indented `<!--`).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a |
+| code review | low: 1 finding, fixed |
+
+red: none: the unit tests were written with the fix, not run red first.
+
+High review: 9 findings. Fixed: fence length/info string, comment opened after text, indented `<!--`, heading with a
+trailing comment. Not fixed:
+- an unclosed `<!--` hides the rest of the document: that is how Markdown renders it, the roadmap shows the same;
+- `Issues:` list read across a hidden block: a list continues past a fenced example in Markdown too;
+- line indexes in `Milestone`: the rewrites need the indexes, all callers split with `split_inclusive`;
+- fence helpers in `roadmap.rs` rather than a `markdown` module: two functions, one more user (`link_targets`);
+- linear scan of the marked lines: a handful of milestones per roadmap.
+
+Code review: 1 finding
+- a `<!--` in a code span opened a comment: fixed, the comment tracking reads the text outside the code spans.
+
+not verified: none
 
 decisions needed: none

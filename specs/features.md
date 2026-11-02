@@ -44,6 +44,10 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-28** (deterministic) `check`, `sync` and `update` must not print the warnings of SYN-28 on the user settings when the project turns off the feature `harness-measure`; those on the project's own settings stay, since they sweep the transcripts of every project.
 - **FEA-29** (deterministic) The rule that the agent talks to the user in the `user_language` must be in a managed file of no feature, `.claude/rules/user-language.md`, and not in `.claude/rules/reports-to-the-user.md`, which holds only the format of the reports.
 - **FEA-30** (deterministic) The source of Cardinal must declare the feature `issue-files`, made of the files of `files/.claude/skills/issue-workflow/`, `files/.claude/skills/create-issue/` and `files/.claude/skills/prioritize-issues/` and the file `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), with no entry and no `needs`.
+- **FEA-31** (deterministic) The source of Cardinal must declare the feature `specs`, made of the files of `files/specs/`, of `files/.claude/skills/write-spec/` and the file `cardinal-specs.just` (`check-specs`, `spec-coverage`), with no entry and no `needs`.
+- **FEA-32** (deterministic) The managed CI workflow must run `just check-specs` only when the project's `just` has the recipe `check-specs`, and must not fail for its absence.
+- **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when `just` has it, and must succeed without it when `cardinal-specs.just` is missing.
+- **FEA-34** (deterministic) `skill:issue-workflow` must write a spec, and trace its tests to one, only in a project that has `specs/README.md`, the file the feature `specs` leaves out.
 
 ## Scenarios
 
@@ -59,6 +63,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-21) Given `disabled = ["conventional-commits"]` and the message `Added the parser.` with a body line of 90 characters, when `commit-check` reads it, then it prints nothing and exits 0; with a `Co-Authored-By:` line, it reports that line only.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 - (FEA-23, SYN-60) Given a project that turned `review-gate` off, when it removes the name from `disabled` and runs `sync`, then the hooks, the deny rules, `cardinal-review.just` and the native gate are back, a user's `pre-commit` chained again (SYN-19).
+- (FEA-33) Given the seeded `justfile` and `cardinal.just` with no `cardinal-specs.just`, when `just check` runs, then it succeeds; with `cardinal-specs.just`, it runs `check-specs` and fails when it fails.
 - (FEA-26) Given a session started after a commit that sets `disabled = ["review-gate"]`, with a `git add -A` and a commit skipping the git hooks, when `rule-breaches` reads it, then it reports no `stage-everything` nor `no-verify` finding and its summary has no row for the four rules.
 
 ## Non-goals
@@ -69,15 +74,15 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - Turning off the core of `cardinal` (`sync`, `check`, the lock, the formats and migrations).
 - Rewriting the seeded files of a project whose feature is turned off: the `attribution` of its seeded
   `.claude/settings.json` stays the project's to change.
-- The recipes of a project's own files that need a recipe of a part left out (the seeded `check: check-specs`) and
-  the CI job that runs one: each comes with the issue of its feature.
+- Rewriting the `justfile` of a project seeded with `check: check-specs` when it turns `specs` off: the seed is the
+  project's (SYN-4), which drops the dependency itself; the seeds of FEA-33 serve the projects seeded after it.
 - Checking a project's own commit convention when it turns off `conventional-commits`: `commit-check` and the CI job
   `commits` stay, for the attribution and the `Expected-effect:` footers that the measure reads.
 - The commit types that `delivered-quality` reads (QUA-3) and `release` (the version and the changelog): a project
   with its own convention counts no `fix`, and its release is proposed as a patch
   (`issues/release_a_project_without_the_commit_convention.md`).
 - Declaring the features other than `no-ai-attribution`, `conventional-commits`, the hooks of FEA-16,
-  `review-gate`, those of FEA-27 and `issue-files`: each comes with its own issue.
+  `review-gate`, those of FEA-27, `issue-files` and `specs`: each comes with its own issue.
 - Rewording the skills of `harness-measure`, which cite each other: a citation of a file left out reads as absent,
   and nothing loads or checks it.
 - Keeping the refusals of `cardinal run review-gate check` (`--no-verify`, `core.hooksPath`, a `git add` of every
@@ -96,3 +101,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
   `release` still reads its milestones.
 - Rewording the skills that cite `skill:create-issue` or `skill:issue-workflow` (`skill:write-spec`,
   `skill:commit-message`, `skill:audit-instructions`): a citation of a skill left out reads as absent.
+- Gating the spec tools of the binary when `specs` is off: `check-specs`, `spec-coverage` and the traced ids that
+  `delivered-quality` counts stay callable, and nothing left on calls them; rule `skill-routing-write-spec` of
+  `rule-breaches` already applies only where `skill:write-spec` is synced.
+- Rewording `skill:update-docs` and `skill:create-issue`, whose spec lines apply to a capability that has a spec: a
+  project with no spec meets none.

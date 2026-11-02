@@ -705,7 +705,7 @@ fn the_hook_only_features_are_their_hook_entry() {
     }
 }
 
-// spec: FEA-27, FEA-30
+// spec: FEA-27, FEA-30, FEA-31
 /// The features made of managed files only are every file of their directories and the files they name, and no entry.
 #[test]
 fn the_file_only_features_are_their_files() {
@@ -751,6 +751,14 @@ fn the_file_only_features_are_their_files() {
             ]
             .concat(),
         ),
+        (
+            "specs",
+            [
+                under(&["specs", ".claude/skills/write-spec"]),
+                vec!["cardinal-specs.just".to_string()],
+            ]
+            .concat(),
+        ),
     ] {
         let table = features
             .get(feature)
@@ -768,7 +776,7 @@ fn the_file_only_features_are_their_files() {
         expected.sort();
         assert!(!expected.is_empty(), "{feature}");
         assert_eq!(files, expected, "{feature}");
-        if feature == "issue-files" {
+        if matches!(feature, "issue-files" | "specs") {
             assert!(table.get("needs").is_none(), "{feature}: {table:?}");
         }
     }
@@ -845,6 +853,67 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
     declared.sort();
     assert_eq!(strings("entries"), declared);
     assert_eq!(strings("files"), ["cardinal-review.just"]);
+}
+
+// spec: FEA-33
+/// The seeded `check` runs `check-specs` when `just` has it, and succeeds without `cardinal-specs.just`.
+#[test]
+fn the_seeded_check_runs_check_specs_only_when_present() {
+    let root = repo_root();
+    let check = |specs: Option<&str>| {
+        let dir = tempfile::tempdir().unwrap();
+        fs::copy(root.join("seed/justfile"), dir.path().join("justfile")).unwrap();
+        fs::copy(
+            root.join("files/cardinal.just"),
+            dir.path().join("cardinal.just"),
+        )
+        .unwrap();
+        if let Some(recipe) = specs {
+            fs::write(dir.path().join("cardinal-specs.just"), recipe).unwrap();
+        }
+        std::process::Command::new("just")
+            .arg("check")
+            .current_dir(dir.path())
+            .output()
+            .unwrap()
+            .status
+            .success()
+    };
+    assert!(check(None), "without cardinal-specs.just");
+    assert!(check(Some("check-specs:\n    true\n")));
+    assert!(!check(Some("check-specs:\n    false\n")));
+}
+
+// spec: FEA-32
+/// The CI step of the specs runs `just check-specs` only when `just` has the recipe.
+#[test]
+fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
+    let workflow =
+        fs::read_to_string(repo_root().join("files/.github/workflows/cardinal.yml")).unwrap();
+    let run: Vec<&str> = workflow
+        .lines()
+        .filter(|l| l.contains("just check-specs"))
+        .collect();
+    assert_ne!(run, [] as [&str; 0]);
+    for line in run {
+        assert!(
+            line.contains("just --show check-specs >/dev/null 2>&1"),
+            "{line}"
+        );
+    }
+}
+
+// spec: FEA-34
+/// `issue-workflow` keys its spec steps on `specs/README.md`, which the feature `specs` leaves out.
+#[test]
+fn the_issue_workflow_writes_specs_only_with_the_specs_readme() {
+    let skill =
+        fs::read_to_string(repo_root().join("files/.claude/skills/issue-workflow/SKILL.md"))
+            .unwrap();
+    assert!(
+        skill.contains("in a project that has `specs/README.md`"),
+        "issue-workflow must key its spec steps on specs/README.md"
+    );
 }
 
 // spec: FEA-19

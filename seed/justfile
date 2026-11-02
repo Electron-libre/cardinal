@@ -4,6 +4,7 @@ import 'cardinal.just'
 default:
     @just --list
 
-# Format, lint and test the project, then check the specs. Replace the first three with the project's own, quiet on
-# success: the agent reads all of their output.
-check: check-specs
+# Format, lint and test the project, then check the specs (when the feature `specs` is on). Add the first three, the
+# project's own, quiet on success: the agent reads all of their output.
+check:
+    @if just --show check-specs >/dev/null 2>&1; then just check-specs; fi

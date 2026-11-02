@@ -34,7 +34,8 @@ the console only shows the link and the questions.
 - **Delegate only a wide search** (a hunt through the whole history, not the `git log` of a resource; many files of a
   large repository) to a read-only `Explore` subagent asking for the paths and lines behind its conclusion; read back
   only those a decision rests on. Everything else stays in the main thread.
-- **Spec**, when the issue changes what a capability does (skip it for docs, harness, pure refactor, a measure): run
+- **Spec**, when the issue changes what a capability does, in a project that has `specs/README.md` (skip it for docs,
+  harness, pure refactor, a measure): run
   `skill:write-spec` up to its format check (requirements with stable ids, `deterministic`, left `draft`, a
   `[NEEDS CLARIFICATION: ...]` marker where you would guess); don't do its validation stop: step 2 replaces it. The
   tests of step 3 come from these requirements, not the other way round.

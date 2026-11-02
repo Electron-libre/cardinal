@@ -556,9 +556,12 @@ fn an_install_killed_between_the_link_and_the_rename_is_finished() {
     // what a `sync` killed after linking the hook of the user as `pre-commit.user` leaves
     let chained = root.path().join(".git/hooks/pre-commit.user");
     fs::hard_link(pre_commit(&root), &chained).unwrap();
+    put(root.path(), ".git/hooks/pre-commit.cardinal-new", "staged");
     assert_problems(&check(&home, &root, false), &[MISSING]);
     let sync = home.ok(root.path(), &["sync"]);
     assert_eq!(sync.outcome(GATE), Some("added"), "{sync:?}");
+    // the move was the killed run's
+    assert_eq!(sync.outcome(MOVED), None, "{sync:?}");
     assert!(get(root.path(), ".git/hooks/pre-commit")
         .unwrap()
         .contains("native review gate"));

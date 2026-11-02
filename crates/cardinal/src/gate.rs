@@ -64,6 +64,9 @@ pub enum State {
     Missing,
     /// A `pre-commit` that is not ours.
     Foreign,
+    /// A `pre-commit` that is not ours, already linked as `pre-commit.user` by a `sync` killed before the gate took
+    /// its place: only the gate is left to install.
+    Interrupted,
     /// Ours, but edited or no longer executable.
     Modified,
     UpToDate,
@@ -137,6 +140,7 @@ pub fn state(hooks: &Path) -> State {
                 State::Modified
             }
         }
+        _ if same_file(&path, &hooks.join(CHAINED)) => State::Interrupted,
         _ => State::Foreign,
     }
 }
@@ -176,7 +180,7 @@ pub fn problem(root: &Path, expected: bool) -> Option<String> {
             "conflict: {GATE} ({})",
             merge_by_hand(&hooks.join("pre-commit"), &hooks.join(CHAINED))
         )),
-        State::Missing | State::Foreign => Some(format!("missing: {GATE}")),
+        State::Missing | State::Foreign | State::Interrupted => Some(format!("missing: {GATE}")),
         State::Modified => Some(format!("modified: {GATE}")),
         State::UpToDate | State::Redirected => None,
     }
@@ -192,20 +196,18 @@ fn has_chained(hooks: &Path) -> Result<bool> {
 }
 
 /// Whether installing the gate over `state` would have to move a `pre-commit` of the user onto a `pre-commit.user`
-/// that exists: `plan` refuses then, and `check` says so rather than send the user to that `sync`. A `pre-commit.user`
-/// that is the same file is the move a killed `sync` left half done, which the install finishes.
+/// that exists: `plan` refuses then, and `check` says so rather than send the user to that `sync`.
 fn conflicts(hooks: &Path, state: &State) -> Result<bool> {
-    Ok(*state == State::Foreign
-        && has_chained(hooks)?
-        && !same_file(&hooks.join("pre-commit"), &hooks.join(CHAINED)))
+    Ok(*state == State::Foreign && has_chained(hooks)?)
 }
 
-/// Whether `a` and `b` are links of the same file, a link compared as itself rather than what it reaches.
+/// Whether `a` and `b` are links of the same file, a link compared as itself rather than what it reaches. The count of
+/// links guards against a file system whose inode numbers collide, where the gate would replace a hook of the user.
 #[cfg(unix)]
 fn same_file(a: &Path, b: &Path) -> bool {
     use std::os::unix::fs::MetadataExt;
     match (fs::symlink_metadata(a), fs::symlink_metadata(b)) {
-        (Ok(a), Ok(b)) => (a.dev(), a.ino()) == (b.dev(), b.ino()),
+        (Ok(a), Ok(b)) => a.nlink() >= 2 && (a.dev(), a.ino()) == (b.dev(), b.ino()),
         _ => false,
     }
 }
@@ -261,7 +263,7 @@ impl Plan {
             out.push(("pre-commit -> pre-commit.user".to_string(), Outcome::Moved));
         }
         let outcome = match state {
-            State::Missing | State::Foreign => Outcome::Added,
+            State::Missing | State::Foreign | State::Interrupted => Outcome::Added,
             State::Modified => Outcome::Updated,
             State::UpToDate | State::Redirected => Outcome::Unchanged,
         };
@@ -309,10 +311,10 @@ fn swap(hook: &Path, staged: &Path, state: &State) -> Result<()> {
             // the gate is in place: a staged name left behind fails nothing
             let _ = fs::remove_file(staged);
         }
-        State::Foreign => {
+        State::Foreign | State::Interrupted => {
             let chained = hook.with_file_name(CHAINED);
-            // a `sync` killed after the link left the hook of the user under both names: only the rename is left
-            if same_file(hook, &chained) {
+            // checked again here: a `pre-commit.user` replaced since `plan` makes the link refuse below
+            if *state == State::Interrupted && same_file(hook, &chained) {
                 fs::rename(staged, hook)?;
             } else if link_new(hook, &chained)? {
                 // the user's hook is kept as `pre-commit.user`, so one rename replaces it with the gate

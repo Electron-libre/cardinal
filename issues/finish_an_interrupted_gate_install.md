@@ -39,6 +39,7 @@ separate files of identical content (approach step 2), left a conflict.
 1. [x] Finish an interrupted install: `conflicts` and `swap` treat a hard-linked `pre-commit.user` as the move done;
    verified by a `gate_cli.rs` test (hard link, `check` says `missing`, `sync` installs, `pre-commit.user` runs after
    the gate); makes true SYN-19, SYN-23 (amended). (autonomous)
+2. [x] Fixes of the `high` review: `State::Interrupted`, report, `nlink` guard, staged leftover in the test. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -62,3 +63,25 @@ red: SYN-19, SYN-23: `check` printed `conflict: native review gate (… both exi
 Code review: no findings
 
 not verified: the `cfg(not(unix))` fallback (no hard-link check off Unix) is not built here.
+
+## Deliverable 2 (fixes of the `high` review)
+done: `State::Interrupted`, decided once by `state` and checked again by `swap`; the report no longer says a move this
+`sync` did not do; `same_file` asks for at least two links (inode numbers colliding on some file systems); the test
+leaves the staged file a killed `sync` leaves too.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | fmt, clippy -D warnings: clean |
+| specs | unchanged (SYN-19, SYN-23) |
+| docs | unchanged |
+| code review | `low`: no findings |
+
+red: SYN-19: `sync` reported `pre-commit -> pre-commit.user moved` on the interrupted install.
+
+`high` review, not fixed: the Windows fallback of `same_file` (releases build only Linux and macOS); an atomic
+no-replace rename (`renameat2`, `renamex_np`) that would remove the window, left to the user.
+
+Code review: no findings
+
+not verified: an `nlink` of 1 on a file system that counts no links (the guard then refuses the finish, a conflict as before).

@@ -36,7 +36,8 @@ sequenceDiagram
   holds a file the review never saw (REV-9, REV-10); a fix to a reviewed file passes, documentation is reviewed like
   code, and the temporary index of `git commit -a` (`GIT_INDEX_FILE`) is ignored so the snapshot is the one `record`
   took. Each linked worktree has its own marker and waiver (REV-11, REV-15). The commit of a close passes unreviewed
-  when, outside `issues/`, its index holds only the references `close-issue` rewrites for the moves it records (REV-20).
+  when, outside `issues/`, its index holds only the references `close-issue` rewrites for the moves it records and the milestones it sets
+  `done`, recomputed from the index (REV-20).
 - **check** reads a command only for what would skip the git hook (REV-12): a native hook does not run under
   `--no-verify` or `-n`, nor once `core.hooksPath` points elsewhere. A commit made by another tool is out of reach.
 - **Waiver**: only the user waives the next commit, with `just waive-review` (it creates `claude-review-waived` at

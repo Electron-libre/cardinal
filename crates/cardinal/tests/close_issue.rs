@@ -408,7 +408,7 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
     std::fs::create_dir_all(root.join(".claude")).unwrap();
     std::fs::write(
         root.join(".claude/cardinal.toml"),
-        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+        "[project]\nroadmap = [\"./ROADMAP.md\"]\n",
     )
     .unwrap();
     for f in ["foo.md", "baz.md", "done/bar.md", "done/qux.md"] {
@@ -419,7 +419,8 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
 ## Two\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [baz](issues/baz.md)\n\n\
 ## Three\n\n- State: shaped\n- Issues:\n  - [foo](issues/foo.md)\n\n\
 ## Four\n\n- State: in issues\n- Issues:\n  - [qux](issues/done/qux.md)\n\n\
-## Five\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [gone](issues/done/gone.md)\n";
+## Five\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [gone](issues/done/gone.md)\n\n\
+## Six\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md) ([PR](https://example.com/pull/3), [ADR](docs/adr/1.md))\n";
     std::fs::write(root.join("ROADMAP.md"), roadmap).unwrap();
     let git = |args: &[&str]| {
         let ok = Command::new("git")
@@ -446,17 +447,20 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
     let after = std::fs::read_to_string(root.join("ROADMAP.md")).unwrap();
     let expected = roadmap
         .replace("issues/foo.md", "issues/done/foo.md")
-        .replacen("- State: in issues", "- State: done", 1);
+        .replacen("- State: in issues", "- State: done", 1)
+        .replace("## Six\n\n- State: in issues", "## Six\n\n- State: done");
     let (relink, relink_out) = run(script, root, "--relink");
     let unchanged = std::fs::read_to_string(root.join("ROADMAP.md")).unwrap() == expected;
     vec![
         (
-            "only the milestone whose issues are all closed and that lists the closed one is set done",
+            "only the milestones whose issues are all closed and that list the closed one are set done, other links aside",
             closed && after == expected,
         ),
         (
             "the milestone set done is printed",
-            out.contains("milestone One done in ROADMAP.md") && !out.contains("milestone Four"),
+            out.contains("milestone One done in ./ROADMAP.md")
+                && out.contains("milestone Six done")
+                && !out.contains("milestone Four"),
         ),
         (
             "--relink sets no milestone done",

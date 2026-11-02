@@ -492,7 +492,10 @@ fn records_close_only(cwd: &Path, index: Option<&Path>, staged: &[Staged]) -> bo
     }
     let issues = [ISSUES_DIR.trim_end_matches('/').to_string()];
     let text = |id: &str| String::from_utf8(on_index(cwd, None, &["cat-file", "blob", id])?).ok();
-    let roadmaps = super::config_list(cwd, "roadmap").unwrap_or_default();
+    let roadmaps: Vec<String> = close_issue::roadmap_documents(cwd, &[])
+        .into_iter()
+        .map(|(_, path)| path.join("/"))
+        .collect();
     staged
         .iter()
         .filter(|f| !f.path.starts_with(ISSUES_DIR))
@@ -521,7 +524,10 @@ fn records_close_only(cwd: &Path, index: Option<&Path>, staged: &[Staged]) -> bo
                 )
                 .is_some()
             };
-            close_issue::milestones_done(&parts, &rewritten, &issues, &closed, in_index).0 == after
+            // the close as `close-issue` leaves it, or with the milestone state put back (a failed write, a choice)
+            rewritten == after
+                || close_issue::milestones_done(&parts, &rewritten, &issues, &closed, in_index).0
+                    == after
         })
 }
 

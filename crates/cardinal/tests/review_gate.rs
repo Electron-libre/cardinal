@@ -994,6 +994,13 @@ fn close_checks(hook: &Path) -> Vec<(&'static str, bool)> {
             close_passes(hook, |_| {}),
         ),
         (
+            "native lets through a close whose milestone state close-issue set was put back",
+            close_passes(hook, |p| {
+                let last = "## Last\n- State: done";
+                replace_in(p, "ROADMAP.md", last, "## Last\n- State: in issues", true);
+            }),
+        ),
+        (
             "native refuses a close that also sets done a milestone with an issue still open",
             !close_passes(hook, |p| {
                 let open = "## Open\n- State: in issues";

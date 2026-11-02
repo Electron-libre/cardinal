@@ -23,8 +23,8 @@ flowchart LR
 | Prioritize it | agent proposes, user decides | `priority`, `depends_on` and `why` in the front matter of the issue (ADR 0021), `skill:prioritize-issues` to review them all |
 | Pick the next one | anyone | `just next-issue`: the first ready issue (by milestone, priority, age) no claim, branch or worktree has taken, then the blocked ones |
 | Drive it to done | agent, with one validation stop | `skill:issue-workflow` |
-| Close it | agent, on the user's agreement | `just close-issue issues/NAME.md`: moves it to `issues/done/`, frees its claim (`merge pending` on a branch other than the trunk, until the pull request is merged) and prints the next issue; the agent sets its milestone `done` when it was the last |
-| Release | user, on the agent's proposal when a milestone becomes `done` | `just release <version>` writes the `CHANGELOG.md` section and marks the milestone `Released:`; reread, commit, `just release <version> --tag`; the user pushes the tag |
+| Close it | agent, on the user's agreement | `just close-issue issues/NAME.md`: moves it to `issues/done/`, frees its claim (`merge pending` on a branch other than the trunk, until the pull request is merged), sets its milestone `done` when it was the last open issue of it (CLS-8) and prints the next issue |
+| Release | user, on the agent's proposal when `close-issue` sets a milestone `done` | `just release <version>` writes the `CHANGELOG.md` section and marks the milestone `Released:`; reread, commit, `just release <version> --tag`; the user pushes the tag |
 
 ## Inside issue-workflow
 

@@ -332,7 +332,8 @@ pub(super) fn rewritten(
 
 /// The roadmap `text` of the document `path` (components from the root) with `done` on the `State:` line of each
 /// milestone (a `## ` section) that is `in issues`, whose `Issues:` list links one of the `closed` issues of
-/// `issues/done/` and whose every link designates a file of `issues/done/` that `exists` (CLS-8); and the names of
+/// `issues/done/` and whose every link to the `issues` directory designates a file of `issues/done/` that `exists`
+/// (CLS-8); and the names of
 /// those milestones. The commit gate replays it (`review_gate`, REV-20).
 pub(super) fn milestones_done(
     path: &[String],
@@ -344,6 +345,11 @@ pub(super) fn milestones_done(
     let dir = &path[..path.len().saturating_sub(1)];
     let mut done_dir = issues.to_vec();
     done_dir.push("done".to_string());
+    // the stem of a file directly under `issues/done/`
+    let done_stem = |p: &RepoPath| match p.strip_prefix(done_dir.as_slice()) {
+        Some([name]) => name.strip_suffix(".md").map(str::to_string),
+        _ => None,
+    };
     let field = |l: &str, key: &str| l.trim_start_matches(['-', ' ']).starts_with(key);
     let mut names = Vec::new();
     let mut out = String::with_capacity(text.len());
@@ -369,25 +375,27 @@ pub(super) fn milestones_done(
             .take_while(|l| l.starts_with([' ', '\t']))
             .copied()
             .collect();
-        let listed: Vec<Option<RepoPath>> = link_targets(&list)
+        // the links of the list to the issues directory; a URL, an anchor or another document is no issue
+        let listed: Vec<RepoPath> = link_targets(&list)
             .into_iter()
-            .map(|span| {
+            .filter_map(|span| {
                 let target = &list[span];
-                let path = &target[..target.find(['#', '?']).unwrap_or(target.len())];
-                resolve(dir, path)
+                if target.starts_with(['/', '#']) || target.contains(':') {
+                    return None;
+                }
+                resolve(
+                    dir,
+                    &target[..target.find(['#', '?']).unwrap_or(target.len())],
+                )
             })
+            .filter(|p| p.starts_with(issues))
             .collect();
-        let closed_one = |p: &RepoPath| {
-            p.strip_prefix(done_dir.as_slice())
-                .is_some_and(|rest| matches!(rest, [name] if name.strip_suffix(".md").is_some_and(|s| closed.contains(s))))
-        };
-        let all_done = !listed.is_empty()
-            && listed.iter().all(|p| {
-                p.as_ref().is_some_and(|p| {
-                    p.len() == done_dir.len() + 1 && p.starts_with(&done_dir) && exists(p)
-                })
-            });
-        let set = state.filter(|_| all_done && listed.iter().flatten().any(closed_one));
+        let set = state.filter(|_| {
+            listed
+                .iter()
+                .any(|p| done_stem(p).is_some_and(|s| closed.contains(&s)))
+                && listed.iter().all(|p| done_stem(p).is_some() && exists(p))
+        });
         for (i, l) in body.iter().enumerate() {
             match (Some(i) == set, l.split_once(':')) {
                 (true, Some((key, value))) => {
@@ -405,24 +413,31 @@ pub(super) fn milestones_done(
     (out, names)
 }
 
+/// The `roadmap` documents of the configuration of the project at `project` (components from the repository root
+/// `root`), each as written in the configuration and as components from `root`; `None` for one outside the repository.
+pub(super) fn roadmap_documents(root: &Path, project: &[String]) -> Vec<(String, RepoPath)> {
+    let project_root = project.iter().fold(root.to_path_buf(), |p, c| p.join(c));
+    config_list(&project_root, "roadmap")
+        .into_iter()
+        .filter_map(|document| {
+            let path = resolve(project, &document)?;
+            Some((document, path))
+        })
+        .collect()
+}
+
 /// Set `done` the milestones of the `roadmap` documents of the project of `issues` (relative to `root`) that the close
 /// of `stem` completes, and print them (CLS-8).
 fn set_milestones_done(root: &Path, issues: &[String], stem: &str) {
     let project = &issues[..issues.len().saturating_sub(1)];
-    let project_root = project.iter().fold(root.to_path_buf(), |p, c| p.join(c));
     let closed = HashSet::from([stem.to_string()]);
-    for document in config_list(&project_root, "roadmap") {
-        let file = project_root.join(&document);
+    let file_of = |p: &[String]| p.iter().fold(root.to_path_buf(), |f, c| f.join(c));
+    for (document, path) in roadmap_documents(root, project) {
+        let file = file_of(&path);
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
         };
-        let mut path = project.to_vec();
-        path.extend(components(Path::new(&document)));
-        let exists = |p: &[String]| {
-            p.iter()
-                .fold(root.to_path_buf(), |f, c| f.join(c))
-                .is_file()
-        };
+        let exists = |p: &[String]| file_of(p).is_file();
         let (updated, names) = milestones_done(&path, &text, issues, &closed, exists);
         if names.is_empty() {
             continue;

@@ -61,6 +61,10 @@ Out of scope: proposing or running the release (stays the agent's proposal, the 
    after the rewrite, the existence read in the index; the Rules of `issue-workflow` drop the manual edit and propose
    the release on the printed line; verified by `close_checks` cases (close with the milestone set passes, a milestone
    with an open issue or not listing the stem refused); makes true REV-20.
+3. [x] Docs of the whole issue and fixes of the `high` review: `docs/gates.md`, `docs/workflow.md`, the seeded and
+   own `ROADMAP.md`; the gate also accepts the close with the milestone state put back; the roadmap path is
+   resolved (`./ROADMAP.md`); only the links of the list to `issues/` count; verified by the new cases of
+   `sets_the_milestone_done` and `close_checks`; makes true CLS-8, REV-20.
 
 ## Decisions
 - Mode: autonomous
@@ -100,6 +104,34 @@ not verified: none. decisions needed: none.
 | code review | see below |
 
 red: REV-20: `FAIL - native lets through the close of an issue with the references and the milestone close-issue rewrote`
+Code review: no findings
+
+not verified: none. decisions needed: none.
+
+## Deliverable 3
+
+- done: docs of the whole issue (`docs/gates.md`, `docs/workflow.md`, `seed/ROADMAP.md`, `ROADMAP.md`) and the
+  fixes of the `high` review (8 findings).
+
+| check | result |
+|---|---|
+| tests | `just check` green (`sets_the_milestone_done`: `./ROADMAP.md`, a URL and a doc link in the list; `close_checks`: 13 cases) |
+| lint | clippy -D warnings clean |
+| specs | CLS-8 and REV-20 reworded (links to `issues/` only; with or without the milestone state) |
+| docs | gates, workflow, roadmaps |
+| code review | see below |
+
+red: none (fixes of findings; the new cases are written with them)
+
+`high` review: 8 findings
+- fixed: the gate refused a close with only the reference rewrite once a milestone could be set `done` (it accepts
+  both forms now); `./ROADMAP.md` never matched (resolved path); a URL or doc link in the list blocked the milestone
+  (only links to `issues/` count); `exists` ran for every milestone (only when the state and the closed issue match);
+  two forms of the `issues/done/` test (one `done_stem`); a missing comma in `docs/workflow.md`.
+- not fixed: a `## ` line inside a fence or an HTML comment cuts a milestone (`release` and `next-issue` read the
+  roadmap the same way: a roadmap grammar shared by the three is its own change); the section parser duplicated from
+  `release::mark_released` (same reason).
+
 Code review: no findings
 
 not verified: none. decisions needed: none.

@@ -175,7 +175,9 @@ back" (close on the branch, push it, open or update its pull request).
   `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
   `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
   the user (`cardinal run release` with no argument prints the version it would number, without a prompt in auto
-  mode; not `just release`, a recipe the project may redefine): theirs to trigger.
+  mode; not `just release`, a recipe the project may redefine) and stop: theirs to validate. On their go, run
+  `cardinal run release <version>` (a permission prompt, also in auto mode), let them reread the section, commit it,
+  then run `cardinal run release <version> --tag`; they push.
   The report of the close ends on a Markdown link to the next issue `close-issue` printed
   (`[<title>](issues/<stem>.md)`), or on its line saying there is none.
 - To know which issue comes next, run `just next-issue` (the first ready issue, its `depends_on` all done, that

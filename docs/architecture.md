@@ -162,7 +162,8 @@ Claude Code runs a hook only once declared in `.claude/settings.json`, which is 
 The source therefore declares what it manages in `entries/.claude/settings.json`: the hooks above, the
 `permissions.deny` rules of the review waiver ([ADR 0007](adr/0007-sync-manages-entries-of-the-seeded-settings.md),
 `crates/cardinal/src/entries.rs`) and the `permissions.allow` rule `Bash(cardinal run *)` the managed skills need
-([ADR 0013](adr/0013-sync-manages-the-allow-rules-too.md)). `sync` adds the entries the settings lack, removes those
+([ADR 0013](adr/0013-sync-manages-the-allow-rules-too.md)), narrowed by the `permissions.ask` rules
+`Bash(cardinal run release *.*)` and `Bash(just release *.*)`: the agent proposes a release unprompted, it writes one only once the user approves. `sync` adds the entries the settings lack, removes those
 the source dropped when they are unchanged, records them in the lock, and leaves every other key as the project wrote
 it (SYN-29 to SYN-36). There is no separate file to own instead: Claude Code reads one shared settings file per
 project, besides the personal `settings.local.json`.

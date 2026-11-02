@@ -3,6 +3,10 @@
     "allow": [
       "Bash(cardinal run *)"
     ],
+    "ask": [
+      "Bash(cardinal run release *.*)",
+      "Bash(just release *.*)"
+    ],
     "deny": [
       "Bash(just waive-review)",
       "Bash(just waive-review *)",

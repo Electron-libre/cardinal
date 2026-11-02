@@ -11,7 +11,7 @@ Read by `skill:update-docs`.
 | New key read from `.claude/cardinal.toml` | `seed/.claude/cardinal.toml` (with its comment), `docs/architecture.md` |
 | Project-owned file added under `seed/` | `docs/architecture.md` |
 | Content of a seeded file changed | `docs/usage.md` (what a project seeded before changes by hand: it owns the file) |
-| Hook added, renamed or dropped (a `cardinal run` tool), or an allow or deny rule of the harness | `entries/.claude/settings.json`, `docs/architecture.md` (Hooks and their declaration), `docs/gates.md`, `README.md` (What a project gets, Gates), then `just sync` |
+| Hook added, renamed or dropped (a `cardinal run` tool), or an allow, ask or deny rule of the harness | `entries/.claude/settings.json`, `docs/architecture.md` (Hooks and their declaration), `docs/gates.md`, `README.md` (What a project gets, Gates), then `just sync` |
 | Meaning of the managed content an older `cardinal` would misread (a key of `entries/`, a line of the lock, a directory of the source) | `cardinal-format` and `FORMAT` in `crates/cardinal/src/lib.rs`, raised together (ADR 0014), `specs/sync.md`; a managed name or a seeded text it replaces goes to `migrations/<n>.toml` (ADR 0017) |
 | Feature added to `features.toml`, or a file, entry or check of the binary added to one | `features.toml`, `specs/features.md` (a check of the binary is a requirement), `docs/usage.md` (Features a project turns off), `docs/gates.md` when it holds a gate, `README.md` (Optional features) |
 | Column or metric of a transcript reader (`session-metrics`, `cardinal-report`, `Expected-effect:` metrics) | its spec (`specs/evaluation.md`, `cardinal-report.md`, `cardinal-verdicts.md`), `docs/evaluation.md` (the readers table) |

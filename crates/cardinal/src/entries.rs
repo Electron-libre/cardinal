@@ -1,5 +1,5 @@
 //! The entries of the project's `.claude/settings.json` that the source manages (`specs/sync.md`, SYN-29 to SYN-36,
-//! ADR 0007, ADR 0013): the allow and deny rules and hook objects of `entries/.claude/settings.json`, added to the settings by `sync` and
+//! ADR 0007, ADR 0013): the allow, ask and deny rules and hook objects of `entries/.claude/settings.json`, added to the settings by `sync` and
 //! recorded in the lock, every other key left as the project wrote it.
 
 use std::fmt;
@@ -21,13 +21,18 @@ pub const FRAGMENT: &str = "entries/.claude/settings.json";
 type Rule = fn(String) -> Entry;
 
 /// The lists of `permissions` whose rules are managed entries, with the entry of one of their rules.
-const PERMISSIONS: [(&str, Rule); 2] = [("allow", Entry::Allow), ("deny", Entry::Deny)];
+const PERMISSIONS: [(&str, Rule); 3] = [
+    ("allow", Entry::Allow),
+    ("ask", Entry::Ask),
+    ("deny", Entry::Deny),
+];
 
-/// One managed entry: a rule of `permissions.allow` or `permissions.deny`, or a hook object of an event and matcher of
-/// `hooks`.
+/// One managed entry: a rule of `permissions.allow`, `permissions.ask` or `permissions.deny`, or a hook object of an
+/// event and matcher of `hooks`.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Entry {
     Allow(String),
+    Ask(String),
     Deny(String),
     Hook {
         event: String,
@@ -39,7 +44,9 @@ pub enum Entry {
 impl fmt::Display for Entry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Entry::Allow(rule) | Entry::Deny(rule) => write!(f, "{} {rule}", self.list()),
+            Entry::Allow(rule) | Entry::Ask(rule) | Entry::Deny(rule) => {
+                write!(f, "{} {rule}", self.list())
+            }
             Entry::Hook {
                 event,
                 matcher,
@@ -63,6 +70,7 @@ impl Entry {
     fn list(&self) -> &'static str {
         match self {
             Entry::Allow(_) => "allow",
+            Entry::Ask(_) => "ask",
             Entry::Deny(_) => "deny",
             Entry::Hook { .. } => "hooks",
         }
@@ -71,7 +79,9 @@ impl Entry {
     /// The entry as one line of JSON, for the lock.
     pub fn to_lock(&self) -> String {
         match self {
-            Entry::Allow(rule) | Entry::Deny(rule) => json!({ self.list(): rule }),
+            Entry::Allow(rule) | Entry::Ask(rule) | Entry::Deny(rule) => {
+                json!({ self.list(): rule })
+            }
             Entry::Hook {
                 event,
                 matcher,
@@ -115,7 +125,7 @@ impl Entry {
     }
 }
 
-/// The entries the source manages, its allow rules, deny rules then hooks, each in the order of its fragment; none when it has no fragment. An error when the
+/// The entries the source manages, its allow rules, ask rules, deny rules then hooks, each in the order of its fragment; none when it has no fragment. An error when the
 /// fragment is not in the shape of SYN-29.
 pub fn of_source(source: &Path) -> Result<Vec<Entry>> {
     let path = source.join(FRAGMENT);
@@ -129,7 +139,7 @@ pub fn of_source(source: &Path) -> Result<Vec<Entry>> {
         .with_context(|| format!("{}: not in the shape of the settings", path.display()))
 }
 
-/// Every allow and deny rule and hook of `settings`, or why its shape is not the one of SYN-29.
+/// Every allow, ask and deny rule and hook of `settings`, or why its shape is not the one of SYN-29.
 fn entries(settings: &Value) -> Result<Vec<Entry>> {
     let Some(settings) = settings.as_object() else {
         bail!("not an object");
@@ -312,9 +322,10 @@ fn locate(
 /// Whether `settings` hold `entry` (JSON equality, key order ignored).
 fn holds(settings: &Value, entry: &Entry) -> bool {
     match entry {
-        Entry::Allow(rule) | Entry::Deny(rule) => settings["permissions"][entry.list()]
-            .as_array()
-            .is_some_and(|rules| rules.iter().any(|r| r.as_str() == Some(rule))),
+        Entry::Allow(rule) | Entry::Ask(rule) | Entry::Deny(rule) => settings["permissions"]
+            [entry.list()]
+        .as_array()
+        .is_some_and(|rules| rules.iter().any(|r| r.as_str() == Some(rule))),
         Entry::Hook {
             event,
             matcher,
@@ -327,7 +338,7 @@ fn holds(settings: &Value, entry: &Entry) -> bool {
 fn add(settings: &mut Value, entry: &Entry) {
     let settings = settings.as_object_mut().expect("checked by `entries`");
     match entry {
-        Entry::Allow(rule) | Entry::Deny(rule) => {
+        Entry::Allow(rule) | Entry::Ask(rule) | Entry::Deny(rule) => {
             let permissions = object(settings, "permissions");
             array(permissions, entry.list()).push(Value::String(rule.clone()));
         }
@@ -362,7 +373,7 @@ fn add(settings: &mut Value, entry: &Entry) {
 /// event and matcher, and `settings` are in the shape of SYN-29.
 fn replace(settings: &mut Value, entry: &Entry, by: Option<&Entry>) -> bool {
     match entry {
-        Entry::Allow(rule) | Entry::Deny(rule) => {
+        Entry::Allow(rule) | Entry::Ask(rule) | Entry::Deny(rule) => {
             let Some(rules) = settings["permissions"][entry.list()].as_array_mut() else {
                 return false;
             };

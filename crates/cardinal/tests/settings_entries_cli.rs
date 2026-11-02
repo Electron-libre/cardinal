@@ -522,3 +522,56 @@ fn check_reports_a_recorded_allow_rule_the_settings_no_longer_hold() {
     assert_eq!(run.code, Some(1), "{run:?}");
     assert_eq!(run.lines(), [format!("missing: {}", allow(ALLOW))]);
 }
+
+/// The writing forms of the release: a version holds a dot (REL-3), and with two wildcards the rule does not match the
+/// bare proposal, as `Bash(cardinal run release *)` would.
+const ASK: &str = "Bash(cardinal run release *.*)";
+
+/// `<entry>` of SYN-34 for an ask rule.
+fn ask(rule: &str) -> String {
+    format!("{SETTINGS} ask {rule}")
+}
+
+// spec: SYN-29
+// spec: SYN-34
+#[test]
+fn sync_appends_a_managed_ask_rule_records_it_and_removes_it_once_dropped() {
+    let home = Home::new();
+    let (source, root) = with_fragment(&home, &json!({"permissions": {"ask": [ASK]}}));
+    put(
+        root.path(),
+        SETTINGS,
+        &json!({"permissions": {"ask": ["Bash(git push *)"]}}).to_string(),
+    );
+    let run = home.ok(root.path(), &["sync"]);
+    assert_eq!(run.outcome(&ask(ASK)), Some("added"));
+    assert_eq!(
+        settings(&root)["permissions"]["ask"],
+        json!(["Bash(git push *)", ASK])
+    );
+    assert_eq!(home.ok(root.path(), &["check"]).stdout, "");
+    put(source.path(), FRAGMENT, "{}");
+    let run = home.ok(root.path(), &["sync"]);
+    assert_eq!(run.outcome(&ask(ASK)), Some("removed"));
+    assert_eq!(
+        settings(&root)["permissions"]["ask"],
+        json!(["Bash(git push *)"])
+    );
+}
+
+// spec: SYN-29
+#[test]
+fn the_repository_settings_ask_before_the_release_writes_only() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let fragment: Value =
+        serde_json::from_str(&fs::read_to_string(repo.join(FRAGMENT)).unwrap()).unwrap();
+    // `just release <version>` is matched as typed, not as the `cardinal run release` its recipe runs
+    assert_eq!(
+        fragment["permissions"]["ask"],
+        json!([ASK, "Bash(just release *.*)"])
+    );
+    assert!(fragment["permissions"]["allow"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("Bash(cardinal run *)")));
+}

@@ -1,5 +1,5 @@
 # Written by `cardinal sync`: hashes of the managed files, then the managed settings entries. Do not edit.
-format 7
+format 8
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
 2e9ec9b1abf20e48f491ced1b6fbccd741232b87a38d7455e22cd43a5ad499fe  .claude/rules/no-ai-attribution.md
 ae32a54ad3e59066328e1a2f7f5afff0ca4b13bf194272c376e23280e4a7ce4e  .claude/rules/reports-to-the-user.md
@@ -9,7 +9,7 @@ c99d044e7f4a777bb6cdb1ca8f84e559cfec3b669cac5d7c6eb9f4062f8e8bb3  .claude/skills
 7e5a9d5d2e3e6358230170d04068c50868901a9ff36571fe0c8883c428d3459f  .claude/skills/commit-message/conventional-commits.md
 14fa8c18ec58e98568fe1780b7405ddb63685ecf998606ee7a79a6b07ce3de24  .claude/skills/create-issue/SKILL.md
 422701cf2fd492cfb7b534955f3d96101cb27380b0f8af06417e74838baee07c  .claude/skills/evaluate-harness/SKILL.md
-60cb416f48308a28cf0e1ddd07735eba6fb65b8eeca6cba1f9f55b91b2b9fb43  .claude/skills/issue-workflow/SKILL.md
+04a8ad692eb2f6b8e90c1be1f38ff37999a6b6c1451e39108be7ac4731caac3b  .claude/skills/issue-workflow/SKILL.md
 2436605763e1c9818f6231253dc146ebd2e05c8b7fee808c00662f7873b9845d  .claude/skills/issue-workflow/details.md
 8976eebe10464f36cd69b08fbe34d576c2392c048338a624c0f24e429e6fd431  .claude/skills/prioritize-issues/SKILL.md
 3f73433fb7a4add20532a59018730f0f03dbea0fea967181976e0b054b5695b4  .claude/skills/update-docs/SKILL.md
@@ -25,6 +25,8 @@ e2b7850ed69b1de0461dbd1f9deb55df6acd67961b275e747919c3f7766c52ed  cardinal.just
 97a94bbaf7d29b5c19cc83b56b1ce099fa941f20e41d9c449b33d0e1f6028cce  specs/README.md
 66c02d6a40b353ab64053572558e258ee2a65c4272abf394d2375356958e21f5  specs/TEMPLATE.md
 entry  {"allow":"Bash(cardinal run *)"}
+entry  {"ask":"Bash(cardinal run release *.*)"}
+entry  {"ask":"Bash(just release *.*)"}
 entry  {"deny":"Bash(just waive-review)"}
 entry  {"deny":"Bash(just waive-review *)"}
 entry  {"deny":"Edit(//**/claude-review-waived)"}

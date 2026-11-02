@@ -12,7 +12,7 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - `files/`: the managed content, copied to the same path of every consumer. Never edit the copies in a
   consumer: fix them here.
 - `seed/`: project-owned starting points, copied once.
-- `entries/.claude/settings.json`: the hooks and allow and deny rules `sync` keeps in each project's `.claude/settings.json`
+- `entries/.claude/settings.json`: the hooks and allow, ask and deny rules `sync` keeps in each project's `.claude/settings.json`
   (declare a new hook here).
 - `features.toml`: the features of the managed content a project may turn off (`disabled`, `specs/features.md`).
 - `crates/cardinal/`: the `cardinal` binary (`init`, `sync`, `check`, `run` for the tools of `src/tools/`).

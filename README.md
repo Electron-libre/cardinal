@@ -24,7 +24,7 @@ flowchart LR
   subgraph source["cardinal (source)"]
     files["files/<br/>managed"]
     seed["seed/<br/>project-owned"]
-    entries["entries/<br/>hooks, allow and deny rules"]
+    entries["entries/<br/>hooks, allow, ask and deny rules"]
   end
   sync(["cardinal sync"])
   subgraph project["your project"]

@@ -1,6 +1,6 @@
 ---
-priority: low
-why: 'a comfort: the agent has not been seen writing a changelog or a tag unasked, the Rules already forbid it'
+priority: medium
+why: 'one deny rule closes what the autonomous mode leaves open: a release written unasked'
 ---
 # Keep writing the release the user's
 

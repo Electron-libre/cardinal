@@ -1,6 +1,6 @@
 ---
-priority: low
-why: 'no roadmap of a consumer is known to hold a fence or a comment with a `## ` line; a latent misread, not a cost met'
+priority: medium
+why: 'a fix before the comfort of its milestone: three copies of the roadmap parser, and a `## ` line in a comment can set a milestone done'
 ---
 # Share one roadmap grammar between the tools
 

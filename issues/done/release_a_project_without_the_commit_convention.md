@@ -86,7 +86,7 @@ red: none
 
 High review: 9 findings
 - warning absent on `--tag`: REL-11 reworded, the tag step proposes nothing.
-- config read as of now, not per commit: `issues/release_across_the_turn_off_of_the_commit_convention.md`.
+- config read as of now, not per commit: `issues/done/release_across_the_turn_off_of_the_commit_convention.md`.
 - `docs/usage.md` not updated: fixed.
 - warning with no `release_breaking_files`: in the same follow-up issue.
 - non-goal describing a delivered goal: fixed.

@@ -44,7 +44,7 @@ The work done before this file existed is in `issues/done/`.
 - Goal: let a project turn off the parts of the harness that do not fit its flow, at no cost in tokens or time.
 - Why: every consumer gets the whole harness; a user whose flow differs (an AI co-author trailer, another commit
   convention, no parallel agents, issues tracked elsewhere) cannot drop a part without a conflict at each sync.
-- State: in issues
+- State: done
 - Issues:
   - [let_a_project_turn_off_a_feature_of_the_harness](issues/done/let_a_project_turn_off_a_feature_of_the_harness.md)
   - [declare_the_hook_only_features](issues/done/declare_the_hook_only_features.md)
@@ -60,7 +60,7 @@ The work done before this file existed is in `issues/done/`.
   - [find_the_root_of_a_done_issue](issues/done/find_the_root_of_a_done_issue.md)
   - [release_a_project_without_the_commit_convention](issues/done/release_a_project_without_the_commit_convention.md)
   - [leave_the_issues_directory_alone_with_the_issue_files_off](issues/done/leave_the_issues_directory_alone_with_the_issue_files_off.md)
-  - [release_across_the_turn_off_of_the_commit_convention](issues/release_across_the_turn_off_of_the_commit_convention.md)
+  - [release_across_the_turn_off_of_the_commit_convention](issues/done/release_across_the_turn_off_of_the_commit_convention.md)
 
 ## Longer autonomy
 

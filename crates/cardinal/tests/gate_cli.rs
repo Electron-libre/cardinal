@@ -248,6 +248,21 @@ fn sync_never_replaces_a_chained_hook_and_fails_changing_nothing() {
     assert_eq!(snapshot(root.path()), before);
 }
 
+// spec: SYN-19
+#[test]
+fn sync_never_replaces_a_dangling_chained_hook_and_fails_changing_nothing() {
+    let home = Home::new();
+    let (_source, root) = gated(&home);
+    user_hook(&root, 0);
+    let chained = root.path().join(".git/hooks/pre-commit.user");
+    std::os::unix::fs::symlink("missing", &chained).unwrap();
+    let before = snapshot(root.path());
+    let sync = home.harness(root.path(), &["sync"]);
+    assert_ne!(sync.code, Some(0), "{sync:?}");
+    assert!(sync.stderr.contains("pre-commit.user"), "{sync:?}");
+    assert_eq!(snapshot(root.path()), before);
+}
+
 // spec: SYN-19, SYN-20
 #[test]
 fn a_gate_installed_before_the_rename_is_ours_and_replaced() {

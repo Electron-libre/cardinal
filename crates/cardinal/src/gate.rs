@@ -193,7 +193,8 @@ pub fn plan(root: &Path, has_review_hook: bool) -> Result<Option<Plan>> {
         let chained = fs::symlink_metadata(hooks.join(CHAINED)).is_ok();
         return Ok(ours.then_some(Plan::Remove { hooks, chained }));
     }
-    if state == State::Foreign && hooks.join(CHAINED).exists() {
+    // a dangling link counts too: `exists()` follows it
+    if state == State::Foreign && fs::symlink_metadata(hooks.join(CHAINED)).is_ok() {
         bail!(
             "{} and {} both exist: merge them by hand, `cardinal sync` never overwrites a hook of yours",
             hooks.join("pre-commit").display(),

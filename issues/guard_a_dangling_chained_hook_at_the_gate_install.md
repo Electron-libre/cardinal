@@ -22,3 +22,25 @@ then renames the user's `pre-commit` over it, or fails at `symlink()` after the 
 
 # Resources
 * `crates/cardinal/src/gate.rs`, `crates/cardinal/tests/gate_cli.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+`gate::plan` must treat a `pre-commit.user` of any kind, a dangling link included, as existing (`symlink_metadata`),
+so the install over a user's `pre-commit` fails changing nothing. Out of scope: the other `exists()` of the gate.
+
+## Plan
+1. [x] Refuse a dangling `pre-commit.user`: a `gate_cli` test (a dangling link, `sync` fails, hooks unchanged), then
+   `plan` reads it with `symlink_metadata`; verified by that test; makes true SYN-19 (its new scenario). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 14775aee4312628a57660dc70b14f5676edf9075
+
+## Deliverable 1
+- done: `gate::plan` refuses a `pre-commit.user` of any kind (`symlink_metadata`), a dangling link included.
+- checks: tests, lint, specs pass (`just check`); docs n/a (`docs/gates.md` already promises it).
+- red: SYN-19: `sync` succeeded (`code: Some(0)`) and moved the user's `pre-commit` over the dangling link.
+- Code review: no findings

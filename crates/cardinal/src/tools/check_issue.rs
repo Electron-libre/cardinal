@@ -48,7 +48,23 @@ fn front_matter_problems(path: &Path, stem: &str, text: &str) -> Vec<String> {
     out
 }
 
+/// True when the file lies in the `done` directory of an `issues` directory (CKI-4), however it is named.
+fn is_done_issue(path: &Path) -> bool {
+    let dir = std::fs::canonicalize(path)
+        .ok()
+        .and_then(|p| p.parent().map(Path::to_path_buf));
+    dir.is_some_and(|d| {
+        d.file_name().is_some_and(|n| n == "done")
+            && d.parent()
+                .and_then(Path::file_name)
+                .is_some_and(|n| n == "issues")
+    })
+}
+
 fn problems(path: &Path, text: &str) -> Vec<String> {
+    if is_done_issue(path) {
+        return vec!["a done issue: check-issue checks a new issue of `issues/`".to_string()];
+    }
     let mut out = Vec::new();
     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
     let stem = name.strip_suffix(".md").unwrap_or("");
@@ -99,7 +115,7 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
                 .to_string(),
         );
     }
-    // the root of the project is the nearest ancestor holding its configuration, wherever the file lies (FEA-9)
+    // the root of the project is the nearest ancestor holding its configuration (FEA-9)
     let root = crate::run::project_root(
         path.parent()
             .filter(|dir| !dir.as_os_str().is_empty())

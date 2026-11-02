@@ -191,23 +191,37 @@ fn an_attribution_line_is_flagged_unless_the_project_turns_off_the_ban() {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(out.status.success() && stdout.is_empty(), "{stdout}");
-    // an issue checked in `issues/done/` finds the same root, named from the root or from its own directory
-    std::fs::write(tmp.path().join("issues/done/b.md"), &body).unwrap();
-    let flagged = |file: &str, dir: &std::path::Path| {
-        let out = tool_command("check_issue.rs")
-            .arg(file)
-            .current_dir(dir)
-            .output()
-            .unwrap();
-        String::from_utf8_lossy(&out.stdout).contains("attribution line")
-    };
-    assert!(!flagged("issues/done/b.md", tmp.path()));
-    assert!(!flagged("b.md", &tmp.path().join("issues/done")));
-    // the same file is flagged once the project leaves the ban on
+}
+
+// spec: CKI-4
+/// A done issue is refused with one problem, named from the root or from its own directory.
+#[test]
+fn a_done_issue_is_refused_with_one_problem() {
+    let tmp = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(tmp.path().join("issues/done")).unwrap();
+    std::fs::write(tmp.path().join("issues/b.md"), "# B\n").unwrap();
     std::fs::write(
-        tmp.path().join(".claude/cardinal.toml"),
-        "[cardinal]\nsource = \"x\"\n",
+        tmp.path().join("issues/done/a.md"),
+        GOOD.replace("priority: medium\n", "priority: medium\ndepends_on: [b]\n"),
     )
     .unwrap();
-    assert!(flagged("issues/done/b.md", tmp.path()));
+    for (file, dir) in [
+        ("issues/done/a.md", tmp.path().to_path_buf()),
+        ("a.md", tmp.path().join("issues/done")),
+    ] {
+        let out = tool_command("check_issue.rs")
+            .arg(file)
+            .current_dir(&dir)
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            !out.status.success()
+                && stdout
+                    == format!(
+                        "{file}: a done issue: check-issue checks a new issue of `issues/`\n"
+                    ),
+            "{file}: {stdout}"
+        );
+    }
 }

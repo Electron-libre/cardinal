@@ -23,3 +23,25 @@ against `issues/`, or it refuses a file outside `issues/` with one clear message
 
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/tests/check_issue.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+`check-issue` validates a new issue; a done issue always fails it (its `# Tracking`), so it refuses a file of
+`issues/done/` with one message (CKI-4) instead of a misleading list. Out of scope: checking a done issue against `issues/`.
+
+## Plan
+1. [x] Refuse a done issue: `problems` returns the single CKI-4 problem for a file whose parent is `done` under
+   `issues` (path canonicalized, so `a.md` run from `issues/done` is caught); the done-issue part of the FEA-9 test
+   becomes a CKI-4 test; verified by `crates/cardinal/tests/check_issue.rs`; makes true CKI-4. (autonomous)
+
+   done: `check-issue` refuses a file of `issues/done/` with the single CKI-4 problem; spec `accepted`.
+   red: CKI-4: `issues/done/a.md: file must be `issues/<snake_case>.md`` and `` `depends_on` names `b`: no `b.md` in `issues/done` nor in `issues/done/done` ``
+   Code review: no findings
+
+## Decisions
+- Mode: autonomous
+- Base commit: df52695528b05cac48ea6863bd53ef645feb6ce5
+- Question 1: a, `check-issue` refuses a done issue with one message (CKI-4).

@@ -104,3 +104,8 @@ The work done before this file existed is in `issues/done/`.
   - [compute_the_size_of_a_deliverable_with_a_tool](issues/done/compute_the_size_of_a_deliverable_with_a_tool.md)
   - [refuse_staging_every_file_before_a_commit](issues/done/refuse_staging_every_file_before_a_commit.md)
   - [replay_a_reference_task_set_to_compare_two_harness_variants](issues/done/replay_a_reference_task_set_to_compare_two_harness_variants.md)
+  - [tell_the_needed_oversized_results_from_the_waste](issues/tell_the_needed_oversized_results_from_the_waste.md)
+  - [find_why_commits_skip_the_commit_message_skill](issues/find_why_commits_skip_the_commit_message_skill.md)
+  - [count_only_the_fixes_of_the_lines_an_issue_changed](issues/count_only_the_fixes_of_the_lines_an_issue_changed.md)
+  - [find_why_the_advisor_is_never_consulted](issues/find_why_the_advisor_is_never_consulted.md)
+  - [know_the_new_line_types_of_the_transcripts](issues/know_the_new_line_types_of_the_transcripts.md)

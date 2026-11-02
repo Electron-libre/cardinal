@@ -171,8 +171,9 @@ back" (close on the branch, push it, open or update its pull request).
   user whether to close it** (on a branch other than the trunk, see "Merge back"); on their agreement run `just close-issue issues/<name>.md` (moves it to
   `issues/done/` and rewrites `issues/<name>.md` to
   `issues/done/<name>.md` in every other document that cites it, relative Markdown links included) and stages the
-  move and those edits; commit them with a bare `git commit`, never a `git add` of the old path, which git refuses, and
-  add only a file it names `not staged:` when its changes belong to the close. Never move it unasked. When it was the last open issue of its milestone,
+  move and those edits; commit the close on its own with a bare `git commit`, never a `git add` of the old path, which
+  git refuses (a file it names `staged before the close:` goes in too: unstage it first unless it belongs to the close;
+  one named `not staged:` held changes of yours and stays out). Never move it unasked. When it was the last open issue of its milestone,
   `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
   `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
   the user (`cardinal run release` with no argument prints the version it would number, without a prompt in auto

@@ -510,9 +510,27 @@ fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
     std::fs::write(tmp.join("issues/bar.md"), "# Bar\n").unwrap();
     std::fs::write(tmp.join("docs/a.md"), "see issues/foo.md\n").unwrap();
     std::fs::write(tmp.join("docs/b.md"), "see issues/foo.md\n").unwrap();
+    std::fs::write(tmp.join("docs/c.md"), "see issues/foo.md\n").unwrap();
+    // a name git would read as a glob matching `docs/na.md`
+    std::fs::write(tmp.join("docs/n[ab].md"), "see issues/foo.md\n").unwrap();
+    std::fs::write(tmp.join("docs/na.md"), "x\n").unwrap();
+    std::fs::create_dir_all(tmp.join(".claude")).unwrap();
+    std::fs::write(
+        tmp.join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    std::fs::write(
+        tmp.join("ROADMAP.md"),
+        "# Roadmap\n\n## One\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n",
+    )
+    .unwrap();
     git(&["add", "."]);
     git(&["commit", "-q", "-m", "init"]);
     std::fs::write(tmp.join("docs/b.md"), "see issues/foo.md\nmine\n").unwrap();
+    std::fs::write(tmp.join("docs/c.md"), "see issues/foo.md\nstaged\n").unwrap();
+    git(&["add", "docs/c.md"]);
+    std::fs::write(tmp.join("docs/na.md"), "mine\n").unwrap();
     std::fs::write(
         tmp.join("issues/foo.md"),
         "# Foo\n\n[bar](bar.md)\n\n# Tracking\n",
@@ -534,6 +552,7 @@ fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
         .unwrap()
         .success();
     let left = git(&["status", "--porcelain"]);
+    let roadmap = git(&["show", "HEAD:ROADMAP.md"]);
     let shown = git(&["show", "--stat", "--format=", "HEAD"]);
     let untracked = tmp.join("issues/baz.md");
     std::fs::write(&untracked, "# Baz\n").unwrap();
@@ -543,8 +562,11 @@ fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
         (
             "a bare git commit holds the move and every rewrite of the close",
             ok && commit
-                && left == " M docs/b.md\n"
+                && left == " M docs/b.md\n M docs/c.md\n M docs/na.md\n"
                 && shown.contains("docs/a.md")
+                && shown.contains("docs/n[ab].md")
+                && roadmap.contains("- State: done")
+                && roadmap.contains("issues/done/foo.md")
                 && shown.contains("issues/done/foo.md")
                 && shown.contains("issues/foo.md"),
         ),
@@ -552,7 +574,12 @@ fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
             "the close says it is staged and names the file of the user it left out",
             out.contains(
                 "staged: commit the close with `git commit` (no `git add` of issues/foo.md: git mv staged its removal)"
-            ) && out.contains("not staged: docs/b.md (it held changes of yours)"),
+            ) && out.contains("not staged: docs/b.md (it held changes of yours)")
+                && out.contains("not staged: docs/c.md (it held changes of yours)")
+                && out.contains(
+                    "staged before the close: docs/c.md (a bare `git commit` takes it too)"
+                )
+                && !out.contains("docs/na.md"),
         ),
         (
             "an untracked issue stages nothing and says nothing of it",

@@ -15,6 +15,7 @@
 use super::{issue_claim, repo_files, roadmap};
 
 use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -469,9 +470,10 @@ fn relink(
     written
 }
 
-/// The output of `git args` run in `root`, `None` when it fails.
-fn git_out(root: &Path, args: &[&str]) -> Option<Vec<u8>> {
+/// `git --literal-pathspecs args` run in `root`, its output `None` when it fails: a file name is never a glob.
+fn git_literal(root: &Path, args: &[&OsStr]) -> Option<Vec<u8>> {
     let out = Command::new("git")
+        .arg("--literal-pathspecs")
         .args(args)
         .current_dir(root)
         .output()
@@ -479,56 +481,101 @@ fn git_out(root: &Path, args: &[&str]) -> Option<Vec<u8>> {
     out.status.success().then_some(out.stdout)
 }
 
-/// The files of the work tree of `root` whose content differs from the index, canonical.
-fn unstaged(root: &Path) -> HashSet<PathBuf> {
-    git_out(root, &["diff", "--name-only", "-z"])
-        .unwrap_or_default()
-        .split(|b| *b == 0)
+/// The paths of the NUL-separated output of git run in `root`, canonical (relative to the top of the work tree).
+fn paths_in(root: &Path, out: &[u8]) -> HashSet<PathBuf> {
+    out.split(|b| *b == 0)
         .filter(|name| !name.is_empty())
-        .filter_map(|name| {
-            std::fs::canonicalize(root.join(String::from_utf8_lossy(name).as_ref())).ok()
-        })
+        .map(|name| canonical(&root.join(repo_files::path_of(name))))
         .collect()
 }
 
-/// Stage the close of the tracked issue `old` (relative to `root`), now at `moved`: the issue whole, and each tracked
-/// file of `written` that held no unstaged change before the close (`dirty`), naming the others (CLS-9).
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+/// The index of the repository at `root` before a close: the files that differ from `HEAD` in the index or the work
+/// tree (`None` when git cannot tell), and those already staged.
+struct Before {
+    changed: Option<HashSet<PathBuf>>,
+    staged: HashSet<PathBuf>,
+}
+
+impl Before {
+    fn read(root: &Path) -> Self {
+        let diff = |args: &[&str]| {
+            let args: Vec<&OsStr> = args.iter().map(OsStr::new).collect();
+            git_literal(root, &args).map(|out| paths_in(root, &out))
+        };
+        Before {
+            changed: diff(&["diff", "HEAD", "--name-only", "-z"]),
+            staged: diff(&["diff", "--cached", "--name-only", "-z"]).unwrap_or_default(),
+        }
+    }
+}
+
+/// Stage the close of the tracked issue `old` (relative to `root`), from `issue` to `moved`: the issue whole, and
+/// each tracked file of `written` that `before` shows unchanged, naming the others and what was staged before
+/// (CLS-9). `false` when git refuses to stage it.
 fn stage_close(
     root: &Path,
-    old: &str,
-    moved: &Path,
+    (old, issue, moved): (&str, &Path, &Path),
     written: &[PathBuf],
-    dirty: &HashSet<PathBuf>,
-) {
-    let canonical = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
-    let (root, moved) = (&canonical(root), canonical(moved));
+    before: &Before,
+) -> bool {
+    let root = &canonical(root);
+    let moved = canonical(moved);
+    let written: std::collections::BTreeSet<PathBuf> = written
+        .iter()
+        .map(|f| canonical(f))
+        .filter(|f| *f != moved)
+        .collect();
+    let mut ls: Vec<&OsStr> = vec![OsStr::new("ls-files"), OsStr::new("-z"), OsStr::new("--")];
+    ls.extend(written.iter().map(|f| f.as_os_str()));
+    let tracked = if written.is_empty() {
+        HashSet::new()
+    } else {
+        git_literal(root, &ls).map_or_else(HashSet::new, |out| paths_in(root, &out))
+    };
+    let shown = |file: &Path| {
+        file.strip_prefix(root)
+            .unwrap_or(file)
+            .display()
+            .to_string()
+    };
     let mut stage = vec![moved.clone()];
-    for file in written {
-        let file = canonical(file);
-        let tracked = || {
-            git_out(
-                root,
-                &["ls-files", "--error-unmatch", "--", &file.to_string_lossy()],
-            )
-            .is_some()
-        };
-        if file == moved || !tracked() {
-            continue;
-        }
-        if dirty.contains(&file) {
-            let shown = file.strip_prefix(root).unwrap_or(&file);
-            println!("not staged: {} (it held changes of yours)", shown.display());
+    for file in written.into_iter().filter(|f| tracked.contains(f)) {
+        if before
+            .changed
+            .as_ref()
+            .is_none_or(|changed| changed.contains(&file))
+        {
+            println!("not staged: {} (it held changes of yours)", shown(&file));
         } else {
             stage.push(file);
         }
     }
-    let mut add = Command::new("git");
-    add.args(["add", "--"]).args(&stage).current_dir(root);
-    if add.status().is_ok_and(|s| s.success()) {
-        println!("staged: commit the close with `git commit` (no `git add` of {old}: git mv staged its removal)");
-    } else {
-        eprintln!("could not stage the close: add its files before the commit");
+    let mut add: Vec<&OsStr> = vec![OsStr::new("add"), OsStr::new("--")];
+    add.extend(stage.iter().map(|f| f.as_os_str()));
+    if git_literal(root, &add).is_none() {
+        eprintln!(
+            "could not stage the close: stage {} and its rewrites before the commit",
+            shown(&moved)
+        );
+        return false;
     }
+    let issue = canonical(issue);
+    let mut others: Vec<String> = before
+        .staged
+        .iter()
+        .filter(|f| **f != issue)
+        .map(|f| shown(f))
+        .collect();
+    others.sort();
+    for file in others {
+        println!("staged before the close: {file} (a bare `git commit` takes it too)");
+    }
+    println!("staged: commit the close with `git commit` (no `git add` of {old}: git mv staged its removal)");
+    true
 }
 
 /// The directory `dir` relative to `root`, as components. Exits with an error when it is not under `root`, since
@@ -683,6 +730,10 @@ pub(super) fn main(args: &[String]) -> u8 {
         .current_dir(dir)
         .output()
         .is_ok_and(|o| o.status.success());
+    let issue_path = canonical(issue);
+    let before = tracked
+        .then(|| repo_root(dir).map(|root| Before::read(&root)))
+        .flatten();
     let moved = if tracked {
         Command::new("git")
             .arg("mv")
@@ -708,14 +759,10 @@ pub(super) fn main(args: &[String]) -> u8 {
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or_default();
+    let mut staged = true;
     match repo_root(dir) {
         Some(root) => {
             let issues = under(&root, dir);
-            let dirty = if tracked {
-                unstaged(&root)
-            } else {
-                HashSet::new()
-            };
             let mut written = relink(
                 &root,
                 &issues,
@@ -723,14 +770,16 @@ pub(super) fn main(args: &[String]) -> u8 {
                 Some(stem),
             );
             written.extend(set_milestones_done(&root, &issues, stem));
-            if tracked {
+            if let Some(before) = &before {
                 let old = format!("{}/{}", issues.join("/"), name.display());
-                stage_close(&root, &old, &target, &written, &dirty);
+                if !stage_close(&root, (&old, &issue_path, &target), &written, before) {
+                    staged = false;
+                }
             }
         }
         None => eprintln!("not inside a git repository: references to {stem} were not updated"),
     }
     free_claim(dir, stem);
     println!("{}", super::next_issue::next(dir));
-    0
+    u8::from(!staged)
 }

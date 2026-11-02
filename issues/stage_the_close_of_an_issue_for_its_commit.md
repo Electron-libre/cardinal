@@ -54,6 +54,9 @@ made by the tool itself.
    `issue-workflow` and its "Merge back" say to commit with `git commit`, no `git add` of the old path; verified by a
    test of `crates/cardinal/tests/close_issue.rs` that commits with no `git add` and finds a clean tree; makes true
    CLS-9. (autonomous)
+2. [x] `high` review fixes: changes judged against `HEAD`, literal pathspecs, exit 1 when git refuses to stage, the
+   files staged before named, one `ls-files` for every rewrite, the skill says to commit the close on its own;
+   verified by the extended test of CLS-9; makes true CLS-9 (amended). (autonomous)
 
 ## Deliverable 1
 - done: `close-issue` stages the moved issue whole and each clean tracked file it rewrote, names the others
@@ -71,3 +74,25 @@ made by the tool itself.
 - Base commit: 4c2e92a
 - A rewritten file holding unstaged changes of the user stays unstaged and is named (1 a).
 - `--relink` stages nothing (2 a).
+
+## Deliverable 2
+- done: the fixes of the `high` review of the whole issue; CLS-9 amended (changes judged against `HEAD`, the
+  `staged before the close:` line, exit 1), the Rules of `issue-workflow` say to commit the close on its own.
+- red: none (the fixes of the `high` review; the glob case checked by mutation: without `--literal-pathspecs` the test
+  fails).
+- checks: `just check` ok.
+- Code review: no findings (`low`, the fixes)
+- Code review (`high`, whole issue): 10 findings
+  1. user changes already staged: fixed (judged against `HEAD`, `staged before the close:` lines).
+  2. the close commit apart from the code: fixed (the Rules say to commit the close on its own).
+  3. names read as globs: fixed (`--literal-pathspecs`, tested).
+  4. exit 0 when `git add` fails: fixed (exit 1, no `staged:` line).
+  5. a failed `git diff` stages everything: fixed (every rewrite left unstaged).
+  6. lossy names: fixed (`repo_files::path_of`, `OsStr` arguments).
+  7. one `ls-files` per file: fixed (one call; `git add -u` refuses an untracked path, so the filter stays).
+  8. a roadmap written twice: fixed (deduplicated).
+  9. `transcripts::git_bytes` duplicated: not reused, it takes `&str` arguments and no literal pathspecs; the new
+     helper is the one that needs both.
+  10. untested paths: fixed for the milestone, a staged change and a glob name; the refusal of `git add` is not tested
+      (no cheap way to make it fail after the `git mv`).
+- not verified: the exit 1 when git refuses to stage.

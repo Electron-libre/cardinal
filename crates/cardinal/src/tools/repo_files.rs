@@ -47,12 +47,12 @@ pub fn repo_files(dir: &Path, paths: &[&str]) -> Result<Option<Vec<PathBuf>>, St
 
 /// The path git printed, byte for byte where the platform allows it, so a name that is not UTF-8 is still found.
 #[cfg(unix)]
-fn path_of(bytes: &[u8]) -> PathBuf {
+pub(super) fn path_of(bytes: &[u8]) -> PathBuf {
     use std::os::unix::ffi::OsStrExt;
     PathBuf::from(std::ffi::OsStr::from_bytes(bytes))
 }
 
 #[cfg(not(unix))]
-fn path_of(bytes: &[u8]) -> PathBuf {
+pub(super) fn path_of(bytes: &[u8]) -> PathBuf {
     PathBuf::from(String::from_utf8_lossy(bytes).as_ref())
 }

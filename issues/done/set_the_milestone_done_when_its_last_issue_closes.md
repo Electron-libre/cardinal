@@ -16,7 +16,7 @@ by the tool, not by the agent.
 * 2026-11-02, a consumer project: the agent closed the last issue of a milestone and set it `done` as the Rules ask;
   the native hook refused the commit, the agent ran `/code-review low` on the diff (no findings) and committed.
 * The decision "milestone set `done` in the close commit stays gated" (1 a) of
-  [let_the_close_of_an_issue_commit_without_a_review](done/let_the_close_of_an_issue_commit_without_a_review.md)
+  [let_the_close_of_an_issue_commit_without_a_review](let_the_close_of_an_issue_commit_without_a_review.md)
   is what this issue revisits, with this cost measured.
 * The roadmap format is already read by tools: `## <name>` headings (NXT-10), a `- State:` line and an `- Issues:`
   list of links, and `release` adds `- Released:` after `State:` (REL-9).

@@ -75,7 +75,7 @@ The work done before this file existed is in `issues/done/`.
   - [reuse_a_worktree_across_issues](issues/done/reuse_a_worktree_across_issues.md)
   - [count_the_sessions_of_a_closed_worktree_with_its_repository](issues/done/count_the_sessions_of_a_closed_worktree_with_its_repository.md)
   - [hand_over_the_worktree_lock_of_a_clean_session](issues/done/hand_over_the_worktree_lock_of_a_clean_session.md)
-  - [set_the_milestone_done_when_its_last_issue_closes](issues/set_the_milestone_done_when_its_last_issue_closes.md)
+  - [set_the_milestone_done_when_its_last_issue_closes](issues/done/set_the_milestone_done_when_its_last_issue_closes.md)
   - [allow_the_release_proposal_in_auto_mode](issues/allow_the_release_proposal_in_auto_mode.md)
   - [share_one_roadmap_grammar_between_the_tools](issues/share_one_roadmap_grammar_between_the_tools.md)
 

@@ -14,7 +14,7 @@ three tools share, fences and comments skipped.
 
 # Findings
 * 2026-11-02, the `high` review of
-  [set_the_milestone_done_when_its_last_issue_closes](set_the_milestone_done_when_its_last_issue_closes.md)
+  [set_the_milestone_done_when_its_last_issue_closes](done/set_the_milestone_done_when_its_last_issue_closes.md)
   (commit acf19bd): two findings left unfixed there, the duplicated section parser and the `## ` line in a fence or
   an HTML comment.
 * `seed/ROADMAP.md` describes the shape of a milestone in prose and a fenced block; a project that keeps a template

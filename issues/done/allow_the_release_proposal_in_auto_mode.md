@@ -56,7 +56,7 @@ to every project. SYN-29 already proves the mechanism; no spec amended.
   (`set allow-duplicate-recipes`, e.g. a publish), which `Bash(just release)` would let run without a prompt; `cardinal
   run release` always runs Cardinal's code, needs no new rule, no feature, no doc change.
 - Follow-up: the writing forms are allowed by `Bash(cardinal run *)`:
-  [keep_writing_the_release_the_users](../keep_writing_the_release_the_users.md).
+  [keep_writing_the_release_the_users](keep_writing_the_release_the_users.md).
 - Base commit: bcb15d094af4c7c11eeeb6dcab9001edf72e6eae
 
 ## Deliverable 1

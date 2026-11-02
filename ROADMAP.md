@@ -80,7 +80,7 @@ The work done before this file existed is in `issues/done/`.
   - [set_the_milestone_done_when_its_last_issue_closes](issues/done/set_the_milestone_done_when_its_last_issue_closes.md)
   - [allow_the_release_proposal_in_auto_mode](issues/done/allow_the_release_proposal_in_auto_mode.md)
   - [share_one_roadmap_grammar_between_the_tools](issues/done/share_one_roadmap_grammar_between_the_tools.md)
-  - [keep_writing_the_release_the_users](issues/keep_writing_the_release_the_users.md)
+  - [keep_writing_the_release_the_users](issues/done/keep_writing_the_release_the_users.md)
 
 ## Lean agent loop
 

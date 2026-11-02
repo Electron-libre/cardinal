@@ -60,7 +60,7 @@ test of the conflict so they never disagree. Out of scope: changing what `sync` 
 - Code review (`high`, whole issue): 10 findings
   1. no hooks directory in the line: fixed (full paths).
   2. dangling link advice: fixed (`replace it if it is a dangling link`).
-  3. interrupted `swap` leaves two hard links: out of scope, `issues/finish_an_interrupted_gate_install.md`.
+  3. interrupted `swap` leaves two hard links: out of scope, `issues/done/finish_an_interrupted_gate_install.md`.
   4. `unwrap_or(false)` on an I/O error: kept, an unreadable hooks directory is no conflict; `sync` reports the error.
   5. test checks only the exit code: fixed (reason and snapshot).
   6. two texts of the conflict: fixed (`merge_by_hand`).

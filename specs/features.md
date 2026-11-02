@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: accepted
+status: draft
 adrs: [0014, 0025]
 ---
 
@@ -49,6 +49,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when the project has `cardinal-specs.just`, and must succeed without it when the file is missing.
 - **FEA-34** (deterministic) `skill:issue-workflow` must write a spec, and trace its tests to one, only in a project that has `specs/README.md`, the file the feature `specs` leaves out.
 - **FEA-35** (deterministic) The source of Cardinal must declare the feature `workspace-lock`, made of the three hook entries of `entries/.claude/settings.json` whose command is `cardinal run workspace-lock check`, `cardinal run workspace-lock start` or `cardinal run workspace-lock release` (WSL-8), with no file and no `needs`.
+- **FEA-36** (deterministic) `cardinal run review-gate` must judge the files under `issues/` as any other file when the project turns off the feature `issue-files`: no commit goes through with no review for touching `issues/` only (REV-9), nor for moving `issues/<stem>.md` to `issues/done/<stem>.md` with the rewrites of `close-issue` (REV-20).
+- **FEA-37** (deterministic) `deliverable-size` must count the files under `issues/` as any other file when the project turns off the feature `issue-files`; the lock files stay out (SIZ-4).
+- **FEA-38** (deterministic) `rule-breaches` must not apply rule `validation-stop` (BRE-8) to a session whose `.claude/cardinal.toml` committed at its `start` (as BRE-14 reads it) turns off the feature `issue-files`: no finding of it, and it applies to no such session.
 
 ## Scenarios
 
@@ -66,6 +69,9 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-23, SYN-60) Given a project that turned `review-gate` off, when it removes the name from `disabled` and runs `sync`, then the hooks, the deny rules, `cardinal-review.just` and the native gate are back, a user's `pre-commit` chained again (SYN-19).
 - (FEA-33) Given the seeded `justfile` and `cardinal.just` with no `cardinal-specs.just`, when `just check` runs, then it succeeds; with `cardinal-specs.just`, it runs `check-specs` and fails when it fails.
 - (FEA-26) Given a session started after a commit that sets `disabled = ["review-gate"]`, with a `git add -A` and a commit skipping the git hooks, when `rule-breaches` reads it, then it reports no `stage-everything` nor `no-verify` finding and its summary has no row for the four rules.
+- (FEA-36) Given `disabled = ["issue-files"]`, a reviewed diff and a new `issues/x.md`, when the native hook judges a commit of `issues/x.md` alone, then it refuses it as holding a file the review never saw.
+- (FEA-37) Given `disabled = ["issue-files"]` and changes to `issues/a.md`, `Cargo.lock` and `src/a.rs` of 1 added line each, when `deliverable-size` runs, then `issues/a.md` and `src/a.rs` are listed and the total is 2.
+- (FEA-38) Given a session started after a commit that sets `disabled = ["issue-files"]`, which writes a line `Plan: proposed` in `issues/x.md` then edits `src/main.rs`, when `rule-breaches` reads it, then it reports no `validation-stop` finding and its summary has no row for the rule.
 
 ## Non-goals
 
@@ -91,9 +97,8 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - Silencing rule `user-language` of `rule-breaches` when `language-hint` is off: the rule is the user's and stays
   loaded; the feature only drops the hook that enforces it, whose hints then no longer appear (BRE-13).
 - Gating the issue tools of the binary when `issue-files` is off: `next-issue`, `close-issue`, `check-issue` and
-  `issue-claim` stay callable, and nothing left on calls them; `workspace-lock` reads no claim, `review-gate` and
-  `deliverable-size` keep leaving `issues/` out, and rules `validation-stop` and `skill-routing-issue-workflow` of
-  `rule-breaches` (BRE-8, BRE-17) apply to no session, their trigger being the `Plan: proposed` that the skill writes.
+  `issue-claim` stay callable, and nothing left on calls them; `workspace-lock` reads no claim, and rule
+  `skill-routing-issue-workflow` of `rule-breaches` (BRE-17) applies only where `skill:issue-workflow` is synced.
 - A lighter workflow skill replacing `skill:issue-workflow` when `issue-files` is off: a project tracking its issues
   elsewhere writes its own.
 - Leaving out the seeded `ROADMAP.md` or its guidance when `issue-files` is off: a seed is the project's (SYN-4), and

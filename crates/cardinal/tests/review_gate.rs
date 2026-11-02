@@ -1179,3 +1179,41 @@ fn review_gate() {
     let _ = fs::remove_dir_all(&project);
     assert!(!failed, "a check failed: see the FAIL lines");
 }
+
+// spec: FEA-36
+/// With the issue files off, `issues/` is a directory like any other: a commit of it, or of a close, waits for a review.
+#[test]
+fn issues_are_code_with_the_issue_files_off() {
+    let hook = Path::new(env!("CARGO_BIN_EXE_cardinal")).to_path_buf();
+    let off = "[cardinal]\ndisabled = [\"issue-files\"]\n";
+    let tmp = tempfile::tempdir().unwrap();
+    let project = tmp.path();
+    fs::create_dir_all(project.join("issues")).unwrap();
+    fs::create_dir_all(project.join(".claude")).unwrap();
+    sh(project, &["init", "-q", "."]);
+    fs::write(project.join(".claude/cardinal.toml"), off).unwrap();
+    fs::write(project.join("issues/i.md"), "one\n").unwrap();
+    fs::write(project.join("code.txt"), "one\n").unwrap();
+    sh(project, &["add", "-A"]);
+    sh(project, &["commit", "-qm", "init"]);
+    fs::write(project.join("issues/i.md"), "two\n").unwrap();
+    assert_eq!(
+        native_run(&hook, project, &[]).0,
+        2,
+        "a diff under issues/ only waits for a review"
+    );
+    fs::write(project.join("code.txt"), "two\n").unwrap();
+    sh(project, &["add", "--", "issues/i.md"]);
+    assert_eq!(
+        native_run(&hook, project, &[]).0,
+        2,
+        "an index under issues/ only waits for a review"
+    );
+    assert!(
+        !close_passes(&hook, |p| {
+            let config = fs::read_to_string(p.join(".claude/cardinal.toml")).unwrap();
+            fs::write(p.join(".claude/cardinal.toml"), format!("{config}{off}")).unwrap();
+        }),
+        "the close of an issue waits for a review"
+    );
+}

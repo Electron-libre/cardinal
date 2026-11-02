@@ -22,6 +22,8 @@ pub const NO_AI_ATTRIBUTION: &str = "no-ai-attribution";
 pub const CONVENTIONAL_COMMITS: &str = "conventional-commits";
 /// The feature whose hooks and native git hook refuse a commit its code review did not see.
 pub const REVIEW_GATE: &str = "review-gate";
+/// The feature whose skills and recipes keep the issues as files under `issues/`.
+pub const ISSUE_FILES: &str = "issue-files";
 /// The feature whose skills measure the harness from the transcripts.
 pub const HARNESS_MEASURE: &str = "harness-measure";
 

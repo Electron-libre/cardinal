@@ -35,3 +35,28 @@ Optional features
 # Resources
 * `issues/done/turn_off_the_issue_files.md`, `specs/features.md` (FEA-26 for the session-start reading),
   `crates/cardinal/src/features.rs`.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+With `issue-files` off, `issues/` loses its exemptions: `review-gate` reviews it, `deliverable-size` counts it, rule
+`validation-stop` of `rule-breaches` applies to no session (approach 1 of the issue). Out of scope: the issue tools
+themselves, and rule `skill-routing-issue-workflow`, already gated on `skill:issue-workflow` being synced (BRE-17).
+
+## Plan
+1. [x] review-gate: drop the `issues/`-only and close exemptions when `features::is_off(root, "issue-files")`; verified
+   by tests of `native` on a project with the feature off; makes true FEA-36.
+2. [ ] deliverable-size: count `issues/` when the feature is off; verified by a test through the binary; makes true FEA-37.
+3. [ ] rule-breaches: no `validation-stop` for a session whose config at `start` turns the feature off; verified by a
+   transcript test; makes true FEA-38, spec `accepted`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 75ae20c657cfd2754dfcecc55ae07e2629690aad
+
+## Deliverable 1
+done: `review-gate` drops its `issues/`-only and close exemptions when `issue-files` is off.
+red: FEA-36: assertion `left == right` failed: a diff under issues/ only waits for a review (left: 0, right: 2)
+Code review: no findings

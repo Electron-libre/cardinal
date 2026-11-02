@@ -12,7 +12,8 @@
 //! as they stay in files the review saw. A commit with nothing to commit, an amend of a clean tree
 //! included, one that only touches `issues/` (the work tree, or the index it records), one whose index changes nothing
 //! outside `issues/` but the references `close-issue` rewrote for the issues it moves to `issues/done/` and the
-//! milestones it set `done` (recomputed from the index), and a machine without `git` are not gated. The user waives the
+//! milestones it set `done` (recomputed from the index), and a machine without `git` are not gated; with the feature
+//! `issue-files` off, `issues/` is gated as any other directory (FEA-36). The user waives the
 //! review of the next commit by creating `claude-review-waived` in the git directory (`just waive-review`); the hook
 //! stamps it with `HEAD` when it lets a commit through and removes it, without using it, at the first check after
 //! `HEAD` moved (a command that does not commit, such as `--dry-run`, leaves it usable; after a commit the user
@@ -26,13 +27,15 @@
 use super::close_issue;
 use super::shell::{self, GIT_VALUE_OPTIONS};
 
+use crate::features;
+
 use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 const REVIEW_SKILL: &str = "code-review";
-/// A commit of files under this directory only (the issues) needs no review.
+/// A commit of files under this directory only (the issues) needs no review, unless the issue files are off.
 const ISSUES_DIR: &str = "issues/";
 /// Created by the user, in the git directory, to waive the review of the next commit; the hook removes it.
 const WAIVER: &str = "claude-review-waived";
@@ -562,11 +565,13 @@ fn refusal(cwd: &Path, index: Option<&Path>) -> Option<Refusal> {
             waiver = Waiver::Absent;
         }
     }
-    if snap.files.is_empty() || snap.files.iter().all(|f| f.starts_with(ISSUES_DIR)) {
+    // with the issue files off, `issues/` is a directory like any other (FEA-36)
+    let issues = !features::is_off(cwd, features::ISSUE_FILES);
+    if snap.files.is_empty() || issues && snap.files.iter().all(|f| f.starts_with(ISSUES_DIR)) {
         return None;
     }
     let staged = staged(cwd, index);
-    if records_issues_only(&staged) || records_close_only(cwd, index, &staged) {
+    if issues && (records_issues_only(&staged) || records_close_only(cwd, index, &staged)) {
         return None;
     }
     // fail closed: a waiver that cannot be read or stamped could never be spent, so the review alone judges the commit

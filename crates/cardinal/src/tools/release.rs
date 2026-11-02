@@ -200,7 +200,7 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
     }
     println!(
         "{CHANGELOG}: the section of {version} is written (proposed: {proposal}).\n\
-         Next: reread and edit it, commit the release, then `just release {version} --tag`."
+         Next: reread and edit it, commit the release, then `cardinal run release {version} --tag`."
     );
     Ok(())
 }

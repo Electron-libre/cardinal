@@ -61,6 +61,8 @@ prompt", Claude Code permission modes), the bare proposal stays allowed. Out of 
    asks for the writing forms, the Rules of `issue-workflow` propose then run on the user's go;
    verified by tests of `sync` adding, recording and removing an ask rule, and of the repository fragment asking for
    the writing forms only; makes true SYN-29, SYN-34. (autonomous)
+2. [x] Review fixes of the `high` review: the next step `release` prints, the review before the release commit, the
+   README, the traceability of the fragment test; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -92,3 +94,32 @@ Code review: no findings
 not verified: a live prompt of Claude Code on the rule (its matching is read from its docs, not run); the installed
 `cardinal` reads up to the format 6 already, so `cardinal check` asks to reinstall it (`cargo install --force --path
 ./crates/cardinal --locked`).
+
+## Deliverable 2
+
+done: `release <version>` prints `cardinal run release <version> --tag` as its next step; the Rules review the
+release commit before it; README Releases names the prompt; the fragment test no longer traces SYN-29.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | none amended (REL-6 names no recipe) |
+| docs | `README.md`, `issue-workflow` Rules |
+| code review | low, see below |
+
+red: none (wording and traceability, no new behaviour)
+
+Code review: no findings
+
+`high` review, 9 findings: fixed the next step of `release`, the release commit's review, the README and the
+fragment test's `// spec:`; not fixed:
+- a version through a variable or `$(...)` misses `*.*`: the gates catch a cooperative agent's mistakes, not
+  bypasses (ADR 0005), and the Rules name the literal form;
+- the bare proposal redirected to a dotted file name would prompt: no skill writes it so;
+- a project `permissions.ask` that is not an array now leaves the settings unmerged: the shape of SYN-29 includes
+  it, as for `allow` and `deny` (SYN-35 warns);
+- one `Entry::Rule` variant instead of three: a refactor outside the issue;
+- the auto mode prompt not run live: quoted from Claude Code's permission modes page in the Understanding.
+
+not verified: a live prompt of Claude Code on the rules.

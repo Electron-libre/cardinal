@@ -559,7 +559,7 @@ fn sync_appends_a_managed_ask_rule_records_it_and_removes_it_once_dropped() {
     );
 }
 
-// spec: SYN-29
+/// The policy of this repository's fragment, not a requirement of `sync`.
 #[test]
 fn the_repository_settings_ask_before_the_release_writes_only() {
     let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");

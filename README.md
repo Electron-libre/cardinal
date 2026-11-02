@@ -60,6 +60,7 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 | `cardinal sync [--dry-run] [--force]` | brings the project in step with its source |
 | `cardinal update [--rev <rev>] [--dry-run] [--force]` | moves a git source to a revision, syncs, pins the commit |
 | `cardinal check` | fails when a copy drifted, the review gate is missing or a hook needs a newer `cardinal` |
+| `cardinal upgrade <source> <commit>` | replaces the installed `cardinal` with the one of a commit: its release binary, checked against its SHA-256, else built with `cargo` |
 | `cardinal run [<tool>]` | runs a tool of the pinned revision (hooks, checks, transcript readers); alone, lists them |
 
 ## Daily flow

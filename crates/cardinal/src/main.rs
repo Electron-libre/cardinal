@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use cardinal::{
-    budget_warnings, check, init, retention_warnings, run, sync, tools, update, Outcome, Report,
-    SyncOptions, NOT_A_REFUSAL,
+    budget_warnings, check, init, retention_warnings, run, sync, tools, update, upgrade, Outcome,
+    Report, SyncOptions, NOT_A_REFUSAL,
 };
 use clap::{Parser, Subcommand};
 
@@ -56,6 +56,13 @@ enum Command {
     Run {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
         tool: Vec<OsString>,
+    },
+    /// Replace this `cardinal` with the one of a commit of a git source: its release asset, checked against its SHA-256, else built with `cargo`.
+    Upgrade {
+        /// The git source, as `source` of `.claude/cardinal.toml` names it.
+        source: String,
+        /// The full commit hash, as `rev` of `.claude/cardinal.toml` pins it.
+        commit: String,
     },
     /// Run a tool of this binary (what `run` executes once it picked the binary).
     #[command(hide = true)]
@@ -122,7 +129,7 @@ pub fn main() -> ExitCode {
             return ExitCode::from(if e.use_stderr() { NOT_A_REFUSAL } else { 0 });
         }
     };
-    let warns_of_retention = !matches!(cli.command, Command::Init { .. });
+    let warns_of_retention = !matches!(cli.command, Command::Init { .. } | Command::Upgrade { .. });
     let result = match cli.command {
         Command::Init { source, rev } => init(&cli.root, &source, rev.as_deref()).map(|()| true),
         Command::Sync { force, dry_run } => {
@@ -148,6 +155,10 @@ pub fn main() -> ExitCode {
         }),
         Command::Run { tool } => return run(&cli.root, &tool),
         Command::Tool { tool } => return ExitCode::from(tools::run(&tool)),
+        Command::Upgrade { source, commit } => upgrade(&cli.root, &source, &commit).map(|exe| {
+            println!("upgraded: {}", exe.display());
+            true
+        }),
         Command::Check => check(&cli.root).map(|checked| {
             for problem in &checked.problems {
                 println!("{problem}");

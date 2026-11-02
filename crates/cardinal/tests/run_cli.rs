@@ -543,3 +543,80 @@ fn sync_and_update_warn_of_a_failed_prefetch_and_dry_runs_fetch_nothing() {
     assert!(fetch_warnings(&run.stderr, &commit).is_empty(), "{run:?}");
     assert!(executable(&l.cached(&commit)));
 }
+
+/// A copy of the launcher in a directory of its own, to be replaced by `upgrade`, with its original bytes.
+fn launcher_copy() -> (TempDir, PathBuf, Vec<u8>) {
+    let dir = tempdir().unwrap();
+    let copy = dir.path().join("cardinal");
+    fs::copy(env!("CARGO_BIN_EXE_cardinal"), &copy).unwrap();
+    let bytes = fs::read(&copy).unwrap();
+    (dir, copy, bytes)
+}
+
+/// `<launcher> upgrade <args>` with the home of `l`.
+fn upgrade(l: &Launcher, launcher: &Path, args: &[&str]) -> Run {
+    let mut cmd = std::process::Command::new(launcher);
+    cmd.env("PATH", l.home.path_var())
+        .env("XDG_CACHE_HOME", l.home.cache())
+        .env_remove("CLAUDE_PROJECT_DIR")
+        .arg("upgrade")
+        .args(args)
+        .current_dir(l.home.path());
+    l.home.isolated(&mut cmd);
+    output(cmd, "")
+}
+
+// spec: BIN-19
+#[test]
+fn upgrade_replaces_the_running_launcher_with_the_release_asset_of_the_commit() {
+    let l = Launcher::new();
+    let binary = format!("#!/bin/sh\n{TOOL}");
+    l.publish("cardinal", &binary, None);
+    let (_dir, copy, _) = launcher_copy();
+
+    let run = upgrade(&l, &copy, &[SOURCE, COMMIT]);
+
+    assert_eq!(run.code, Some(0), "{run:?}");
+    assert_eq!(fs::read_to_string(&copy).unwrap(), binary);
+    assert!(executable(&copy));
+    assert!(run.stdout.contains(&copy.display().to_string()), "{run:?}");
+    assert!(
+        l.log().contains(&format!(
+            "https://github.com/owner/repo/releases/download/cardinal-{COMMIT}/cardinal-{}",
+            target()
+        )),
+        "{}",
+        l.log()
+    );
+    let leftovers: Vec<_> = fs::read_dir(copy.parent().unwrap())
+        .unwrap()
+        .map(|e| e.unwrap().file_name())
+        .collect();
+    assert_eq!(leftovers, ["cardinal"], "a whole file renamed into place");
+}
+
+// spec: BIN-21
+#[test]
+fn upgrade_refuses_what_it_cannot_install_and_leaves_the_launcher_unchanged() {
+    let l = Launcher::new();
+    l.publish("cardinal", "#!/bin/sh\n", Some(&"0".repeat(64)));
+    let (_dir, copy, original) = launcher_copy();
+
+    for (args, reason) in [
+        (&[SOURCE, "0123456"][..], "full commit hash"),
+        (&["../a-directory", COMMIT][..], "git source"),
+        // the asset does not match its digest, and no `cargo` builds it
+        (&[SOURCE, COMMIT][..], "SHA-256"),
+    ] {
+        let run = upgrade(&l, &copy, args);
+        assert_ne!(run.code, Some(0), "{args:?}: {run:?}");
+        assert!(run.stderr.contains(reason), "{args:?}: {run:?}");
+        assert_eq!(fs::read(&copy).unwrap(), original, "{args:?}");
+    }
+
+    let other = "fedcba9876543210fedcba9876543210fedcba98";
+    let run = upgrade(&l, &copy, &[SOURCE, other]);
+    assert_ne!(run.code, Some(0), "{run:?}");
+    assert!(run.stderr.contains(other), "no asset nor build: {run:?}");
+    assert_eq!(fs::read(&copy).unwrap(), original);
+}

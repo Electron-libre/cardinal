@@ -469,6 +469,33 @@ fn resolve_in(dir: &Path, url: &str, rev: Option<&str>) -> Result<String> {
     git_output(dir, &["rev-parse", &format!("{rev}^{{commit}}")])
 }
 
+/// Replace the running `cardinal` with the binary of `commit` of the git source `source`, fetched as `run` fetches it
+/// (BIN-19, BIN-21); `source` is resolved against `root` as the configuration would be. Returns the path replaced.
+///
+/// # Errors
+/// When `commit` is not a full hash, `source` is not a git source, the binary cannot be fetched or the running one
+/// cannot be replaced.
+pub fn upgrade(root: &Path, source: &str, commit: &str) -> Result<PathBuf> {
+    if !is_full_hash(commit) {
+        bail!("`{commit}` is not a full commit hash: pass the `rev` that `cardinal update` writes");
+    }
+    if !is_git_url(source) {
+        bail!(
+            "`{source}` is not a git source: install the cardinal of a local source with `{}`",
+            launcher::install(source, None)
+        );
+    }
+    let binary = run::binary_of(
+        &cache_dir()?,
+        &resolved(root, source),
+        commit,
+        &run::Programs::default(),
+    )?;
+    let exe = std::env::current_exe().context("finding the running cardinal")?;
+    run::replace(&binary, &exe)?;
+    Ok(exe)
+}
+
 /// A 40 (SHA-1) or 64 (SHA-256) hexadecimal digit commit name, as `update` writes it to `rev`.
 fn is_full_hash(rev: &str) -> bool {
     matches!(rev.len(), 40 | 64) && rev.bytes().all(|b| b.is_ascii_hexdigit())

@@ -226,6 +226,20 @@ fn build(programs: &Programs, source: &str, commit: &str, to: &Path) -> bool {
     built
 }
 
+/// Replace `to` with a copy of `binary`, renamed whole into place (BIN-19, as BIN-4).
+///
+/// # Errors
+/// When the copy cannot be written next to `to` or renamed over it.
+pub fn replace(binary: &Path, to: &Path) -> Result<()> {
+    let dir = to
+        .parent()
+        .context("the running cardinal has no directory")?;
+    let staging = Staging::new(dir);
+    fs::copy(binary, &staging.path).with_context(|| format!("writing next to {}", to.display()))?;
+    staging.install(to)?;
+    Ok(())
+}
+
 /// A file being written next to its final place, removed unless installed.
 struct Staging {
     path: PathBuf,

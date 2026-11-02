@@ -37,7 +37,8 @@ that asset (and its SHA-256 check), the `cargo install` kept as the fallback for
    change step 1 of the tutorial if the URL is not reliable.
 
 # Specs
-* `specs/tool-binaries.md` BIN-15 and BIN-16, `specs/sync.md` SYN-40 and SYN-42: the form of `<command>`.
+* `specs/tool-binaries.md`: creates BIN-19, BIN-20, BIN-21; amends BIN-15 and BIN-16 (their install is BIN-20's), which
+  SYN-40 and SYN-42 of `specs/sync.md` refer to.
 
 # Resources
 * `crates/cardinal/src/launcher.rs`, `crates/cardinal/src/lib.rs` (`install_hint`), `crates/cardinal/src/run.rs`
@@ -49,3 +50,36 @@ that asset (and its SHA-256 check), the `cargo install` kept as the fallback for
 # Hints
 * A local directory source (this repository) keeps the `cargo install --path`: it has no release.
 * The hint is printed when every hook refuses, so it must be runnable as is, with no `cardinal` to help.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+The installed `cardinal` names a `cargo install` whenever it is too old; a consumer without Rust cannot run it.
+Means: a launcher subcommand `cardinal upgrade <source> <commit>` that fetches the binary of the commit as `run`
+already does (release asset checked against its digest, else a cargo build) and replaces itself; the hints name it.
+
+## Plan
+1. [x] `cardinal upgrade`: the subcommand, through `run::binary_of` then an atomic replace of `current_exe`; verified
+   by a binary test with a fake `curl` serving an asset into a copied launcher, and its failures; makes true BIN-19,
+   BIN-21. (autonomous)
+2. [ ] Hints: `launcher::install` returns `cardinal upgrade <source> <commit>` for a git source at a full commit;
+   `docs/tutorial.md` (troubleshooting), `docs/usage.md` ("The installed launcher"), `README.md` (commands); verified
+   by the update and check tests of BIN-15, BIN-16 and a format refusal; makes true BIN-20.
+
+## Decisions
+- Mode: autonomous
+- Base commit: d64e77400378bceeda54878c952b7e117411c371
+- The hint names a launcher subcommand, `cardinal upgrade <source> <commit>` (not a shell line, not a link).
+- A git source at a revision that is not a full commit keeps the `cargo install` hint.
+- `releases/latest` (step 1 of the tutorial): GitHub resolves it to the most recent non-draft, non-prerelease release
+  by creation date when none is marked latest, so `--latest=false` still leaves it on the release of the head of
+  `main`; no change.
+
+## Deliverable 1
+- done: `cardinal upgrade <source> <commit>` fetches the binary of the commit through `run::binary_of` and renames a
+  copy over `current_exe`; README and usage list it.
+- red: BIN-19, BIN-21: `error: unrecognized subcommand 'upgrade'`.
+- Checks: `just check` ok, deliverable-size 151 lines.
+- Code review: no findings

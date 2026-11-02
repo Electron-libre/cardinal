@@ -398,6 +398,73 @@ fn prints_the_next_issue(script: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: CLS-8
+/// After the move, the milestones that list the closed issue and have no issue left open are set `done` and named;
+/// the others stay as they are, and `--relink` sets none.
+fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path();
+    std::fs::create_dir_all(root.join("issues/done")).unwrap();
+    std::fs::create_dir_all(root.join(".claude")).unwrap();
+    std::fs::write(
+        root.join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    for f in ["foo.md", "baz.md", "done/bar.md", "done/qux.md"] {
+        std::fs::write(root.join("issues").join(f), "# X\n").unwrap();
+    }
+    let roadmap = "# Roadmap\n\n\
+## One\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [bar](issues/done/bar.md)\n\n\
+## Two\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [baz](issues/baz.md)\n\n\
+## Three\n\n- State: shaped\n- Issues:\n  - [foo](issues/foo.md)\n\n\
+## Four\n\n- State: in issues\n- Issues:\n  - [qux](issues/done/qux.md)\n\n\
+## Five\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [gone](issues/done/gone.md)\n";
+    std::fs::write(root.join("ROADMAP.md"), roadmap).unwrap();
+    let git = |args: &[&str]| {
+        let ok = Command::new("git")
+            .args([
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "user.name=t",
+                "-c",
+                "commit.gpgsign=false",
+            ])
+            .args(args)
+            .current_dir(root)
+            .output()
+            .unwrap()
+            .status
+            .success();
+        assert!(ok, "git {args:?} failed");
+    };
+    git(&["init", "-q", "-b", "trunk", "."]);
+    git(&["add", "-A"]);
+    git(&["commit", "-qm", "init", "--no-verify"]);
+    let (closed, out) = run(script, root, "issues/foo.md");
+    let after = std::fs::read_to_string(root.join("ROADMAP.md")).unwrap();
+    let expected = roadmap
+        .replace("issues/foo.md", "issues/done/foo.md")
+        .replacen("- State: in issues", "- State: done", 1);
+    let (relink, relink_out) = run(script, root, "--relink");
+    let unchanged = std::fs::read_to_string(root.join("ROADMAP.md")).unwrap() == expected;
+    vec![
+        (
+            "only the milestone whose issues are all closed and that lists the closed one is set done",
+            closed && after == expected,
+        ),
+        (
+            "the milestone set done is printed",
+            out.contains("milestone One done in ROADMAP.md") && !out.contains("milestone Four"),
+        ),
+        (
+            "--relink sets no milestone done",
+            relink && unchanged && !relink_out.contains("milestone"),
+        ),
+    ]
+}
+
 // spec: CLS-1
 #[test]
 fn close_issue() {
@@ -487,6 +554,7 @@ fn close_issue() {
         .chain(skips_the_nested_worktrees(&script))
         .chain(relinks_the_markdown_links(&script))
         .chain(prints_the_next_issue(&script))
+        .chain(sets_the_milestone_done(&script))
     {
         check(name, ok);
     }

@@ -43,3 +43,44 @@ Longer autonomy
 # Hints
 * A milestone that lists an issue still open, or none, stays as it is; `idea` and `shaped` ones are the user's.
 * The gate must recompute the state from the index, not trust the text of the roadmap.
+
+# Tracking
+
+Plan: validated
+
+## Understanding
+`close-issue` sets `done` the `in issues` milestones that list the closed issue once all their listed issues are in
+`issues/done/`, and prints them; the gate accepts that edit by recomputing it from the `HEAD` roadmap and the index.
+Out of scope: proposing or running the release (stays the agent's proposal, the user's trigger).
+
+## Plan
+1. [x] Milestone done at close: a pure `close_issue::milestones_done` (roadmap text, its path, the closed stems, an
+   existence test) applied after the relink on each `roadmap` document, with its print; verified by tests of
+   `close-issue` in a temporary repository (the CLS-8 scenarios); makes true CLS-8.
+2. [ ] Gate and Rules: `records_close_only` applies the same function to the `HEAD` content of a `roadmap` document
+   after the rewrite, the existence read in the index; the Rules of `issue-workflow` drop the manual edit and propose
+   the release on the printed line; verified by `close_checks` cases (close with the milestone set passes, a milestone
+   with an open issue or not listing the stem refused); makes true REV-20.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2d3169d
+- Milestones set `done`: only those that list a closed issue (1 a).
+
+## Deliverable 1
+
+- done: `close-issue` sets `done` the `in issues` milestones of the roadmap that list the closed issue and have
+  every listed issue in `issues/done/`, through the pure `close_issue::milestones_done`, and prints each.
+
+| check | result |
+|---|---|
+| tests | `just check` green (`close_issue`: `sets_the_milestone_done`, 3 cases) |
+| lint | clippy -D warnings clean |
+| specs | CLS-8 traced, `close-issue` accepted |
+| docs | module doc of `close_issue.rs` |
+| code review | see below |
+
+red: CLS-8: `FAIL - only the milestone whose issues are all closed and that lists the closed one is set done`
+Code review: no findings
+
+not verified: none. decisions needed: none.

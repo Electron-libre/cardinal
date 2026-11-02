@@ -21,6 +21,7 @@ rely on it at every close, and `--relink` repairs the references to issues close
 - **CLS-5** (deterministic) `close-issue --relink` must rewrite the references of CLS-1 and CLS-2 for every issue file in `issues/done/`.
 - **CLS-6** (deterministic) `close-issue` must not rewrite a Markdown link written in an inline code span or a fenced code block, nor the text of a footnote (`[^1]: text`).
 - **CLS-7** (deterministic) After moving an issue, `close-issue` must print on stdout, as its last line or lines, the next issue `next-issue` would offer once the closed one is gone (`Next: issues/<stem>.md` and its title, NXT-1, NXT-7 and PAR-4), or `No open issue.`, `Every open issue is taken.` or `No ready issue: every free one waits on another.` when there is none; `--relink` prints none.
+- **CLS-8** (deterministic) After moving an issue, `close-issue` must set to `done` the `State:` line of each milestone (a `## <name>` section) of the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory) whose `State:` is `in issues`, whose `Issues:` list links the closed issue, and whose every link of that list, resolved against the directory of the document once rewritten (CLS-2), designates an existing file of `issues/done/`, changing no other line and printing `milestone <name> done in <document>` for each; any other milestone (another state, an issue still open, an empty list) stays as it is, and `--relink` sets none.
 
 ## Scenarios
 
@@ -33,8 +34,12 @@ rely on it at every close, and `--relink` repairs the references to issues close
 - (CLS-7) Given `issues/foo.md` of priority `high` and `issues/bar.md` of priority `low` titled `Bar`, when `close-issue issues/foo.md` runs, then its output ends with `Next: issues/bar.md` and `Bar`; closing `issues/bar.md` then ends with `No open issue.`.
 - (CLS-1) Given `docs/a.md` holding `` `issues/foo.md` `` (a path from the root), when `close-issue issues/foo.md` runs, then it reads `` `issues/done/foo.md` ``.
 
+- (CLS-8) Given `ROADMAP.md` with milestone `One` (`in issues`) listing `issues/foo.md` and `issues/done/bar.md`, milestone `Two` (`in issues`) listing `issues/foo.md` and `issues/baz.md` (open), and milestone `Three` (`shaped`) listing `issues/foo.md`, when `close-issue issues/foo.md` runs, then only `One` reads `- State: done` and the output names it.
+- (CLS-8) Given milestone `Four` (`in issues`) whose issues are all in `issues/done/` but that does not list the closed issue, when `close-issue issues/foo.md` runs, then `Four` is unchanged.
+
 ## Non-goals
 
 - Links in HTML (`<a href>`), in files other than Markdown beyond the root form of CLS-1, and URLs (`https://...`).
 - Bare file names outside a Markdown link (`` `foo.md` `` in prose).
 - Checking that the other links of the repository resolve.
+- Releasing a milestone set `done` (`release`, REL-9) or proposing it: the agent proposes it on the line CLS-8 prints.

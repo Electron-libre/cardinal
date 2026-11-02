@@ -7,7 +7,8 @@
 //! untracked, not ignored), so the issue worktrees nested under `.claude/worktrees/` keep their own files.
 //! Runs in any worktree, but refuses to close an issue of another worktree named by path. Frees the claim of the
 //! issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge brings the
-//! close to the trunk. Ends on the issue `next-issue` then offers.
+//! close to the trunk. Sets `done` the milestones of the roadmap whose last open issue it closed (CLS-8). Ends on the
+//! issue `next-issue` then offers.
 //! Usage: `just close-issue issues/foo.md`; `just close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
@@ -329,6 +330,115 @@ pub(super) fn rewritten(
     }
 }
 
+/// The roadmap `text` of the document `path` (components from the root) with `done` on the `State:` line of each
+/// milestone (a `## ` section) that is `in issues`, whose `Issues:` list links one of the `closed` issues of
+/// `issues/done/` and whose every link designates a file of `issues/done/` that `exists` (CLS-8); and the names of
+/// those milestones. The commit gate replays it (`review_gate`, REV-20).
+pub(super) fn milestones_done(
+    path: &[String],
+    text: &str,
+    issues: &[String],
+    closed: &HashSet<String>,
+    exists: impl Fn(&[String]) -> bool,
+) -> (String, Vec<String>) {
+    let dir = &path[..path.len().saturating_sub(1)];
+    let mut done_dir = issues.to_vec();
+    done_dir.push("done".to_string());
+    let field = |l: &str, key: &str| l.trim_start_matches(['-', ' ']).starts_with(key);
+    let mut names = Vec::new();
+    let mut out = String::with_capacity(text.len());
+    let mut lines = text.split_inclusive('\n').peekable();
+    while let Some(line) = lines.next() {
+        out.push_str(line);
+        let Some(name) = line.strip_prefix("## ") else {
+            continue;
+        };
+        let mut body = Vec::new();
+        while let Some(next) = lines.next_if(|l| !l.starts_with("## ")) {
+            body.push(next);
+        }
+        let state = body.iter().position(|l| {
+            field(l, "State:")
+                && l.split_once(':')
+                    .is_some_and(|(_, v)| v.trim() == "in issues")
+        });
+        let list: String = body
+            .iter()
+            .skip_while(|l| !field(l, "Issues:"))
+            .skip(1)
+            .take_while(|l| l.starts_with([' ', '\t']))
+            .copied()
+            .collect();
+        let listed: Vec<Option<RepoPath>> = link_targets(&list)
+            .into_iter()
+            .map(|span| {
+                let target = &list[span];
+                let path = &target[..target.find(['#', '?']).unwrap_or(target.len())];
+                resolve(dir, path)
+            })
+            .collect();
+        let closed_one = |p: &RepoPath| {
+            p.strip_prefix(done_dir.as_slice())
+                .is_some_and(|rest| matches!(rest, [name] if name.strip_suffix(".md").is_some_and(|s| closed.contains(s))))
+        };
+        let all_done = !listed.is_empty()
+            && listed.iter().all(|p| {
+                p.as_ref().is_some_and(|p| {
+                    p.len() == done_dir.len() + 1 && p.starts_with(&done_dir) && exists(p)
+                })
+            });
+        let set = state.filter(|_| all_done && listed.iter().flatten().any(closed_one));
+        for (i, l) in body.iter().enumerate() {
+            match (Some(i) == set, l.split_once(':')) {
+                (true, Some((key, value))) => {
+                    out.push_str(key);
+                    out.push_str(": done");
+                    out.push_str(&value[value.trim_end().len()..]);
+                }
+                _ => out.push_str(l),
+            }
+        }
+        if set.is_some() {
+            names.push(name.trim().to_string());
+        }
+    }
+    (out, names)
+}
+
+/// Set `done` the milestones of the `roadmap` documents of the project of `issues` (relative to `root`) that the close
+/// of `stem` completes, and print them (CLS-8).
+fn set_milestones_done(root: &Path, issues: &[String], stem: &str) {
+    let project = &issues[..issues.len().saturating_sub(1)];
+    let project_root = project.iter().fold(root.to_path_buf(), |p, c| p.join(c));
+    let closed = HashSet::from([stem.to_string()]);
+    for document in config_list(&project_root, "roadmap") {
+        let file = project_root.join(&document);
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let mut path = project.to_vec();
+        path.extend(components(Path::new(&document)));
+        let exists = |p: &[String]| {
+            p.iter()
+                .fold(root.to_path_buf(), |f, c| f.join(c))
+                .is_file()
+        };
+        let (updated, names) = milestones_done(&path, &text, issues, &closed, exists);
+        if names.is_empty() {
+            continue;
+        }
+        match std::fs::write(&file, updated) {
+            Ok(()) => names
+                .iter()
+                .for_each(|name| println!("milestone {name} done in {document}")),
+            Err(e) => eprintln!(
+                "could not set the milestones done in {}: {e}",
+                file.display()
+            ),
+        }
+    }
+}
+
 /// Rewrite the references to the given closed issues of the `issues/` directory `issues` (relative to `root`) in
 /// every text file under `root`; `moved` is the stem of the issue just moved, whose own links are rebased.
 fn relink(root: &Path, issues: &[String], stems: &HashSet<String>, moved: Option<&str>) {
@@ -540,6 +650,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 &HashSet::from([stem.to_string()]),
                 Some(stem),
             );
+            set_milestones_done(&root, &issues, stem);
         }
         None => eprintln!("not inside a git repository: references to {stem} were not updated"),
     }

@@ -9,6 +9,7 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use super::roadmap;
 use super::transcripts::commit_config;
 use crate::features;
 
@@ -340,40 +341,30 @@ fn classify(message: &str, touches_listed: bool, convention: bool) -> Commit {
     }
 }
 
-/// A roadmap with the line `- Released: v<version>` added after the `State:` line of each milestone (a `## `
-/// section) that is `done` and has no `Released:` line, and the names of those milestones.
+/// A roadmap with the line `- Released: v<version>` added after the `State:` line of each milestone (`roadmap`)
+/// that is `done` and has no `Released:` line, and the names of those milestones.
 fn mark_released(text: &str, version: Version) -> (String, Vec<String>) {
-    let mut names = Vec::new();
-    let mut out = String::new();
-    let mut lines = text.split_inclusive('\n').peekable();
-    while let Some(line) = lines.next() {
-        out.push_str(line);
-        let Some(name) = line.strip_prefix("## ") else {
-            continue;
-        };
-        let mut body = Vec::new();
-        while let Some(next) = lines.next_if(|l| !l.starts_with("## ")) {
-            body.push(next);
-        }
-        let field = |l: &str, key: &str| l.trim_start_matches(['-', ' ']).starts_with(key);
-        let done = body.iter().position(|l| {
-            field(l, "State:") && l.split_once(':').is_some_and(|(_, v)| v.trim() == "done")
-        });
-        let released = body.iter().any(|l| field(l, "Released:"));
-        for (i, l) in body.iter().enumerate() {
-            out.push_str(l);
-            if Some(i) == done && !released {
-                if !l.ends_with('\n') {
-                    out.push('\n');
-                }
-                let _ = writeln!(out, "- Released: v{version}");
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let marked: Vec<(usize, String)> = roadmap::milestones(&lines)
+        .into_iter()
+        .filter(|m| {
+            !m.body
+                .iter()
+                .any(|&i| roadmap::is_field(lines[i], "Released:"))
+        })
+        .filter_map(|m| Some((m.state_line(&lines, "done")?, m.name)))
+        .collect();
+    let mut out = String::with_capacity(text.len());
+    for (i, l) in lines.iter().enumerate() {
+        out.push_str(l);
+        if marked.iter().any(|(at, _)| *at == i) {
+            if !l.ends_with('\n') {
+                out.push('\n');
             }
-        }
-        if done.is_some() && !released {
-            names.push(name.trim().to_string());
+            let _ = writeln!(out, "- Released: v{version}");
         }
     }
-    (out, names)
+    (out, marked.into_iter().map(|(_, name)| name).collect())
 }
 
 /// The section of `version` in a changelog, from its heading to the next `## ` heading, trimmed.

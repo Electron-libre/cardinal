@@ -37,3 +37,46 @@ Longer autonomy
 * `crates/cardinal/src/tools/release.rs` (`mark_released`), `close_issue.rs` (`milestones_done`, `link_targets`),
   `next_issue.rs` (`milestones`).
 * `seed/ROADMAP.md`: the shape of a milestone.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+One module `roadmap.rs` reads a roadmap into milestones (name, body lines, `State:` value, `Issues:` list), skipping
+fenced blocks and HTML comments; `release`, `close-issue` and `next-issue` read through it. Out of scope: other
+Markdown readers (`link_targets` keeps its own link scan, sharing only the fence tracking).
+
+## Plan
+1. [x] Shared roadmap grammar: `tools/roadmap.rs` (milestones outside fences and comments, a body without their
+   lines), `mark_released`, `milestones_done` and `next_issue::milestones` on it, the fence tracking shared with
+   `link_targets`; verified by a test each through the binary (a fenced `## ` line and a commented template
+   milestone); makes true REL-9, CLS-8, NXT-10 (amended). ~400 lines. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: d26d4eec24a9d4957de250476ab0363124485ae6
+- Lines of a fenced block or a comment inside the body of a real milestone are skipped too (an example `State:` never counts).
+- The fence tracking is shared with `close_issue::link_targets`; its link scan stays its own.
+
+## Deliverable 1
+done: `tools/roadmap.rs` reads the milestones outside fences and HTML comments; `release`, `close-issue` and
+`next-issue` read through it, `link_targets` shares its fence tracking.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (REL-9, CLS-8, NXT-10 amended, accepted) |
+| docs | n/a: no page describes the parsing beyond the specs |
+| code review | low: no findings |
+
+red: REL-9, CLS-8, NXT-10: `release` listed `### Milestones` (the fenced `Fake` and the commented `Template`);
+`close-issue` left `Seven` `in issues` and set the commented `Template` done; `next-issue` printed `Next: issues/a.md`.
+
+Code review: no findings
+
+not verified: a comment opened in the middle of a line (`text <!--`) is not tracked; only a line starting with `<!--`
+opens one.
+
+decisions needed: none

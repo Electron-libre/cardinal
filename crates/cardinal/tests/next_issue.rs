@@ -576,6 +576,31 @@ fn the_milestone_order_comes_before_the_priority() {
     );
 }
 
+// spec: NXT-10
+/// A heading inside an HTML comment of the roadmap gives no milestone its order.
+#[test]
+fn a_commented_heading_orders_no_milestone() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\n---\n# Title A\n\n# Milestone\nTwo\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nOne\n",
+        ),
+    ]);
+    roadmap(root.path(), &["One", "Two"]);
+    std::fs::write(
+        root.path().join("ROADMAP.md"),
+        "# Roadmap\n\n<!--\n## Two\n-->\n\n## One\n\n## Two\n",
+    )
+    .unwrap();
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(out.contains("Next: issues/b.md"), "{out}");
+}
+
 // spec: NXT-13
 /// A milestone the roadmap does not name is reported, the issue ordered as one with no milestone.
 #[test]

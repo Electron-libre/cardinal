@@ -235,7 +235,7 @@ fn milestone(text: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// The `## ` headings of the `roadmap` documents of the configuration of `root`, in order; `None` when no document
+/// The milestones of the `roadmap` documents of the configuration of `root`, in order; `None` when no document
 /// can be read (NXT-14).
 fn milestones(root: &Path) -> Option<Vec<String>> {
     let texts: Vec<String> = super::config_list(root, "roadmap")
@@ -246,8 +246,11 @@ fn milestones(root: &Path) -> Option<Vec<String>> {
     (!texts.is_empty()).then(|| {
         texts
             .iter()
-            .flat_map(|t| t.lines())
-            .filter_map(|l| l.strip_prefix("## ").map(|n| n.trim().to_string()))
+            .flat_map(|t| {
+                let lines: Vec<&str> = t.split_inclusive('\n').collect();
+                super::roadmap::milestones(&lines)
+            })
+            .map(|m| m.name)
             .collect()
     })
 }

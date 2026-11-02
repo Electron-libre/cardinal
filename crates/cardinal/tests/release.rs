@@ -358,6 +358,29 @@ fn lists_and_marks_the_done_milestones_not_yet_released() {
     );
 }
 
+// spec: REL-9
+/// A `## ` line or a `State:` line inside a fenced block or an HTML comment is no milestone of its own.
+#[test]
+fn skips_the_milestones_of_fences_and_comments() {
+    let dir = repo();
+    let roadmap = "# Roadmap\n\n## Real\n\n- Goal: a\n\n```markdown\n## Fake\n\n- State: done\n```\n\n- State: in issues\n\n<!--\n## Template\n\n- State: done\n-->\n";
+    std::fs::write(dir.path().join("ROADMAP.md"), roadmap).unwrap();
+    config(dir.path(), "[project]\nroadmap = [\"ROADMAP.md\"]\n");
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert!(
+        !changelog(dir.path()).contains("### Milestones"),
+        "{}",
+        changelog(dir.path())
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("ROADMAP.md")).unwrap(),
+        roadmap
+    );
+}
+
 // spec: REL-3
 #[test]
 fn refuses_a_release_with_no_commit_since_the_last_tag() {

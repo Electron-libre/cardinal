@@ -420,7 +420,9 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
 ## Three\n\n- State: shaped\n- Issues:\n  - [foo](issues/foo.md)\n\n\
 ## Four\n\n- State: in issues\n- Issues:\n  - [qux](issues/done/qux.md)\n\n\
 ## Five\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n  - [gone](issues/done/gone.md)\n\n\
-## Six\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md) ([PR](https://example.com/pull/3), [ADR](docs/adr/1.md))\n";
+## Six\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md) ([PR](https://example.com/pull/3), [ADR](docs/adr/1.md))\n\n\
+## Seven\n\n- State: in issues\n\n```markdown\n## Example\n```\n\n- Issues:\n  - [foo](issues/foo.md)\n\n\
+<!--\n## Template\n\n- State: in issues\n- Issues:\n  - [foo](issues/foo.md)\n-->\n";
     std::fs::write(root.join("ROADMAP.md"), roadmap).unwrap();
     let git = |args: &[&str]| {
         let ok = Command::new("git")
@@ -448,13 +450,24 @@ fn sets_the_milestone_done(script: &Path) -> Vec<(&'static str, bool)> {
     let expected = roadmap
         .replace("issues/foo.md", "issues/done/foo.md")
         .replacen("- State: in issues", "- State: done", 1)
-        .replace("## Six\n\n- State: in issues", "## Six\n\n- State: done");
+        .replace("## Six\n\n- State: in issues", "## Six\n\n- State: done")
+        .replace(
+            "## Seven\n\n- State: in issues",
+            "## Seven\n\n- State: done",
+        );
     let (relink, relink_out) = run(script, root, "--relink");
     let unchanged = std::fs::read_to_string(root.join("ROADMAP.md")).unwrap() == expected;
     vec![
         (
             "only the milestones whose issues are all closed and that list the closed one are set done, other links aside",
             closed && after == expected,
+        ),
+        (
+            "a fenced `## ` line cuts no milestone and a commented template milestone stays as it is",
+            after.contains("## Seven\n\n- State: done")
+                && after.contains("## Template\n\n- State: in issues")
+                && out.contains("milestone Seven done")
+                && !out.contains("milestone Template"),
         ),
         (
             "the milestone set done is printed",

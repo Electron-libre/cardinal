@@ -12,7 +12,7 @@
 //! Usage: `just close-issue issues/foo.md`; `just close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
-use super::{issue_claim, repo_files};
+use super::{issue_claim, repo_files, roadmap};
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -229,14 +229,8 @@ fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
     for line in text.split_inclusive('\n') {
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = &line[indent..];
-        let marker = ["```", "~~~"]
-            .into_iter()
-            .find(|m| indent <= 3 && body.starts_with(m));
-        match (fence, marker) {
-            (None, Some(m)) => fence = Some(m),
-            (Some(f), Some(m)) if f == m => fence = None,
-            _ => {}
-        }
+        let marker = roadmap::fence_marker(line);
+        fence = roadmap::next_fence(fence, line);
         if fence.is_some() || marker.is_some() {
             offset += line.len();
             continue;
@@ -331,7 +325,7 @@ pub(super) fn rewritten(
 }
 
 /// The roadmap `text` of the document `path` (components from the root) with `done` on the `State:` line of each
-/// milestone (a `## ` section) that is `in issues`, whose `Issues:` list links one of the `closed` issues of
+/// milestone (`roadmap`) that is `in issues`, whose `Issues:` list links one of the `closed` issues of
 /// `issues/done/` and whose every link to the `issues` directory designates a file of `issues/done/` that `exists`
 /// (CLS-8); and the names of
 /// those milestones. The commit gate replays it (`review_gate`, REV-20).
@@ -350,31 +344,10 @@ pub(super) fn milestones_done(
         Some([name]) => name.strip_suffix(".md").map(str::to_string),
         _ => None,
     };
-    let field = |l: &str, key: &str| l.trim_start_matches(['-', ' ']).starts_with(key);
-    let mut names = Vec::new();
-    let mut out = String::with_capacity(text.len());
-    let mut lines = text.split_inclusive('\n').peekable();
-    while let Some(line) = lines.next() {
-        out.push_str(line);
-        let Some(name) = line.strip_prefix("## ") else {
-            continue;
-        };
-        let mut body = Vec::new();
-        while let Some(next) = lines.next_if(|l| !l.starts_with("## ")) {
-            body.push(next);
-        }
-        let state = body.iter().position(|l| {
-            field(l, "State:")
-                && l.split_once(':')
-                    .is_some_and(|(_, v)| v.trim() == "in issues")
-        });
-        let list: String = body
-            .iter()
-            .skip_while(|l| !field(l, "Issues:"))
-            .skip(1)
-            .take_while(|l| l.starts_with([' ', '\t']))
-            .copied()
-            .collect();
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let mut set = Vec::new();
+    for milestone in roadmap::milestones(&lines) {
+        let list = milestone.issues(&lines);
         // the links of the list to the issues directory; a URL, an anchor or another document is no issue
         let listed: Vec<RepoPath> = link_targets(&list)
             .into_iter()
@@ -390,27 +363,28 @@ pub(super) fn milestones_done(
             })
             .filter(|p| p.starts_with(issues))
             .collect();
-        let set = state.filter(|_| {
+        let state = milestone.state_line(&lines, "in issues").filter(|_| {
             listed
                 .iter()
                 .any(|p| done_stem(p).is_some_and(|s| closed.contains(&s)))
                 && listed.iter().all(|p| done_stem(p).is_some() && exists(p))
         });
-        for (i, l) in body.iter().enumerate() {
-            match (Some(i) == set, l.split_once(':')) {
-                (true, Some((key, value))) => {
-                    out.push_str(key);
-                    out.push_str(": done");
-                    out.push_str(&value[value.trim_end().len()..]);
-                }
-                _ => out.push_str(l),
-            }
-        }
-        if set.is_some() {
-            names.push(name.trim().to_string());
+        if let Some(at) = state {
+            set.push((at, milestone.name));
         }
     }
-    (out, names)
+    let mut out = String::with_capacity(text.len());
+    for (i, l) in lines.iter().enumerate() {
+        match (set.iter().any(|(at, _)| *at == i), l.split_once(':')) {
+            (true, Some((key, value))) => {
+                out.push_str(key);
+                out.push_str(": done");
+                out.push_str(&value[value.trim_end().len()..]);
+            }
+            _ => out.push_str(l),
+        }
+    }
+    (out, set.into_iter().map(|(_, name)| name).collect())
 }
 
 /// The `roadmap` documents of the configuration of the project at `project` (components from the repository root

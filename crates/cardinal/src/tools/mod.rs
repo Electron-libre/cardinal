@@ -24,6 +24,7 @@ mod next_issue;
 mod release;
 mod repo_files;
 mod review_gate;
+mod roadmap;
 mod rule_breaches;
 mod session_metrics;
 mod shell;

@@ -33,6 +33,9 @@ asks before the irreversible or outward-facing git actions, so the user confirms
 # Specs
 * `specs/sync.md` if the fragment's content is specified there; `specs/features.md` if step 3 adds a feature.
 
+# Milestone
+User control
+
 # Resources
 * `entries/.claude/settings.json`, `features.toml`, `specs/features.md`
 * `issues/done/keep_writing_the_release_the_users.md` (how the release ask rules were added and tested)

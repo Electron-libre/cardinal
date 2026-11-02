@@ -109,3 +109,14 @@ The work done before this file existed is in `issues/done/`.
   - [count_only_the_fixes_of_the_lines_an_issue_changed](issues/done/count_only_the_fixes_of_the_lines_an_issue_changed.md)
   - [find_why_the_advisor_is_never_consulted](issues/find_why_the_advisor_is_never_consulted.md)
   - [know_the_new_line_types_of_the_transcripts](issues/know_the_new_line_types_of_the_transcripts.md)
+
+## User control
+
+- Goal: let the user confirm each irreversible action and answer each question of the agent in a prompt of Claude
+  Code, rather than rely on the model stopping to ask in text.
+- Why: the ask rules of the release proved that a prompt holds whatever the model decides, auto mode included,
+  while the other confirmations and the questions still rest on the wording of the skills and are easy to miss.
+- State: in issues
+- Issues:
+  - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
+  - [ask_the_user_through_the_question_tool](issues/ask_the_user_through_the_question_tool.md)

@@ -36,6 +36,9 @@ confirmations through the tool where they fit, and the share of turns that end o
 # Specs
 * `specs/rule-breaches.md` if step 1 adds a rule; a spec of the hook if step 3 adds one.
 
+# Milestone
+User control
+
 # Resources
 * `.claude/rules/reports-to-the-user.md` (the format of the stops, which this rule must not contradict)
 * `crates/cardinal/src/tools/language_hint.rs`, `specs/language-hint.md`, `features.toml`

@@ -547,6 +547,34 @@ fn check_names_the_chained_hook_conflict_sync_refuses() {
     assert_problems(&check(&home, &root, false), &[]);
 }
 
+// spec: SYN-19, SYN-23
+#[test]
+fn an_install_killed_between_the_link_and_the_rename_is_finished() {
+    let home = Home::new();
+    let (_source, root) = synced(&home);
+    user_hook(&root, 0);
+    // what a `sync` killed after linking the hook of the user as `pre-commit.user` leaves
+    let chained = root.path().join(".git/hooks/pre-commit.user");
+    fs::hard_link(pre_commit(&root), &chained).unwrap();
+    assert_problems(&check(&home, &root, false), &[MISSING]);
+    let sync = home.ok(root.path(), &["sync"]);
+    assert_eq!(sync.outcome(GATE), Some("added"), "{sync:?}");
+    assert!(get(root.path(), ".git/hooks/pre-commit")
+        .unwrap()
+        .contains("native review gate"));
+    assert!(get(root.path(), ".git/hooks/pre-commit.user")
+        .unwrap()
+        .contains("user"));
+    assert!(!root
+        .path()
+        .join(".git/hooks/pre-commit.cardinal-new")
+        .exists());
+    assert_problems(&check(&home, &root, false), &[]);
+    let bin = fake_cardinal(0);
+    assert_eq!(run_hook(&home, &root, bin.path(), &["a"]).code, Some(0));
+    assert_eq!(get(root.path(), "ran").as_deref(), Some("user a\n"));
+}
+
 // spec: SYN-22, SYN-23
 #[test]
 fn a_review_hook_named_before_the_rename_gets_no_gate() {

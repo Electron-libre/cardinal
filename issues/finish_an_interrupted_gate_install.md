@@ -25,3 +25,40 @@ identical files. Expected: `sync` sees that both names are the same file and fin
 
 # Resources
 * `crates/cardinal/src/gate.rs`, `crates/cardinal/tests/gate_cli.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-02
+
+## Understanding
+A `pre-commit.user` that is a hard link of a foreign `pre-commit` (same `dev` and `ino`, `symlink_metadata`) is an
+interrupted move: `conflicts` says no, `swap` only renames the staged gate over `pre-commit`. Out of scope: two
+separate files of identical content (approach step 2), left a conflict.
+
+## Plan
+1. [x] Finish an interrupted install: `conflicts` and `swap` treat a hard-linked `pre-commit.user` as the move done;
+   verified by a `gate_cli.rs` test (hard link, `check` says `missing`, `sync` installs, `pre-commit.user` runs after
+   the gate); makes true SYN-19, SYN-23 (amended). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 6133674607ea0e0498a91c9595c1a5d2277e0c85
+- Identical content of two separate files: not treated (answer 1 a), still a conflict.
+
+## Deliverable 1
+done: `conflicts` and `swap` take a `pre-commit.user` hard-linked to the foreign `pre-commit` for the move a killed
+`sync` left half done; `sync` renames the gate over `pre-commit`, `check` reports `missing`, not `conflict`.
+
+| check | result |
+|---|---|
+| tests | `just check` green (new test in `gate_cli.rs`) |
+| lint | fmt, clippy -D warnings: clean |
+| specs | SYN-19, SYN-23 amended, traced, spec `accepted` |
+| docs | `docs/gates.md` |
+| code review | `low`: no findings |
+
+red: SYN-19, SYN-23: `check` printed `conflict: native review gate (… both exist …)`, expected `missing: native review gate`.
+
+Code review: no findings
+
+not verified: the `cfg(not(unix))` fallback (no hard-link check off Unix) is not built here.

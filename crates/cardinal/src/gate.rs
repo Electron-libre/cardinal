@@ -192,9 +192,27 @@ fn has_chained(hooks: &Path) -> Result<bool> {
 }
 
 /// Whether installing the gate over `state` would have to move a `pre-commit` of the user onto a `pre-commit.user`
-/// that exists: `plan` refuses then, and `check` says so rather than send the user to that `sync`.
+/// that exists: `plan` refuses then, and `check` says so rather than send the user to that `sync`. A `pre-commit.user`
+/// that is the same file is the move a killed `sync` left half done, which the install finishes.
 fn conflicts(hooks: &Path, state: &State) -> Result<bool> {
-    Ok(*state == State::Foreign && has_chained(hooks)?)
+    Ok(*state == State::Foreign
+        && has_chained(hooks)?
+        && !same_file(&hooks.join("pre-commit"), &hooks.join(CHAINED)))
+}
+
+/// Whether `a` and `b` are links of the same file, a link compared as itself rather than what it reaches.
+#[cfg(unix)]
+fn same_file(a: &Path, b: &Path) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    match (fs::symlink_metadata(a), fs::symlink_metadata(b)) {
+        (Ok(a), Ok(b)) => (a.dev(), a.ino()) == (b.dev(), b.ino()),
+        _ => false,
+    }
+}
+
+#[cfg(not(unix))]
+fn same_file(_a: &Path, _b: &Path) -> bool {
+    false
 }
 
 /// Decide what to do for the project at `root`, whose source manages a hook of the review gate when `has_review_hook`:
@@ -293,7 +311,10 @@ fn swap(hook: &Path, staged: &Path, state: &State) -> Result<()> {
         }
         State::Foreign => {
             let chained = hook.with_file_name(CHAINED);
-            if link_new(hook, &chained)? {
+            // a `sync` killed after the link left the hook of the user under both names: only the rename is left
+            if same_file(hook, &chained) {
+                fs::rename(staged, hook)?;
+            } else if link_new(hook, &chained)? {
                 // the user's hook is kept as `pre-commit.user`, so one rename replaces it with the gate
                 fs::rename(staged, hook).inspect_err(|_| {
                     let _ = fs::remove_file(&chained);

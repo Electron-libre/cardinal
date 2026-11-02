@@ -1175,23 +1175,20 @@ fn in_ci() -> bool {
         .is_ok_and(|v| !matches!(v.trim().to_lowercase().as_str(), "" | "0" | "false"))
 }
 
-/// The warnings on the retention of the transcripts (SYN-28), printed by `check`, `sync` and `update`; none under CI
-/// nor when the project turns off the measure of the harness that reads them (FEA-28). Kept out of `check` and `sync`,
-/// which read the project only: these read the user settings too.
+/// The warnings on the retention of the transcripts (SYN-28), printed by `check`, `sync` and `update`; none under CI,
+/// and none on the user settings when the project turns off the measure of the harness that reads them (FEA-28): its
+/// own settings still sweep the transcripts of every project. Kept out of `check` and `sync`, which read the project
+/// only: these read the user settings too.
 #[must_use]
 pub fn retention_warnings(root: &Path) -> Vec<String> {
-    if features::is_off(root, features::HARNESS_MEASURE) {
+    if in_ci() {
         return Vec::new();
+    }
+    if features::is_off(root, features::HARNESS_MEASURE) {
+        return settings::project_retention(root);
     }
     let user = config_dir().map(|dir| dir.join("settings.json"));
-    retention_with(root, in_ci(), user.as_deref())
-}
-
-fn retention_with(root: &Path, ci: bool, user: Option<&Path>) -> Vec<String> {
-    if ci {
-        return Vec::new();
-    }
-    settings::retention(root, user)
+    settings::retention(root, user.as_deref())
 }
 
 /// The configuration directory of Claude Code: `CLAUDE_CONFIG_DIR`, or else `~/.claude`; `None` when neither is set.

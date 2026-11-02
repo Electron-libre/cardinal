@@ -72,7 +72,7 @@ names both, and turning both off is accepted.
 | `format-code` | the hook that formats each edited file, for an editor that formats |
 | `language-hint` | the Stop hook that sends a reply back when it is not in the `user_language`; rule `user-language` of `rule-breaches` still applies |
 | `review-gate` | the review gate, for a project that reviews in pull requests or a solo user: its two hooks (the refusals of `--no-verify` and `git add -A` with them), the deny rules of the waiver, `waive-review`, the native git `pre-commit`, which `sync` removes, a chained hook of yours put back; rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` of `rule-breaches` skip the sessions that start once the change is committed on the default branch |
-| `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts they read |
+| `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts the user settings keep |
 | `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
 

@@ -134,6 +134,13 @@ fn attribution_off(settings: &Value) -> bool {
 /// (unset: the default), or cannot be read or located, and each settings file of the project that sets a lower number.
 /// Claude Code sweeps the transcripts of every project with the value of the session that runs the sweep.
 pub fn retention(root: &Path, user: Option<&Path>) -> Vec<String> {
+    let mut warnings = user_retention(user);
+    warnings.extend(project_retention(root));
+    warnings
+}
+
+/// The retention warning of `retention` on the user settings at `user`, `None` when they cannot be located.
+pub fn user_retention(user: Option<&Path>) -> Vec<String> {
     let mut warnings = Vec::new();
     match user.map(|user| (user, read_json(user))) {
         None => warnings.push(
@@ -154,6 +161,12 @@ pub fn retention(root: &Path, user: Option<&Path>) -> Vec<String> {
             }
         }
     }
+    warnings
+}
+
+/// The retention warnings of `retention` on each settings file of the project at `root`.
+pub fn project_retention(root: &Path) -> Vec<String> {
+    let mut warnings = Vec::new();
     for rel in [SETTINGS, LOCAL_SETTINGS] {
         let settings = read_json(&root.join(rel)).ok().flatten();
         if let Some(days) = settings.as_ref().and_then(retention_days) {

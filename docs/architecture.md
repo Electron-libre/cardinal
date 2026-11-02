@@ -171,7 +171,7 @@ project, besides the personal `settings.local.json`.
 - the settings lack a deny rule of the waiver, run a hook under `.claude/hooks/` the project no longer has, or leave
   the attribution on (SYN-24 to SYN-27);
 - Claude Code keeps the transcripts less than a year outside CI (SYN-28, `settings::retention`), since the evaluation
-  reads the transcripts of several revisions, unless the project turns off `harness-measure` (FEA-28);
+  reads the transcripts of several revisions, the user settings left unchecked when the project turns off `harness-measure` (FEA-28);
 - the fixed context of the work tree (the memory files a session loads at launch and their imports, the skill
   descriptions, measured by `memory.rs` as `fixed-context` measures a revision) exceeds the `fixed_context_budget`
   (SYN-38, SYN-39, `budget.rs`): always-on text only grows unless something bounds it.

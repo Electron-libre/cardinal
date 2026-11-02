@@ -760,7 +760,8 @@ fn the_file_only_features_are_their_files() {
 /// The files under `dir`, relative to it, with `/` separators.
 fn walkdir(dir: &Path) -> Vec<String> {
     let mut files = Vec::new();
-    for entry in fs::read_dir(dir).unwrap().flatten() {
+    for entry in fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().into_owned();
         if path.is_dir() {

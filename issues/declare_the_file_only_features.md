@@ -70,3 +70,14 @@ in no feature (FEA-29), so turning off the report style keeps the language. No r
   the feature off.
 - Code review: no findings
 - not verified: the fixed context gained on a consumer (the hint of the issue).
+
+## Summary of the high review (deliverable 3)
+- done: with `harness-measure` off only the warnings on the user settings go, those on the project's settings stay
+  (FEA-28 narrowed: they sweep every project's transcripts); `AGENTS.md` names the report rule as optional; README
+  lists the three features; the test helper fails on an unreadable entry.
+- red: FEA-28: the project's `cleanupPeriodDays: 7` not warned of with the feature off.
+- Code review (high): 7 findings: 4 fixed (above); not fixed: FEA-28 reads `disabled` from the configuration as
+  FEA-10 does (the project's intent, a sync on an older source fails anyway); `update` untested (a local source
+  fails it, the same `main.rs` path prints for the three commands); the substring check of FEA-29 is enough for a
+  path the project writes as is.
+- Code review: no findings

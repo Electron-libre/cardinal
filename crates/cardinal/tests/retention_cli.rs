@@ -236,4 +236,16 @@ fn no_retention_warning_when_the_project_turns_off_the_measure_of_the_harness() 
         assert_eq!(run.code, Some(0), "{args:?}: {run:?}");
         assert!(retention(&run).is_empty(), "{args:?}: {run:?}");
     }
+    // the project's own settings sweep the transcripts of every project: still warned of
+    put(
+        root.path(),
+        ".claude/settings.json",
+        r#"{"cleanupPeriodDays": 7}"#,
+    );
+    let run = home.harness(root.path(), &["check"]);
+    assert_eq!(
+        retention(&run),
+        ["warning: .claude/settings.json sets cleanupPeriodDays to 7 days, below 365"],
+        "{run:?}"
+    );
 }

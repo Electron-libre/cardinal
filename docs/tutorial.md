@@ -4,7 +4,12 @@ A first walk through Cardinal for a project that adopts it, from an empty projec
 agent. Each step says what to type and what to expect; the reference of each command is in [usage.md](usage.md), the
 process in [workflow.md](workflow.md).
 
-## 1. Install the tool
+## 1. Install the tools
+
+Cardinal needs two programs on your `PATH`: [`just`](https://github.com/casey/just#installation), which runs the
+recipes of the project (`just check`, the agent's entry point, and the recipes of Cardinal), and `cardinal`. The
+recipes of Cardinal mostly call `cardinal`, which runs them without `just` too: `just next-issue` runs
+`cardinal run next-issue`.
 
 Download the binary of the latest release for your platform (`x86_64-unknown-linux-musl`,
 `aarch64-unknown-linux-musl` or `aarch64-apple-darwin`) into a directory of your `PATH`:

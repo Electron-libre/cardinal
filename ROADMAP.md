@@ -52,7 +52,7 @@ The work done before this file existed is in `issues/done/`.
   - [let_a_feature_need_another](issues/done/let_a_feature_need_another.md)
   - [split_the_managed_recipes_by_feature](issues/done/split_the_managed_recipes_by_feature.md)
   - [turn_off_the_review_gate](issues/done/turn_off_the_review_gate.md)
-  - [quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off](issues/quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off.md)
+  - [quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off](issues/done/quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off.md)
   - [turn_off_the_workspace_lock](issues/turn_off_the_workspace_lock.md)
   - [turn_off_conventional_commits](issues/done/turn_off_conventional_commits.md)
   - [turn_off_the_issue_files](issues/turn_off_the_issue_files.md)

@@ -117,7 +117,7 @@ red: SYN-60: none, the test of settings left alone was written with the fix.
 
 Code review (`high`): 10 findings
 1. `rule-breaches` still applies the gate's rules: outside the requirements, issue
-   `issues/quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off.md`.
+   `issues/done/quiet_the_review_rules_of_rule_breaches_when_the_gate_is_off.md`.
 2. Gate removed while the lock of left-alone settings records it: fixed (removal judged on the lock written).
 3. Worktrees share the hooks: not fixed, as the install already does; non-goal in `specs/sync.md`.
 4. Removal before a failing write: fixed (removed after the lock is written).

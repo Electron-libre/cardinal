@@ -40,7 +40,7 @@ optional, or drop it), and the issues that carry it out if any.
   | `files/.github/workflows/cardinal.yml` | installs `just` for `check-specs`, `check-commits` | `cardinal run` (the install step goes) |
   | Docs | `tutorial` 22, `usage` 16, `workflow` 13, `architecture` 7, `README` 5, `gates` 3; specs 36 lines | rewritten; ADR 0001 and 0010 state that a consumer needs `just` |
 
-* Consumers today: `cardinal` and `RetroDoc`, both with a `justfile`; nobody is blocked.
+* Consumers today: this repository and one other project, both with a `justfile`; nobody is blocked.
 * Fixed context: `cardinal run <tool>` is 9 bytes longer than `just <tool>`; ~40 mentions add ~0.4 KB to bodies loaded on
   call only (the skill descriptions, the fixed part, name no recipe).
 * Estimated cost of making `just` optional: ~600–900 changed lines in 3 issues (skills + messages + CI; `check_command`
@@ -103,8 +103,8 @@ decides; out of scope: carrying it out here. When the proposal changes ADR 0001/
 1. [x] Proposal: the candidates weighed (cost, context, deny rules, transcript series, migration, what a project loses)
    and the recommendation, in a `## Proposal` of this issue, plus an ADR draft in `docs/adr/` when the choice changes
    a decision; verified by `just check` (the ADR index, the links). (autonomous)
-2. [ ] The follow-up issues of the chosen option (`skill:create-issue`), with their `priority` and `depends_on`;
-   verified by `just check-issue` on each and `just next-issue`.
+2. [x] The follow-up issues of the chosen option (`skill:create-issue`), with their `priority` and `depends_on`;
+   verified by `just check-issue` on each and `just next-issue`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -124,3 +124,18 @@ done: the candidates weighed in `# Proposal`, ADR 0028 (Proposed) and its index 
 red: none (a proposal, no test)
 Code review: no findings
 not verified: the line estimates of option a (measured by grep, not by a prototype)
+
+## Summary of deliverable 2
+done: three issues, `run_the_project_check_through_cardinal`, `waive_the_review_through_cardinal` and
+`name_cardinal_run_in_the_managed_content` (the last depends on the first two), all `low`, no milestone; the
+private project named in the Findings replaced by a generic mention.
+
+| check | result |
+|---|---|
+| `just check-issue` | pass on each |
+| `just next-issue` | lists the first two, the third blocked by them |
+| code review | n/a: a diff under `issues/` only |
+
+red: none (issues only)
+Code review: no findings
+not verified: nothing

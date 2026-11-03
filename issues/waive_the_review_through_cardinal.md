@@ -32,4 +32,6 @@ without `just` can still waive a review (ADR 0028).
 * `cardinal-review.just`, `crates/cardinal/src/settings.rs`, `crates/cardinal/src/tools/rule_breaches.rs`.
 
 # Hints
-* A deny rule matches the command text: without its own rule, the agent can run the new command.
+* A deny rule matches the command text: without its own rule, the agent can run the new command, which the managed
+  allow rule `Bash(cardinal run *)` approves with no prompt; declare both the bare and the `*` form.
+* With the feature `review-gate` off, the tool must refuse or be absent, as its deny rules are not synced.

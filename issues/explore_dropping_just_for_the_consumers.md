@@ -84,12 +84,14 @@ Measure first, then propose; nothing is decided here.
 | c. Drop `just` everywhere | a + deleting the recipes | as a | as a | as a, plus the removed recipe files | `just --list`, the recipes it already uses |
 
 Option a, in [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md):
-- `cardinal run check` runs the `check_command` of `[project]` (the project's format, lint and tests), then
-  `check-specs` when the feature `specs` is on: the one entry point, with no recipe.
+- `cardinal run project-check` runs the `check_command` of `[project]` (the project's format, lint and tests), then
+  `check-specs` when the feature `specs` is on, and fails when `check_command` is unset: the one entry point, with no
+  recipe, named apart from `cardinal check` (the drift check).
 - `cardinal run waive-review` creates the waiver; deny rules on `cardinal run waive-review[ *]` next to the `just`
   ones, and `rule-breaches` reads both forms.
 - The skills, `specs/README.md`, the tool messages and the CI name `cardinal run <tool>`; `cardinal*.just` stay as
-  thin aliases; `delivered-quality` counts `cardinal run check*` as well as `just check*` / `just test*`.
+  thin aliases (`commit-check` reads a revision itself for `check-commit`); `delivered-quality` counts
+  `cardinal run project-check` as well as `just check*` / `just test*`.
 
 # Tracking
 
@@ -137,5 +139,22 @@ private project named in the Findings replaced by a generic mention.
 | code review | n/a: a diff under `issues/` only |
 
 red: none (issues only)
+Code review: no findings
+not verified: nothing
+3. [x] Fixes of the `high` review of the issue: `cardinal run project-check` (named apart from `cardinal check`,
+   fails with no `check_command`, specs only with the feature on), the waiver deny rules against the allow rule
+   `Bash(cardinal run *)`, `check-commit` not a bare alias, a narrower consequence on `delivered-quality`, 0001 and
+   0010 partly superseded once accepted; in ADR 0028, the proposal and the follow-up issues. (autonomous)
+
+## Summary of deliverable 3
+done: the 7 findings of the `high` review fixed in ADR 0028, `# Proposal` and the three follow-up issues.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| `just check-issue` | pass on the three issues |
+| code review (low) | pass |
+
+red: none (docs only)
 Code review: no findings
 not verified: nothing

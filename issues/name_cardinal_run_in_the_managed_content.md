@@ -18,7 +18,8 @@ README, the messages of the tools, the CI and the docs name `cardinal run <tool>
 
 # Approach
 1. The managed content and the messages name `cardinal run <tool>` (`cardinal check` for `check-cardinal`); the
-   recipes of `cardinal*.just` stay as aliases.
+   recipes of `cardinal*.just` stay as aliases. `check-commit` pipes `git log -1 --format=%B <rev>` into
+   `commit-check`: let `commit-check` read a revision so the skills can name it alone.
 2. The CI runs `cardinal run check-specs` and `cardinal run check-commits` and stops installing `just`.
 3. `rule-breaches` BRE-16 already reads `run <checker>`: check the other readers match both forms.
 4. Raise `cardinal-format` and `FORMAT` with a `migrations/<n>.toml` naming the replaced commands (ADR 0014,

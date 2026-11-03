@@ -1005,7 +1005,7 @@ fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
         ("cardinal-commits.just", &["check-commit", "check-commits"]),
         (
             "cardinal-issues.just",
-            &["next-issue", "close-issue", "check-issue"],
+            &["next-issue", "close-issue", "check-issue", "roadmap"],
         ),
         ("cardinal-specs.just", &["check-specs", "spec-coverage"]),
         ("cardinal-review.just", &["waive-review"]),

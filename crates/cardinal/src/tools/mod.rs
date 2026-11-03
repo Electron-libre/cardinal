@@ -27,6 +27,7 @@ mod repo_files;
 mod review_gate;
 mod review_target;
 mod roadmap;
+mod roadmap_state;
 mod rule_breaches;
 mod session_metrics;
 mod shell;
@@ -145,6 +146,11 @@ pub const TOOLS: &[Tool] = &[
         name: "review-target",
         about: "[<base>]: the target of a code review, without the issue files and the managed copies",
         main: review_target::main,
+    },
+    Tool {
+        name: "roadmap",
+        about: "[--open]: the milestones of the roadmap documents, their state, release and open issues",
+        main: roadmap_state::main,
     },
     Tool {
         name: "rule-breaches",

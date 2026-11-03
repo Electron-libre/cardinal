@@ -34,6 +34,11 @@ the project points its key at it by hand. The seeded `roadmap_archive` names `RO
 too: `release` moves the released milestones there, so `ROADMAP.md` keeps only the ones still to land; a project
 without the key keeps them where they are.
 
+`just roadmap` (`cardinal run roadmap`, [specs/roadmap.md](../specs/roadmap.md)) prints the milestones of the `roadmap`
+documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state), the
+`Released:` version, the open issues over the listed ones (a link to an existing file of `issues/done/` counts closed)
+and the document; `--open` hides the released ones. It writes nothing.
+
 The seeded `user_language` is the default language of the conversation. Each person may set their own in a
 `[project]` table of `.claude/cardinal.local.toml`, which the managed `.claude/.gitignore` keeps out of git: the
 `language-hint` hook, rule `user-language` of `rule-breaches` and the skills read it first, and `open-worktree`
@@ -80,7 +85,7 @@ names both, and turning both off is accepted.
 | `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts the user settings keep |
 | `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
-| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
+| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`, `roadmap`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
 | `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI and the seeded `check` skip `check-specs` without `cardinal-specs.just`. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
 | `workspace-lock` | the three hooks of the worktree lock, for a user who never runs two sessions in one worktree: the hook call of each tool call goes; `issue-claim` stays, so `next-issue` still skips an issue another worktree works |
 

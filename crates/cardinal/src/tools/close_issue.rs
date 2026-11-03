@@ -325,6 +325,35 @@ pub(super) fn rewritten(
     }
 }
 
+/// The issues the `Issues:` list `list` of a milestone of the roadmap document `path` (components from the root)
+/// links, as components from the root: its link targets resolved against the directory of the document that fall
+/// under the `issues` directory; a URL, an anchor or another document is no issue (CLS-8, RMP-2).
+pub(super) fn listed_issues(path: &[String], list: &str, issues: &[String]) -> Vec<RepoPath> {
+    let dir = &path[..path.len().saturating_sub(1)];
+    link_targets(list)
+        .into_iter()
+        .filter_map(|span| {
+            let target = &list[span];
+            if target.starts_with(['/', '#']) || target.contains(':') {
+                return None;
+            }
+            resolve(
+                dir,
+                &target[..target.find(['#', '?']).unwrap_or(target.len())],
+            )
+        })
+        .filter(|p| p.starts_with(issues))
+        .collect()
+}
+
+/// The stem of `path` when it is a file directly under `done/` of the `issues` directory.
+pub(super) fn done_stem(issues: &[String], path: &[String]) -> Option<String> {
+    match path.strip_prefix(issues)? {
+        [done, name] if done == "done" => name.strip_suffix(".md").map(str::to_string),
+        _ => None,
+    }
+}
+
 /// The roadmap `text` of the document `path` (components from the root) with `done` on the `State:` line of each
 /// milestone (`roadmap`) that is `in issues`, whose `Issues:` list links one of the `closed` issues of
 /// `issues/done/` and whose every link to the `issues` directory designates a file of `issues/done/` that `exists`
@@ -337,38 +366,17 @@ pub(super) fn milestones_done(
     closed: &HashSet<String>,
     exists: impl Fn(&[String]) -> bool,
 ) -> (String, Vec<String>) {
-    let dir = &path[..path.len().saturating_sub(1)];
-    let mut done_dir = issues.to_vec();
-    done_dir.push("done".to_string());
-    // the stem of a file directly under `issues/done/`
-    let done_stem = |p: &RepoPath| match p.strip_prefix(done_dir.as_slice()) {
-        Some([name]) => name.strip_suffix(".md").map(str::to_string),
-        _ => None,
-    };
     let lines: Vec<&str> = text.split_inclusive('\n').collect();
     let mut set = Vec::new();
     for milestone in roadmap::milestones(&lines) {
-        let list = milestone.issues(&lines);
-        // the links of the list to the issues directory; a URL, an anchor or another document is no issue
-        let listed: Vec<RepoPath> = link_targets(&list)
-            .into_iter()
-            .filter_map(|span| {
-                let target = &list[span];
-                if target.starts_with(['/', '#']) || target.contains(':') {
-                    return None;
-                }
-                resolve(
-                    dir,
-                    &target[..target.find(['#', '?']).unwrap_or(target.len())],
-                )
-            })
-            .filter(|p| p.starts_with(issues))
-            .collect();
+        let listed = listed_issues(path, &milestone.issues(&lines), issues);
         let state = milestone.state_line(&lines, "in issues").filter(|_| {
             listed
                 .iter()
-                .any(|p| done_stem(p).is_some_and(|s| closed.contains(&s)))
-                && listed.iter().all(|p| done_stem(p).is_some() && exists(p))
+                .any(|p| done_stem(issues, p).is_some_and(|s| closed.contains(&s)))
+                && listed
+                    .iter()
+                    .all(|p| done_stem(issues, p).is_some() && exists(p))
         });
         if let Some(at) = state {
             set.push((at, milestone.name));

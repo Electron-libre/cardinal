@@ -34,3 +34,32 @@ milestones of the `roadmap` documents in their order: name, state, release, issu
 * Reuse the link resolution of `close-issue` rather than a second one, so both count a closed issue the same way.
 * Works with an archive document too ([archive_the_released_milestones](done/archive_the_released_milestones.md)): read
   every `roadmap` document in order.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+A read-only `cardinal run roadmap` (`just roadmap`) prints one table row per milestone of the `roadmap` documents:
+name, state, release, open/listed issues, document; `--open` hides the released ones. Checking the roadmap is out of
+scope. The links of an `Issues:` list are resolved by a function shared with CLS-8.
+
+## Plan
+1. [x] Roadmap table: `specs/roadmap.md`, `crates/cardinal/src/tools/roadmap_state.rs` (the tool `roadmap`), the
+   listed-issue resolution taken out of `close_issue::milestones_done` and shared, the recipe in
+   `files/cardinal-issues.just`, `docs/usage.md`; verified by `crates/cardinal/tests/roadmap.rs` through the binary;
+   makes true RMP-1 to RMP-5. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: b4e64925dfd7679af97d65f2fc068291fd712572
+- Default: every milestone; `--open` hides the released ones (RMP-4).
+
+## Deliverable 1 summary
+- done: `cardinal run roadmap [--open]` and `just roadmap` print the milestone table; `close-issue` and `roadmap` share
+  `listed_issues` and `done_stem`; `specs/roadmap.md` accepted.
+- checks: `just check` green; deliverable size 338 lines.
+- red: RMP-1, RMP-2, RMP-3, RMP-4, RMP-5: `left: (Some(3), "")` `right: (Some(0), "No milestone.\n")` (unknown tool).
+- Code review: no findings
+- not verified: none
+- decisions needed: none

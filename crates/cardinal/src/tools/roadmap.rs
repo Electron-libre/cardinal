@@ -104,6 +104,15 @@ impl Milestone {
         })
     }
 
+    /// The value of its first field `key` (`State:`), trimmed.
+    pub(super) fn field(&self, lines: &[&str], key: &str) -> Option<String> {
+        self.body
+            .iter()
+            .find(|&&i| is_field(lines[i], key))
+            .and_then(|&i| lines[i].split_once(':'))
+            .map(|(_, v)| v.trim().to_string())
+    }
+
     /// The indented lines of its `Issues:` list, joined.
     pub(super) fn issues(&self, lines: &[&str]) -> String {
         self.body

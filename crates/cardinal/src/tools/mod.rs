@@ -321,6 +321,22 @@ impl Declared {
     }
 }
 
+/// The value of `key` in the `[project]` table of `.claude/cardinal.toml`, if any.
+fn project_value(root: &Path, key: &str) -> Option<toml::Value> {
+    let text = std::fs::read_to_string(crate::config_of(root)).ok()?;
+    let table: toml::Table = text.parse().ok()?;
+    table.get("project")?.get(key).cloned()
+}
+
+/// The string `key` of the `[project]` table, trimmed, if any and not blank.
+fn project_str(root: &Path, key: &str) -> Option<String> {
+    project_value(root, key)?
+        .as_str()
+        .map(str::trim)
+        .filter(|c| !c.is_empty())
+        .map(String::from)
+}
+
 /// Strings of `key = ["a", "b"]` in the `[project]` table of the configuration (`crate::config_of`); empty when the key is absent.
 fn config_list(root: &Path, key: &str) -> Result<Vec<String>, String> {
     let path = crate::config_of(root);

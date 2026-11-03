@@ -4,26 +4,15 @@
 //! check command is declared. Spec: `specs/project-check.md`.
 
 use std::io::Write;
-use std::path::Path;
 use std::process::Command;
 
-use super::{check_specs, repo_root};
+use super::{check_specs, project_str, repo_root};
 use crate::features;
 
 const USAGE: &str = "usage: cardinal run project-check";
 const UNSET: &str =
     "project-check: declare the project's check (format, lint, tests) as `check_command` in \
                      [project] of .claude/cardinal.toml";
-
-/// The non-blank string `check_command` of the `[project]` table of the configuration of `root`, if any (PCK-2).
-fn check_command(root: &Path) -> Option<String> {
-    let table: toml::Table = std::fs::read_to_string(crate::config_of(root))
-        .ok()?
-        .parse()
-        .ok()?;
-    let command = table.get("project")?.get("check_command")?.as_str()?.trim();
-    (!command.is_empty()).then(|| command.to_string())
-}
 
 pub(super) fn main(args: &[String]) -> u8 {
     if !args.is_empty() {
@@ -37,7 +26,7 @@ pub(super) fn main(args: &[String]) -> u8 {
             return 1;
         }
     };
-    let Some(command) = check_command(&root) else {
+    let Some(command) = project_str(&root, "check_command") else {
         eprintln!("{UNSET}");
         return 1;
     };

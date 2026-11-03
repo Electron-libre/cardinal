@@ -10,8 +10,8 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use super::roadmap;
 use super::transcripts::commit_config;
+use super::{project_str, roadmap};
 use crate::features;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
@@ -485,21 +485,6 @@ fn insert(text: &str, new: &str) -> String {
     }
     let sep = if text.ends_with('\n') { "\n" } else { "\n\n" };
     format!("{text}{sep}{new}")
-}
-
-/// The value of `key` in the `[project]` table of `.claude/cardinal.toml`, if any.
-fn project_value(root: &Path, key: &str) -> Option<toml::Value> {
-    let text = std::fs::read_to_string(crate::config_of(root)).ok()?;
-    let table: toml::Table = text.parse().ok()?;
-    table.get("project")?.get(key).cloned()
-}
-
-fn project_str(root: &Path, key: &str) -> Option<String> {
-    project_value(root, key)?
-        .as_str()
-        .map(str::trim)
-        .filter(|c| !c.is_empty())
-        .map(String::from)
 }
 
 /// The output of `git <args>` in `root`, or its error.

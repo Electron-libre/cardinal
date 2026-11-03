@@ -17,7 +17,7 @@ says nothing when the check passes, and it never passes when no test ran.
 - **PCK-1** (deterministic) The tool must read the check command from the string `check_command` of the `[project]` table of the `.claude/cardinal.toml` at the root of the work tree holding the current directory, and run it with `sh -c` from that root.
 - **PCK-2** (deterministic) When `check_command` is absent, blank or not a string, or the configuration is missing or does not parse, the tool must exit 1 without running anything and write to stderr one line naming `check_command` and `[project]` of `.claude/cardinal.toml`.
 - **PCK-3** (deterministic) When the check command exits 0, the tool must print nothing of its output; when it fails, exit 1, write its standard output then its standard error, whole, and run nothing after it.
-- **PCK-4** (deterministic) After a passing check command, the tool must run the spec check of `check-specs` (lenient, at that root) when the project does not turn off the feature `specs` (FEA), printing only its problems and exiting 1 when it finds any; with `specs` turned off, it exits 0 without it.
+- **PCK-4** (deterministic) After a passing check command, the tool must run the spec check of `check-specs` (lenient, at that root) when the project does not turn off the feature `specs` (FEA), printing its problems to stdout (its warnings to stderr, as `check-specs` does: they name work left even when the check passes) and exiting 1 when it finds any; with `specs` turned off, it exits 0 without it.
 - **PCK-5** (deterministic) The tool must take no argument: given one, it exits 2 with its usage on stderr, running nothing.
 
 ## Scenarios

@@ -58,6 +58,9 @@ its own `check` recipe (strict specs).
    makes true PCK-1 to PCK-5 (spec `accepted`).
 2. [x] `delivered-quality` counts `cardinal run project-check`: `is_check` reads both forms, not `cardinal check`;
    verified by a test of a failed `cardinal run project-check` in a transcript; makes true QUA-8 (amended). (autonomous)
+3. [x] Fixes of the `high` review of the issue: `docs/tutorial.md` names `check_command`; PCK-4 states the warnings of
+   `check-specs`; `is_check` reads `cardinal` named by its path; `project_str` shared by `release` and
+   `project-check`; verified by `just check`; makes true QUA-8. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -75,5 +78,17 @@ its own `check` recipe (strict specs).
 - done: `delivered-quality` counts a failed `cardinal run project-check` as a failed check, not `cardinal check`;
   QUA-8 amended; docs n/a (`docs/usage.md` and `docs/evaluation.md` name the column, not the commands).
 - red: QUA-8: `FAIL - the failed checks of its span, through just or cardinal run project-check, are counted` (3, not 4)
+- Code review: no findings
+- not verified: none.
+
+## Deliverable 3
+- done: the fixes of the `high` review of `3e91428..107b696`.
+- red: QUA-8: a failed `~/.cargo/bin/cardinal run project-check` was not counted (`failed_checks` 3, not 4)
+- High review: 9 findings; fixed: the warnings of `check-specs` on success (PCK-4 now states them: they name work left),
+  the tutorial, the path-qualified `cardinal`, the copy of `project_str`. Not fixed: the output held until the check
+  exits (being quiet on success needs it, as the `test` recipe of this repository); `just check-cardinal` counted
+  (QUA-8 as before, out of scope); `cargo run -p cardinal -- run project-check` uncounted (this repository's own
+  form, it keeps `just check`); the config parsed twice (negligible); FEA-33 tested on unix only (a fake `cardinal`
+  script); ADR 0028 still `Proposed` (its acceptance is the user's).
 - Code review: no findings
 - not verified: none.

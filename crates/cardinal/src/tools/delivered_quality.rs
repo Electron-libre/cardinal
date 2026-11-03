@@ -619,9 +619,9 @@ fn is_check(command: &str) -> bool {
     let just =
         |w: &[&str]| w[0] == "just" && (w[1].starts_with("check") || w[1].starts_with("test"));
     words.windows(2).any(just)
-        || words
-            .windows(3)
-            .any(|w| w == ["cardinal", "run", "project-check"])
+        || words.windows(3).any(|w| {
+            w[0].rsplit('/').next() == Some("cardinal") && w[1..] == ["run", "project-check"]
+        })
 }
 
 /// The model Claude Code names on the line it writes for a failed request: no model worked on it.

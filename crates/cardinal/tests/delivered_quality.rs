@@ -905,7 +905,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             &repo,
             "2026-01-03T03:40",
             "a7",
-            "cardinal run project-check",
+            "cd x && ~/.cargo/bin/cardinal run project-check",
             true,
         ),
         bash(&repo, "2026-01-03T03:45", "a8", "cardinal check", true),

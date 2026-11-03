@@ -66,6 +66,7 @@ Edit the `[project]` table of `.claude/cardinal.toml` (seeded, yours). The keys 
 | Key | Set it to |
 |---|---|
 | `user_language` | the language the agent talks to you in (`"French"`); docs, code and issues keep the project's |
+| `check_command` | the project's format, lint and tests, quiet on success: `cardinal run project-check` (the seeded `just check`) runs it before each review, then the specs, and fails while it is unset |
 | `lint_command`, `lint_files` | the project's lint, run before the agent ends a turn (default: `cargo clippy` over `.rs` files; `""` turns it off) |
 | `format_command`, `format_files` | the formatter run after each edit (default: `cargo fmt` for a `.rs` file) |
 | `commit_scopes` | the scopes allowed in commit messages, besides `docs` and `cardinal` |
@@ -73,8 +74,7 @@ Edit the `[project]` table of `.claude/cardinal.toml` (seeded, yours). The keys 
 
 A personal override (your own `user_language`) goes in `.claude/cardinal.local.toml`, which git ignores.
 
-Then fill the `check` recipe of the seeded `justfile` with the project's format, lint and tests, above the last line:
-the agent runs `just check` before each review. Add the commands of your stack to the `allow` rules of
+Add the commands of your stack to the `allow` rules of
 `.claude/settings.json` (`npm test`…), or run them through `just`, which is allowed already.
 
 A feature you don't want (the GitHub CI, the specs, the issue files…) goes in `disabled` of the `[cardinal]` table;

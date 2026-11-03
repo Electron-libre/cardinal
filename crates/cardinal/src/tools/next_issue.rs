@@ -8,7 +8,7 @@
 //! comes from git alone, so every worktree sees it.
 //! An issue is also taken by its claim (`issue_claim.rs`, ADR 0022): `working`, listed with its worktree, or `merge
 //! pending`, listed with its branch until the trunk holds the closed issue, when the claim is dropped.
-//! Usage: `just next-issue` (from the repo root, or pass the `issues` directory as argument).
+//! Usage: `cardinal run next-issue` (from the repo root, or pass the `issues` directory as argument).
 
 use std::path::Path;
 use std::process::Command;
@@ -524,7 +524,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     for e in &queue.entries {
         if stale(&e.stem) {
-            println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `just close-worktree {0}`)", e.stem);
+            println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `cardinal run worktree close {0}`)", e.stem);
         }
     }
     std::process::exit(i32::from(queue.drift));

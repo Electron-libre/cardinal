@@ -1,6 +1,6 @@
 //! The test files that cite no requirement of an `accepted` spec, largest first, to rank the capabilities worth a
 //! spec read back from their code and tests (`skill:write-spec`).
-//! Usage: `just spec-coverage` (from the repo root; an optional argument is another root). Prints `<lines>\t<path>`
+//! Usage: `cardinal run spec-coverage` (from the repo root; an optional argument is another root). Prints `<lines>\t<path>`
 //! per file and exits 0: a report, not a check (COV-8); it exits 1 only when git cannot list the files (COV-10). The
 //! files and citations are those `check-specs` reads.
 

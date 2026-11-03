@@ -9,7 +9,7 @@
 //! issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge brings the
 //! close to the trunk. Sets `done` the milestones of the roadmap whose last open issue it closed (CLS-8). Ends on the
 //! issue `next-issue` then offers.
-//! Usage: `just close-issue issues/foo.md`; `just close-issue --relink` fixes the references to
+//! Usage: `cardinal run close-issue issues/foo.md`; `cardinal run close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
 use super::{issue_claim, repo_files, roadmap};
@@ -78,7 +78,7 @@ fn text_files(root: &Path, skipped: &[String]) -> Vec<std::path::PathBuf> {
         Ok(None) => vec![],
         Err(e) => {
             eprintln!(
-                "{e}\nreferences were not updated: fix git, then run `just close-issue --relink`"
+                "{e}\nreferences were not updated: fix git, then run `cardinal run close-issue --relink`"
             );
             std::process::exit(1);
         }
@@ -603,7 +603,7 @@ fn under(root: &Path, dir: &Path) -> RepoPath {
     });
     relative.unwrap_or_else(|| {
         eprintln!(
-            "{} is not under {}: references were not updated, run `just close-issue --relink` once fixed",
+            "{} is not under {}: references were not updated, run `cardinal run close-issue --relink` once fixed",
             dir.display(),
             root.display()
         );

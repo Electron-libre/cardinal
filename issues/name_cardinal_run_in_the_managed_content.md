@@ -78,3 +78,18 @@ done: `commit-check [<rev>]` checks the message of a revision (else stdin), `che
 red: CMC-1, CMC-2, CMC-3: `the message of HEAD, not stdin: left: 0 right: 1`; `left: (1, "format must be …") right: (2, "")`
 Code review: no findings
 not verified: nothing
+
+## Summary of deliverable 2
+done: the skills, `specs/README.md`, the CI (no `just` install), the tool messages and doc comments, the seeds and
+the `CHANGELOG.md` header name `cardinal run <tool>`; format 9 with `migrations/9.toml`; this repository and the replay
+fixture set `check_command = "just check"`; FEA-32 names `cardinal run check-specs`.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| `cardinal run project-check` here | pass |
+| deliverable size | 267 lines, within |
+| docs | specs FEA-32, BIN-8 amended; the docs pages in deliverable 3 |
+| code review (low) | see below |
+
+red: BIN-8: `files/.claude/skills/commit-message/SKILL.md names `just check-commit`: name `cardinal run <tool>``

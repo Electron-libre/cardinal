@@ -253,7 +253,7 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "write-spec",
-        "just spec-coverage",
+        "cardinal run spec-coverage",
         "the bootstrap of a spec starts from the report of the uncovered test files",
     ),
     (
@@ -963,20 +963,20 @@ fn the_seeded_check_runs_the_project_check() {
 }
 
 // spec: FEA-32
-/// The CI step of the specs runs `just check-specs` only when the project has `cardinal-specs.just`.
+/// The CI step of the specs runs `cardinal run check-specs` only when the project has `cardinal-specs.just`.
 #[test]
 fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
     let workflow =
         fs::read_to_string(repo_root().join("files/.github/workflows/cardinal.yml")).unwrap();
     let line = workflow
         .lines()
-        .find(|l| l.contains("just check-specs"))
-        .expect("the CI runs just check-specs");
+        .find(|l| l.contains("cardinal run check-specs"))
+        .expect("the CI runs cardinal run check-specs");
     let guard = "if [ ! -f cardinal-specs.just ]; then echo";
     let (before, after) = line.split_once(guard).expect(line);
-    assert!(!before.contains("just check-specs"), "{line}");
+    assert!(!before.contains("cardinal run check-specs"), "{line}");
     assert!(
-        after.contains("elif") && after.contains("then just check-specs"),
+        after.contains("elif") && after.contains("then cardinal run check-specs"),
         "{line}"
     );
 }

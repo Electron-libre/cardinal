@@ -1,0 +1,10 @@
+# The format 9 names the tools through `cardinal run`, so a consumer needs only `cardinal` (ADR 0028): the skills run
+# `cardinal run project-check`, which runs the `check_command` of `[project]`, where they ran the `check` recipe.
+names = [
+  { old = "`just check`", new = "`cardinal run project-check` (set `check_command` in `[project]` of `.claude/cardinal.toml`)" },
+]
+rewrite = [
+  { path = "ROADMAP.md", old = "A milestone becomes issues once it is shaped (`skill:create-issue`); the `priority` and `depends_on` of each issue file order them within a milestone (`just next-issue`).", new = "A milestone becomes issues once it is shaped (`skill:create-issue`); the `priority` and `depends_on` of each issue file order them within a milestone (`cardinal run next-issue`)." },
+  { path = "ROADMAP.md", old = "States: `idea`, `shaped`, `in issues`, `done` (set by `just close-issue` when the last issue of an `in issues` one closes); `just release` adds `- Released: v<version>` to a `done` one and moves it to `ROADMAP-done.md` (`roadmap_archive`). A milestone carries no date unless the project gives it one. `just roadmap` prints the state of every milestone.", new = "States: `idea`, `shaped`, `in issues`, `done` (set by `cardinal run close-issue` when the last issue of an `in issues` one closes); `cardinal run release` adds `- Released: v<version>` to a `done` one and moves it to `ROADMAP-done.md` (`roadmap_archive`). A milestone carries no date unless the project gives it one. `cardinal run roadmap` prints the state of every milestone." },
+  { path = "CHANGELOG.md", old = "[Semantic Versioning](https://semver.org/)). Each section is written by `just release <version>` from the commits,", new = "[Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits," },
+]

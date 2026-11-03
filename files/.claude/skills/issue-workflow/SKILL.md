@@ -12,7 +12,7 @@ Handed the next few issues of the queue to chain, follow [details.md](details.md
 ## 0. Resume or start
 
 **Work where the session was started**: the main worktree, or a worktree the user opened on the branch they picked.
-Never create, enter or leave a worktree yourself (no `just open-worktree`, no `EnterWorktree`). In a linked worktree,
+Never create, enter or leave a worktree yourself (no `cardinal run worktree open`, no `EnterWorktree`). In a linked worktree,
 never redirect to the main one (`git -C`, its paths). **Claim the issue first**: `cardinal run issue-claim
 issues/<name>.md`; when it refuses (another session's claim, uncommitted changes), or the worktree lock refuses your
 commands (another session works in this worktree), stop and tell the user what it names. In the main worktree, also
@@ -75,7 +75,7 @@ Show, and nothing else:
 - The questions you can't answer from the repo, if any, as a table `# | question | options | why | impact`: questions
   numbered `1`, `2`…, options lettered `a`, `b`… with the recommended one marked, so the user answers `1 a, 2 c` (a bare
   `ok` takes every recommendation). Don't ask what has a conventional default. The details stay in the files. Each
-  `[NEEDS CLARIFICATION: ...]` marker of the spec (warned of by `just check-specs`) is one row; the answer replaces
+  `[NEEDS CLARIFICATION: ...]` marker of the spec (warned of by `cardinal run check-specs`) is one row; the answer replaces
   the marker in the spec.
 - One line: the mode of step 3, **autonomous (default)** or a validation at each deliverable.
 - When the plan exceeds the size limit: the proposed cuts (issue, deliverables, estimated lines), as a question.
@@ -100,14 +100,14 @@ nothing: the agent reads that identity too. The spec file is the record of the r
 4. **Docs**: run `skill:update-docs` (it covers the specs). If the change is an architectural decision, also write or finish its ADR in
    `docs/adr/` (template and numbering in `docs/adr/README.md`) and update the
    diagrams in the `architecture` document of `.claude/cardinal.toml` when the flow changed.
-5. **Review (mandatory)**: run `just check` (the project's format, lint and tests, and the specs); when `cardinal run deliverable-size`
+5. **Review (mandatory)**: run `cardinal run project-check` (the project's format, lint and tests, and the specs); when `cardinal run deliverable-size`
    exits 1 (over the limit of a deliverable), cut the deliverable before the review; then **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
    `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level; it
    refuses an untracked file, which `git diff` leaves out: mark it intent-to-add with the `git add -N` it prints),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say
    why one is not fixed; a finding outside the requirements of the deliverable becomes an issue
    (`skill:create-issue`), not a fix in this deliverable.
-   Re-run `just check` after the fixes.
+   Re-run `cardinal run project-check` after the fixes.
    The native `pre-commit` hook (`cardinal run review-gate native`) enforces it: `git commit` fails while the diff holds a file
    the last review never saw, so write the tracking and the summary of steps 6 and 7 in the issue **before**
    the review, all but the signature of step 7, which waits for the validation of step 6 (fixes to reviewed files pass; a diff under `issues/` only, or the close of an issue with the references and the milestone state `close-issue` rewrote, needs no review). Only the user can
@@ -161,16 +161,16 @@ then consult once more to reconcile. The advisor never replaces a review or a st
 
 ## Merge back
 
-On the trunk (the branch of the main worktree), the issue is closed as the Rules below say (`just close-issue`). On
+On the trunk (the branch of the main worktree), the issue is closed as the Rules below say (`cardinal run close-issue`). On
 another branch the merge is the host's: on the user's agreement to close, follow [details.md](details.md), "Merge
 back" (close on the branch, push it, open or update its pull request).
 
 ## Rules
 
-- After a `cardinal sync` that adds a hook, run `just check-cardinal` at once and the install it prints: the
+- After a `cardinal sync` that adds a hook, run `cardinal check` at once and the install it prints: the
   live hooks call the installed `cardinal`, and one it refuses blocks every command, the install included.
 - When the issue is fully done, mark it in the issue and say what, if anything, remains. Then **ask the
-  user whether to close it** (on a branch other than the trunk, see "Merge back"); on their agreement run `just close-issue issues/<name>.md` (moves it to
+  user whether to close it** (on a branch other than the trunk, see "Merge back"); on their agreement run `cardinal run close-issue issues/<name>.md` (moves it to
   `issues/done/` and rewrites `issues/<name>.md` to
   `issues/done/<name>.md` in every other document that cites it, relative Markdown links included) and stages the
   move and those edits; commit the close on its own with a bare `git commit` and a message from `skill:commit-message`, never a `git add` of the old path, which
@@ -179,12 +179,12 @@ back" (close on the branch, push it, open or update its pull request).
   `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
   `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
   the user (`cardinal run release` with no argument prints the version it would number, without a prompt in auto
-  mode; not `just release`, a recipe the project may redefine) and stop: theirs to validate. On their go, run
+  mode) and stop: theirs to validate. On their go, run
   `cardinal run release <version>` (a permission prompt, also in auto mode), let them reread the section, commit it
   after its `low` review (the gate asks for it), then run `cardinal run release <version> --tag`; they push.
   The report of the close ends on a Markdown link to the next issue `close-issue` printed
   (`[<title>](issues/<stem>.md)`), or on its line saying there is none.
-- To know which issue comes next, run `just next-issue` (the first ready issue, its `depends_on` all done, that
+- To know which issue comes next, run `cardinal run next-issue` (the first ready issue, its `depends_on` all done, that
   no claim, branch or worktree has taken) instead of reading the issue files. An issue is taken when a session claimed
   it, a branch named after its stem exists or a worktree has it checked out, and stays so while its close waits for a
   merge (`Merge pending:`); never start a taken or a `Blocked:` one, `Every open issue is taken.`

@@ -536,7 +536,7 @@ fn every_tool_the_shared_harness_runs_exists() {
         for (at, _) in text.match_indices("cardinal run ") {
             let rest = &text[at + "cardinal run ".len()..];
             let name = rest.split_whitespace().next().unwrap_or("");
-            let name = name.trim_end_matches(['"', '`', ')', ',', ';']);
+            let name = name.trim_end_matches(['"', '`', ')', ',', ';', ':', '.']);
             // a placeholder, or the wildcard of an allow rule
             if name.is_empty() || name.starts_with('<') || name == "*" {
                 continue;
@@ -550,6 +550,40 @@ fn every_tool_the_shared_harness_runs_exists() {
         }
     }
     assert!(runs > 0, "no `cardinal run` found: the scan is broken");
+}
+
+// spec: BIN-8
+#[test]
+fn the_managed_content_names_no_just_recipe_outside_the_just_files() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let (recipes, others): (Vec<_>, Vec<_>) = files_under(&repo.join("files"))
+        .into_iter()
+        .partition(|p| p.extension().is_some_and(|e| e == "just"));
+    // `check`, the recipe of the seeded justfile, and the recipes the `.just` files of `files/` declare
+    let mut names = vec!["check".to_string()];
+    for path in &recipes {
+        let text = fs::read_to_string(path).unwrap();
+        names.extend(text.lines().filter_map(|l| {
+            let name = l.split([' ', ':']).next()?;
+            let declares = !name.is_empty() && !l.starts_with(['#', ' ', '[', '@']);
+            (declares && !l.starts_with("import")).then(|| name.to_string())
+        }));
+    }
+    assert!(names.len() > 5, "no recipe found: the scan is broken");
+    for path in others {
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        for (at, _) in text.match_indices("just ") {
+            let word = text[at + "just ".len()..]
+                .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
+                .next()
+                .unwrap_or("");
+            assert!(
+                !names.iter().any(|n| n == word),
+                "{} names `just {word}`: name `cardinal run <tool>`",
+                path.display()
+            );
+        }
+    }
 }
 
 // spec: BIN-8

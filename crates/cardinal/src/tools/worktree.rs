@@ -10,7 +10,7 @@
 //! worktree the former `start-issue` left under `<main worktree>/.claude/worktrees/`, then the worktree of the branch
 //! `<name>`, then that branch checked out nowhere. `open` runs from any worktree; `close` too, except from inside the
 //! worktree it would remove (it refuses and names the main worktree, `--force` or not).
-//! Usage: `just open-worktree foo`, `just close-worktree foo` (`just close-worktree foo --force`).
+//! Usage: `cardinal run worktree open foo`, `cardinal run worktree close foo` (`... --force`).
 
 use std::path::{Path, PathBuf};
 use std::process::Command;

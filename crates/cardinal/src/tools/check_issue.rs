@@ -1,6 +1,6 @@
 //! Validate a new issue file against the template of `skill:create-issue`, its `priority` and `depends_on` included
 //! (`specs/check-issue.md`).
-//! Usage: `just check-issue issues/foo.md`. Prints one line per problem, exit 1 if any.
+//! Usage: `cardinal run check-issue issues/foo.md`. Prints one line per problem, exit 1 if any.
 
 use crate::features;
 use std::path::Path;

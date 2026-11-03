@@ -25,7 +25,7 @@ skipped_dirs = []
 # absent), with that file as last argument, from the root of the work tree; without it, `cargo fmt` for a `.rs` file.
 # format_command = "npx prettier --write"
 # format_files = ["*.ts", "*.tsx"]
-# The release tool (`just release`): the command that writes the new version into the project's manifests, run from
+# The release tool (`cardinal run release`): the command that writes the new version into the project's manifests, run from
 # the root with the version as last argument, and the files whose change makes a commit breaking (a major version).
 # release_version_command = "npm version --no-git-tag-version"
 # release_breaking_files = []

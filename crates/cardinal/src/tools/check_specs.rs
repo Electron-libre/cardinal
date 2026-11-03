@@ -1,6 +1,6 @@
 //! Validate `specs/*.md` against `specs/README.md` and trace them to the tests (`// spec: ID`, or the comment marker of
 //! the test file's language, TRC-12).
-//! Usage: `just check-specs` (from the repo root; an optional argument is another root; `--strict` also flags the
+//! Usage: `cardinal run check-specs` (from the repo root; an optional argument is another root; `--strict` also flags the
 //! citations of managed tests (under `.claude/`) whose spec the project lacks: for the repository that ships them).
 //! Prints one line per problem, exit 1 if any; a `[NEEDS CLARIFICATION: ...]` marker is a problem in an `accepted`
 //! spec and a warning on stderr in a `draft` one; the vague wording of a `draft` requirement (`VAGUE`, not exactly one

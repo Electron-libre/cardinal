@@ -32,7 +32,7 @@ milestones of the `roadmap` documents in their order: name, state, release, issu
 
 # Hints
 * Reuse the link resolution of `close-issue` rather than a second one, so both count a closed issue the same way.
-* Works with an archive document too ([archive_the_released_milestones](done/archive_the_released_milestones.md)): read
+* Works with an archive document too ([archive_the_released_milestones](archive_the_released_milestones.md)): read
   every `roadmap` document in order.
 
 # Tracking

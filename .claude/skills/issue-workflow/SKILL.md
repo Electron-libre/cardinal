@@ -33,9 +33,6 @@ The understanding, the spec and the plan are written in the files, not in the co
 the console only shows the link and the questions.
 
 - Read the issue, plus the resources it names (docs, `git log`, the `roadmap` documents of `.claude/cardinal.toml`, memory).
-- **Delegate only a wide search** (a hunt through the whole history, not the `git log` of a resource; many files of a
-  large repository) to a read-only `Explore` subagent asking for the paths and lines behind its conclusion; read back
-  only those a decision rests on. Everything else stays in the main thread.
 - **Spec**, when the issue changes what a capability does, in a project that has `specs/README.md` (skip it for docs,
   harness, pure refactor, a measure): run
   `skill:write-spec` up to its format check (requirements with stable ids, `deterministic`, left `draft`, a
@@ -91,7 +88,7 @@ nothing: the agent reads that identity too. The spec file is the record of the r
 
 ## 3. For each deliverable, in order
 
-1. **Gather**: read the code and docs it touches (a wide search delegated as in step 1); ask about missing
+1. **Gather**: read the code and docs it touches; ask about missing
    information (one batch of questions).
 2. **Test first**: write a behavior or end-to-end test that fails for the right reason. When the capability has a
    spec and the project has `specs/README.md`, the test proves a requirement and carries `// spec: ABC-n` (placement in `specs/README.md`), through the

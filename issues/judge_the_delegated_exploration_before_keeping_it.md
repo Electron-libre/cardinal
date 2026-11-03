@@ -56,6 +56,9 @@ session; then apply the user's decision (keep, narrow or fold back). Out of scop
 2. [x] Decision: per the user's answer, keep (a line in `## Decisions`), narrow (rewrite the paragraph of step 1 to
    the kept case) or fold back (remove the paragraph and its mention in step 3.1); `just sync`; commit with the
    opposite `Expected-effect:` on a fold-back only; verified by `just check` and `just check-cardinal` (~0-20 lines).
+3. [x] Fold back, after `## Measure 2`: remove the delegation from steps 1 and 3.1 of `issue-workflow` and from
+   `docs/workflow.md`; `just sync`; verified by `just check` and `just check-cardinal` (~10 lines) (validated by
+   Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03).
 
 ## Measure
 Sessions since 657bf10 (2026-10-28 to 2026-10-31), four projects, one model (claude-opus-5-5), Claude Code 2.1.312
@@ -79,6 +82,20 @@ mostly; anonymised.
 - The usage grows with the project size (~13% of the sessions of the largest project, ~85k lines, none in the
   smaller ones), and no larger project has sessions: hence a narrowing and a new measure rather than a fold-back.
 
+## Measure 2
+Sessions since the narrowing 0cd6083 (2026-10-31 to 2026-11-03), counted once from the transcripts.
+
+| projects | issue-workflow sessions | with an `Explore` call |
+|---|---|---|
+| cardinal | 62 | 0 |
+| consumer A | 31 | 0 |
+| consumer B | 7 | 0 |
+| others (3 projects, 2 replays) | 7 | 0 |
+| total | 107 | 0 |
+
+- No delegation in 107 sessions (5% before the narrowing): the "~10 sessions with `Explore`" of `## Left` would never
+  come; the paragraph costs fixed context for a behaviour that no longer happens.
+
 ## Decisions
 - Mode: autonomous
 - Base commit: f42d70cbb5c778b5d4768dfb08e45dbe775a0067
@@ -88,9 +105,8 @@ mostly; anonymised.
   the verdict of 657bf10 (`main_context_peak down`) keeps running on purpose, over the narrowed text.
 - A `confounded` sample still leads to a decision, on the delegation count and the issues that changed outcome, saying so.
 
-## Left
-- Measure again once the largest project has ~10 issue sessions with an `Explore` call since the narrowing: their
-  `main_context_peak` against sessions of the same size without one; then keep or fold back.
+- Decision (the user's, 2026-11-03, after `## Measure 2`): fold back: remove the delegation from steps 1 and 3.1 of
+  `issue-workflow` and `docs/workflow.md`, commit with `Expected-effect: main_context_peak up`, then close the issue.
 
 ## Deliverable 2: narrowed delegation
 
@@ -128,4 +144,22 @@ mostly; anonymised.
 - red: none (skill text and docs, no test).
 - Code review: no findings (low on the fixes).
 - not verified: whether the narrowed text changes how often the agent delegates.
+- decisions needed: none.
+
+## Deliverable 4: fold back of the delegation
+
+- done: the delegation to an `Explore` subagent is gone from steps 1 and 3.1 of `issue-workflow` and from
+  `docs/workflow.md`; copies synced.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | `docs/workflow.md` |
+| code review | low, see below |
+
+- red: none (skill text and docs, no test).
+- Code review: no findings
+- not verified: the effect on `main_context_peak` (verdict of the `Expected-effect:` later).
 - decisions needed: none.

@@ -25,6 +25,27 @@ optional, or drop it), and the issues that carry it out if any.
 * `files/.github/workflows/cardinal.yml` installs `just` to run `just check-specs` and `just check-commits`.
 * The seeded `.claude/settings.json` allows `Bash(just)` and `Bash(just *)`, and `docs/tutorial.md` tells the project
   to run the commands of its stack through `just`.
+* 2026-11-03, inventory of what needs `just` and what it would become (step 1 of the approach):
+
+  | Place | Uses of `just` | Without it |
+  |---|---|---|
+  | Skills (`files/.claude/skills/`) | 33 mentions, 13 recipes | `cardinal run <tool>`; `check` → the `check_command` of the project |
+  | `files/specs/README.md` | 4 | same |
+  | `cardinal*.just` (5 files, 12 recipes) | every recipe is `cardinal run …` / `cardinal check`, but `waive-review` | kept as an option, or dropped |
+  | `seed/justfile` | `check` (project-owned), `default` | stays a seed the project may delete |
+  | `entries/.claude/settings.json`, `features.toml`, `settings.rs` `DENY_RULES` | deny `Bash(just waive-review[ *])`, ask `Bash(just release *.*)` | the same rules on the `cardinal run` form, both kept during the migration |
+  | `rule_breaches.rs` | `just` + `waive-review` (`review-waiver`), `just` as launcher of the checker (BRE-16) | read both forms |
+  | `delivered_quality.rs` `is_check` (QUA-8) | `just check*` / `just test*` | also the `check_command`; both forms read, no series cut |
+  | Messages of the tools | `close_issue.rs`, `next_issue.rs` name `just close-issue`, `just close-worktree` | `cardinal run …` |
+  | `files/.github/workflows/cardinal.yml` | installs `just` for `check-specs`, `check-commits` | `cardinal run` (the install step goes) |
+  | Docs | `tutorial` 22, `usage` 16, `workflow` 13, `architecture` 7, `README` 5, `gates` 3; specs 36 lines | rewritten; ADR 0001 and 0010 state that a consumer needs `just` |
+
+* Consumers today: `cardinal` and `RetroDoc`, both with a `justfile`; nobody is blocked.
+* Fixed context: `cardinal run <tool>` is 9 bytes longer than `just <tool>`; ~40 mentions add ~0.4 KB to bodies loaded on
+  call only (the skill descriptions, the fixed part, name no recipe).
+* Estimated cost of making `just` optional: ~600–900 changed lines in 3 issues (skills + messages + CI; `check_command`
+  + the readers; the waiver tool + deny rules + migration), a `cardinal-format`/`FORMAT` raise (ADR 0014) with a
+  `migrations/<n>.toml` naming the replaced commands (ADR 0017).
 
 # Approach
 Measure first, then propose; nothing is decided here.
@@ -53,3 +74,53 @@ Measure first, then propose; nothing is decided here.
 * A deny rule matches the command text: a new way to waive needs its own rule, or the agent can waive its review.
 * The readers of the transcripts compare revisions: changing the command they match cuts a series unless both forms
   are read.
+
+# Proposal
+
+| Candidate | Cost | Fixed context | Deny rules, transcript series | Migration | A project loses |
+|---|---|---|---|---|---|
+| a. Make `just` optional (**chosen**) | ~600–900 lines, 3 issues | +0.4 KB in bodies loaded on call, descriptions unchanged | rules on both forms; `rule-breaches` and `delivered-quality` read both, no series cut | `FORMAT` raised, `migrations/<n>.toml` names the replaced commands | nothing: `cardinal*.just` and the `justfile` stay for who wants them |
+| b. Keep `just`, document it | none | none | none | none | nothing; every consumer installs `just` |
+| c. Drop `just` everywhere | a + deleting the recipes | as a | as a | as a, plus the removed recipe files | `just --list`, the recipes it already uses |
+
+Option a, in [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md):
+- `cardinal run check` runs the `check_command` of `[project]` (the project's format, lint and tests), then
+  `check-specs` when the feature `specs` is on: the one entry point, with no recipe.
+- `cardinal run waive-review` creates the waiver; deny rules on `cardinal run waive-review[ *]` next to the `just`
+  ones, and `rule-breaches` reads both forms.
+- The skills, `specs/README.md`, the tool messages and the CI name `cardinal run <tool>`; `cardinal*.just` stay as
+  thin aliases; `delivered-quality` counts `cardinal run check*` as well as `just check*` / `just test*`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Measure what ties a consumer to `just` (done in Findings), weigh the three candidates and write a proposal the user
+decides; out of scope: carrying it out here. When the proposal changes ADR 0001/0010, its ADR draft goes with it.
+
+## Plan
+1. [x] Proposal: the candidates weighed (cost, context, deny rules, transcript series, migration, what a project loses)
+   and the recommendation, in a `## Proposal` of this issue, plus an ADR draft in `docs/adr/` when the choice changes
+   a decision; verified by `just check` (the ADR index, the links). (autonomous)
+2. [ ] The follow-up issues of the chosen option (`skill:create-issue`), with their `priority` and `depends_on`;
+   verified by `just check-issue` on each and `just next-issue`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 707e029466af500afec6eb9e901c1633c0c9c8d0
+- Option: a, make `just` optional (validated 2026-11-03)
+
+## Summary of deliverable 1
+done: the candidates weighed in `# Proposal`, ADR 0028 (Proposed) and its index line.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| deliverable size | 27 lines, within |
+| docs | ADR index updated; no behaviour changed, other docs n/a |
+| code review (low) | pass |
+
+red: none (a proposal, no test)
+Code review: no findings
+not verified: the line estimates of option a (measured by grep, not by a prototype)

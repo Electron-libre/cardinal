@@ -182,6 +182,12 @@ fn first_session(worktree: &Path) -> String {
         ),
         line("attachment", worktree, "2026-10-26T11:00:00.000Z", ""),
         "{\"type\":\"ai-title\",\"sessionId\":\"x\"}\n".to_string(),
+        // the metadata types of Claude Code since 2026-11, written without a timestamp
+        "{\"type\":\"tools-used\",\"tools\":[\"Bash\"],\"sessionId\":\"x\"}\n".to_string(),
+        "{\"type\":\"relocated\",\"relocatedCwd\":\"/elsewhere\",\"sessionId\":\"x\"}\n"
+            .to_string(),
+        "{\"type\":\"worktree-state\",\"worktreeSession\":{},\"sessionId\":\"x\"}\n".to_string(),
+        "{\"type\":\"permission-mode\",\"sessionId\":\"x\"}\n".to_string(),
     ]
     .concat()
 }
@@ -348,7 +354,7 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         ("else the longest repository among the prefixes of a removed ancestor", col(s9, "project") == "myrepo-docs"),
         ("a prefix that is not the top level of a work tree is no repository", col(s10, "project") == "plain-x"),
         ("unreadable lines are counted, sub-agent included", col(s1, "unreadable_lines") == "2"),
-        ("unknown line types are counted", col(s1, "unknown_lines") == "1"),
+        ("unknown line types are counted, tools-used, relocated, worktree-state and permission-mode are known", col(s1, "unknown_lines") == "1"),
         ("assistant lines without usage are missing fields, metadata lines without timestamp are not", col(s1, "missing_fields") == "1"),
         ("no text of a message, a tool input or a tool result is printed", !stdout.contains("SECRET")),
     ]

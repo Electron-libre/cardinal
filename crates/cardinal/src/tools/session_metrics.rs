@@ -48,6 +48,10 @@ const KNOWN_TYPES: &[&str] = &[
     "mode",
     "cost-state",
     "file-history-snapshot",
+    "tools-used",
+    "relocated",
+    "worktree-state",
+    "permission-mode",
 ];
 
 /// The lines of the conversation: the only ones that must carry a `timestamp`.

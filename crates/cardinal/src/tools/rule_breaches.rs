@@ -275,13 +275,58 @@ struct Routing {
     specs: HashSet<String>,
 }
 
-/// Whether the shell `commands` run `git commit` with a message to write: no `--no-edit` after it (BRE-16).
-fn writes_commit_message(commands: &[Vec<String>]) -> bool {
-    commands.iter().any(|command| {
-        shell::git_invocations(command).any(|(subcommand, args)| {
-            subcommand == "commit" && !args.iter().any(|a| a == "--no-edit")
-        })
-    })
+/// The file names of the commit message checker: a call that runs one checked its message as the skill does (BRE-16).
+const MESSAGE_CHECKERS: [&str; 4] = [
+    "commit-check",
+    "check-commit",
+    "check-commit-msg",
+    "commit_check.rs",
+];
+
+/// Whether a `Bash` call runs `git commit` with a message to write in the project of its line (in the work tree
+/// `worktree`, when known) and leaves the check of that message to the skill (BRE-16): a commit after `--no-edit`, in
+/// a throwaway repository or in a call that runs the checker is no trigger.
+fn writes_commit_message(call: &Call, worktree: Option<&Path>) -> bool {
+    let words = || call.commands.iter().flatten();
+    // the quotes of `cd "$(mktemp -d)"` drop the command from the words: read the substitution in the text
+    if call.input["command"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("$(mktemp")
+        || call
+            .commands
+            .iter()
+            .any(|c| c.first().is_some_and(|w| w == "mktemp"))
+        || words().any(|w| MESSAGE_CHECKERS.contains(&w.rsplit('/').next().unwrap_or_default()))
+    {
+        return false;
+    }
+    // an absolute path out of the work tree: another repository
+    let elsewhere = |dir: &String| {
+        dir.starts_with('/') && worktree.is_some_and(|tree| !Path::new(dir).starts_with(tree))
+    };
+    for command in &call.commands {
+        if command.first().is_some_and(|w| w == "cd") && command.get(1).is_some_and(elsewhere) {
+            return false;
+        }
+        let mut git = shell::git_invocations(command).peekable();
+        if git.peek().is_some()
+            && command
+                .windows(2)
+                .any(|pair| pair[0] == "-C" && elsewhere(&pair[1]))
+        {
+            return false;
+        }
+        for (subcommand, args) in git {
+            if subcommand == "commit" && !args.iter().any(|a| a == "--no-edit") {
+                return true;
+            }
+            if subcommand == "init" {
+                return false;
+            }
+        }
+    }
+    false
 }
 
 /// Whether an `Edit` or `Write` call proposes a plan: it puts `Plan: proposed` in a file under `issues/` (BRE-8).
@@ -411,7 +456,12 @@ impl Verdict {
         });
         // the detail of each trigger of `ROUTED`, in its order; `None` when the call is not one
         let triggers = [
-            (call.name == "Bash" && writes_commit_message(&call.commands)).then(String::new),
+            (call.name == "Bash"
+                && writes_commit_message(
+                    call,
+                    context.worktrees.get(&call.cwd).map(PathBuf::as_path),
+                ))
+            .then(String::new),
             plan.then(String::new),
             new_spec,
         ];

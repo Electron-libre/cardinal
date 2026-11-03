@@ -21,6 +21,21 @@ should not count are left out, and the remaining skips have a known cause and a 
     test, not a commit of the project;
   * ordinary deliverable commits with a message written inline (`msg='…'`, `-F -`).
 
+* Classified 2026-11-03 (195 findings, 48 sessions; cardinal 99, Assistant 51, RetroDoc 43, CatchLead 2), by the
+  subject and the command of each commit:
+
+  | kind | findings | sessions | message checked in the same command |
+  |---|---|---|---|
+  | deliverable commit | 91 | 28 | 81 |
+  | issue only (open, close, tracking, roadmap) | 66 | 30 | 52 |
+  | harness update (`update`, `sync`, `adopt`) | 28 | 13 | 19 |
+  | throwaway repository (`git init`, `mktemp`, `cd /tmp/…`) | 10 | 5 | 0 |
+
+* 152 of the 195 commands pipe the message through the checker (`cardinal run commit-check`, `just check-commit`)
+  themselves: step 4 of the skill done without loading it. `commit-format` counts 1 breach over 273 sessions: the
+  convention is followed; what is skipped is the loading of the skill, not its outcome.
+* The skips cluster by session: 4 findings per breaching session on average, 25 of the 48 sessions hold several kinds.
+
 # Approach
 1. Classify all the breaches of the last groups by the kinds above, with counts.
 2. Leave out of the rule the commits outside the project's repository (a `git init` or a `cd` to another directory in
@@ -41,3 +56,51 @@ Lean agent loop
 
 # Hints
 * A `blocked` commit (its result an error) was refused by a hook: it is a breach the gate already caught.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Most skips are not wrong commits: 78% of them validate the message with the checker inline, and the convention
+holds (`commit-format`: 1 breach). Leave out what the rule should not count, then fix the routing of what remains
+with an evidence-based instruction change. Out of scope: the other routing rules (BRE-17, BRE-18).
+
+## Plan
+1. [x] Rule scope: a commit in a throwaway repository (`git init`, `mktemp`, a `cd` or `git -C` outside the work
+   tree, earlier in the same call) is no trigger, nor is a commit whose call runs the checker;
+   verified by tests of `rule_breaches.rs` from the scenarios; makes true BRE-16. (autonomous)
+2. [ ] Remaining skips: run `skill:audit-instructions` with the counts of the kinds left after deliverable 1 and
+   apply the instruction change it proposes and the user validates (candidates: a line at the close of
+   `skill:issue-workflow`, the output of `cardinal update`, a commit gate refusing an unchecked message); verified by
+   `just check` and the re-measured counts written in the issue.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f8c93e18b4d4d9f3f2633c8da9b00ad53dd4f69c
+- A commit whose call runs the message checker is no trigger: the skill's outcome is met (question 1).
+- Deliverable 2 runs `skill:audit-instructions` on the remaining kinds and applies the change the user validates (question 2).
+
+## Deliverable 1
+done: a commit in a throwaway repository or whose call runs the message checker is no trigger of BRE-16; re-measured
+on 2026-11-03: 33 findings in 22 sessions (from 195 in 48), 21 breached of 151 applied sessions.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/evaluation.md` still exact, no change |
+| code review | low: 1 finding, fixed |
+
+red: BRE-16: the throwaway and checked commits of the test were findings (`s.jsonl:12` to `s.jsonl:22`).
+
+Remaining 33 by kind: issue only (open, close, tracking) 16, harness update 9, deliverable 8.
+
+Code review: 1 finding
+- `mktemp` was read anywhere in the text, so a commit message naming it hid a trigger: fixed, only a command
+  `mktemp` or a `$(mktemp` substitution counts, with a test.
+
+not verified: none
+
+decisions needed: none

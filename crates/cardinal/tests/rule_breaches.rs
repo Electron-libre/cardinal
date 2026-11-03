@@ -897,6 +897,63 @@ fn routing_other_sessions(tmp: &Path, repo: &Path, config: &str) {
     n.write(&projects.join("-n/s.jsonl"));
 }
 
+/// The commits that trigger no `skill-routing-commit-message` (BRE-16), then two in the project that do: their lines.
+fn skipped_commits(t: &mut Transcript, repo: &Path) -> (usize, usize) {
+    // a commit in a throwaway repository, or whose call checks its message, triggers nothing
+    t.run(
+        "c1d",
+        "Bash",
+        &bash("cd \"$(mktemp -d)\" && git init -q && git commit -q -m SECRET"),
+        None,
+    );
+    t.run(
+        "c1e",
+        "Bash",
+        &bash("git init -q t && cd t && git commit -m SECRET"),
+        None,
+    );
+    t.run(
+        "c1f",
+        "Bash",
+        &bash("cd /tmp/x && git commit -m SECRET"),
+        None,
+    );
+    t.run("c1g", "Bash", &bash("git -C /tmp/y commit -m SECRET"), None);
+    t.run(
+        "c1h",
+        "Bash",
+        &bash("printf '%s\\n' \"$m\" | cardinal run commit-check && git commit -m \"$m\""),
+        None,
+    );
+    t.run(
+        "c1i",
+        "Bash",
+        &bash("git commit -m SECRET && just check-commit"),
+        None,
+    );
+    t.run(
+        "c1k",
+        "Bash",
+        &bash("d=$(mktemp -d); cd $d && git init -q && git commit -m SECRET"),
+        None,
+    );
+    let quoted = t.run(
+        "c1l",
+        "Bash",
+        &bash("git commit -m 'fix: drop the mktemp dirs'"),
+        None,
+    );
+    (
+        quoted,
+        t.run(
+            "c1j",
+            "Bash",
+            &bash(&format!("cd {} && git commit -m SECRET", repo.display())),
+            None,
+        ),
+    )
+}
+
 // spec: BRE-15, BRE-16, BRE-17, BRE-18
 fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("routing");
@@ -938,6 +995,7 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         &bash("git add a && git -C . commit -m SECRET && git rebase --continue --no-edit"),
         None,
     );
+    let (quoted, inside) = skipped_commits(&mut t, &repo);
     t.run("c2", "Skill", &json!({"skill": "commit-message"}), None);
     t.run("c3", "Bash", &bash("git commit -m SECRET"), None);
     let plan = t.run(
@@ -963,6 +1021,8 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let expected = vec![
         row("commit-message", "blocked", refused, ""),
         row("commit-message", "breach", unloaded, ""),
+        row("commit-message", "breach", quoted, ""),
+        row("commit-message", "breach", inside, ""),
         row("issue-workflow", "breach", plan, ""),
         row("write-spec", "breach", spec, "specs/new.md"),
     ];
@@ -978,7 +1038,7 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         .filter(|l| l.starts_with("skill-routing"))
         .collect();
     let want_summary = [
-        "skill-routing-commit-message\tr1\t2\t1\t1\t1\t",
+        "skill-routing-commit-message\tr1\t2\t1\t3\t1\t",
         "skill-routing-issue-workflow\tr1\t1\t1\t1\t0\t",
         "skill-routing-write-spec\tr1\t1\t1\t1\t0\t",
     ];

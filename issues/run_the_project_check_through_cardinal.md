@@ -56,8 +56,8 @@ its own `check` recipe (strict specs).
    `.claude/cardinal.toml`, the seeded `justfile` `check` becomes `cardinal run project-check` (FEA-33 amended), docs
    (`docs/architecture.md` table of the `[project]` keys); verified by `tests/project_check.rs` through the binary;
    makes true PCK-1 to PCK-5 (spec `accepted`).
-2. [ ] `delivered-quality` counts `cardinal run project-check`: `is_check` reads both forms, not `cardinal check`;
-   verified by a test of a failed `cardinal run project-check` in a transcript; makes true QUA-8 (amended).
+2. [x] `delivered-quality` counts `cardinal run project-check`: `is_check` reads both forms, not `cardinal check`;
+   verified by a test of a failed `cardinal run project-check` in a transcript; makes true QUA-8 (amended). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -69,4 +69,11 @@ its own `check` recipe (strict specs).
 - done: `cardinal run project-check` (`tools/project_check.rs`); the seeded `justfile` `check` calls it, the seeded
   `.claude/cardinal.toml` comments `check_command`; FEA-33 amended; README, `docs/usage.md`, `docs/architecture.md`.
 - red: PCK-1, PCK-2, PCK-3, PCK-4, PCK-5: `cardinal: unknown tool `project-check``
+- not verified: none.
+
+## Deliverable 2
+- done: `delivered-quality` counts a failed `cardinal run project-check` as a failed check, not `cardinal check`;
+  QUA-8 amended; docs n/a (`docs/usage.md` and `docs/evaluation.md` name the column, not the commands).
+- red: QUA-8: `FAIL - the failed checks of its span, through just or cardinal run project-check, are counted` (3, not 4)
+- Code review: no findings
 - not verified: none.

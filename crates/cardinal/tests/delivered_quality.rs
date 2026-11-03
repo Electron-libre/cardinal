@@ -903,6 +903,14 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         bash(&repo, "2026-01-03T03:30", "a4", "echo just a check", true),
         bash(
             &repo,
+            "2026-01-03T03:40",
+            "a7",
+            "cardinal run project-check",
+            true,
+        ),
+        bash(&repo, "2026-01-03T03:45", "a8", "cardinal check", true),
+        bash(
+            &repo,
             "2026-01-04T05:00",
             "a5",
             "cd x && just check-harness",
@@ -951,7 +959,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     vec![
         ("the script reads the transcripts".to_string(), ok),
         ("the sessions of an issue are the latest-starting ones holding its commits, its branch first".to_string(), has(&r, "alpha", "sessions", "1") && has(&r, "beta", "sessions", "1")),
-        ("the failed just checks of its span are counted, not other commands nor sub-agents".to_string(), has(&r, "alpha", "failed_checks", "3") && has(&r, "beta", "failed_checks", "1")),
+        ("the failed checks of its span, through just or cardinal run project-check, are counted, not other commands nor sub-agents".to_string(), has(&r, "alpha", "failed_checks", "4") && has(&r, "beta", "failed_checks", "1")),
         ("the typed messages of its span are split into validations and the rest".to_string(), has(&r, "alpha", "validations", "1") && has(&r, "alpha", "other_messages", "2") && has(&r, "beta", "validations", "1") && has(&r, "beta", "other_messages", "0")),
         ("the top-level tokens of its span are summed once per message, sub-agents included, not the iterations".to_string(), has(&r, "alpha", "input_tokens", "1216") && has(&r, "alpha", "cache_read_tokens", "1000") && has(&r, "alpha", "output_tokens", "58") && has(&r, "beta", "input_tokens", "0")),
         ("the tokens of an issue with no session are empty, not 0".to_string(), has(&r, "delta", "sessions", "0") && ["input_tokens", "cache_read_tokens", "output_tokens"].iter().all(|c| has(&r, "delta", c, ""))),

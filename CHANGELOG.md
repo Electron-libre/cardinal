@@ -4,6 +4,18 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [4.1.0] - 2026-11-04
+
+### Added
+
+- put an issue (`on_hold: '<reason>'`) or a milestone (`- On hold: <reason>`) on hold: `next-issue` never offers
+  it and lists it as `On hold:` with its reason
+- show the hold in roadmap and check it in check-issue
+
+### Fixed
+
+- settle the review of putting an issue or a milestone on hold
+
 ## [4.0.0] - 2026-11-03
 
 ### Breaking

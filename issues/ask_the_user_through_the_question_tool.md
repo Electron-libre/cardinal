@@ -50,3 +50,10 @@ User control
   makes the replay stall or fail.
 * "Don't ask what has a conventional default" (step 2) still holds: the tool must not turn into more questions.
 * A rule always loaded costs fixed context (`fixed_context_budget`): keep it to a few lines.
+
+# Abandoned
+
+Abandoned on 2026-11-03 by the user: the rule, the measure and the hook make the harness more complex for a small
+gain that was never measured. A one-off count over the local transcripts found 37% of the turns (1,003 of 2,696)
+ending on a `?` in text and 1% calling `AskUserQuestion`. The tool also failed in an interactive session
+(`Tool permission request failed: Error: Tool use aborted`), so a rule would need a fallback to text anyway.

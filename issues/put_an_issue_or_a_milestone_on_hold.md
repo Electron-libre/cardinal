@@ -52,3 +52,46 @@ with that reason, and taking it off hold restores its place in the order.
   only that issue (ADR 0021).
 * NXT-12 prints `No ready issue: every free one waits on another.` when all free issues are blocked; with held
   issues the message must stay true (held issues do not wait on another).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Hold an issue with a front matter key `on_hold: '<reason>'`, a milestone with a field `- On hold: <reason>` (approach
+2b: the state keeps saying how far it went); `next-issue` never offers a held issue and lists it as `On hold:`.
+Out of scope: a tool that sets the hold, refusing a claim. No format raise: the key is project data, an older
+`cardinal` only offers the held issue.
+
+## Plan
+1. [x] Hold in `next-issue`: the `on_hold` key, the milestone field, the `On hold:` lines, the reports and the
+   amended NXT-12 message; verified by tests of `crates/cardinal/tests/next_issue.rs`; makes true NXT-12, NXT-15,
+   NXT-16, NXT-17. (autonomous)
+2. [ ] Hold in `roadmap` and `check-issue`: the ` (on hold)` state cell and the empty reason report; verified by
+   tests of `crates/cardinal/tests/roadmap.rs` and `check_issue.rs`; makes true RMP-6, CKI-5.
+3. [ ] Skills and docs: `issue-workflow` warns on a held issue named by the user, `prioritize-issues` and
+   `create-issue` name the key, `seed/ROADMAP.md` and `ROADMAP.md` name the field (`files/`, then `just sync`);
+   verified by `just check-cardinal` and `just check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: a0ed329380daac6d2843d9ded52fb0465fb622e8
+- Milestone hold: a separate `On hold:` field, not a state (question 1 a).
+- No format raise (question 2 a).
+
+## Summary of deliverable 1
+done: `next-issue` holds the issues with an `on_hold` key or in a milestone with an `On hold:` field, lists them as
+`On hold:` after the blocked ones and reports a hold with no reason; the three specs amended (draft).
+
+| check | result |
+|---|---|
+| tests | ok (`next_issue`: 17 passed) |
+| lint | ok (clippy -D warnings) |
+| specs | ok (`check-specs`) |
+| docs | user docs in deliverable 3 |
+| code review | low, no findings |
+
+red: NXT-15, NXT-12, NXT-16, NXT-17: the held issue `a` was offered as `Next: issues/a.md`.
+Code review: no findings
+not verified: none
+decisions needed: none

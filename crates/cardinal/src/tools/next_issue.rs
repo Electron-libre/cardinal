@@ -1,7 +1,8 @@
 //! Print the next issue to work on and the order of the others (ADR 0021): the ready issues (every `depends_on` of
 //! their front matter in `issues/done/`) by the order of their milestone in the `roadmap` documents, then `priority`,
 //! then age, then the blocked ones with what blocks them. Reports (stderr) a missing priority, an unknown dependency,
-//! a cycle and an unknown milestone.
+//! a cycle and an unknown milestone. An issue on hold (an `on_hold` key, or a milestone with an `On hold:` field) is
+//! never offered and listed apart with its reason.
 //! An issue is taken, and skipped, when a git worktree has a branch named after its stem checked out, or when such
 //! a branch holds work that is not on the branch of the main worktree (patch-equivalent commits and a squash of any
 //! number of commits count as on it: merging the branch would change no file). A branch with neither (left over after a merge, empty) is reported `Stale:` and takes nothing. The mark
@@ -235,9 +236,9 @@ fn milestone(text: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// The milestones of the `roadmap` documents of the configuration of `root`, in order; `None` when no document
-/// can be read (NXT-14).
-fn milestones(root: &Path) -> Option<Vec<String>> {
+/// The milestones of the `roadmap` documents of the configuration of `root`, in order, each with the value of its
+/// `On hold:` field (NXT-16); `None` when no document can be read (NXT-14).
+fn milestones(root: &Path) -> Option<Vec<(String, Option<String>)>> {
     let texts: Vec<String> = super::config_list(root, "roadmap")
         .unwrap_or_default()
         .into_iter()
@@ -249,8 +250,13 @@ fn milestones(root: &Path) -> Option<Vec<String>> {
             .flat_map(|t| {
                 let lines: Vec<&str> = t.split_inclusive('\n').collect();
                 super::roadmap::milestones(&lines)
+                    .into_iter()
+                    .map(|m| {
+                        let hold = m.field(&lines, "On hold:");
+                        (m.name, hold)
+                    })
+                    .collect::<Vec<_>>()
             })
-            .map(|m| m.name)
             .collect()
     })
 }
@@ -323,10 +329,22 @@ struct Entry {
     stem: String,
     why: String,
     blockers: Vec<String>,
+    /// The reason it is on hold, if it is (NXT-15, NXT-16).
+    hold: Option<String>,
 }
 
-/// The order of the open issues of `dir` (NXT-1, NXT-7, NXT-10), each problem reported on stderr (NXT-2, NXT-8, NXT-9,
-/// NXT-13); the flag is set when one was.
+/// The reason of a hold, `no reason given` for an empty one (NXT-17).
+fn reason(value: &str) -> String {
+    if value.is_empty() {
+        "no reason given".to_string()
+    } else {
+        value.to_string()
+    }
+}
+
+/// The order of the open issues of `dir` (NXT-1, NXT-7, NXT-10): the ready ones, then the blocked ones, then the ones
+/// on hold (NXT-15), each problem reported on stderr (NXT-2, NXT-8, NXT-9, NXT-13, NXT-17); the flag is set when one
+/// was.
 fn order(dir: &Path) -> (Vec<Entry>, bool) {
     let stems = issue_stems(dir);
     let done = issue_stems(&dir.join("done"));
@@ -338,6 +356,13 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
         eprintln!("{line}");
         drift = true;
     };
+    for (name, _) in roadmap
+        .iter()
+        .flatten()
+        .filter(|(_, hold)| hold.as_deref() == Some(""))
+    {
+        report(format!("milestone on hold without a reason: {name}"));
+    }
     let mut keyed = Vec::new();
     let mut open_deps = Vec::new();
     for stem in &stems {
@@ -347,14 +372,26 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             report(format!("issue without a priority: {stem}"));
             3
         });
-        let place = match (milestone(&text), &roadmap) {
+        let (place, milestone_hold) = match (milestone(&text), &roadmap) {
             (Some(name), Some(names)) => {
-                names.iter().position(|n| *n == name).unwrap_or_else(|| {
+                if let Some(i) = names.iter().position(|(n, _)| *n == name) {
+                    let hold = names[i].1.as_deref();
+                    (i, hold.map(|h| format!("milestone {name}: {}", reason(h))))
+                } else {
                     report(format!("unknown milestone of {stem}: {name}"));
-                    usize::MAX
-                })
+                    (usize::MAX, None)
+                }
             }
-            _ => usize::MAX,
+            _ => (usize::MAX, None),
+        };
+        let hold = match front_matter(&text, "on_hold") {
+            Some(h) => {
+                if h.is_empty() {
+                    report(format!("on hold without a reason: {stem}"));
+                }
+                Some(reason(&h))
+            }
+            None => milestone_hold,
         };
         let blockers = match depends_on(&text) {
             None => {
@@ -376,12 +413,18 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             }
         };
         let age = ages.iter().position(|s| s == stem).unwrap_or(usize::MAX);
+        let group = if hold.is_some() {
+            2
+        } else {
+            u8::from(!blockers.is_empty())
+        };
         keyed.push((
-            (!blockers.is_empty(), place, rank, age, stem.clone()),
+            (group, place, rank, age, stem.clone()),
             Entry {
                 stem: stem.clone(),
                 why,
                 blockers,
+                hold,
             },
         ));
     }
@@ -451,12 +494,13 @@ impl Queue {
         self.taken_by(stem).is_some() || self.claim(stem).is_some()
     }
 
-    /// The ready issues no branch takes, with their position in the order: `(index, entry)` (PAR-4, NXT-7).
+    /// The ready issues no branch takes and no hold keeps, with their position in the order: `(index, entry)` (PAR-4,
+    /// NXT-7, NXT-15).
     fn free(&self) -> Vec<(usize, &Entry)> {
         self.entries
             .iter()
             .enumerate()
-            .filter(|(_, e)| e.blockers.is_empty() && !self.taken(&e.stem))
+            .filter(|(_, e)| e.blockers.is_empty() && e.hold.is_none() && !self.taken(&e.stem))
             .collect()
     }
 
@@ -467,6 +511,13 @@ impl Queue {
             None if self.entries.is_empty() => "No open issue.".to_string(),
             None if self.entries.iter().all(|e| self.taken(&e.stem)) => {
                 "Every open issue is taken.".to_string()
+            }
+            None if self
+                .entries
+                .iter()
+                .any(|e| e.hold.is_some() && !self.taken(&e.stem)) =>
+            {
+                "No ready issue: every free one is on hold or waits on another.".to_string()
             }
             None => "No ready issue: every free one waits on another.".to_string(),
             Some((_, e)) => format!("Next: issues/{}.md\n  {}", e.stem, title(dir, &e.stem)),
@@ -496,8 +547,14 @@ pub(super) fn main(args: &[String]) -> u8 {
             println!("{:>3}. {}", i + 1, e.stem);
         }
     }
-    for e in queue.entries.iter().filter(|e| !e.blockers.is_empty()) {
-        println!("Blocked: {} (by {})", e.stem, e.blockers.join(", "));
+    for e in &queue.entries {
+        match &e.hold {
+            Some(hold) => println!("On hold: {} ({hold})", e.stem),
+            None if !e.blockers.is_empty() => {
+                println!("Blocked: {} (by {})", e.stem, e.blockers.join(", "));
+            }
+            None => {}
+        }
     }
     let taken = |stem: &str| queue.taken_by(stem).map(|b| b.worktree.as_deref());
     let stale = |stem: &str| queue.branches.iter().any(|b| b.name == stem && !b.taken);

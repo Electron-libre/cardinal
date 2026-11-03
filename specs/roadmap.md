@@ -1,6 +1,6 @@
 ---
 id: RMP
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -18,6 +18,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - **RMP-3** (deterministic) A milestone with no `State:` line must show `(none)` in its `state` cell, and one whose state is not `idea`, `shaped`, `in issues` or `done` its value followed by ` (unknown)`; neither is skipped.
 - **RMP-4** (deterministic) With `--open`, `roadmap` must leave out the milestones that have a `Released:` line.
 - **RMP-5** (deterministic) When no milestone is left to print (no `roadmap` document readable, none holding a milestone, or every one left out by `--open`), `roadmap` must print `No milestone.` instead of the table; a document that cannot be read is left out, `roadmap` exits 0 and changes no file. A `.claude/cardinal.toml` that cannot be read or parsed is reported on stderr with exit 2.
+- **RMP-6** (deterministic) A milestone whose section has a field `On hold: <reason>` (read as its `State:` line) must show its state cell of RMP-1 and RMP-3 followed by ` (on hold)`.
 
 ## Scenarios
 
@@ -25,6 +26,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-2) Given milestone `Next` listing `issues/done/a.md` (existing), `issues/b.md`, `https://example.com/c.md` and `docs/d.md`, then `issues/b.md#goal` again, when `roadmap` runs, then its `issues` cell reads `1/2 open`.
 - (RMP-3) Given milestone `Draft` with no `State:` line and milestone `Odd` with `- State: paused`, when `roadmap` runs, then their state cells read `(none)` and `paused (unknown)`.
 - (RMP-3) Given milestone `Later` with `- State: shaped <!-- by a reviewer -->`, when `roadmap` runs, then its state cell reads `shaped`.
+- (RMP-6) Given milestone `Later` with `- State: shaped` and `- On hold: after the release`, when `roadmap` runs, then its state cell reads `shaped (on hold)`.
 - (RMP-4) Given `Old` released and `Next` not, when `roadmap --open` runs, then only `Next` is printed.
 - (RMP-5) Given a configuration naming a missing `ROADMAP-done.md` and a `ROADMAP.md` with no milestone, when `roadmap` runs, then it prints `No milestone.` and exits 0.
 

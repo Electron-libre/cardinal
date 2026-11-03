@@ -653,6 +653,135 @@ fn without_a_roadmap_the_priority_orders_alone() {
     );
 }
 
+// spec: NXT-15
+/// An issue on hold is never offered and is listed apart with its reason; an issue that depends on it stays blocked,
+/// and removing the key gives it back its place.
+#[test]
+fn an_issue_on_hold_is_listed_apart() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\non_hold: 'waits for the next model'\n---\n# Title A\n",
+        ),
+        ("b.md", "---\npriority: low\n---\n# Title B\n"),
+        (
+            "c.md",
+            "---\npriority: high\ndepends_on: [a]\n---\n# Title C\n",
+        ),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/b.md")
+            && out.contains("Blocked: c (by a)\nOn hold: a (waits for the next model)\n")
+            && !out.contains("Blocked: a")
+            && !out.contains(". a\n"),
+        "{out}"
+    );
+    std::fs::write(
+        root.path().join("issues/a.md"),
+        "---\npriority: high\n---\n# Title A\n",
+    )
+    .unwrap();
+    let (_, out, _) = next_in(root.path());
+    assert!(
+        out.contains("Next: issues/a.md") && !out.contains("On hold"),
+        "{out}"
+    );
+}
+
+// spec: NXT-12
+/// When the free issues are all blocked or on hold, and one of them is on hold, the line says so.
+#[test]
+fn no_issue_is_offered_when_every_free_one_is_on_hold_or_blocked() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\non_hold: later\n---\n# Title A\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\ndepends_on: [a]\n---\n# Title B\n",
+        ),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.starts_with("No ready issue: every free one is on hold or waits on another.\n"),
+        "{out}"
+    );
+}
+
+// spec: NXT-16
+/// The issues of a milestone on hold are on hold, the milestone named in the reason; the hold of the issue itself gives
+/// its own reason.
+#[test]
+fn the_issues_of_a_milestone_on_hold_are_on_hold() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\n---\n# Title A\n\n# Milestone\nOne\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nTwo\n",
+        ),
+        (
+            "c.md",
+            "---\npriority: low\non_hold: own reason\n---\n# Title C\n\n# Milestone\nOne\n",
+        ),
+    ]);
+    roadmap(root.path(), &["One", "Two"]);
+    std::fs::write(
+        root.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## One\n- State: in issues\n- On hold: after the release <!-- the user -->\n\n## Two\n- State: in issues\n",
+    )
+    .unwrap();
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("Next: issues/b.md")
+            && out.contains(
+                "On hold: a (milestone One: after the release)\nOn hold: c (own reason)\n"
+            ),
+        "{out}"
+    );
+}
+
+// spec: NXT-17
+/// A hold with no reason is reported, and still holds.
+#[test]
+fn a_hold_without_a_reason_is_reported() {
+    let root = issues_dir(&[
+        ("a.md", "---\npriority: high\non_hold: ''\n---\n# Title A\n"),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nOne\n",
+        ),
+        ("c.md", "---\npriority: low\n---\n# Title C\n"),
+    ]);
+    roadmap(root.path(), &["One"]);
+    std::fs::write(
+        root.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## One\n- On hold:\n",
+    )
+    .unwrap();
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert!(
+        err.contains("on hold without a reason: a\n")
+            && err.contains("milestone on hold without a reason: One\n"),
+        "{err}"
+    );
+    assert!(
+        out.contains("Next: issues/c.md")
+            && out.contains(
+                "On hold: b (milestone One: no reason given)\nOn hold: a (no reason given)\n"
+            ),
+        "{out}"
+    );
+}
+
 /// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).
 fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     let stem = script

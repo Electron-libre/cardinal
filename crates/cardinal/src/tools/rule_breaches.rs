@@ -39,7 +39,7 @@ const EDIT_TOOLS: &[(&str, &str)] = &[
 const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
 
 /// The bytes of a tool result above which it is a breach of `oversized-result` (BRE-19).
-const OVERSIZED: usize = 25_000;
+pub(super) const OVERSIZED: usize = 25_000;
 
 /// The rule of the session's own tool results over `OVERSIZED` bytes (BRE-19).
 const OVERSIZED_RULE: &str = "oversized-result";

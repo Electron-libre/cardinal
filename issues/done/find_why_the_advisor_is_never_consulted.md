@@ -17,6 +17,10 @@ removed.
 * Before it, 102 sessions ran `claude-sonnet-5-5` advised by `claude-opus-5-5`, with 1 call: no session with a weaker
   executor has run the paragraph yet.
 * The paragraph costs about 700 bytes of `skill:issue-workflow`, loaded once per issue session.
+* Cause, decided 2026-11-03 without a replay: an executor advised by the same model gains nothing from the call (same
+  knowledge, same blind spots; the code review already gives a fresh context), so zero calls in the `solo` setups is
+  expected, not the paragraph ignored. The paragraph is kept unchanged; a weaker executor with a stronger advisor, if
+  the user ever runs one, shows its calls in `cardinal-report --by setup` without a replay.
 
 # Approach
 1. Wait for or run about 10 issue sessions with a weaker executor and a stronger advisor (`just replay` can drive them),
@@ -35,3 +39,12 @@ Lean agent loop
 
 # Hints
 * `cardinal-report --by setup` labels an executor advised by the same model as `solo`.
+
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Decisions
+- No replay: the user judged the measure not worth its cost; the issue closes on the reasoned cause above, the
+  paragraph unchanged.

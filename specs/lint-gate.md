@@ -39,7 +39,7 @@ problems in few lines.
 
 ## Non-goals
 
-- Detecting a change that only touches `Cargo.toml`, `clippy.toml`, the toolchain or the configuration of the linter: the next edit of a matching file or `just check` catches it.
+- Detecting a change that only touches `Cargo.toml`, `clippy.toml`, the toolchain or the configuration of the linter: the next edit of a matching file or `cardinal run project-check` catches it.
 - Several lint commands, one per stack: the project chains them in its one command (a `just lint` recipe).
 - Parsing the output of a linter other than clippy per diagnostic: its lines are cut, not parsed.
 - The output of the `just` recipes (`check`): they are recipes of Cardinal, not a requirement of this hook.

@@ -9,7 +9,7 @@ adrs: [0002, 0010]
 ## Intent
 
 The hooks, checks and transcript readers of Cardinal run in every consumer, Rust or not. They ship as the
-`cardinal` binary of the pinned revision, fetched prebuilt, so a project needs only `cardinal` and `just`, and runs the
+`cardinal` binary of the pinned revision, fetched prebuilt, so a project needs only `cardinal` (ADR 0028), and runs the
 tools of the revision its managed files come from. The binary was named `harness` before: the releases and the builds of the commits
 from before the rename keep that name (BIN-3, BIN-5).
 

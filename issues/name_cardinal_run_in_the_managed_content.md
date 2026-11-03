@@ -52,9 +52,9 @@ rules. The readers already match both forms (BRE-16 `run`, the waiver, QUA-8 `pr
    `CHANGELOG.md` and `cardinal.toml` comment; `check_command` of this repository; `cardinal-format`/`FORMAT` 9 and
    `migrations/9.toml`; verified by a test that no file of `files/` but the `.just` ones names a `just` recipe, and
    the tests of the messages; makes true BIN-8 (amended).
-3. [ ] Docs: `docs/tutorial.md` step 1 (`just` optional), `usage`, `workflow`, `architecture`, `gates`, `README.md`,
+3. [x] Docs: `docs/tutorial.md` step 1 (`just` optional), `usage`, `workflow`, `architecture`, `gates`, `README.md`,
    the specs that say a consumer needs `just` (BIN intent), ADR 0001 and 0010 partly superseded by 0028; verified by
-   `just check` (links, ADR index).
+   `just check` (links, ADR index). (autonomous)
 
 Estimated size: ~150, ~400 (copies included), ~200 lines.
 
@@ -93,3 +93,18 @@ fixture set `check_command = "just check"`; FEA-32 names `cardinal run check-spe
 | code review (low) | see below |
 
 red: BIN-8: `files/.claude/skills/commit-message/SKILL.md names `just check-commit`: name `cardinal run <tool>``
+
+## Summary of deliverable 3
+done: the tutorial (step 1: `cardinal` alone, `just` optional), `usage`, `workflow`, `architecture`, `gates`,
+`README.md`, `ROADMAP.md` and the specs (BIN intent, the non-goals of `format-hook` and `lint-gate`) name
+`cardinal run <tool>`; ADR 0001, 0010 and 0028 were already marked at the acceptance of 0028.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| docs | this deliverable |
+| code review (low) | pass |
+
+red: none (docs only)
+Code review: no findings
+not verified: nothing

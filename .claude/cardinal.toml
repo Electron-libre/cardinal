@@ -16,7 +16,7 @@ skipped_dirs = ["fixtures"]
 # The check of `cardinal run project-check` (issue-workflow, before each review): the `check` recipe, whose spec check
 # is strict since this repository ships the managed tests.
 check_command = "just check"
-# The release tool (`just release`): the recipe that writes the version into the crate and its lock, and the file
+# The release tool (`cardinal run release`): the recipe that writes the version into the crate and its lock, and the file
 # whose change makes a commit breaking: a raised format is one an older `cardinal` cannot read (ADR 0014).
 release_version_command = "just set-version"
 release_breaking_files = ["cardinal-format"]

@@ -120,7 +120,7 @@ worktree drops their calls with `disabled`, the issue claims staying (FEA-35, `s
 
 No hook guards it: the seeded settings turn it off (`"attribution": {"commit": "", "pr": "", "sessionUrl": false}`),
 `cardinal run commit-check` rejects a credit line (run by `skill:commit-message` and by CI through
-`just check-commits`), `.claude/rules/no-ai-attribution.md` states the rule, and `check` warns of settings that leave
+`cardinal run check-commits`), `.claude/rules/no-ai-attribution.md` states the rule, and `check` warns of settings that leave
 it on. All of it is the feature `no-ai-attribution`: a project that turns it off (`disabled`, `specs/features.md`)
 loses the rule file at the next `sync`, and these checks, `check-issue` and rule `commit-attribution` of
 `rule-breaches` accept a credit line; its seeded `attribution` setting stays its own to change.

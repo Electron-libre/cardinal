@@ -39,7 +39,7 @@ the project points its key at it by hand. The seeded `roadmap_archive` names `RO
 too: `release` moves the released milestones there, so `ROADMAP.md` keeps only the ones still to land; a project
 without the key keeps them where they are.
 
-`just roadmap` (`cardinal run roadmap`, [specs/roadmap.md](../specs/roadmap.md)) prints the milestones of the `roadmap`
+`cardinal run roadmap` (alias `just roadmap`, [specs/roadmap.md](../specs/roadmap.md)) prints the milestones of the `roadmap`
 documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state), the
 `Released:` version, the open issues over the listed ones (a link to an existing file of `issues/done/` counts closed)
 and the document; `--open` hides the released ones. It writes nothing.
@@ -101,7 +101,7 @@ revision whose hooks call a subcommand it does not know needs its `cardinal` ins
 the agent can run nothing, the install included. `cardinal update` refuses such a revision and prints the install to
 run: `cardinal upgrade <source> <commit>` for a git source at a full commit, which needs no Rust when the source
 publishes the binary of that commit (a GitHub source, a commit of its main branch), else a `cargo install` (BIN-20).
-`just check-cardinal` says so before an issue branch is merged (`issue-workflow`, "Merge back").
+`cardinal check` says so before an issue branch is merged (`issue-workflow`, "Merge back").
 
 ### Formats and migrations
 
@@ -162,15 +162,15 @@ intent-to-add. The commit gate still records the whole diff as reviewed.
 
 ## Releases
 
-`just release` (`cardinal run release`, [specs/release.md](../specs/release.md)) numbers the versions of a project
+`cardinal run release` (alias `just release`, [specs/release.md](../specs/release.md)) numbers the versions of a project
 from its Conventional Commits, in three steps; an agent runs the last two only with the user's permission (the managed
 ask rules `Bash(cardinal run release *.*)` and `Bash(just release *.*)`, auto mode included):
 
 | Step | What it does |
 |---|---|
-| `just release` | prints the proposed version: from the last `vX.Y.Z` tag, the major raised by a breaking commit (`!`, a `BREAKING CHANGE:` footer, or a file of `release_breaking_files`), else the minor by a `feat`, else the patch; `0.1.0` with no tag yet |
-| `just release <version>` | refuses a version lower than the proposed one, or any when no commit follows the last tag; writes its section of `CHANGELOG.md` (Milestones, Breaking, Added, Fixed; `First numbered release.` with no tag yet), adds `- Released: v<version>` to the `done` milestones of the `roadmap` documents that had none, moves every released milestone to the end of the `roadmap_archive` when the project names one, runs `release_version_command` with the version as last argument. Reread and edit the section, then commit it. |
-| `just release <version> --tag` | once the release is committed, creates the annotated tag `v<version>` on `HEAD`, the section as its message, and prints `git push origin v<version>`: the push is the user's |
+| `cardinal run release` | prints the proposed version: from the last `vX.Y.Z` tag, the major raised by a breaking commit (`!`, a `BREAKING CHANGE:` footer, or a file of `release_breaking_files`), else the minor by a `feat`, else the patch; `0.1.0` with no tag yet |
+| `cardinal run release <version>` | refuses a version lower than the proposed one, or any when no commit follows the last tag; writes its section of `CHANGELOG.md` (Milestones, Breaking, Added, Fixed; `First numbered release.` with no tag yet), adds `- Released: v<version>` to the `done` milestones of the `roadmap` documents that had none, moves every released milestone to the end of the `roadmap_archive` when the project names one, runs `release_version_command` with the version as last argument. Reread and edit the section, then commit it. |
+| `cardinal run release <version> --tag` | once the release is committed, creates the annotated tag `v<version>` on `HEAD`, the section as its message, and prints `git push origin v<version>`: the push is the user's |
 
 A consumer of Cardinal pins a version with `cardinal update --rev v<version>` and reads in `CHANGELOG.md` what
 changed since its last pin.
@@ -230,8 +230,8 @@ and the `workspace-lock` hooks keep one session per worktree:
 
 | Recipe | What it does |
 |---|---|
-| `just open-worktree <name> [--path <dir>] [--branch <branch>]` | creates the worktree `../<repo>-<name>` next to the main one (or `<dir>`, relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main worktree, or on that branch as it is when it exists and no worktree has it; refuses a path inside the main worktree; copies `.claude/cardinal.local.toml` into it. It takes no issue: the worktree serves issues in turn and keeps its build. Launch a plain `claude` in it. |
-| `just close-worktree <name\|path> [--force]` | from outside the worktree, removes it and deletes the branch it has checked out once that branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes nor the main worktree. A name designates `../<repo>-<name>`, then a worktree left under `.claude/worktrees/<name>`, then the worktree of the branch `<name>`, then that branch alone (a `Stale:` branch of `next-issue`); a name that designates both a worktree on another branch and a branch is refused: pass the path |
+| `cardinal run worktree open <name> [--path <dir>] [--branch <branch>]` | creates the worktree `../<repo>-<name>` next to the main one (or `<dir>`, relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main worktree, or on that branch as it is when it exists and no worktree has it; refuses a path inside the main worktree; copies `.claude/cardinal.local.toml` into it. It takes no issue: the worktree serves issues in turn and keeps its build. Launch a plain `claude` in it. |
+| `cardinal run worktree close <name\|path> [--force]` | from outside the worktree, removes it and deletes the branch it has checked out once that branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes nor the main worktree. A name designates `../<repo>-<name>`, then a worktree left under `.claude/worktrees/<name>`, then the worktree of the branch `<name>`, then that branch alone (a `Stale:` branch of `next-issue`); a name that designates both a worktree on another branch and a branch is refused: pass the path |
 
 The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues).
 

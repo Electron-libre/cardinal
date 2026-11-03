@@ -2,7 +2,7 @@
 
 # Cardinal
 
-Cardinal is one agent harness for many projects. This repository holds the Claude Code skills, hooks, checks, `just`
+Cardinal is one agent harness for many projects. This repository holds the Claude Code skills, hooks, checks, optional `just`
 recipes and CI that a project needs to have an agent work its issues safely, plus `cardinal`, the tool that copies them
 into each project and tells when a copy drifted.
 
@@ -15,8 +15,8 @@ into each project and tells when a copy drifted.
 | Optional features | `disabled` in `.claude/cardinal.toml` turns off a feature of `features.toml` (`no-ai-attribution`, `conventional-commits`, `lint-gate`, `format-code`, `language-hint`, `read-hint`, `review-gate`, `harness-measure`, `report-style`, `github-ci`, `issue-files`, `specs`, `workspace-lock`): `sync` removes its files and entries |
 | Gates | no commit without a code review of the diff, no `git add` of every file, no turn ending on a warning of the project's lint (clippy by default), a reply not in the `user_language` sent back once, a whole read of a large file sent back once, the project's formatter (`cargo fmt` by default) after each edit, one Claude Code session per worktree; commit messages checked (Conventional Commits, no AI attribution, each a feature) |
 | Recipes | `cardinal.just` (`open-worktree`, `check-cardinal`, `release`…), which imports the recipes of each part a feature may leave out when present: `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`, `roadmap`), `cardinal-specs.just` (`check-specs`, `spec-coverage`), `cardinal-commits.just` (`check-commit`, `check-commits`), `cardinal-review.just` (`waive-review`) |
-| Project check | `cardinal run project-check` (the seeded `just check`): the `check_command` of `.claude/cardinal.toml`, quiet on success, then the specs; it fails while no command is declared |
-| Releases | `just release`: the next semver proposed from the commits, its `CHANGELOG.md` section written to reread, then a local `v<version>` tag; an agent writes the section and the tag only with the user's permission (managed ask rules) |
+| Project check | `cardinal run project-check` (the seeded `just check` calls it): the `check_command` of `.claude/cardinal.toml`, quiet on success, then the specs; it fails while no command is declared |
+| Releases | `cardinal run release` (alias `just release`): the next semver proposed from the commits, its `CHANGELOG.md` section written to reread, then a local `v<version>` tag; an agent writes the section and the tag only with the user's permission (managed ask rules) |
 | CI | `.github/workflows/cardinal.yml`: the copies and the specs checked on main and on each pull request, plus its commit messages |
 | Evaluation | `cardinal run session-metrics`, `rule-breaches`, `delivered-quality`…: did a Cardinal revision make the agent better? |
 
@@ -69,10 +69,10 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 ```mermaid
 flowchart LR
   create["create-issue"] --> queue["priority of each<br/>issues/NAME.md"]
-  queue -->|just next-issue| work["issue-workflow"]
+  queue -->|cardinal run next-issue| work["issue-workflow"]
   work -->|plan validated| deliver["test, code, docs,<br/>review, commit"]
   deliver -->|each deliverable| deliver
-  deliver --> close["just close-issue"]
+  deliver --> close["cardinal run close-issue"]
 ```
 
 Tell the agent `issues/<name>.md` (or "the next issue"); it prepares a plan, stops once for your validation, then

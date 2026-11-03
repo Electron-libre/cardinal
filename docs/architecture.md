@@ -91,8 +91,8 @@ The tools of Cardinal (hooks, checks, issue tools, transcript readers) are modul
 tool under `crates/cardinal/src/tools/`, listed in `TOOLS`
 ([ADR 0010](adr/0010-the-tools-ship-in-the-harness-binary.md), spec
 [`specs/tool-binaries.md`](../specs/tool-binaries.md)). A hook, a recipe or a skill calls `cardinal run <tool> [args]`.
-A consumer needs `cardinal`, `just` until the skills name `cardinal run` (ADR 0028), and Rust only for a commit with
-no published binary. The tests of the tools and of the shared content (`tests/skills.rs`,
+A consumer needs only `cardinal` (ADR 0028; the `cardinal*.just` recipes are optional aliases), and Rust only for a
+commit with no published binary. The tests of the tools and of the shared content (`tests/skills.rs`,
 `tests/settings_hygiene.rs`) are the `cargo test` of this repository; consumers run none.
 
 The installed `cardinal` is only a launcher (`crates/cardinal/src/run.rs`): it finds the pinned revision and replaces
@@ -195,7 +195,7 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 [`specs/parallel-issues.md`](../specs/parallel-issues.md)). The steps are in
 [workflow.md](workflow.md#parallel-issues); the design:
 
-- **Tool**: `cardinal run worktree` (`just open-worktree`, `just close-worktree`), `issue-claim`, `workspace-lock`,
+- **Tool**: `cardinal run worktree` (`cardinal run worktree open`, `cardinal run worktree close`), `issue-claim`, `workspace-lock`,
   `next-issue` and `close-issue`.
 - **Taken** is the worktree itself, or a branch holding commits not on the main branch (PAR-3): `next-issue` reads
   `git for-each-ref`, `git worktree list`, `git cherry` and `git merge-tree --write-tree`, so every worktree sees it

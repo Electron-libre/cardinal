@@ -26,5 +26,5 @@ project's format command, `cargo fmt` when the project declares none, so the age
 
 ## Non-goals
 
-- Formatting the files the agent changes otherwise than by Edit or Write (a `sed`, a generator): `just check` catches them.
-- Reporting a formatter that fails: the lint gate and `just check` report what is wrong with the code.
+- Formatting the files the agent changes otherwise than by Edit or Write (a `sed`, a generator): `cardinal run project-check` catches them.
+- Reporting a formatter that fails: the lint gate and `cardinal run project-check` report what is wrong with the code.

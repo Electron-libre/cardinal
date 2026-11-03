@@ -346,6 +346,16 @@ pub(super) fn listed_issues(path: &[String], list: &str, issues: &[String]) -> V
         .collect()
 }
 
+/// Whether the issue `path` is closed: a file directly under `done/` of the `issues` directory that `exists` (CLS-8,
+/// RMP-2).
+pub(super) fn is_closed(
+    issues: &[String],
+    path: &[String],
+    exists: impl Fn(&[String]) -> bool,
+) -> bool {
+    done_stem(issues, path).is_some() && exists(path)
+}
+
 /// The stem of `path` when it is a file directly under `done/` of the `issues` directory.
 pub(super) fn done_stem(issues: &[String], path: &[String]) -> Option<String> {
     match path.strip_prefix(issues)? {
@@ -374,9 +384,7 @@ pub(super) fn milestones_done(
             listed
                 .iter()
                 .any(|p| done_stem(issues, p).is_some_and(|s| closed.contains(&s)))
-                && listed
-                    .iter()
-                    .all(|p| done_stem(issues, p).is_some() && exists(p))
+                && listed.iter().all(|p| is_closed(issues, p, &exists))
         });
         if let Some(at) = state {
             set.push((at, milestone.name));

@@ -47,7 +47,7 @@ fn row(out: &str, name: &str) -> Vec<String> {
         .collect()
 }
 
-const ROADMAP: &str = "# Roadmap\n\n## Next\n\n- State: in issues\n- Issues:\n  - [a](issues/done/a.md)\n  - [b](issues/b.md)\n  - [c](https://example.com/issues/c.md)\n  - [d](docs/d.md)\n\n```markdown\n## Fake\n- State: done\n```\n\n## Draft\n\n- Goal: none yet\n\n## Odd\n\n- State: paused\n";
+const ROADMAP: &str = "# Roadmap\n\n## Next\n\n- State: in issues\n- Issues:\n  - [a](issues/done/a.md)\n  - [b](issues/b.md)\n  - [c](https://example.com/issues/c.md)\n  - [d](docs/d.md)\n  - [b again](issues/b.md#goal)\n\n```markdown\n## Fake\n- State: done\n```\n\n## Draft\n\n- Goal: none yet\n\n## Odd\n\n- State: paused\n\n## Later | soon\n\n- State: shaped <!-- by a reviewer -->\n";
 const DONE: &str =
     "# Done\n\n## Old\n\n- State: done\n- Released: v1.0.0\n- Issues:\n  - [z](issues/done/z.md)\n";
 
@@ -72,7 +72,11 @@ fn prints_one_row_per_milestone_in_order() {
         .skip(2)
         .filter_map(|l| l.strip_prefix("| ")?.split(" |").next())
         .collect();
-    assert_eq!(names, ["Next", "Draft", "Odd", "Old"], "{out}");
+    assert_eq!(
+        names,
+        ["Next", "Draft", "Odd", "Later \\| soon", "Old"],
+        "{out}"
+    );
     assert_eq!(
         row(&out, "Next"),
         ["Next", "in issues", "", "1/2 open", "ROADMAP.md"]
@@ -84,6 +88,10 @@ fn prints_one_row_per_milestone_in_order() {
     assert_eq!(
         row(&out, "Odd"),
         ["Odd", "paused (unknown)", "", "", "ROADMAP.md"]
+    );
+    assert!(
+        out.contains("| Later \\| soon | shaped |  |  | ROADMAP.md |"),
+        "{out}"
     );
     assert_eq!(
         row(&out, "Old"),
@@ -125,4 +133,19 @@ fn no_milestone_prints_a_line_and_writes_nothing() {
         std::fs::read_to_string(root.path().join("ROADMAP.md")).unwrap(),
         "# Roadmap\n\nNothing planned.\n"
     );
+}
+
+// spec: RMP-5
+#[test]
+fn an_invalid_configuration_is_reported() {
+    let root = project(&[("ROADMAP.md", ROADMAP)]);
+    put(root.path(), ".claude/cardinal.toml", "[project\n");
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_cardinal"))
+        .args(["tool", "roadmap"])
+        .current_dir(root.path())
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(2), "{err}");
+    assert!(err.contains("invalid"), "{err}");
 }

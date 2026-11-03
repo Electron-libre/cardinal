@@ -5,9 +5,6 @@ use super::{close_issue, roadmap};
 
 use std::path::Path;
 
-/// The states the roadmap documents (`seed/ROADMAP.md`); any other is shown as unknown (RMP-3).
-const STATES: [&str; 4] = ["idea", "shaped", "in issues", "done"];
-
 /// The rows of the milestones of the roadmap document `path` (components from the root `root`) whose text is `text`,
 /// written `document` in the configuration: one row of cells per milestone, in order.
 fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) -> Vec<[String; 5]> {
@@ -22,18 +19,20 @@ fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) ->
             }
             let state = match m.field(&lines, "State:") {
                 None => "(none)".to_string(),
-                Some(s) if STATES.contains(&s.as_str()) => s,
+                Some(s) if roadmap::STATES.contains(&s.as_str()) => s,
                 Some(s) => format!("{s} (unknown)"),
             };
-            let listed = close_issue::listed_issues(path, &m.issues(&lines), &issues);
+            let mut listed = close_issue::listed_issues(path, &m.issues(&lines), &issues);
+            listed.sort();
+            listed.dedup();
+            let exists = |p: &[String]| {
+                p.iter()
+                    .fold(root.to_path_buf(), |f, c| f.join(c))
+                    .is_file()
+            };
             let closed = listed
                 .iter()
-                .filter(|p| {
-                    close_issue::done_stem(&issues, p).is_some()
-                        && p.iter()
-                            .fold(root.to_path_buf(), |f, c| f.join(c))
-                            .is_file()
-                })
+                .filter(|p| close_issue::is_closed(&issues, p, exists))
                 .count();
             let count = if listed.is_empty() {
                 String::new()
@@ -58,6 +57,10 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     let open = !args.is_empty();
     let root = Path::new(".");
+    if let Err(e) = super::config_list(root, "roadmap") {
+        eprintln!("{e}");
+        return 2;
+    }
     let table: Vec<[String; 5]> = close_issue::roadmap_documents(root, &[])
         .into_iter()
         .flat_map(|(document, path)| {
@@ -73,7 +76,8 @@ pub(super) fn main(args: &[String]) -> u8 {
     println!("| milestone | state | released | issues | document |");
     println!("|---|---|---|---|---|");
     for row in table {
-        println!("| {} |", row.join(" | "));
+        let cells: Vec<String> = row.iter().map(|c| c.replace('|', "\\|")).collect();
+        println!("| {} |", cells.join(" | "));
     }
     0
 }

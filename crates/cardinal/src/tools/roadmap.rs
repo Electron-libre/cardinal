@@ -88,6 +88,9 @@ pub(super) fn milestones(lines: &[&str]) -> Vec<Milestone> {
     out
 }
 
+/// The states of a milestone the seeded roadmap documents (`seed/ROADMAP.md`).
+pub(super) const STATES: [&str; 4] = ["idea", "shaped", "in issues", "done"];
+
 /// Whether `line` is the field `key` of a milestone (`- State: done`).
 pub(super) fn is_field(line: &str, key: &str) -> bool {
     line.trim_start_matches(['-', ' ']).starts_with(key)
@@ -104,13 +107,13 @@ impl Milestone {
         })
     }
 
-    /// The value of its first field `key` (`State:`), trimmed.
+    /// The value of its first field `key` (`State:`), without a trailing HTML comment, trimmed.
     pub(super) fn field(&self, lines: &[&str], key: &str) -> Option<String> {
         self.body
             .iter()
             .find(|&&i| is_field(lines[i], key))
             .and_then(|&i| lines[i].split_once(':'))
-            .map(|(_, v)| v.trim().to_string())
+            .map(|(_, v)| v[..v.find("<!--").unwrap_or(v.len())].trim().to_string())
     }
 
     /// The indented lines of its `Issues:` list, joined.

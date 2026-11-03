@@ -49,6 +49,9 @@ scope. The links of an `Issues:` list are resolved by a function shared with CLS
    listed-issue resolution taken out of `close_issue::milestones_done` and shared, the recipe in
    `files/cardinal-issues.just`, `docs/usage.md`; verified by `crates/cardinal/tests/roadmap.rs` through the binary;
    makes true RMP-1 to RMP-5. (autonomous)
+2. [x] Fixes of the issue review: an invalid configuration reported (exit 2), `|` escaped, an issue linked twice
+   counted once, a trailing comment left out of a field, the closed rule and the states shared; verified by
+   `crates/cardinal/tests/roadmap.rs`; makes true RMP-2, RMP-3, RMP-5 as amended. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -63,3 +66,16 @@ scope. The links of an `Issues:` list are resolved by a function shared with CLS
 - Code review: no findings
 - not verified: none
 - decisions needed: none
+
+## Issue review (high): 8 findings
+- Fixed in deliverable 2: invalid configuration silent; `|` unescaped; duplicate links counted twice; trailing HTML
+  comment in a field value; closed rule written twice (`close_issue::is_closed`); states listed apart
+  (`roadmap::STATES`).
+- Not fixed: a document above the project root is dropped silently, as `close-issue` drops it (CLS-8 shares
+  `roadmap_documents`); the recipe stays in `cardinal-issues.just`, as the issue decided (feature `issue-files`).
+
+## Deliverable 2 summary
+- done: the six fixes above; RMP-2, RMP-3, RMP-5 amended.
+- checks: `just check` green; 85 changed lines.
+- red: RMP-3, RMP-5: `left: Some(0)` `right: Some(2)` (invalid configuration), names `["...", "Later", "Old"]` for
+  `Later \| soon`.

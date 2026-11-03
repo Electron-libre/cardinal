@@ -68,7 +68,7 @@ Measure first, then propose; nothing is decided here.
 * `crates/cardinal/src/tools/rule_breaches.rs`, `crates/cardinal/src/tools/delivered_quality.rs`.
 * `docs/tutorial.md` step 1, `docs/usage.md` ("Features a project turns off"), `docs/gates.md` (the review gate).
 * ADR 0001 (one harness synced by a Rust tool), ADR 0005 (the gates catch mistakes), ADR 0017 (migrations).
-* [add_a_just_recipe_to_waive_the_review](done/add_a_just_recipe_to_waive_the_review.md): why the waiver is a recipe.
+* [add_a_just_recipe_to_waive_the_review](add_a_just_recipe_to_waive_the_review.md): why the waiver is a recipe.
 
 # Hints
 * A deny rule matches the command text: a new way to waive needs its own rule, or the agent can waive its review.
@@ -83,7 +83,7 @@ Measure first, then propose; nothing is decided here.
 | b. Keep `just`, document it | none | none | none | none | nothing; every consumer installs `just` |
 | c. Drop `just` everywhere | a + deleting the recipes | as a | as a | as a, plus the removed recipe files | `just --list`, the recipes it already uses |
 
-Option a, in [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md):
+Option a, in [ADR 0028](../../docs/adr/0028-a-consumer-needs-only-cardinal.md):
 - `cardinal run project-check` runs the `check_command` of `[project]` (the project's format, lint and tests), then
   `check-specs` when the feature `specs` is on, and fails when `check_command` is unset: the one entry point, with no
   recipe, named apart from `cardinal check` (the drift check).

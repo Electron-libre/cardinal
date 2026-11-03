@@ -33,7 +33,7 @@ on, so that a consumer can check its work with `cardinal` alone (ADR 0028).
 
 # Resources
 * [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md), the proposal of
-  [explore_dropping_just_for_the_consumers](explore_dropping_just_for_the_consumers.md).
+  [explore_dropping_just_for_the_consumers](done/explore_dropping_just_for_the_consumers.md).
 * `seed/justfile`, `seed/.claude/cardinal.toml`, `crates/cardinal/src/tools/lint_gate.rs`,
   `crates/cardinal/src/tools/delivered_quality.rs`.
 

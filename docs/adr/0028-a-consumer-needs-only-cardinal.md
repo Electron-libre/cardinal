@@ -9,7 +9,7 @@ Cardinal's tools and the project's check through recipes. The recipes of `cardin
 except `waive-review`, a shell script, and `check-commit`, which pipes the message of a revision into
 `cardinal run commit-check`; the project's `check` recipe is the one entry point with no `cardinal` equivalent. A
 team that adopts the harness installs one more tool for these aliases, and `delivered-quality` counts a check only
-when it runs through `just`. Measured in `issues/explore_dropping_just_for_the_consumers.md`: about 40 mentions in
+when it runs through `just`. Measured in `issues/done/explore_dropping_just_for_the_consumers.md`: about 40 mentions in
 the managed content, the deny rules of the waiver, two transcript readers, the CI and the docs.
 
 ## Decision

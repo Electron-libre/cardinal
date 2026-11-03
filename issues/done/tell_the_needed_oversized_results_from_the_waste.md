@@ -39,7 +39,7 @@ Lean agent loop
 # Resources
 * `specs/rule-breaches.md`, `specs/cardinal-report.md`, `files/.claude/skills/evaluate-harness/SKILL.md`.
 * `files/.claude/skills/issue-workflow/SKILL.md`, steps 3 and 6 (the `/code-review` calls).
-* `issues/judge_the_delegated_exploration_before_keeping_it.md` (the sub-agents it judges are not the source here).
+* `issues/done/judge_the_delegated_exploration_before_keeping_it.md` (the sub-agents it judges are not the source here).
 
 # Hints
 * A sub-agent's oversized result does not enter the main context; it costs the sub-agent's tokens, not the peak.

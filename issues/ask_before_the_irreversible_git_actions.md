@@ -1,5 +1,5 @@
 ---
-priority: medium
+priority: low
 why: 'the release ask rule proved the mechanism; the other irreversible actions still rest on the wording of a skill'
 ---
 # Ask before the irreversible git actions

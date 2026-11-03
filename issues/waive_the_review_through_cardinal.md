@@ -51,6 +51,9 @@ the skills and docs (`name_cardinal_run_in_the_managed_content`), dropping the `
    `entries/.claude/settings.json`, `features.toml`, `DENY_RULES`; `rule-breaches` finds both forms; verified by the
    tests of `tests/review_gate.rs` (tool through the binary), `settings_warnings_cli.rs`, `skills.rs` (FEA-23) and
    `rule_breaches.rs`; makes true REV-17, REV-19, REV-22, BRE-6 (~200 lines). (autonomous)
+2. [x] Fixes of the `high` review: an empty waiver (a spent stamp kept by `touch` made `native` drop the new one), the
+   `cardinal run|tool waive-review` form read in a row in one command, the waiver path of `review_gate.rs` reused, its
+   module doc; verified by `tests/review_gate.rs` and `tests/rule_breaches.rs`; makes true REV-17, BRE-6. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -75,3 +78,29 @@ red: REV-17, REV-22, BRE-6: `FAIL - the tool runs` (unknown tool `waive-review`)
 Code review: no findings
 
 not verified: the deny rules in a live Claude Code session.
+
+## Deliverable 2
+
+done: the fixes of the `high` review of the issue (findings 1, 2, 5, 9).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | REV-17, BRE-6 and a non-goal of `specs/review-gate.md` amended |
+| code review | done (`low`) |
+
+red: REV-17, BRE-6: `FAIL - it empties a spent waiver already there`, `FAIL - no finding beyond the expected ones` (the line `cardinal run check-specs && grep -rn waive-review docs` counted)
+
+Code review: no findings
+
+High review: 9 findings
+- 1 (a spent stamp kept), 2 (false `review-waiver` findings), 5 (waiver path duplicated), 9 (module doc): fixed.
+- 3 (`cardinal tool waive-review` not denied): not fixed, ADR 0005 (the agent writes `cardinal run`); a non-goal of the spec, and `rule-breaches` finds it.
+- 4 (refuse on the deny rules present, the root of the config): not fixed, ADR 0005; the root is the one `project-check` reads.
+- 6 (deny rules in four places): not fixed, the existing design; each copy is checked by a test (REV-19, FEA-23).
+- 7 (the recipe not run): not fixed, running it needs a `cardinal` that pins the revision under test; the recipe is one line.
+- 8 (two `git` processes): not fixed, negligible for a command the user runs by hand.
+
+not verified: none.

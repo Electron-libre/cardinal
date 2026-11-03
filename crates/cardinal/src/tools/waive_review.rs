@@ -1,12 +1,9 @@
-//! `waive-review`: the review waiver through `cardinal` alone (ADR 0028), for the user only. It creates the waiver of
-//! the worktree it runs in, where `review-gate native` reads it, keeps the content of one already there, and prints
-//! its path. With the feature `review-gate` off, `sync` leaves out the deny rules that keep it from the agent, so it
-//! refuses. Spec: `specs/review-gate.md` (REV-17, REV-22).
+//! `waive-review`: the review waiver through `cardinal` alone (ADR 0028), for the user only. It writes an empty
+//! waiver for the worktree it runs in, where `review-gate native` reads it, and prints its path; an empty one, since
+//! `native` drops a waiver stamped by a spent commit. With the feature `review-gate` off, `sync` leaves out the deny
+//! rules that keep it from the agent, so it refuses. Spec: `specs/review-gate.md` (REV-17, REV-22).
 
-use std::fs::OpenOptions;
-use std::process::Command;
-
-use super::repo_root;
+use super::{repo_root, review_gate};
 use crate::features;
 
 const USAGE: &str = "usage: cardinal run waive-review";
@@ -28,7 +25,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
 }
 
-/// Creates the waiver of the current worktree and returns its path.
+/// Writes the waiver of the current worktree and returns its path.
 fn waive() -> Result<String, String> {
     let root = repo_root()?;
     if features::is_off(&root, features::REVIEW_GATE) {
@@ -36,24 +33,11 @@ fn waive() -> Result<String, String> {
             "the project turns off the feature review-gate: there is no review to waive".into(),
         );
     }
-    let out = Command::new("git")
-        .args([
-            "rev-parse",
-            "--path-format=absolute",
-            "--git-path",
-            "claude-review-waived",
-        ])
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if !out.status.success() {
-        return Err(String::from_utf8_lossy(&out.stderr).trim().to_string());
-    }
-    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    // like `touch`: create it, never truncate it, since `native` reads a stamp in its content
-    OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .map_err(|e| format!("cannot create {path}: {e}"))?;
-    Ok(path)
+    let cwd =
+        std::env::current_dir().map_err(|e| format!("cannot read the current directory: {e}"))?;
+    let path = review_gate::waiver_path(&cwd).ok_or("cannot find the git directory")?;
+    std::fs::write(&path, "").map_err(|e| format!("cannot write {}: {e}", path.display()))?;
+    // relative to `cwd` from a subdirectory (`sub/../.git/…`): print the path the user can read
+    let path = path.canonicalize().unwrap_or(path);
+    Ok(path.display().to_string())
 }

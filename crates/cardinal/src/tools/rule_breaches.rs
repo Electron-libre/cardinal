@@ -115,6 +115,17 @@ impl Call {
         self.commands.iter().flatten().any(|w| w == word)
     }
 
+    /// Whether a command runs `cardinal run waive-review` or `cardinal tool waive-review`: the agent runs other tools
+    /// of `cardinal run` on the line that names the waiver.
+    fn runs_the_waiver_tool(&self) -> bool {
+        self.commands.iter().any(|words| {
+            words.iter().any(|w| w == "cardinal")
+                && words
+                    .windows(2)
+                    .any(|w| matches!(w[0].as_str(), "run" | "tool") && w[1] == "waive-review")
+        })
+    }
+
     /// Whether it is a `Bash` call running `git commit`.
     fn commits(&self) -> bool {
         self.has("git") && self.has("commit")
@@ -436,7 +447,7 @@ impl Verdict {
         if shell::stages_everything(&call.commands) {
             self.add("stage-everything", blocked, &call.location, String::new());
         }
-        if has("waive-review") && (has("just") || (has("cardinal") && has("run"))) {
+        if has("just") && has("waive-review") || call.runs_the_waiver_tool() {
             self.add("review-waiver", blocked, &call.location, String::new());
         }
     }

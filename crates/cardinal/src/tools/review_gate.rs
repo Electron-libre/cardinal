@@ -14,10 +14,10 @@
 //! outside `issues/` but the references `close-issue` rewrote for the issues it moves to `issues/done/` and the
 //! milestones it set `done` (recomputed from the index), and a machine without `git` are not gated; with the feature
 //! `issue-files` off, `issues/` is gated as any other directory (FEA-36). The user waives the
-//! review of the next commit by creating `claude-review-waived` in the git directory (`just waive-review`); the hook
+//! review of the next commit by creating `claude-review-waived` in the git directory (`cardinal run waive-review`); the hook
 //! stamps it with `HEAD` when it lets a commit through and removes it, without using it, at the first check after
 //! `HEAD` moved (a command that does not commit, such as `--dry-run`, leaves it usable; after a commit the user
-//! creates it again). The deny rules `cardinal sync` manages in `.claude/settings.json` keep the recipe and the file from the agent.
+//! creates it again). The deny rules `cardinal sync` manages in `.claude/settings.json` keep the tool, its recipe and the file from the agent.
 //!
 //! `native` judges the repository git resolved (`GIT_DIR`, `GIT_WORK_TREE`, the current directory), whatever the text
 //! of the command was, and reads no event. A native hook does not run under `--no-verify` / `-n` or a moved
@@ -372,6 +372,11 @@ fn toplevel(cwd: &Path) -> PathBuf {
 }
 
 /// A file of the git directory of the repository `cwd` belongs to, `None` outside a repository.
+/// The waiver of the worktree of `cwd`, where `native` reads it, `None` outside git.
+pub(super) fn waiver_path(cwd: &Path) -> Option<PathBuf> {
+    git_file(cwd, WAIVER)
+}
+
 fn git_file(cwd: &Path, name: &str) -> Option<PathBuf> {
     let out = git(cwd, &["rev-parse", "--git-path", name], b"");
     let path = String::from_utf8_lossy(&out).trim().to_string();
@@ -536,7 +541,7 @@ fn records_close_only(cwd: &Path, index: Option<&Path>, staged: &[Staged]) -> bo
 
 /// The waiver of `cwd`; one gone before the read is absent, content that is not UTF-8 is content, not a read failure.
 fn waiver(cwd: &Path) -> Waiver {
-    let Some(path) = git_file(cwd, WAIVER) else {
+    let Some(path) = waiver_path(cwd) else {
         return Waiver::Absent;
     };
     match std::fs::read(&path) {

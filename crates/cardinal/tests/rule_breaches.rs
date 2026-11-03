@@ -193,7 +193,9 @@ fn session_a(repo: &Path, proj: &Path) -> Vec<String> {
         &json!({"file_path": in_repo(".git/claude-review-waived"), "content": ""}),
         None,
     );
-    t.call("t9", "Bash", &bash("touch somewhere"));
+    // a line that only names the waiver runs none
+    let names = "touch somewhere && cardinal run check-specs && grep -rn waive-review docs";
+    t.call("t9", "Bash", &bash(names));
     let waive_refused = t.result(
         "t9",
         true,

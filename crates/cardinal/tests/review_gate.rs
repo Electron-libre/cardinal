@@ -238,10 +238,11 @@ fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
         "it prints the path of the linked worktree",
         String::from_utf8_lossy(&run.stdout).contains(linked_waiver.to_str().unwrap()),
     ));
-    fs::write(&main_waiver, "kept").unwrap();
+    // the stamp of a waiver a commit spent, which `native` would drop instead of honouring the new waiver
+    fs::write(&main_waiver, "0123abc").unwrap();
     out.push((
-        "it keeps the content of a waiver already there",
-        recipe(&main).status.success() && fs::read_to_string(&main_waiver).unwrap() == "kept",
+        "it empties a spent waiver already there",
+        recipe(&main).status.success() && fs::read_to_string(&main_waiver).unwrap().is_empty(),
     ));
     fs::write(linked.join("a.txt"), "two\n").unwrap();
     out.push((

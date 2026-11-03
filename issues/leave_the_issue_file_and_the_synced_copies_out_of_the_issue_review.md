@@ -12,7 +12,7 @@ file and synced copies of Cardinal included. Its reviewers' results are the larg
 issue nor a second copy of a managed file, and the waste per review session falls.
 
 # Findings
-* Measured 2026-11-03 (`issues/tell_the_needed_oversized_results_from_the_waste.md`, deliverable 3):
+* Measured 2026-11-03 (`issues/done/tell_the_needed_oversized_results_from_the_waste.md`, deliverable 3):
   `oversized-result-review` 18,078 bytes per session over 262 sessions, against 3,708 for the session's own results.
 * The reviewers' results over 25,000 bytes are the diff: 102 `git diff`, 75 whole `Read`s of the `tool-results/`
   file Claude Code saved the diff to, 13 others; 21 of the `git diff` already left paths out.

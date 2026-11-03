@@ -12,7 +12,7 @@ the waste it saves; a hook costs nothing until it fires. The outcome: before a w
 is told to read a range, and `oversized-result` falls.
 
 # Findings
-* Measured 2026-11-03 (`issues/tell_the_needed_oversized_results_from_the_waste.md`, deliverable 3): 36
+* Measured 2026-11-03 (`issues/done/tell_the_needed_oversized_results_from_the_waste.md`, deliverable 3): 36
   `oversized-result` breaches in 30 of 290 sessions, 3,708 bytes per session; over every session of the machine,
   69 such results: `Read` 24 (10 whole code files, 8 whole `tool-results/` files), `cat` 22, `cd …;` commands 8,
   `WebFetch` 7, others 8.

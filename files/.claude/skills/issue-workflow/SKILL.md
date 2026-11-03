@@ -105,9 +105,9 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    `docs/adr/` (template and numbering in `docs/adr/README.md`) and update the
    diagrams in the `architecture` document of `.claude/cardinal.toml` when the flow changed.
 5. **Review (mandatory)**: run `just check` (the project's format, lint and tests, and the specs); when `cardinal run deliverable-size`
-   exits 1 (over the limit of a deliverable), cut the deliverable before the review; then mark the new files intent-to-add (`git add -N <file>`: `git diff HEAD`
-   leaves the untracked ones out) and **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
-   `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level),
+   exits 1 (over the limit of a deliverable), cut the deliverable before the review; then **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
+   `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level; it
+   refuses an untracked file, which `git diff` leaves out: mark it intent-to-add with the `git add -N` it prints),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say
    why one is not fixed; a finding outside the requirements of the deliverable becomes an issue
    (`skill:create-issue`), not a fix in this deliverable.

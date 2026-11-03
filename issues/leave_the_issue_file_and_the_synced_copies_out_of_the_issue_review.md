@@ -57,6 +57,9 @@ by a new tool `cardinal run review-target [<base>]`, since `/code-review` passes
 2. [x] `skill:issue-workflow`: step 3.5 invokes `/code-review low <the line of review-target>`, the whole-issue review
    `/code-review high <the line of review-target <base>>`; docs (`docs/architecture.md`, CLAUDE.md index if needed);
    verified by `just check-cardinal` and a reread; `Expected-effect: bytes_per_session:oversized-result-review down`.
+3. [x] Fixes of the `high` review: every revision quoted, `<base>` alone (the working tree against it, so the
+   uncommitted docs edits are reviewed), `literal` pathspecs, the lock excluded, an unborn `HEAD` refused, an untracked
+   file refused with its `git add -N` (RVT-6); verified by the tests of `review_target.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -83,3 +86,15 @@ by a new tool `cardinal run review-target [<base>]`, since `/code-review` passes
 - red: none (a skill text, checked by `just check-cardinal`).
 - Code review: no findings
 - not verified: the fall of `oversized-result-review`, read by `skill:evaluate-harness` once sessions use it.
+
+## High review (whole issue)
+- Code review: 8 findings: 6 fixed in deliverable 3 (zsh `extendedglob` on `^`/`~`, untracked files unreviewed but
+  recorded, uncommitted docs edits out of `<base>..HEAD`, the lock's hash lines, glob in managed paths, unborn `HEAD`);
+  2 left as non-goals of the spec (the lock read from the work tree, not the revisions; an edit of a managed copy in a
+  consumer, which `cardinal check` reports).
+
+## Deliverable 3
+- done: the fixes above; spec RVT-1 to RVT-6 rewritten; skill step 3.5 and `docs/usage.md` follow.
+- red: RVT-1, RVT-2, RVT-3, RVT-4, RVT-5, RVT-6, FEA-39: 9 of 11 tests failed on the old output (`HEAD..HEAD` unquoted,
+  no `literal`, no refusal of untracked files).
+- Code review: no findings

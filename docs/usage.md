@@ -141,10 +141,11 @@ deliverable then.
 ## Target of a code review
 
 `cardinal run review-target [<base>]` ([specs/review-target.md](../specs/review-target.md)) prints the target
-`issue-workflow` hands to `/code-review`: `HEAD` (the working tree) or `<base>..HEAD`, then `-- ':/'` and one
-`':(top,exclude)<path>'` for `issues/` and each managed file of `.claude/cardinal.lock`, so the reviewers diff the code,
-tests, specs and docs and not the issue tracking nor the managed copies. The commit gate still records the whole diff as
-reviewed.
+`issue-workflow` hands to `/code-review`: the working tree against `HEAD` or `<base>`, then `-- ':/'` and one
+`':(top,exclude,literal)<path>'` for `issues/`, `.claude/cardinal.lock` and each managed file it lists, so the
+reviewers diff the code, tests, specs and docs and not the issue tracking nor the managed copies. It refuses an
+untracked file outside those paths, which `git diff` would leave out, printing the `git add -N` that marks it
+intent-to-add. The commit gate still records the whole diff as reviewed.
 
 ## Releases
 

@@ -17,6 +17,9 @@ use super::issue_claim::{self, alive};
 /// A mutex older than this was left by a process that died holding it.
 const STALE_MUTEX: Duration = Duration::from_secs(10);
 
+/// The paths of the work in progress a refusal lists at most.
+const MAX_PATHS: usize = 10;
+
 /// The holder of a lock.
 #[derive(PartialEq)]
 struct Holder {
@@ -93,18 +96,19 @@ impl Drop for Mutex {
     }
 }
 
-/// Whether `holder` keeps the lock of the worktree of `cwd` from `me`: another session of another process that runs and
-/// has work in progress (WSL-3, WSL-10).
-fn keeps(holder: &Holder, me: &Holder, cwd: &Path) -> bool {
-    holder.session != me.session
-        && holder.pid != me.pid
-        && alive(&holder.pid)
-        && in_progress(holder, cwd)
+/// The work in progress that lets `holder` keep the lock of the worktree of `cwd` from `me`, when it is another session
+/// of another process that runs (WSL-3, WSL-10).
+fn keeps(holder: &Holder, me: &Holder, cwd: &Path) -> Option<String> {
+    if holder.session == me.session || holder.pid == me.pid || !alive(&holder.pid) {
+        return None;
+    }
+    in_progress(holder, cwd)
 }
 
-/// Whether `holder` has work in progress (WSL-10): a change or an untracked file in the worktree of `cwd`, or an issue
-/// claimed `working` by its session or process; an unreadable status counts as work in progress.
-fn in_progress(holder: &Holder, cwd: &Path) -> bool {
+/// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the
+/// worktree of `cwd`, or an issue claimed `working` by its session or process; an unreadable status counts as work in
+/// progress. Any change counts, whoever made it (ADR 0027).
+fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
     let status = Command::new("git")
         .args([
             "--no-optional-locks",
@@ -117,34 +121,45 @@ fn in_progress(holder: &Holder, cwd: &Path) -> bool {
         .ok()
         .filter(|o| o.status.success());
     let Some(status) = status else {
-        return true;
+        return Some("git status could not be read".to_string());
     };
-    !status.stdout.is_empty()
-        || issue_claim::all(cwd).iter().any(|(_, _, c)| {
+    if !status.stdout.is_empty() {
+        let status = String::from_utf8_lossy(&status.stdout);
+        let mut paths: Vec<&str> = status.lines().take(MAX_PATHS + 1).collect();
+        if paths.len() > MAX_PATHS {
+            paths[MAX_PATHS] = "...";
+        }
+        return Some(format!("uncommitted changes:\n{}", paths.join("\n")));
+    }
+    issue_claim::all(cwd)
+        .into_iter()
+        .find(|(_, _, c)| {
             c.state == "working" && (c.session == holder.session || c.pid == holder.pid)
         })
+        .map(|(stem, _, _)| format!("the issue {stem} it claims"))
 }
 
-/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it.
-fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), Holder> {
+/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it
+/// and its work in progress.
+fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), (Holder, String)> {
     let before = read(path);
     if before.as_ref() == Some(me) {
         return Ok(());
     }
     // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
-    let kept = before.as_ref().is_some_and(|h| keeps(h, me, cwd));
+    let kept = before.as_ref().and_then(|h| keeps(h, me, cwd));
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
-    let keeper = read(path).filter(|h| {
-        if before.as_ref() == Some(h) {
+    if let Some(h) = read(path) {
+        let work = if before.as_ref() == Some(&h) {
             kept
         } else {
-            keeps(h, me, cwd)
+            keeps(&h, me, cwd)
+        };
+        if let Some(work) = work {
+            return Err((h, work));
         }
-    });
-    if let Some(h) = keeper {
-        return Err(h);
     }
     let tmp = path.with_extension(format!("tmp{}", std::process::id()));
     if std::fs::write(&tmp, me.text()).is_ok() {
@@ -191,13 +206,13 @@ pub(super) fn main(args: &[String]) -> u8 {
         session: session.to_string(),
         pid,
     };
-    let Err(holder) = take(&path, &me, Path::new(cwd)) else {
+    let Err((holder, work)) = take(&path, &me, Path::new(cwd)) else {
         return 0;
     };
     if mode == "start" {
         println!("This worktree is busy: the Claude Code session {} works in it and still runs. Your edits and commands will be refused here: tell the user to open another worktree or to end that session.", holder.session);
         return 0;
     }
-    eprintln!("Refused: another live session ({}) works in this worktree; two sessions would share its files, index and review marker. Stop and let the user open another worktree or end that session.", holder.session);
+    eprintln!("Refused: another live session ({}) of process {} works in this worktree; two sessions would share its files, index and review marker. Stop and let the user open another worktree, end that session or commit or stash its work in progress, whoever made it: {work}", holder.session, holder.pid);
     2
 }

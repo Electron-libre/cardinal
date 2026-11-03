@@ -200,6 +200,10 @@ fn check_refuses_another_session_while_the_holder_runs() {
         err.contains("another live session") && err.contains("(a)") && err.contains("worktree"),
         "{err}"
     );
+    assert!(
+        err.contains(&format!("process {}", other.pid())) && err.contains("?? wip"),
+        "the refusal names the process and the paths that keep the lock: {err}"
+    );
     assert!(lock(&r.main).contains("session a\n"));
 }
 

@@ -1,7 +1,7 @@
 ---
 id: WSL
 status: accepted
-adrs: [0005, 0022, 0024]
+adrs: [0005, 0022, 0024, 0027]
 ---
 
 # Worktree lock
@@ -12,14 +12,15 @@ Two Claude Code sessions in the same worktree share its files, its index, its re
 an editor's agent client opens several threads on one folder. A lock per worktree, held by the session that first starts
 or acts there while its process runs, stops the other sessions before they edit or run anything (ADR 0022). An editor
 keeps the process of an old thread running, so a holder that left nothing in progress (no uncommitted change, no
-issue claimed) hands the lock over to the next session instead of blocking it (ADR 0024). Like the other
+issue claimed) hands the lock over to the next session instead of blocking it (ADR 0024); any uncommitted change
+counts, whoever made it (ADR 0027). Like the other
 gates it catches the mistakes of cooperative agents, not deliberate bypasses (ADR 0005).
 
 ## Requirements
 
 - **WSL-1** (deterministic) `cardinal run workspace-lock check`, run as a `PreToolUse` hook, must take the lock of the worktree of the `cwd` of its input when there is none, or when the process it names no longer runs, by writing the `session_id` of its input and the process of the session (`CLAUDE_PID`) to the file `git rev-parse --git-path cardinal-session` gives there, and let the call through.
 - **WSL-2** (deterministic) `check` must let through, rewriting the lock with its own session and process, a call of the session the lock names, or of another session of the same process (a cleared session).
-- **WSL-3** (deterministic) `check` must refuse, with exit code 2 and a message on stderr that says another live session works in this worktree, names its session and tells the agent to stop and let the user open another worktree or end that session, a call of any other session while the process of the lock runs and the holder has work in progress as WSL-10 says.
+- **WSL-3** (deterministic) `check` must refuse, with exit code 2 and a message on stderr that says another live session works in this worktree, names its session and its process, lists the uncommitted paths that count as its work in progress and tells the agent to stop and let the user open another worktree, end that session or commit those paths, a call of any other session while the process of the lock runs and the holder has work in progress as WSL-10 says.
 - **WSL-4** (deterministic) Two sessions of two processes taking a free or stale lock at once, in a worktree with uncommitted changes, must leave exactly one of them holding it, the other refused as WSL-3 says.
 - **WSL-5** (deterministic) `cardinal run workspace-lock start`, run as a `SessionStart` hook, must take the lock as WSL-1, WSL-2 and WSL-10 say or, when another live session with work in progress holds it, take nothing, exit 0 and print as additional context for the agent that the worktree is busy and that its edits and commands will be refused.
 - **WSL-6** (deterministic) `cardinal run workspace-lock release`, run as a `SessionEnd` hook, must delete the lock when it names the session of its input, and leave a lock of another session untouched.
@@ -38,6 +39,8 @@ gates it catches the mistakes of cooperative agents, not deliberate bypasses (AD
   then `a` is refused.
 - (WSL-10) Given a lock naming session `a` whose process runs and a claim in the state `working` naming `a`, when
   session `b` calls `Bash` in the clean worktree, then the call is refused.
+- (WSL-3) Given a lock naming session `a` of process `p` that runs and a file `x` changed by the user, when session
+  `b` calls `Bash`, then the call is refused with a message naming `a`, `p` and `x`.
 - (WSL-6) Given a lock naming session `a`, when session `b` ends, then the lock still names `a`.
 
 ## Non-goals
@@ -45,5 +48,8 @@ gates it catches the mistakes of cooperative agents, not deliberate bypasses (AD
 - Refusing the read-only tools (`Read`, `Grep`, `Glob`) to a second session: it can still read, never change.
 - A process id reused after the holder died, and platforms where `kill -0` cannot test a process.
 - A lock seen from another clone or machine.
+- Telling who made a change: any uncommitted change counts as the holder's, so a file the user edits by hand (an
+  issue of the trunk) keeps an idle holder holding the lock; the refusal names the holder's process and the paths, and
+  the user commits or stashes them, or ends that process.
 - Two sessions acting at once in a clean worktree: each call may hand the lock over, until the first change makes one
   of them the holder with work in progress.

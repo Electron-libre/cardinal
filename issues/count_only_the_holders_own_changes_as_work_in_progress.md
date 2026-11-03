@@ -59,3 +59,40 @@ Propose, then decide at step 1 of `issue-workflow`:
 * A lock written by an older `cardinal` has no fingerprint: read it as today's rule (or as "nothing of the holder's"),
   and say which in the spec.
 * WSL-7: an unreadable status or fingerprint never blocks a session.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Decided at step 2: the outcome of the Goal is dropped. Any uncommitted change keeps counting as the holder's; the
+limit is documented (spec non-goal, ADR 0027) and the refusal names the holder's process and the paths that keep it,
+so the user knows what to commit, stash or end.
+
+## Plan
+1. [x] Name the holder's process and the blocking paths: the refusal of `check` lists them; spec and ADR 0027;
+   verified by a behavior test of `crates/cardinal/tests/workspace_lock.rs` (the refusal names session, pid and
+   path); makes true WSL-3. (autonomous)
+
+## Decisions
+- Approach: document the limit and name the process and the paths in the refusal; rejected: the fingerprint with
+  `PostToolUse`/`Stop` hooks (too costly), ignoring `issues/`, an idle timeout (ADR 0027).
+- Mode: autonomous
+- Base commit: c3f28c4e2df9642649be5c3dc4f10697ca8673f0
+
+## Summary of deliverable 1
+- done: the refusal of `check` names the holder's process and the paths (or the claim) that keep the lock; the limit
+  is documented (spec non-goal, ADR 0027, `docs/gates.md`).
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | WSL-3 traced, spec `accepted` |
+| docs | `docs/gates.md`, ADR 0027 and its index |
+| code review | `low`, no findings |
+
+- red: WSL-3: `the refusal names the process and the paths that keep the lock: Refused: another live session (a) works in this worktree; ... or end that session.`
+Code review: no findings
+- not verified: none.
+- decisions needed: none.

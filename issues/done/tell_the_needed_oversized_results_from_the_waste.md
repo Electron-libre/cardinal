@@ -137,7 +137,7 @@ of the machine); fixed, its scope stated.
 Decisions, validated by the user:
 * The `high` review leaves out `issues/` and the synced copies (`.claude/`, the paths of `.claude/cardinal.lock`):
   about a fifth of the lines, none of them code a review can fault; `specs/` and `docs/` stay (4%, the
-  requirements the code is read against): `issues/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md`.
+  requirements the code is read against): `issues/done/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md`.
 * No rule in the fixed context for the session's own reads: 3.7 KB per session does not pay a line every session
   loads; a `PreToolUse` hint on a whole `Read` of a file over 25 KB (`tool-results/` included) costs nothing until
   it fires: `issues/hint_before_a_whole_read_of_a_large_file.md`.

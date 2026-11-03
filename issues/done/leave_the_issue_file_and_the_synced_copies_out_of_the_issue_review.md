@@ -40,7 +40,7 @@ Lean agent loop
 * Verdict: `Expected-effect: bytes_per_session:oversized-result-review down`. (autonomous)
 
 # Specs
-* [specs/review-target.md](../specs/review-target.md) (RVT-1 to RVT-5), FEA-39 of [specs/features.md](../specs/features.md).
+* [specs/review-target.md](../../specs/review-target.md) (RVT-1 to RVT-5), FEA-39 of [specs/features.md](../../specs/features.md).
 
 # Tracking
 

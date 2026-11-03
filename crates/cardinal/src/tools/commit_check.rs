@@ -2,9 +2,11 @@
 //! (`.claude/skills/commit-message/conventional-commits.md`).
 //! Prints each violation and exits 1; prints nothing and exits 0 when the message is valid.
 //! Exits 2 with an `error:` line on stderr when `.claude/cardinal.toml` cannot be read from the repository root.
-//! Usage: `printf '%s\n' "$msg" | cardinal run commit-check`, or `just check-commit` (checks the message of HEAD).
+//! Usage: `printf '%s\n' "$msg" | cardinal run commit-check`, or `cardinal run commit-check <rev>` (checks the
+//! message of a revision, CMC-2).
 
 use std::io::Read;
+use std::process::Command;
 
 use super::cardinal_changes::{expectation, METRICS, RULE_METRIC, WASTE_METRIC};
 use super::{config_list, repo_root};
@@ -131,12 +133,41 @@ pub(super) fn violations(
     errors
 }
 
-pub(super) fn main(_args: &[String]) -> u8 {
-    let mut message = String::new();
-    if let Err(e) = std::io::stdin().read_to_string(&mut message) {
-        eprintln!("error: cannot read the message on stdin: {e}");
-        return 2;
+/// The message of `rev`, as `git log` prints it at the current directory (CMC-2).
+fn message_of(rev: &str) -> Result<String, String> {
+    let out = Command::new("git")
+        .args(["log", "-1", "--format=%B", "--end-of-options", rev])
+        .output()
+        .map_err(|e| format!("cannot run git: {e}"))?;
+    if !out.status.success() {
+        return Err(format!("cannot read the message of the revision `{rev}`"));
     }
+    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// The message to check: of the revision given, else read on stdin (CMC-1, CMC-3).
+fn message(args: &[String]) -> Result<String, String> {
+    match args {
+        [] => {
+            let mut message = String::new();
+            std::io::stdin()
+                .read_to_string(&mut message)
+                .map_err(|e| format!("cannot read the message on stdin: {e}"))?;
+            Ok(message)
+        }
+        [rev] => message_of(rev),
+        _ => Err("usage: cardinal run commit-check [<rev>]".into()),
+    }
+}
+
+pub(super) fn main(args: &[String]) -> u8 {
+    let message = match message(args) {
+        Ok(message) => message,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
     let scopes = match scopes() {
         Ok(scopes) => scopes,
         Err(e) => {

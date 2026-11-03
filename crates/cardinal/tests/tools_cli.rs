@@ -308,6 +308,43 @@ fn commit_check_reads_the_scopes_of_the_repository_root() {
     }
 }
 
+// spec: CMC-1
+// spec: CMC-2
+#[test]
+fn commit_check_reads_the_message_of_a_revision_else_stdin() {
+    let repo = project(Some("[project]\n"));
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", "Added the parser."],
+    );
+    let (code, stdout, _) = tool(repo.path(), &["commit-check", "HEAD"], "feat: add flag\n");
+    assert_eq!(code, 1, "the message of HEAD, not stdin: {stdout}");
+    assert!(stdout.contains("format must be"), "{stdout}");
+    let (code, stdout, _) = tool(repo.path(), &["commit-check"], "feat: add flag\n");
+    assert_eq!((code, stdout.as_str()), (0, ""));
+}
+
+// spec: CMC-3
+#[test]
+fn commit_check_exits_2_on_an_unknown_revision_or_extra_arguments() {
+    let repo = project(Some("[project]\n"));
+    git(
+        repo.path(),
+        &["commit", "-q", "--allow-empty", "-m", "feat: add flag"],
+    );
+    for (args, hint) in [
+        (&["commit-check", "nosuchrev"][..], "nosuchrev"),
+        (&["commit-check", "HEAD", "HEAD"][..], "usage"),
+    ] {
+        let (code, stdout, stderr) = tool(repo.path(), args, "");
+        assert_eq!((code, stdout.as_str()), (2, ""), "{args:?}: {stderr}");
+        assert!(
+            stderr.lines().count() == 1 && stderr.contains(hint),
+            "{args:?}: {stderr}"
+        );
+    }
+}
+
 #[test]
 fn commit_check_exits_2_when_the_configuration_cannot_be_read() {
     let missing = project(None);

@@ -1,5 +1,5 @@
 //! `check-commits <base> <head>`: validate the message of every non-merge commit of `<base>..<head>` as
-//! `commit-check` does. Usage: `just check-commits <base> <head>` (the CI job on pull requests).
+//! `commit-check` does. Usage: `cardinal run check-commits <base> <head>` (the CI job on pull requests).
 
 use std::process::Command;
 

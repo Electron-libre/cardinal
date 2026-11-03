@@ -4,6 +4,32 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [4.0.0] - 2026-11-03
+
+### Breaking
+
+- name cardinal run in the managed content: the format 9 needs a `cardinal` that reads it, and a project sets
+  `check_command` in `[project]` for the check the skills run (`cardinal run project-check`); `just` is optional
+
+### Added
+
+- archive the released milestones on release
+- print the state of the milestones with `roadmap`
+- name the process and the paths that keep the worktree lock
+- run the project check through cardinal
+- count a failed project-check in delivered-quality
+- waive the review through cardinal
+- check the message of a revision with commit-check
+
+### Fixed
+
+- resolve the roadmap documents before archiving milestones
+- report a broken configuration and escape the cells of `roadmap`
+- tell what keeps the worktree lock and how to free it
+- settle the review of the project check
+- settle the review of the waiver tool
+- settle the review of naming cardinal run
+
 ## [3.1.0] - 2026-11-03
 
 ### Milestones

@@ -116,6 +116,11 @@ impl Milestone {
             .map(|(_, v)| v[..v.find("<!--").unwrap_or(v.len())].trim().to_string())
     }
 
+    /// The reason of its `On hold:` field, if it has one (NXT-16, RMP-6).
+    pub(super) fn hold(&self, lines: &[&str]) -> Option<String> {
+        self.field(lines, "On hold:")
+    }
+
     /// The indented lines of its `Issues:` list, joined.
     pub(super) fn issues(&self, lines: &[&str]) -> String {
         self.body

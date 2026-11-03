@@ -22,7 +22,7 @@ fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) ->
                 Some(s) if roadmap::STATES.contains(&s.as_str()) => s,
                 Some(s) => format!("{s} (unknown)"),
             };
-            let state = if m.field(&lines, "On hold:").is_some() {
+            let state = if m.hold(&lines).is_some() {
                 format!("{state} (on hold)")
             } else {
                 state

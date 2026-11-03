@@ -161,8 +161,14 @@ fn valid_keys_pass() {
 fn a_hold_without_a_reason_is_flagged() {
     let with =
         |hold: &str| GOOD.replace("priority: medium\n", &format!("priority: medium\n{hold}\n"));
-    let (ok, out) = check_front_matter(&with("on_hold: ''"));
-    assert!(!ok && out.contains("on hold without a reason"), "{out}");
+    for hold in ["on_hold: ''", "on_hold: '  '"] {
+        let (ok, out) = check_front_matter(&with(hold));
+        assert!(
+            !ok && out
+                .contains("on hold without a reason: give the reason as the value of on_hold\n"),
+            "{hold}: {out}"
+        );
+    }
     let (ok, out) = check_front_matter(&with("on_hold: 'after the release'"));
     assert!(ok && out.is_empty(), "{out}");
 }

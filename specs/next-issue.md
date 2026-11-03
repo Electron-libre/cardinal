@@ -29,9 +29,9 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - **NXT-12** (deterministic) When the free issues are all blocked or on hold (NXT-15), `next-issue` must print `No ready issue: every free one waits on another.` instead of an issue, or `No ready issue: every free one is on hold or waits on another.` when one of them is on hold.
 - **NXT-13** (deterministic) A milestone that no roadmap heading names must be reported on stderr as `unknown milestone of <stem>: <name>` with exit code 1, the issue ordered as one with no milestone.
 - **NXT-14** (deterministic) With no `roadmap` key, or roadmap documents that cannot be read, `next-issue` must order the ready issues by priority then tie-breaker, with no milestone report.
-- **NXT-15** (deterministic) An open issue whose front matter has an `on_hold` key is on hold, its reason the value of the key (unquoted as NXT-1 reads `why`): `next-issue` must never offer it but list it after the blocked ones, in the order of NXT-1, on a line `On hold: <stem> (<reason>)` instead of a `Blocked:` line; an issue whose `depends_on` names it stays blocked (NXT-7).
+- **NXT-15** (deterministic) An open issue whose front matter has an `on_hold` key is on hold, its reason the value of the key (unquoted as NXT-1 reads `why`, then trimmed): `next-issue` must never offer it but list it after the blocked ones, in the order of NXT-1, on a line `On hold: <stem> (<reason>)` instead of a `Blocked:` line, followed by `, blocked by <stem>, <stem>...` (the stems of NXT-11) when it is also blocked; an issue whose `depends_on` names it stays blocked (NXT-7).
 - **NXT-16** (deterministic) An open issue whose milestone (NXT-10) has a field `On hold: <reason>` in its section (a line read as the `State:` line of RMP-1, its trailing HTML comment left out) must be on hold as by NXT-15, its reason `milestone <name>: <reason>`; the `on_hold` of the issue itself, when present, gives the reason instead.
-- **NXT-17** (deterministic) An `on_hold` of an issue, or an `On hold:` of a milestone, whose value is empty must be reported on stderr as `on hold without a reason: <stem>` or `milestone on hold without a reason: <name>` with exit code 1, the issue or the issues of the milestone staying on hold with the reason `no reason given`.
+- **NXT-17** (deterministic) An `on_hold` of an issue, or an `On hold:` of the milestone of an open issue, whose value is empty must be reported on stderr as `on hold without a reason: <stem>` or, once per milestone, `milestone on hold without a reason: <name>`, with exit code 1, the issue or the issues of the milestone staying on hold with the reason `no reason given` (an issue with an empty `on_hold` in a milestone on hold with a reason takes the reason of NXT-16).
 
 ## Scenarios
 
@@ -51,6 +51,8 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - (NXT-15) Given `a.md` on hold and `b.md` with `depends_on: [a]`, when `next-issue` runs, then it lists `Blocked: b (by a)` and `On hold: a (...)`.
 - (NXT-12) Given only `a.md` on hold and `b.md` with `depends_on: [a]`, when `next-issue` runs, then it prints `No ready issue: every free one is on hold or waits on another.`
 - (NXT-16) Given a roadmap with the headings `## One`, holding `- On hold: after the release <!-- the user -->`, and `## Two`, `a.md` in milestone `One` and `b.md` in milestone `Two`, when `next-issue` runs, then it prints `b` as next and `On hold: a (milestone One: after the release)`.
+- (NXT-15) Given `a.md` with `on_hold: later` and `depends_on: [x]`, `x.md` open, when `next-issue` runs, then it lists `On hold: a (later), blocked by x`.
+- (NXT-17) Given a milestone `Old` of `ROADMAP-done.md` with an empty `- On hold:` and no open issue in it, when `next-issue` runs, then it reports nothing of it.
 - (NXT-17) Given `a.md` with `on_hold: ''`, when `next-issue` runs, then it reports `on hold without a reason: a`, lists `On hold: a (no reason given)` and exits 1.
 - (NXT-14) Given no `.claude/cardinal.toml`, `a.md` of priority `low` in milestone `One` and `b.md` of priority `high`, when `next-issue` runs, then it prints `b` as next and exits 0.
 

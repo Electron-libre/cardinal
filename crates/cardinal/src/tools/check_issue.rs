@@ -26,7 +26,7 @@ fn front_matter_problems(dir: &Path, stem: &str, text: &str) -> Vec<String> {
         );
     }
     if next_issue::on_hold(text).is_some_and(|h| h.is_empty()) {
-        out.push("on hold without a reason: give the reason as the value of `on_hold`".to_string());
+        out.push("on hold without a reason: give the reason as the value of on_hold".to_string());
     }
     let Some(deps) = next_issue::depends_on(text) else {
         out.push("`depends_on` is not a list `[<stem>, <stem>...]` on one line".to_string());

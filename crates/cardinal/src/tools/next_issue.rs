@@ -188,9 +188,10 @@ fn front_matter(text: &str, key: &str) -> Option<String> {
         .map(|v| unquote(v.trim()))
 }
 
-/// The reason of the `on_hold` of the front matter of `text`, unquoted, empty when none is given (NXT-15, NXT-17).
+/// The reason of the `on_hold` of the front matter of `text`, unquoted and trimmed, empty when none is given (NXT-15,
+/// NXT-17).
 pub(super) fn on_hold(text: &str) -> Option<String> {
-    front_matter(text, "on_hold")
+    front_matter(text, "on_hold").map(|h| h.trim().to_string())
 }
 
 /// The place of a `priority` in the order: `high` first; `None` for a missing or unknown one (NXT-2).
@@ -257,7 +258,7 @@ fn milestones(root: &Path) -> Option<Vec<(String, Option<String>)>> {
                 super::roadmap::milestones(&lines)
                     .into_iter()
                     .map(|m| {
-                        let hold = m.field(&lines, "On hold:");
+                        let hold = m.hold(&lines);
                         (m.name, hold)
                     })
                     .collect::<Vec<_>>()
@@ -338,6 +339,14 @@ struct Entry {
     hold: Option<String>,
 }
 
+/// Where an issue stands in the order: the ready ones first, then the blocked ones, then the ones on hold (NXT-15).
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+enum Group {
+    Ready,
+    Blocked,
+    OnHold,
+}
+
 /// The reason of a hold, `no reason given` for an empty one (NXT-17).
 fn reason(value: &str) -> String {
     if value.is_empty() {
@@ -361,13 +370,7 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
         eprintln!("{line}");
         drift = true;
     };
-    for (name, _) in roadmap
-        .iter()
-        .flatten()
-        .filter(|(_, hold)| hold.as_deref() == Some(""))
-    {
-        report(format!("milestone on hold without a reason: {name}"));
-    }
+    let mut reported: Vec<String> = Vec::new();
     let mut keyed = Vec::new();
     let mut open_deps = Vec::new();
     for stem in &stems {
@@ -381,6 +384,10 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             (Some(name), Some(names)) => {
                 if let Some(i) = names.iter().position(|(n, _)| *n == name) {
                     let hold = names[i].1.as_deref();
+                    if hold == Some("") && !reported.contains(&name) {
+                        report(format!("milestone on hold without a reason: {name}"));
+                        reported.push(name.clone());
+                    }
                     (i, hold.map(|h| format!("milestone {name}: {}", reason(h))))
                 } else {
                     report(format!("unknown milestone of {stem}: {name}"));
@@ -390,12 +397,11 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             _ => (usize::MAX, None),
         };
         let hold = match on_hold(&text) {
-            Some(h) => {
-                if h.is_empty() {
-                    report(format!("on hold without a reason: {stem}"));
-                }
-                Some(reason(&h))
+            Some(h) if h.is_empty() => {
+                report(format!("on hold without a reason: {stem}"));
+                Some(milestone_hold.unwrap_or_else(|| reason(&h)))
             }
+            Some(h) => Some(h),
             None => milestone_hold,
         };
         let blockers = match depends_on(&text) {
@@ -419,9 +425,11 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
         };
         let age = ages.iter().position(|s| s == stem).unwrap_or(usize::MAX);
         let group = if hold.is_some() {
-            2
+            Group::OnHold
+        } else if blockers.is_empty() {
+            Group::Ready
         } else {
-            u8::from(!blockers.is_empty())
+            Group::Blocked
         };
         keyed.push((
             (group, place, rank, age, stem.clone()),
@@ -554,7 +562,12 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     for e in &queue.entries {
         match &e.hold {
-            Some(hold) => println!("On hold: {} ({hold})", e.stem),
+            Some(hold) if e.blockers.is_empty() => println!("On hold: {} ({hold})", e.stem),
+            Some(hold) => println!(
+                "On hold: {} ({hold}), blocked by {}",
+                e.stem,
+                e.blockers.join(", ")
+            ),
             None if !e.blockers.is_empty() => {
                 println!("Blocked: {} (by {})", e.stem, e.blockers.join(", "));
             }

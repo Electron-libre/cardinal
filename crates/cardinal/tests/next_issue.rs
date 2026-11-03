@@ -782,6 +782,80 @@ fn a_hold_without_a_reason_is_reported() {
     );
 }
 
+// spec: NXT-15
+/// An issue on hold that is also blocked names what blocks it.
+#[test]
+fn an_issue_on_hold_and_blocked_names_its_blockers() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\non_hold: later\ndepends_on: [x]\n---\n# Title A\n",
+        ),
+        ("x.md", "---\npriority: low\n---\n# Title X\n"),
+    ]);
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(out.contains("On hold: a (later), blocked by x\n"), "{out}");
+}
+
+// spec: NXT-17
+/// A milestone on hold with no reason is reported once, and only when an open issue is in it; an empty hold of an issue
+/// takes the reason of its milestone, and a reason of spaces is no reason.
+#[test]
+fn a_hold_without_a_reason_is_reported_where_it_holds() {
+    let root = issues_dir(&[
+        (
+            "a.md",
+            "---\npriority: high\non_hold: ''\n---\n# Title A\n\n# Milestone\nOne\n",
+        ),
+        (
+            "b.md",
+            "---\npriority: low\n---\n# Title B\n\n# Milestone\nTwo\n",
+        ),
+        (
+            "c.md",
+            "---\npriority: low\n---\n# Title C\n\n# Milestone\nTwo\n",
+        ),
+        (
+            "d.md",
+            "---\npriority: low\non_hold: '  '\n---\n# Title D\n",
+        ),
+    ]);
+    roadmap(root.path(), &["One"]);
+    std::fs::write(
+        root.path().join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\", \"ROADMAP-done.md\"]\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## One\n- On hold: after the release\n\n## Two\n- On hold:\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.path().join("ROADMAP-done.md"),
+        "# Done\n\n## Old\n- On hold:\n",
+    )
+    .unwrap();
+    let (code, out, err) = next_in(root.path());
+    assert_eq!(code, Some(1), "{out}{err}");
+    assert_eq!(
+        err.matches("milestone on hold without a reason: Two\n")
+            .count(),
+        1,
+        "{err}"
+    );
+    assert!(
+        !err.contains("Old") && err.contains("on hold without a reason: d\n"),
+        "{err}"
+    );
+    assert!(
+        out.contains("On hold: a (milestone One: after the release)\n")
+            && out.contains("On hold: d (no reason given)\n"),
+        "{out}"
+    );
+}
+
 /// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).
 fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     let stem = script

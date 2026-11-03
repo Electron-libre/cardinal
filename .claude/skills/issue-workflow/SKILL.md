@@ -189,4 +189,4 @@ back" (close on the branch, push it, open or update its pull request).
   it, a branch named after its stem exists or a worktree has it checked out, and stays so while its close waits for a
   merge (`Merge pending:`); never start a taken or a `Blocked:` one, `Every open issue is taken.`
   or `No ready issue` means there is nothing to start. An `On hold:` one (an `on_hold` key, or a milestone with an
-  `On hold:` field) waits for the user: handed one, give its reason and start only once they lift the hold or confirm. Reordering the issues is the user's call (`skill:prioritize-issues`).
+  `On hold:` field) waits for the user: handed one, give its reason and start only once they lift the hold or confirm, never while it is also `blocked by`. Reordering the issues is the user's call (`skill:prioritize-issues`).

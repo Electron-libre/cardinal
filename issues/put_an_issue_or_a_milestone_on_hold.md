@@ -73,6 +73,12 @@ Out of scope: a tool that sets the hold, refusing a claim. No format raise: the 
    `create-issue` name the key, `seed/ROADMAP.md` and `ROADMAP.md` name the field (`files/`, then `just sync`);
    verified by `just check-cardinal` and `just check`. (autonomous)
 
+4. [x] Fixes of the `high` review: a held and blocked issue names its blockers, a reason of spaces is no reason, an
+   empty `on_hold` takes the milestone reason, a milestone hold with no reason is reported once and only for the
+   milestone of an open issue, the field read by `Milestone::hold`, the groups an enum, the CKI-5 message as the
+   spec writes it; verified by tests of `next_issue.rs` and `check_issue.rs`; makes true NXT-15, NXT-17, CKI-5.
+   (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: a0ed329380daac6d2843d9ded52fb0465fb622e8
@@ -128,4 +134,25 @@ leave the hold to the user, the seeded and own `ROADMAP.md`, `docs/usage.md` and
 red: none
 Code review: no findings
 not verified: the wording of the skills is read by the model only; no test drives a held issue through a session
+decisions needed: none
+
+## Summary of deliverable 4
+done: the fixes of the `high` review of the whole issue (NXT-15, NXT-17 and CKI-5 amended), and `issue-workflow` never
+starts a held issue that is also blocked.
+
+| check | result |
+|---|---|
+| tests | ok (`next_issue` 19, `check_issue` 7, `roadmap` 6) |
+| lint | ok |
+| specs | ok (accepted) |
+| docs | n/a: the user docs name no message these fixes change |
+| code review | low, see below |
+
+red: NXT-15, NXT-17, CKI-5: no `blocked by x` on the `On hold:` line, the milestone reason lost, `on_hold: '  '`
+accepted (tests run on the code before the fix).
+Code review (high, whole issue): 10 findings; 7 fixed here; not fixed: `on_hold: false` still holds (the key holds,
+the docs say to remove it), an indented `On hold:` sub-bullet reads as the field (the grammar `State:` and
+`Released:` share, RMP-1), no format raise (decided at the plan, question 2 a).
+Code review: no findings
+not verified: none
 decisions needed: none

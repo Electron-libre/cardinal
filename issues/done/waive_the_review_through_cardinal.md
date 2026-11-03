@@ -27,8 +27,8 @@ without `just` can still waive a review (ADR 0028).
   `specs/review-gate.md`.
 
 # Resources
-* [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md), ADR 0005 (the gates catch mistakes, not bypasses).
-* [add_a_just_recipe_to_waive_the_review](done/add_a_just_recipe_to_waive_the_review.md): why the waiver is a command.
+* [ADR 0028](../../docs/adr/0028-a-consumer-needs-only-cardinal.md), ADR 0005 (the gates catch mistakes, not bypasses).
+* [add_a_just_recipe_to_waive_the_review](add_a_just_recipe_to_waive_the_review.md): why the waiver is a command.
 * `cardinal-review.just`, `crates/cardinal/src/settings.rs`, `crates/cardinal/src/tools/rule_breaches.rs`.
 
 # Hints

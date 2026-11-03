@@ -638,7 +638,8 @@ pub(super) fn read_specs(root: &Path, out: &mut Vec<String>, warn: &mut Vec<Stri
     specs
 }
 
-fn problems(root: &Path, strict: bool) -> Vec<String> {
+/// The problems of the specs of `root` and of their citations, each a line; the warnings go to stderr.
+pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     let mut out = Vec::new();
     let mut warnings = Vec::new();
     let specs = read_specs(root, &mut out, &mut warnings);

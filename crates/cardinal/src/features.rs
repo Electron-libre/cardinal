@@ -26,6 +26,8 @@ pub const REVIEW_GATE: &str = "review-gate";
 pub const ISSUE_FILES: &str = "issue-files";
 /// The feature whose skills measure the harness from the transcripts.
 pub const HARNESS_MEASURE: &str = "harness-measure";
+/// The feature whose skill and recipes write the specs and trace them to the tests.
+pub const SPECS: &str = "specs";
 
 /// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34); and the
 /// features it needs (FEA-17).

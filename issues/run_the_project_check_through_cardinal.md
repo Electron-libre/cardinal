@@ -40,3 +40,33 @@ on, so that a consumer can check its work with `cardinal` alone (ADR 0028).
 # Hints
 * `project-check` must stay quiet on success: the agent reads all of its output.
 * Not `cardinal run check`: one word from `cardinal check`, which only checks the drift and exits 0.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+`cardinal run project-check` runs the `check_command` of `[project]`, quiet on success and failing when it is unset,
+then the lenient `check-specs` unless the feature `specs` is off; `delivered-quality` counts its failures as checks.
+Out of scope: the skills and the docs keep `just check` (the issue that renames the commands); this repository keeps
+its own `check` recipe (strict specs).
+
+## Plan
+1. [ ] Tool `project-check`: `tools/project_check.rs`, registered in `TOOLS`; `check_command` commented in the seeded
+   `.claude/cardinal.toml`, the seeded `justfile` `check` becomes `cardinal run project-check` (FEA-33 amended), docs
+   (`docs/architecture.md` table of the `[project]` keys); verified by `tests/project_check.rs` through the binary;
+   makes true PCK-1 to PCK-5 (spec `accepted`).
+2. [ ] `delivered-quality` counts `cardinal run project-check`: `is_check` reads both forms, not `cardinal check`;
+   verified by a test of a failed `cardinal run project-check` in a transcript; makes true QUA-8 (amended).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 3e91428b859034d29ed93a4307d41c4f58e87edc
+- The seeded `justfile` `check` becomes `cardinal run project-check`; FEA-33 amended so that `project-check` owns the
+  specs part (question 1 a).
+
+## Deliverable 1
+- done: `cardinal run project-check` (`tools/project_check.rs`); the seeded `justfile` `check` calls it, the seeded
+  `.claude/cardinal.toml` comments `check_command`; FEA-33 amended; README, `docs/usage.md`, `docs/architecture.md`.
+- red: PCK-1, PCK-2, PCK-3, PCK-4, PCK-5: `cardinal: unknown tool `project-check``
+- not verified: none.

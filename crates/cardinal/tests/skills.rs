@@ -923,11 +923,14 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
 }
 
 // spec: FEA-33
-/// The seeded `check` runs `check-specs` when `just` has it, and succeeds without `cardinal-specs.just`.
+/// The seeded `check` runs `cardinal run project-check` (a fake `cardinal` on the `PATH` logs its arguments) and fails
+/// when it fails.
+#[cfg(unix)]
 #[test]
-fn the_seeded_check_runs_check_specs_only_when_present() {
+fn the_seeded_check_runs_the_project_check() {
+    use std::os::unix::fs::PermissionsExt;
     let root = repo_root();
-    let check = |specs: Option<&str>| {
+    let check = |code: u8| {
         let dir = tempfile::tempdir().unwrap();
         fs::copy(root.join("seed/justfile"), dir.path().join("justfile")).unwrap();
         fs::copy(
@@ -935,20 +938,28 @@ fn the_seeded_check_runs_check_specs_only_when_present() {
             dir.path().join("cardinal.just"),
         )
         .unwrap();
-        if let Some(recipe) = specs {
-            fs::write(dir.path().join("cardinal-specs.just"), recipe).unwrap();
-        }
-        std::process::Command::new("just")
+        let bin = dir.path().join("bin");
+        fs::create_dir(&bin).unwrap();
+        let fake = bin.join("cardinal");
+        fs::write(
+            &fake,
+            format!("#!/bin/sh\necho \"$@\" > args.txt\nexit {code}\n"),
+        )
+        .unwrap();
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        let path = format!("{}:{}", bin.display(), std::env::var("PATH").unwrap());
+        let ok = std::process::Command::new("just")
             .arg("check")
+            .env("PATH", path)
             .current_dir(dir.path())
             .output()
             .unwrap()
             .status
-            .success()
+            .success();
+        (ok, fs::read_to_string(dir.path().join("args.txt")).unwrap())
     };
-    assert!(check(None), "without cardinal-specs.just");
-    assert!(check(Some("check-specs:\n    true\n")));
-    assert!(!check(Some("check-specs:\n    false\n")));
+    assert_eq!(check(0), (true, "run project-check\n".to_string()));
+    assert!(!check(1).0);
 }
 
 // spec: FEA-32

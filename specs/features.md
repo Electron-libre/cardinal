@@ -46,7 +46,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-30** (deterministic) The source of Cardinal must declare the feature `issue-files`, made of the files of `files/.claude/skills/issue-workflow/`, `files/.claude/skills/create-issue/` and `files/.claude/skills/prioritize-issues/` and the file `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`), with no entry and no `needs`.
 - **FEA-31** (deterministic) The source of Cardinal must declare the feature `specs`, made of the files of `files/specs/`, of `files/.claude/skills/write-spec/` and the file `cardinal-specs.just` (`check-specs`, `spec-coverage`), with no entry and no `needs`.
 - **FEA-32** (deterministic) The managed CI workflow must run `just check-specs` only when the project has `cardinal-specs.just`, and must not fail for its absence.
-- **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `check-specs` when the project has `cardinal-specs.just`, and must succeed without it when the file is missing.
+- **FEA-33** (deterministic) The `check` recipe of the seeded `justfile` must run `cardinal run project-check`, which checks the specs only when the feature `specs` is on (PCK-4).
 - **FEA-34** (deterministic) `skill:issue-workflow` must write a spec, and trace its tests to one, only in a project that has `specs/README.md`, the file the feature `specs` leaves out.
 - **FEA-35** (deterministic) The source of Cardinal must declare the feature `workspace-lock`, made of the three hook entries of `entries/.claude/settings.json` whose command is `cardinal run workspace-lock check`, `cardinal run workspace-lock start` or `cardinal run workspace-lock release` (WSL-8), with no file and no `needs`.
 - **FEA-36** (deterministic) `cardinal run review-gate` must judge the files under `issues/` as any other file when the project turns off the feature `issue-files`: no commit goes through with no review for touching `issues/` only (REV-9), nor for moving `issues/<stem>.md` to `issues/done/<stem>.md` with the rewrites of `close-issue` (REV-20).
@@ -68,7 +68,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - (FEA-21) Given `disabled = ["conventional-commits"]` and the message `Added the parser.` with a body line of 90 characters, when `commit-check` reads it, then it prints nothing and exits 0; with a `Co-Authored-By:` line, it reports that line only.
 - (FEA-8) Given `disabled = ["no-ai-attribution"]` and a message with a co-author trailer, when `commit-check` reads it, then it prints nothing about the trailer and still checks the subject.
 - (FEA-23, SYN-60) Given a project that turned `review-gate` off, when it removes the name from `disabled` and runs `sync`, then the hooks, the deny rules, `cardinal-review.just` and the native gate are back, a user's `pre-commit` chained again (SYN-19).
-- (FEA-33) Given the seeded `justfile` and `cardinal.just` with no `cardinal-specs.just`, when `just check` runs, then it succeeds; with `cardinal-specs.just`, it runs `check-specs` and fails when it fails.
+- (FEA-33) Given the seeded `justfile` and a `cardinal` on the `PATH`, when `just check` runs, then it runs `cardinal run project-check` and fails when it fails.
 - (FEA-26) Given a session started after a commit that sets `disabled = ["review-gate"]`, with a `git add -A` and a commit skipping the git hooks, when `rule-breaches` reads it, then it reports no `stage-everything` nor `no-verify` finding and its summary has no row for the four rules.
 - (FEA-36) Given `disabled = ["issue-files"]`, a reviewed diff and a new `issues/x.md`, when the native hook judges a commit of `issues/x.md` alone, then it refuses it as holding a file the review never saw.
 - (FEA-37) Given `disabled = ["issue-files"]` and changes to `issues/a.md`, `Cargo.lock` and `src/a.rs` of 1 added line each, when `deliverable-size` runs, then `issues/a.md` and `src/a.rs` are listed and the total is 2.
@@ -83,7 +83,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - Rewriting the seeded files of a project whose feature is turned off: the `attribution` of its seeded
   `.claude/settings.json` stays the project's to change.
 - Rewriting the `justfile` of a project seeded with `check: check-specs` when it turns `specs` off: the seed is the
-  project's (SYN-4), which drops the dependency itself; the seeds of FEA-33 serve the projects seeded after it.
+  project's (SYN-4), which drops the dependency itself; the seed of FEA-33 serves the projects seeded after it.
 - Checking a project's own commit convention when it turns off `conventional-commits`: `commit-check` and the CI job
   `commits` stay, for the attribution and the `Expected-effect:` footers that the measure reads.
 - The commit types that `delivered-quality` reads (QUA-3): a project with its own convention counts no `fix`.

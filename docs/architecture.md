@@ -55,7 +55,7 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 | Read by | Keys |
 |---|---|
 | the tools | `commit_scopes`, `root_docs`, `skipped_dirs`, `spec_files`, `internal_dirs`, `release_breaking_files` |
-| the hooks and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `release_version_command` |
+| the hooks, `project-check` and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `check_command`, `release_version_command` |
 | `deliverable-size` | `deliverable_size_limit`, `issue_size_limit` |
 | `cardinal` itself | `fixed_context_budget`, and `disabled` of the `[cardinal]` table |
 | the skills, through the agent | `roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language` |

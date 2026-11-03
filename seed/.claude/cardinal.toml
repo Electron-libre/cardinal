@@ -14,6 +14,9 @@ skipped_dirs = []
 # spec_files = ["*.rs"]
 # Directories whose tests call the code from inside, for the boundary warning of `check-specs` (default ["src"]).
 # internal_dirs = ["src"]
+# The project's check (format, lint, tests), quiet on success: `cardinal run project-check` runs it with `sh -c` from
+# the root, then `check-specs` when the feature `specs` is on, and fails while it is unset.
+# check_command = "cargo fmt --all --check && cargo clippy -q --all-targets -- -D warnings && cargo test -q"
 # The lint the Stop hook `lint-gate` runs (`sh -c`, from the project directory) while a file named like one of
 # `lint_files` changed (every file when absent); without it, `cargo clippy` over the `.rs` files; "" turns it off.
 # lint_command = "npx eslint ."

@@ -21,6 +21,7 @@ mod language;
 mod language_hint;
 mod lint_gate;
 mod next_issue;
+mod project_check;
 mod read_hint;
 mod release;
 mod repo_files;
@@ -126,6 +127,11 @@ pub const TOOLS: &[Tool] = &[
         name: "next-issue",
         about: "the first ready issue no claim, branch or worktree has taken, and the blocked ones",
         main: next_issue::main,
+    },
+    Tool {
+        name: "project-check",
+        about: "run the check_command of .claude/cardinal.toml, then check-specs; quiet on success",
+        main: project_check::main,
     },
     Tool {
         name: "read-hint",

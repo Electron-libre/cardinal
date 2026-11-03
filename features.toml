@@ -27,6 +27,11 @@ entries = ["hook PostToolUse Edit|Write cardinal run format-code"]
 [language-hint]
 entries = ["hook Stop cardinal run language-hint"]
 
+# The PreToolUse hook that sends the agent back once before a whole read of a large file (specs/read-hint.md), for a
+# project whose agent reads its files whole on purpose; rule `oversized-result` of `rule-breaches` still applies.
+[read-hint]
+entries = ["hook PreToolUse Read cardinal run read-hint"]
+
 # The worktree lock (specs/workspace-lock.md): its three hooks, for a user who never runs two sessions in one worktree;
 # the hook call of each tool call goes. `issue-claim` stays, still guarding an issue across worktrees.
 [workspace-lock]

@@ -73,8 +73,15 @@ sequenceDiagram
   its work tree, when the file is named like one of the `format_files`, else `cargo fmt` for a `.rs` file; it prints
   nothing (FMT-1 to FMT-4).
 
-Each code hook is also a feature of `features.toml`, as is the `language-hint` hook: a project whose lint runs in CI,
-whose editor formats, or that works in English only drops the hook call with `disabled` (FEA-16, `specs/features.md`).
+Each code hook is also a feature of `features.toml`, as are the `language-hint` and `read-hint` hooks: a project whose
+lint runs in CI, whose editor formats, that works in English only or whose agent reads its files whole on purpose drops
+the hook call with `disabled` (FEA-16, RDH-6, `specs/features.md`).
+
+`read-hint`, before a `Read` with neither `offset` nor `limit` of a file over 25,000 bytes (the threshold of rule
+`oversized-result`, BRE-19), denies the call with a reason naming the size, the range options and `Grep`; it records
+the file in `$TMPDIR/cardinal-read-hint/<session_id>`, so the same call repeated goes through: a file may be needed
+whole. Images and PDFs, which Claude Code renders, pass (RDH-1 to RDH-5). A hint by `additionalContext` alone would
+not spare the read it fires on: the tool runs anyway.
 
 The hooks that run cargo do not trust `CLAUDE_PROJECT_DIR`: a session that entered another worktree keeps it on the
 main one, where another agent may work. `lint-gate` checks the work tree of the event's `cwd` (CLG-6) and

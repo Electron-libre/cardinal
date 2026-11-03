@@ -36,3 +36,40 @@ Lean agent loop
 # Hints
 * A file read whole may be needed (an edit of most of it): the hint must not block.
 * Verdict: `Expected-effect: bytes_per_session:oversized-result down`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Before a whole `Read` of a file over 25,000 bytes, a `PreToolUse` hook sends the agent back once (a `deny` naming the
+size, `offset`/`limit`, `Grep`); the same call repeated goes through. A hint by `additionalContext` alone would not
+spare the read it fires on (the tool still runs). The `cat` through `Bash` is measured, not hooked, here.
+
+## Plan
+1. [x] Hook `read-hint`: the tool, its declaration in `entries/.claude/settings.json`, the feature `read-hint`, the docs; verified by `tests/read_hint.rs` and the features test; makes true RDH-1 to RDH-6. (autonomous)
+2. [ ] Measure the `cat` of a large file: of the `cat` results over 25,000 bytes, how many are a lone `cat <file>` that `shell.rs` reads; the verdict written in the issue, a follow-up issue if worth it; verified by the numbers in the issue.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 36988d8f0c78800637aaa41311f7551982db242b
+- Hook: a `deny` once per file and session, the repeat goes through (1 a); the record a file per `session_id` under `TMPDIR` (2 a); `cat` measured only (3 a).
+
+## Deliverable 1
+done: hook `read-hint` (`PreToolUse` `Read`): a whole read of a file over 25,000 bytes denied once per file and
+session with its size, `offset`/`limit` and `Grep`; the repeat goes through. Declared in `entries/`, feature
+`read-hint`, spec RDH accepted, docs (`architecture.md`, `gates.md`, `usage.md`, `README.md`).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (RDH accepted) |
+| docs | `docs/architecture.md`, `docs/gates.md`, `docs/usage.md`, `README.md` |
+| code review | see below |
+
+red: RDH-1, RDH-2, RDH-3, RDH-4, RDH-5, RDH-6: `cardinal: unknown tool `read-hint`` (exit 3, every test failed)
+
+Code review: no findings
+
+not verified: the hook in a live session (the pinned `cardinal` predates it until this commit is pinned).

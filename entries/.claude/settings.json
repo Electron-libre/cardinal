@@ -32,6 +32,15 @@
             "command": "cardinal run workspace-lock check"
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run read-hint"
+          }
+        ]
       }
     ],
     "PostToolUse": [

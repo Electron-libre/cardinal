@@ -32,6 +32,7 @@ entry  {"deny":"Bash(just waive-review *)"}
 entry  {"deny":"Edit(//**/claude-review-waived)"}
 entry  {"event":"PreToolUse","matcher":"Bash","hook":{"type":"command","command":"cardinal run review-gate check"}}
 entry  {"event":"PreToolUse","matcher":"Bash|Edit|Write|NotebookEdit","hook":{"type":"command","command":"cardinal run workspace-lock check"}}
+entry  {"event":"PreToolUse","matcher":"Read","hook":{"type":"command","command":"cardinal run read-hint"}}
 entry  {"event":"PostToolUse","matcher":"Skill","hook":{"type":"command","command":"cardinal run review-gate record"}}
 entry  {"event":"PostToolUse","matcher":"Edit|Write","hook":{"type":"command","command":"cardinal run format-code"}}
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run lint-gate","timeout":600}}

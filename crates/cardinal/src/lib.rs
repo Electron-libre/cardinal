@@ -81,6 +81,21 @@ pub enum Outcome {
     Skipped(&'static str),
 }
 
+impl Outcome {
+    /// Whether the project file was written: a conflict, a kept file and a skip leave it as it was.
+    fn wrote(&self) -> bool {
+        matches!(
+            self,
+            Outcome::Added
+                | Outcome::Updated
+                | Outcome::Removed
+                | Outcome::Seeded
+                | Outcome::Moved
+                | Outcome::Rewritten
+        )
+    }
+}
+
 impl fmt::Display for Outcome {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -1090,6 +1105,9 @@ pub struct UpdateReport {
     pub rev: String,
     /// False when nothing was written: `--dry-run`, or a conflict.
     pub applied: bool,
+    /// True when the update left something to commit: a project file, the configuration or the lock it changed
+    /// (SYN-61).
+    pub changed: bool,
     pub sync: Report,
 }
 
@@ -1171,6 +1189,8 @@ fn update_in(
         .warnings
         .extend(refused.iter().map(|line| format!("warning: {line}")));
     let applied = !options.dry_run && preview.conflicts() == 0;
+    let lock = fs::read(root.join(LOCK)).ok();
+    let mut changed = false;
     let sync = if applied {
         let sync = sync_from(root, &dir, options)?;
         // the configuration as the sync left it: a migration may have rewritten it (SYN-53)
@@ -1180,6 +1200,9 @@ fn update_in(
             rev.unwrap_or("default branch"),
         )?;
         write(&path, text.as_bytes())?;
+        changed = text != current
+            || fs::read(root.join(LOCK)).ok() != lock
+            || sync.entries.iter().any(|(_, outcome)| outcome.wrote());
         sync
     } else {
         preview
@@ -1188,6 +1211,7 @@ fn update_in(
         previous,
         rev: commit,
         applied,
+        changed,
         sync,
     })
 }

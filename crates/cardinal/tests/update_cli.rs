@@ -6,7 +6,7 @@ mod common;
 use std::path::Path;
 use std::process::Command;
 
-use common::{get, put, snapshot, Home, CONFIG, FORMAT, LOCK, SOURCE_FORMAT};
+use common::{get, put, record_hook, snapshot, Home, CONFIG, FORMAT, LOCK, SOURCE_FORMAT};
 use tempfile::{tempdir, TempDir};
 
 /// A git repository with `v1` on its first commit and `main` on its second; returns both hashes.
@@ -318,9 +318,20 @@ fn update_names_the_commit_skill_as_the_next_step_once_it_wrote_a_change() {
     let (repo, first, _second) = git_source(&home);
     put(repo.path(), SKILL, "skill");
     put(repo.path(), "files/a.txt", "a3");
+    // a source managing the review gate, which `sync` reports skipped at each run under `core.hooksPath`
+    let fragment = serde_json::json!({"hooks": record_hook()});
+    put(
+        repo.path(),
+        "entries/.claude/settings.json",
+        &fragment.to_string(),
+    );
+    put(repo.path(), "seed/.claude/settings.json", "{}");
     home.git(repo.path(), &["add", "."]);
     home.git(repo.path(), &["commit", "--quiet", "-m", "three"]);
+    home.git(repo.path(), &["tag", "v3"]);
     let root = git_project(repo.path());
+    home.git(root.path(), &["init", "--quiet", "-b", "main"]);
+    home.git(root.path(), &["config", "core.hooksPath", "hooks"]);
 
     // the first revision has no skill: no next step
     let run = home.ok(root.path(), &["update", "--rev", &first]);
@@ -332,15 +343,26 @@ fn update_names_the_commit_skill_as_the_next_step_once_it_wrote_a_change() {
     let run = home.ok(root.path(), &["update"]);
     assert_eq!(run.lines().last(), Some(&NEXT), "{run:?}");
 
-    // already there, nothing changed
+    // already there, nothing changed but the skipped gate
     let run = home.ok(root.path(), &["update"]);
+    assert_eq!(
+        run.outcome("native review gate"),
+        Some("skipped"),
+        "{run:?}"
+    );
     assert!(!run.stdout.contains(NEXT), "{run:?}");
+
+    // the same commit under another name: only the comment of `rev` changes
+    let run = home.ok(root.path(), &["update", "--rev", "v3"]);
+    assert_eq!(run.lines().last(), Some(&NEXT), "{run:?}");
 
     // a conflict writes nothing
     put(root.path(), "a.txt", "mine");
     put(repo.path(), "files/a.txt", "a4");
     home.git(repo.path(), &["commit", "--quiet", "-am", "four"]);
     let run = home.harness(root.path(), &["update"]);
+    assert_eq!(run.code, Some(1), "{run:?}");
+    assert_eq!(run.outcome("a.txt"), Some("conflict"));
     assert!(!run.stdout.contains(NEXT), "{run:?}");
 }
 

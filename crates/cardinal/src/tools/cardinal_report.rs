@@ -4,7 +4,8 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--anonymous]`. With `--by setup`, a group is a
+//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--anonymous]`. With `--last <n>`, the
+//! tables print only the last `n` groups, the verdicts still reading them all. With `--by setup`, a group is a
 //! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives
 //! each recorded change of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
@@ -17,7 +18,7 @@ use super::session_metrics::HEADER as SESSIONS;
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
-const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--anonymous]";
+const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--anonymous]";
 const TOO_FEW: &str = "too few";
 
 type Row = HashMap<String, String>;
@@ -73,6 +74,8 @@ struct Group<'a> {
     sessions: Vec<&'a Row>,
     too_few: bool,
     by_setup: bool,
+    /// Before the last groups `--last` prints: computed for the verdicts, not printed (REP-17).
+    hidden: bool,
 }
 
 /// The group of the revisions of `open`, in order, with their sessions.
@@ -89,6 +92,7 @@ fn close<'a>(open: Vec<(&'a str, Vec<&'a Row>)>, too_few: bool) -> Group<'a> {
         sessions: open.into_iter().flat_map(|(_, s)| s).collect(),
         too_few,
         by_setup: false,
+        hidden: false,
     }
 }
 
@@ -119,6 +123,7 @@ fn setup_groups(sessions: &[Row], min: usize) -> Vec<Group<'_>> {
             too_few: sessions.len() < min,
             sessions,
             by_setup: true,
+            hidden: false,
         })
         .collect()
 }
@@ -229,7 +234,7 @@ fn table(
     println!("|{}", "---|".repeat(columns.len() + 2));
     let computed: Vec<Vec<Vec<String>>> = groups.iter().map(&cells).collect();
     let too_few = vec![vec![TOO_FEW.to_string(); columns.len()]];
-    for (group, cells) in groups.iter().zip(&computed) {
+    for (group, cells) in groups.iter().zip(&computed).filter(|(g, _)| !g.hidden) {
         let rows = if group.too_few { &too_few } else { cells };
         for row in rows {
             println!(
@@ -830,9 +835,10 @@ struct Options {
     min_issues: usize,
     by_setup: bool,
     anonymous: bool,
+    last: Option<usize>,
 }
 
-/// The whole number from 1 to 1000 that follows the floor option `arg`.
+/// The whole number from 1 to 1000 that follows the option `arg` (a floor or `--last`).
 fn floor(args: &mut impl Iterator<Item = String>, arg: &str) -> Result<usize, String> {
     args.next()
         .and_then(|n| n.parse().ok())
@@ -852,6 +858,7 @@ fn options(args: &[String]) -> Result<Options, String> {
         min_issues: 5,
         by_setup: false,
         anonymous: false,
+        last: None,
     };
     while let Some(arg) = args.next() {
         let mut file = || args.next().ok_or(format!("{arg} needs a file"));
@@ -871,8 +878,14 @@ fn options(args: &[String]) -> Result<Options, String> {
                 }
             }
             "--anonymous" => options.anonymous = true,
+            "--last" => options.last = Some(floor(&mut args, &arg)?),
             other => return Err(format!("unknown argument {other}")),
         }
+    }
+    if options.by_setup && options.last.is_some() {
+        return Err(
+            "--last needs groups of revisions: the setups have no order in time".to_string(),
+        );
     }
     Ok(options)
 }
@@ -913,11 +926,17 @@ pub(super) fn main(args: &[String]) -> u8 {
         .map(|f| read(f, CHANGES))
         .transpose()
         .unwrap_or_else(|e| fail(e));
-    let groups = if options.by_setup {
+    let mut groups = if options.by_setup {
         setup_groups(&sessions, options.min_sessions)
     } else {
         groups(&sessions, options.min_sessions)
     };
+    if let Some(last) = options.last {
+        let shown_from = groups.len().saturating_sub(last);
+        for group in &mut groups[..shown_from] {
+            group.hidden = true;
+        }
+    }
     let mut tables = vec![efficiency(&groups, options.anonymous)];
     if !quality_files.is_empty() {
         tables.push(quality(&groups, &quality_files));

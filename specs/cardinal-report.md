@@ -1,6 +1,6 @@
 ---
 id: REP
-status: draft
+status: accepted
 adrs: [0002, 0006, 0010]
 ---
 

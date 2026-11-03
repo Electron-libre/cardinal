@@ -1072,6 +1072,94 @@ fn waste_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     )]
 }
 
+// spec: REP-17
+fn last_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    // Groups `ra`, `rb` and `rc` of two sessions each; a change held first by `rb`.
+    let three: Vec<S> = [
+        two("p1", "ra", 1, 10),
+        two("p1", "rb", 2, 5),
+        two("p1", "rc", 3, 8),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    let rows: Vec<String> = three.iter().enumerate().map(|(i, s)| s.row(i)).collect();
+    let sessions = write(&tmp.join("last-sessions.tsv"), SESSIONS, &rows);
+    let breaches = write(
+        &tmp.join("last-breaches.tsv"),
+        BREACHES,
+        &[
+            "x-rule\tra\t2\t1\t1\t0\t".into(),
+            "x-rule\trc\t2\t1\t1\t0\t".into(),
+        ],
+    );
+    let base_args = |last: &'static str| -> Vec<&std::ffi::OsStr> {
+        vec![
+            "--sessions".as_ref(),
+            sessions.as_os_str(),
+            "--breaches".as_ref(),
+            breaches.as_os_str(),
+            "--min-sessions".as_ref(),
+            "2".as_ref(),
+            "--last".as_ref(),
+            last.as_ref(),
+        ]
+    };
+    let (ok, out, _) = run(dir, &base_args("2"));
+    let tables = tables(&out);
+    let groups = |title: &str| -> Vec<String> {
+        tables
+            .get(title)
+            .map(|rows| rows.iter().skip(1).map(|r| r[0].clone()).collect())
+            .unwrap_or_default()
+    };
+    let shown = ["Efficiency", "Rules", "Skills"]
+        .iter()
+        .all(|t| groups(t) == ["rb", "rc"]);
+    let (_, more, _) = run(dir, &base_args("5"));
+    let all = efficiency_groups(&more) == ["ra", "rb", "rc"];
+    let verdict_rows = verdicts(
+        dir,
+        tmp,
+        &three,
+        &[change('a', "turns", "rb,rc")],
+        &["--last", "2"],
+    );
+    let before = verdict_rows.first().map(|r| r[3..7].join(" "));
+    let refused = |extra: &[&str]| {
+        let mut args = vec!["--sessions".as_ref(), sessions.as_os_str()];
+        args.extend(extra.iter().map(std::ffi::OsStr::new));
+        !run(dir, &args).0
+    };
+    vec![
+        ("--last succeeds", ok),
+        (
+            "--last <n> prints the rows of the last n groups only",
+            shown,
+        ),
+        ("--last over the count of groups prints them all", all),
+        (
+            "--last keeps the verdict of a change from the group before it",
+            before.as_deref() == Some("ra rb 10 5"),
+        ),
+        (
+            "a --last out of range or missing, or with --by setup, is refused",
+            refused(&["--last", "0"])
+                && refused(&["--last", "x"])
+                && refused(&["--last"])
+                && refused(&["--last", "2", "--by", "setup"]),
+        ),
+    ]
+}
+
+/// The groups of the efficiency table of a report.
+fn efficiency_groups(out: &str) -> Vec<String> {
+    tables(out)
+        .remove("Efficiency")
+        .map(|rows| rows.into_iter().skip(1).map(|r| r[0].clone()).collect())
+        .unwrap_or_default()
+}
+
 // spec: VRD-1, VRD-5
 fn token_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let quality = write(
@@ -1342,6 +1430,7 @@ fn cardinal_report() {
         .chain(issue_floor_checks(&dir, temp.path()))
         .chain(ratio_floor_checks(&dir, temp.path()))
         .chain(setup_checks(&dir, temp.path()))
+        .chain(last_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

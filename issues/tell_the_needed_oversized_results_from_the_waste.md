@@ -61,9 +61,9 @@ the rules table and the verdicts need no change.
 1. [x] Waste by source: `oversized-result` keeps the session's own results, `oversized-result-review` and
    `oversized-result-subagent` take the sub-agents' by their `.meta.json`; verified by tests of `rule-breaches`
    (own, reviewer, `Explore`, no `.meta.json`) and of its summary; makes true BRE-19, BRE-20, BRE-22. (autonomous)
-2. [ ] `cardinal-report --last <n>`: only the rows of the last `n` groups, verdicts over every group; refused with
+2. [x] `cardinal-report --last <n>`: only the rows of the last `n` groups, verdicts over every group; refused with
    `--by setup` or a bad value; `skill:evaluate-harness` passes `--last 6`; verified by tests of `cardinal-report`;
-   makes true REP-17.
+   makes true REP-17. (autonomous)
 3. [ ] Measure the avoidable sources: share of `issues/`, `specs/`, `docs/` in the whole-issue diffs of the closed
    issues, and the session's own `cat`/`Read` breaches by file and need; findings and the decision proposed in this
    issue, a follow-up issue for any change of a skill or rule; verified by the numbers recorded here.
@@ -91,3 +91,21 @@ red: BRE-19, BRE-20, BRE-22: `FAIL - a tool result over 25,000 bytes is a breach
 Code review: no findings (it noted the draft REP-17 in the diff: the spec drafts go with the first deliverable).
 
 not verified: the split on the real transcripts (deliverable 3 reads it).
+
+## Deliverable 2
+done: `cardinal-report --last <n>` prints only the last `n` groups (verdicts over all of them, refused with
+`--by setup`); `skill:evaluate-harness` passes `--last 6` and tells the three waste rules apart.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (REP accepted) |
+| docs | `docs/usage.md`, `files/.claude/skills/evaluate-harness/SKILL.md` (synced) |
+| code review | see below |
+
+red: REP-17: `FAIL - --last succeeds` (the option was refused as unknown)
+
+Code review: no findings
+
+not verified: the size of the real report with `--last 6` (deliverable 3 runs it).

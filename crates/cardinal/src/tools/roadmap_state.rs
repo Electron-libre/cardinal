@@ -1,5 +1,5 @@
 //! Print the milestones of the `roadmap` documents as a table: name, state, release, open over listed issues and
-//! document (RMP-1). Reads only; `--open` leaves out the released milestones (RMP-4).
+//! document (RMP-1), a milestone on hold marked after its state (RMP-6). Reads only; `--open` leaves out the released milestones (RMP-4).
 
 use super::{close_issue, roadmap};
 
@@ -21,6 +21,11 @@ fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) ->
                 None => "(none)".to_string(),
                 Some(s) if roadmap::STATES.contains(&s.as_str()) => s,
                 Some(s) => format!("{s} (unknown)"),
+            };
+            let state = if m.field(&lines, "On hold:").is_some() {
+                format!("{state} (on hold)")
+            } else {
+                state
             };
             let mut listed = close_issue::listed_issues(path, &m.issues(&lines), &issues);
             listed.sort();

@@ -16,13 +16,17 @@ fn section_is_empty(text: &str, heading: &str) -> bool {
             .all(|l| l.trim().is_empty())
 }
 
-/// The problems of the keys that order the issue (CKI-1, CKI-2): its `priority` and its `depends_on`.
+/// The problems of the keys that order the issue (CKI-1, CKI-2, CKI-5): its `priority`, its `depends_on` and its
+/// `on_hold`.
 fn front_matter_problems(dir: &Path, stem: &str, text: &str) -> Vec<String> {
     let mut out = Vec::new();
     if next_issue::priority(text).is_none() {
         out.push(
             "no priority: set `priority: high`, `medium` or `low` in the front matter".to_string(),
         );
+    }
+    if next_issue::on_hold(text).is_some_and(|h| h.is_empty()) {
+        out.push("on hold without a reason: give the reason as the value of `on_hold`".to_string());
     }
     let Some(deps) = next_issue::depends_on(text) else {
         out.push("`depends_on` is not a list `[<stem>, <stem>...]` on one line".to_string());

@@ -67,8 +67,8 @@ Out of scope: a tool that sets the hold, refusing a claim. No format raise: the 
 1. [x] Hold in `next-issue`: the `on_hold` key, the milestone field, the `On hold:` lines, the reports and the
    amended NXT-12 message; verified by tests of `crates/cardinal/tests/next_issue.rs`; makes true NXT-12, NXT-15,
    NXT-16, NXT-17. (autonomous)
-2. [ ] Hold in `roadmap` and `check-issue`: the ` (on hold)` state cell and the empty reason report; verified by
-   tests of `crates/cardinal/tests/roadmap.rs` and `check_issue.rs`; makes true RMP-6, CKI-5.
+2. [x] Hold in `roadmap` and `check-issue`: the ` (on hold)` state cell and the empty reason report; verified by
+   tests of `crates/cardinal/tests/roadmap.rs` and `check_issue.rs`; makes true RMP-6, CKI-5. (autonomous)
 3. [ ] Skills and docs: `issue-workflow` warns on a held issue named by the user, `prioritize-issues` and
    `create-issue` name the key, `seed/ROADMAP.md` and `ROADMAP.md` name the field (`files/`, then `just sync`);
    verified by `just check-cardinal` and `just check`.
@@ -92,6 +92,23 @@ done: `next-issue` holds the issues with an `on_hold` key or in a milestone with
 | code review | low, no findings |
 
 red: NXT-15, NXT-12, NXT-16, NXT-17: the held issue `a` was offered as `Next: issues/a.md`.
+Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2
+done: `roadmap` marks a held milestone `<state> (on hold)`, `check-issue` reports an `on_hold` with no reason; the
+three specs set `accepted`.
+
+| check | result |
+|---|---|
+| tests | ok (`roadmap` 6, `check_issue` 7, `next_issue` 17) |
+| lint | ok |
+| specs | ok (accepted, all traced) |
+| docs | user docs in deliverable 3 |
+| code review | low, no findings |
+
+red: CKI-5: `check-issue` accepted `on_hold: ''`; RMP-6: the state cell read `shaped`.
 Code review: no findings
 not verified: none
 decisions needed: none

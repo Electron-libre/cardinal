@@ -188,6 +188,11 @@ fn front_matter(text: &str, key: &str) -> Option<String> {
         .map(|v| unquote(v.trim()))
 }
 
+/// The reason of the `on_hold` of the front matter of `text`, unquoted, empty when none is given (NXT-15, NXT-17).
+pub(super) fn on_hold(text: &str) -> Option<String> {
+    front_matter(text, "on_hold")
+}
+
 /// The place of a `priority` in the order: `high` first; `None` for a missing or unknown one (NXT-2).
 pub(super) fn priority(text: &str) -> Option<u8> {
     match front_matter(text, "priority")?.as_str() {
@@ -384,7 +389,7 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             }
             _ => (usize::MAX, None),
         };
-        let hold = match front_matter(&text, "on_hold") {
+        let hold = match on_hold(&text) {
             Some(h) => {
                 if h.is_empty() {
                     report(format!("on hold without a reason: {stem}"));

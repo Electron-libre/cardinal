@@ -110,6 +110,20 @@ fn a_link_to_a_missing_closed_issue_stays_open() {
     assert_eq!(row(&out, "Next")[3], "1/1 open", "{out}");
 }
 
+// spec: RMP-6
+/// A milestone on hold says so after its state.
+#[test]
+fn a_milestone_on_hold_says_so_in_its_state() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "# Roadmap\n\n## Later\n\n- State: shaped\n- On hold: after the release\n\n## Odd\n\n- State: paused\n- On hold: later\n",
+    )]);
+    let (code, out) = roadmap(root.path(), &[]);
+    assert_eq!(code, Some(0), "{out}");
+    assert_eq!(row(&out, "Later")[1], "shaped (on hold)", "{out}");
+    assert_eq!(row(&out, "Odd")[1], "paused (unknown) (on hold)", "{out}");
+}
+
 // spec: RMP-4
 #[test]
 fn open_leaves_out_the_released_milestones() {

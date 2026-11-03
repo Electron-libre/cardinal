@@ -6,7 +6,7 @@ use std::process::ExitCode;
 
 use cardinal::{
     budget_warnings, check, init, retention_warnings, run, sync, tools, update, upgrade, Outcome,
-    Report, SyncOptions, NOT_A_REFUSAL,
+    Report, SyncOptions, UpdateReport, NOT_A_REFUSAL,
 };
 use clap::{Parser, Subcommand};
 
@@ -119,6 +119,19 @@ fn print_changes(report: &Report) -> bool {
     report.conflicts() == 0
 }
 
+/// The skill `update` names as its next step (SYN-61): the agent otherwise writes the commit message inline.
+const COMMIT_SKILL: &str = ".claude/skills/commit-message/SKILL.md";
+
+/// Whether `update` moved the revision or changed a file, so there is something to commit.
+fn changed(done: &UpdateReport) -> bool {
+    done.previous.as_deref() != Some(done.rev.as_str())
+        || done
+            .sync
+            .entries
+            .iter()
+            .any(|(_, outcome)| *outcome != Outcome::Unchanged)
+}
+
 #[must_use]
 pub fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
@@ -150,6 +163,9 @@ pub fn main() -> ExitCode {
                 println!("dry run: nothing written");
             } else if !clean {
                 println!("conflicts: nothing written, `rev` unchanged (fix them or use --force)");
+            }
+            if done.applied && changed(&done) && cli.root.join(COMMIT_SKILL).is_file() {
+                println!("next: commit the update with skill:commit-message");
             }
             clean
         }),

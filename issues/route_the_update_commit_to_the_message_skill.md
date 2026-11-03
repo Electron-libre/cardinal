@@ -31,3 +31,29 @@ Lean agent loop
 # Resources
 * `specs/sync.md`, `crates/cardinal/src/main.rs`.
 * `issues/done/find_why_commits_skip_the_commit_message_skill.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+`cardinal update` ends with a `next:` line pointing to `skill:commit-message` when it wrote a change and the project has
+that skill; nothing under `--dry-run`, on conflicts, or when nothing changed. The re-measure (step 2 of the Approach)
+is left for after a few updates, out of this plan.
+
+## Plan
+1. [x] Next-step line of `update`: print it in `main.rs` after the report, tests in `tests/update_cli.rs` updated;
+   verified by `update_cli` tests; makes true SYN-61. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: a5434425a2ee8851c37430d83c8b78c932e1ebec
+- 1 a: the line only when the project has the skill; 2 a: on stdout, with the report.
+
+## Deliverable 1 summary
+- done: `update` ends on `next: commit the update with skill:commit-message` once it wrote a change and the project has the skill.
+- checks: see the table of the final report (tests, lint, specs, docs, code review).
+- red: SYN-61: `left: Some("updated: a.txt")`, `right: Some("next: commit the update with skill:commit-message")`.
+- Code review: no findings
+- not verified: the effect on the skips of `skill-routing-commit-message`, measured after a few updates.
+- decisions needed: none.

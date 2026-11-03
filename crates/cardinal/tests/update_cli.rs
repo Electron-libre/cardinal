@@ -309,6 +309,41 @@ fn update_dry_run_reports_the_target_and_writes_nothing() {
     assert_eq!(snapshot(root.path()), before);
 }
 
+// spec: SYN-61
+#[test]
+fn update_names_the_commit_skill_as_the_next_step_once_it_wrote_a_change() {
+    const NEXT: &str = "next: commit the update with skill:commit-message";
+    const SKILL: &str = "files/.claude/skills/commit-message/SKILL.md";
+    let home = Home::new();
+    let (repo, first, _second) = git_source(&home);
+    put(repo.path(), SKILL, "skill");
+    put(repo.path(), "files/a.txt", "a3");
+    home.git(repo.path(), &["add", "."]);
+    home.git(repo.path(), &["commit", "--quiet", "-m", "three"]);
+    let root = git_project(repo.path());
+
+    // the first revision has no skill: no next step
+    let run = home.ok(root.path(), &["update", "--rev", &first]);
+    assert!(!run.stdout.contains(NEXT), "{run:?}");
+
+    let run = home.ok(root.path(), &["update", "--dry-run"]);
+    assert!(!run.stdout.contains(NEXT), "{run:?}");
+
+    let run = home.ok(root.path(), &["update"]);
+    assert_eq!(run.lines().last(), Some(&NEXT), "{run:?}");
+
+    // already there, nothing changed
+    let run = home.ok(root.path(), &["update"]);
+    assert!(!run.stdout.contains(NEXT), "{run:?}");
+
+    // a conflict writes nothing
+    put(root.path(), "a.txt", "mine");
+    put(repo.path(), "files/a.txt", "a4");
+    home.git(repo.path(), &["commit", "--quiet", "-am", "four"]);
+    let run = home.harness(root.path(), &["update"]);
+    assert!(!run.stdout.contains(NEXT), "{run:?}");
+}
+
 /// A source whose pinned commit `first` no branch or tag points to any more; `kept` tells whether the
 /// source still holds it (else it was pruned).
 fn rewritten_source(home: &Home, kept: bool) -> (TempDir, String) {

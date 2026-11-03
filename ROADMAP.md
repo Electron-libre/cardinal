@@ -109,7 +109,7 @@ The work done before this file existed is in `issues/done/`.
   - [find_why_commits_skip_the_commit_message_skill](issues/done/find_why_commits_skip_the_commit_message_skill.md)
   - [count_only_the_fixes_of_the_lines_an_issue_changed](issues/done/count_only_the_fixes_of_the_lines_an_issue_changed.md)
   - [find_why_the_advisor_is_never_consulted](issues/done/find_why_the_advisor_is_never_consulted.md)
-  - [know_the_new_line_types_of_the_transcripts](issues/know_the_new_line_types_of_the_transcripts.md)
+  - [know_the_new_line_types_of_the_transcripts](issues/done/know_the_new_line_types_of_the_transcripts.md)
   - [leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review](issues/done/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md)
   - [hint_before_a_whole_read_of_a_large_file](issues/hint_before_a_whole_read_of_a_large_file.md)
 

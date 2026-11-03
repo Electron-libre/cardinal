@@ -1,6 +1,6 @@
 ---
 id: REP
-status: accepted
+status: draft
 adrs: [0002, 0006, 0010]
 ---
 
@@ -32,6 +32,7 @@ it. It reports trends, never a pass or a fail.
 - **REP-14** (deterministic) `cardinal-report` must accept `--by revision` (the default: the groups of REP-4) or `--by setup`, and refuse any other value, or none, with an error and a non-zero exit. With `--by setup`, the groups are the setups (REP-15) of the sessions of a non-empty revision instead, one group per setup named after it, ordered by their count of sessions, most first, then by name; a group of fewer than `--min-sessions` sessions shows in every table one row with its `sessions` and `too few` in each other cell, as REP-4.
 - **REP-15** (deterministic) The setup of a session must be the first model of its `models` (EVA-6, the model of its first assistant message) other than `<synthetic>` (the line Claude Code writes for a failed request), followed by ` solo` when its `advisor_models` (EVA-18) is empty or starts with that model (a model never advises itself), else by ` advised by ` and the first model of its `advisor_models`; a session whose `models` is empty has no setup and is left out of every table under `--by setup`.
 - **REP-16** (deterministic) With `--by setup`, the efficiency table must give, right after `versions`, `revisions`: the revisions of the group's sessions as `models` gives the models (`name=n`, written as REP-4 names them); the quality table sums the rows of the quality summaries of a non-empty revision whose `setup` (QUA-17) is the group's name, its columns unchanged (a `mixed` row, the issues made under several setups, belongs to no group); the skills table leaves out `unused`; and the rules table, the fixed context table and the verdicts, whose inputs are kept per revision, are not printed (their files still read and checked as REP-3 says).
+- **REP-17** (deterministic) `cardinal-report` must accept `--last <n>`, a whole number from 1 to 1000, and refuse any other value, or none, with an error and a non-zero exit, as it refuses with `--by setup` (its groups have no order in time). With it, each table prints only the rows of the last `n` groups of REP-4 (all of them when there are fewer); the groups are still cut over every revision and the verdicts (VRD-5) still read every group, so a change before the last `n` groups keeps its verdict.
 
 ## Scenarios
 
@@ -47,6 +48,7 @@ it. It reports trends, never a pass or a fail.
 - (REP-12) Given a group of 3 sessions with input sums of 10, 100 and 1,000 tokens, of which 9, 10 and 500 were cache reads, when the report is printed, then `cache_read_share` is `50%`: the median of 90%, 10% and 50%, whatever the sizes of the sessions.
 
 - (REP-13) Given an `oversized-result` that applied in 3 sessions of `a` with `bytes` 70000 and 2 of `b` with `bytes` 30001, when `a..b` is a group, then its row reads `bytes` 100001 and `bytes_per_session` 20000.
+- (REP-17) Given revisions cut into groups `a`, `b` and `c`, when the report is printed with `--last 2`, then each table holds the rows of `b` and `c` only, and a change held first by `b` has `a` as its `before` group.
 - (REP-11) Given a group of 10 sessions, 4 with an Opus advisor set that called it 0, 1, 3 and 6 times, when the report is printed, then `advisor_models` is `claude-opus-5-5=4`, `advisor_sessions` 4 and `advisor_calls` 2.
 - (REP-14) Given 12 sessions of `claude-sonnet-5-5 advised by claude-opus-5-5`, 15 of `claude-opus-5-5 solo` and 4 of `claude-sonnet-5-5 solo` with the default threshold, when the report is printed with `--by setup`, then the groups are `claude-opus-5-5 solo` (15), `claude-sonnet-5-5 advised by claude-opus-5-5` (12) and `claude-sonnet-5-5 solo`, marked `too few` with 4 sessions.
 - (REP-15) Given a session whose `models` is `claude-sonnet-5-5,claude-haiku-5-5` (an Explore sub-agent) and whose `advisor_models` is `claude-opus-5-5`, then its setup is `claude-sonnet-5-5 advised by claude-opus-5-5`; with `models` `claude-opus-5-5` and the same `advisor_models`, it is `claude-opus-5-5 solo`.

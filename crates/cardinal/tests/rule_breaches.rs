@@ -445,6 +445,7 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "no-verify\tr2\t1\t1\t1\t0\t",
         "oversized-result\tr1\t4\t0\t0\t0\t0",
         "oversized-result\tr2\t1\t0\t0\t0\t0",
+        "oversized-result-subagent\tr1\t1\t0\t0\t0\t0",
         "review-before-commit\tr1\t4\t1\t1\t3\t",
         "review-before-commit\tr2\t1\t0\t0\t0\t",
         "review-waiver\tr1\t4\t1\t1\t2\t",
@@ -1032,7 +1033,7 @@ fn routing_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
-// spec: BRE-19, BRE-20
+// spec: BRE-19, BRE-20, BRE-22
 fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("waste");
     let projects = tmp.join("projects");
@@ -1056,38 +1057,74 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     t.call("o3", "Read", &json!({"file_path": repo.join("d.rs")}));
     let parts = t.push(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o3", "content": [{"type": "text", "text": "SECRET".repeat(2_500)}, {"type": "text", "text": format!("{}SECR", "SECRET".repeat(1_666))}]}]}}));
     t.write(&projects.join("-w/s.jsonl"));
-    let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
-    sub.call("x1", "Bash", &bash("cat big"));
-    let sub_oversized = sub.result("x1", false, &"SECRET".repeat(5_000));
-    sub.write(&projects.join("-w/s/subagents/agent-1.jsonl"));
-    let row = |location: String, detail: &str| {
-        format!("s\tw\tr1\toversized-result\tbreach\t{location}\t{detail}")
+    // a reviewer of `/code-review` (no description), an `Explore` sub-agent, and one with no `.meta.json`
+    let subagents = projects.join("-w/s/subagents");
+    let mut subs = Vec::new();
+    for (name, meta) in [
+        (
+            "agent-1",
+            Some(r#"{"agentType":"general-purpose","isBuiltIn":true}"#),
+        ),
+        (
+            "agent-2",
+            Some(r#"{"agentType":"Explore","description":"find the parser"}"#),
+        ),
+        ("agent-3", None),
+    ] {
+        let mut sub = Transcript::new(&repo, "2026-02-01T10:00:00.000Z");
+        sub.call("x1", "Bash", &bash("cat big"));
+        subs.push(sub.result("x1", false, &"SECRET".repeat(5_000)));
+        sub.write(&subagents.join(format!("{name}.jsonl")));
+        if let Some(meta) = meta {
+            std::fs::write(subagents.join(format!("{name}.meta.json")), meta).unwrap();
+        }
+    }
+    let row = |rule: &str, location: String, detail: &str| {
+        format!("s\tw\tr1\t{rule}\tbreach\t{location}\t{detail}")
     };
     let expected = vec![
-        row(format!("s.jsonl:{oversized}"), "25001"),
-        row(format!("s.jsonl:{parts}"), "25001"),
-        row(format!("subagents/agent-1.jsonl:{sub_oversized}"), "30000"),
+        row("oversized-result", format!("s.jsonl:{oversized}"), "25001"),
+        row("oversized-result", format!("s.jsonl:{parts}"), "25001"),
+        row(
+            "oversized-result-review",
+            format!("subagents/agent-1.jsonl:{}", subs[0]),
+            "30000",
+        ),
+        row(
+            "oversized-result-subagent",
+            format!("subagents/agent-2.jsonl:{}", subs[1]),
+            "30000",
+        ),
+        row(
+            "oversized-result-subagent",
+            format!("subagents/agent-3.jsonl:{}", subs[2]),
+            "30000",
+        ),
     ];
     let (ok, out) = run(dir, &projects, false);
     let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
     let (_, summary) = run(dir, &projects, true);
     let summary: Vec<&str> = summary.lines().skip(1).collect();
-    let want_summary = ["oversized-result\tr1\t1\t1\t3\t0\t80002"];
+    let want_summary = [
+        "oversized-result\tr1\t1\t1\t2\t0\t50002",
+        "oversized-result-review\tr1\t1\t1\t1\t0\t30000",
+        "oversized-result-subagent\tr1\t1\t1\t2\t0\t60000",
+    ];
     if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
     }
     vec![
         (
-            "the waste rule succeeds".to_string(),
+            "the waste rules succeed".to_string(),
             ok && !out.contains("SECRET"),
         ),
         (
-            "a tool result over 25,000 bytes is a breach at its line, in any transcript"
+            "a tool result over 25,000 bytes is a breach at its line, of the rule of its transcript's source"
                 .to_string(),
             sorted(rows) == sorted(expected),
         ),
         (
-            "the waste rule applies to the sessions with a tool result and sums its bytes"
+            "each waste rule applies to the sessions with a tool result of its source and sums its bytes"
                 .to_string(),
             summary == want_summary,
         ),

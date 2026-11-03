@@ -45,3 +45,49 @@ Lean agent loop
 * A sub-agent's oversized result does not enter the main context; it costs the sub-agent's tokens, not the peak.
 * A sub-agent transcript has a `.meta.json` next to it with its `agentType`; the review reviewers are
   `general-purpose` with no description and a first prompt that starts with the review level.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Split the `oversized-result` waste by its source (the session's own results, the `/code-review` reviewers, other
+sub-agents), give `cardinal-report` a `--last <n>` used by `skill:evaluate-harness`, then measure the two avoidable
+sources (the docs share of a whole-issue diff, the session's own `cat` and `Read`) before deciding any rule.
+Means: two new waste rules of `rule-breaches` (BRE-22) rather than a column or a `--source` filter, so the summary,
+the rules table and the verdicts need no change.
+
+## Plan
+1. [x] Waste by source: `oversized-result` keeps the session's own results, `oversized-result-review` and
+   `oversized-result-subagent` take the sub-agents' by their `.meta.json`; verified by tests of `rule-breaches`
+   (own, reviewer, `Explore`, no `.meta.json`) and of its summary; makes true BRE-19, BRE-20, BRE-22. (autonomous)
+2. [ ] `cardinal-report --last <n>`: only the rows of the last `n` groups, verdicts over every group; refused with
+   `--by setup` or a bad value; `skill:evaluate-harness` passes `--last 6`; verified by tests of `cardinal-report`;
+   makes true REP-17.
+3. [ ] Measure the avoidable sources: share of `issues/`, `specs/`, `docs/` in the whole-issue diffs of the closed
+   issues, and the session's own `cat`/`Read` breaches by file and need; findings and the decision proposed in this
+   issue, a follow-up issue for any change of a skill or rule; verified by the numbers recorded here.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f116984c0003b4b49ad4e4207326f221e426c5b0
+- Source of the waste: three waste rules (`oversized-result`, `oversized-result-review`, `oversized-result-subagent`), not a `--source` filter.
+- `skill:evaluate-harness` passes `--last 6` (the five complete groups and the open one).
+
+## Deliverable 1
+done: `rule-breaches` tells the oversized results by source: `oversized-result` (the session's own),
+`oversized-result-review` (a `general-purpose` sub-agent with no description), `oversized-result-subagent` (any other).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (BRE accepted, REP draft until deliverable 2) |
+| docs | `docs/evaluation.md`, `docs/usage.md` |
+| code review | see below |
+
+red: BRE-19, BRE-20, BRE-22: `FAIL - a tool result over 25,000 bytes is a breach at its line, of the rule of its transcript's source`
+
+Code review: no findings (it noted the draft REP-17 in the diff: the spec drafts go with the first deliverable).
+
+not verified: the split on the real transcripts (deliverable 3 reads it).

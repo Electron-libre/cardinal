@@ -1,6 +1,7 @@
 //! List where the agent broke a rule of Cardinal in the Claude Code transcripts (`specs/rule-breaches.md`): one
 //! tab-separated row per finding, `breach` when the act went through, `blocked` when a hook or a permission rule
-//! refused it, and the tool results over 25,000 bytes, a waste of tokens. With `--summary`, count them per rule and
+//! refused it, and the tool results over 25,000 bytes, a waste of tokens told by its source (the session, a reviewer of
+//! `/code-review`, another sub-agent). With `--summary`, count them per rule and
 //! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
 //! from one that rarely applies, and sum the bytes of the waste rules. The commit messages are read from the git
 //! history of each project, a commit counting with the session whose span holds its date. No text of a message is
@@ -40,11 +41,38 @@ const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
 /// The bytes of a tool result above which it is a breach of `oversized-result` (BRE-19).
 const OVERSIZED: usize = 25_000;
 
-/// The rule of the tool results over `OVERSIZED` bytes (BRE-19).
+/// The rule of the session's own tool results over `OVERSIZED` bytes (BRE-19).
 const OVERSIZED_RULE: &str = "oversized-result";
 
+/// The rule of those of the reviewers of `/code-review` (BRE-22).
+const OVERSIZED_REVIEW_RULE: &str = "oversized-result-review";
+
+/// The rule of those of the other sub-agents (BRE-22).
+const OVERSIZED_SUBAGENT_RULE: &str = "oversized-result-subagent";
+
 /// The waste rules, whose `detail` is a number of bytes the summary sums (BRE-20).
-pub(super) const WASTE_RULES: &[&str] = &[OVERSIZED_RULE];
+pub(super) const WASTE_RULES: &[&str] = &[
+    OVERSIZED_RULE,
+    OVERSIZED_REVIEW_RULE,
+    OVERSIZED_SUBAGENT_RULE,
+];
+
+/// The waste rule of the oversized results of the sub-agent transcript `path`, from the `.meta.json` next to it: a
+/// `general-purpose` agent with no description is a reviewer of `/code-review`, an `Agent` call always giving one
+/// (BRE-22).
+fn subagent_waste_rule(path: &Path) -> &'static str {
+    let meta: Option<Value> = std::fs::read_to_string(path.with_extension("meta.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str(&text).ok());
+    let reviewer = meta.is_some_and(|m| {
+        m["agentType"] == "general-purpose" && m["description"].as_str().is_none_or(str::is_empty)
+    });
+    if reviewer {
+        OVERSIZED_REVIEW_RULE
+    } else {
+        OVERSIZED_SUBAGENT_RULE
+    }
+}
 
 /// The skills a session is due to load before their trigger, with their rule (BRE-15).
 const ROUTED: &[(&str, &str)] = &[
@@ -503,8 +531,9 @@ impl Verdict {
         }
     }
 
-    /// The rules read from the tool calls and results of one transcript; `main` for the session's own one.
-    fn check(&mut self, t: &Transcript, context: &Context, main: bool) {
+    /// The rules read from the tool calls and results of one transcript; `main` for the session's own one, `waste`
+    /// the rule of its oversized results.
+    fn check(&mut self, t: &Transcript, context: &Context, main: bool, waste: &'static str) {
         let mut flagged: HashSet<usize> = HashSet::new();
         let mut refused = false;
         let mut plan_proposed = false;
@@ -575,9 +604,9 @@ impl Verdict {
                     }
                 }
                 Event::Result { location, bytes } => {
-                    self.applied.insert(OVERSIZED_RULE);
+                    self.applied.insert(waste);
                     if *bytes > OVERSIZED {
-                        self.add(OVERSIZED_RULE, false, location, bytes.to_string());
+                        self.add(waste, false, location, bytes.to_string());
                     }
                 }
                 Event::Hint => {
@@ -758,10 +787,19 @@ fn record(path: &Path) -> Option<Record> {
     let mut place = Place::default();
     let id = path.file_stem().unwrap().to_string_lossy().into_owned();
     let main_name = path.file_name().unwrap().to_string_lossy().into_owned();
-    let mut transcripts = vec![(Transcript::read(path, &main_name, true, &mut place), true)];
+    let mut transcripts = vec![(
+        Transcript::read(path, &main_name, true, &mut place),
+        true,
+        OVERSIZED_RULE,
+    )];
     for sub in subagents(path) {
         let name = format!("subagents/{}", sub.file_name().unwrap().to_string_lossy());
-        transcripts.push((Transcript::read(&sub, &name, false, &mut place), false));
+        let waste = subagent_waste_rule(&sub);
+        transcripts.push((
+            Transcript::read(&sub, &name, false, &mut place),
+            false,
+            waste,
+        ));
     }
     let cwd = place.cwd.clone().unwrap_or_default();
     let (Some((start, start_text)), Some(end)) = (place.start.clone(), place.end) else {
@@ -774,7 +812,7 @@ fn record(path: &Path) -> Option<Record> {
     }
     let worktrees = transcripts
         .iter()
-        .flat_map(|(t, _)| &t.calls)
+        .flat_map(|(t, _, _)| &t.calls)
         .map(|c| c.cwd.clone())
         .collect::<BTreeSet<_>>()
         .into_iter()
@@ -799,8 +837,8 @@ fn record(path: &Path) -> Option<Record> {
         start: start_text.clone(),
     };
     let mut verdict = Verdict::default();
-    for (t, main) in &transcripts {
-        verdict.check(t, &context, *main);
+    for (t, main, waste) in &transcripts {
+        verdict.check(t, &context, *main, waste);
     }
     let project = project_name(&cwd, Some(&repo));
     Some(Record {

@@ -1,6 +1,6 @@
 ---
 priority: low
-on_hold: 'deferred by the user'
+on_hold: 'the user fears more prompts in the interactions and more upkeep of the tool'
 why: 'the release ask rule proved the mechanism; the other irreversible actions still rest on the wording of a skill'
 ---
 # Ask before the irreversible git actions

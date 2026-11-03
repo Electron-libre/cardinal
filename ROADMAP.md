@@ -4,6 +4,7 @@ The planned work of Cardinal, grouped into milestones, in the order they are mea
 issues once it is shaped; the `priority` and `depends_on` of each issue file order those issues within a milestone (`cardinal run next-issue`). States: `idea`, `shaped`, `in issues`, `done` (set by `cardinal run close-issue`);
 `cardinal run release` adds `- Released: v<version>` to a `done` one and moves it to `ROADMAP-done.md` (`roadmap_archive`).
 `cardinal run roadmap` prints the state of every milestone.
+A line `- On hold: <reason>` defers a milestone: `cardinal run next-issue` offers none of its issues until it is removed.
 The work done before this file existed is in `issues/done/`.
 
 ## User control

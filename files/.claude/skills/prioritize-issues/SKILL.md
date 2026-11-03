@@ -7,8 +7,10 @@ description: Review the `priority` and `depends_on` of the open issues by readin
 
 Each open issue declares in its front matter `priority: high | medium | low`, the issues it needs, `depends_on:
 [<stem>, ...]`, and `why: '<the reason for the priority>'` (ADR 0021); `cardinal run next-issue` derives the order: the ready
-issues by the milestone order of the `roadmap` documents, then priority, then age; then the blocked ones. Don't
-implement anything here.
+issues by the milestone order of the `roadmap` documents, then priority, then age; then the blocked ones, then those
+on hold (an `on_hold: '<reason>'` key, or a milestone with a `- On hold: <reason>` field), which it never offers.
+Putting work on hold or lifting a hold is the user's call: propose it, never write it unasked. Don't implement
+anything here.
 
 ## Procedure
 

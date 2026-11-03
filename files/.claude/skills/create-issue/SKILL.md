@@ -61,7 +61,8 @@ This skill writes it; `cardinal run check-issue` enforces the mechanical rules. 
    ```
 
 5. **Prioritize**: a new issue has a priority and maybe dependencies, written in its front matter at step 3
-   (ADR 0021; omit `depends_on` when it needs no other issue; the `why` in single quotes, a `'` inside doubled).
+   (ADR 0021; omit `depends_on` when it needs no other issue; the `why` in single quotes, a `'` inside doubled; an
+   issue the user defers takes `on_hold: '<reason>'`, which `next-issue` never offers).
    Run `cardinal run next-issue` and read the open issues of its milestone: `depends_on` names the open or closed issues
    it cannot start before (not a measure or a condition, which the `why` states); `priority` is `high` for what its
    milestone cannot do without, `low` for a comfort, `medium` otherwise, never `high` by reflex. Never edit another

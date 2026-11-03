@@ -40,9 +40,15 @@ too: `release` moves the released milestones there, so `ROADMAP.md` keeps only t
 without the key keeps them where they are.
 
 `cardinal run roadmap` (alias `just roadmap`, [specs/roadmap.md](../specs/roadmap.md)) prints the milestones of the `roadmap`
-documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state), the
+documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state, `(on
+hold)` after it for a milestone with a `- On hold: <reason>` line), the
 `Released:` version, the open issues over the listed ones (a link to an existing file of `issues/done/` counts closed)
 and the document; `--open` hides the released ones. It writes nothing.
+
+An issue the user defers takes `on_hold: '<reason>'` in its front matter, a deferred milestone a line `- On hold:
+<reason>`: `cardinal run next-issue` never offers them and lists them as `On hold: <stem> (<reason>)` after the
+blocked ones ([specs/next-issue.md](../specs/next-issue.md)); removing the key or the line gives them back their
+place. A project seeded before adds the line about it to its `ROADMAP.md` by hand.
 
 The seeded `user_language` is the default language of the conversation. Each person may set their own in a
 `[project]` table of `.claude/cardinal.local.toml`, which the managed `.claude/.gitignore` keeps out of git: the

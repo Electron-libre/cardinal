@@ -69,9 +69,9 @@ Out of scope: a tool that sets the hold, refusing a claim. No format raise: the 
    NXT-16, NXT-17. (autonomous)
 2. [x] Hold in `roadmap` and `check-issue`: the ` (on hold)` state cell and the empty reason report; verified by
    tests of `crates/cardinal/tests/roadmap.rs` and `check_issue.rs`; makes true RMP-6, CKI-5. (autonomous)
-3. [ ] Skills and docs: `issue-workflow` warns on a held issue named by the user, `prioritize-issues` and
+3. [x] Skills and docs: `issue-workflow` warns on a held issue named by the user, `prioritize-issues` and
    `create-issue` name the key, `seed/ROADMAP.md` and `ROADMAP.md` name the field (`files/`, then `just sync`);
-   verified by `just check-cardinal` and `just check`.
+   verified by `just check-cardinal` and `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -111,4 +111,21 @@ three specs set `accepted`.
 red: CKI-5: `check-issue` accepted `on_hold: ''`; RMP-6: the state cell read `shaped`.
 Code review: no findings
 not verified: none
+decisions needed: none
+
+## Summary of deliverable 3
+done: `issue-workflow` asks before starting a held issue, `prioritize-issues` and `create-issue` name the key and
+leave the hold to the user, the seeded and own `ROADMAP.md`, `docs/usage.md` and `docs/workflow.md` describe it.
+
+| check | result |
+|---|---|
+| tests | ok (`just check`) |
+| lint | ok |
+| specs | ok |
+| docs | `update-docs` map: seeded file changed, so `docs/usage.md` says what a project seeded before does |
+| code review | low, see below |
+
+red: none
+Code review: no findings
+not verified: the wording of the skills is read by the model only; no test drives a held issue through a session
 decisions needed: none

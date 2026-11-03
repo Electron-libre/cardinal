@@ -14,8 +14,8 @@ after an idle delay.
 ## Decision
 None of them: their cost (hooks and a lock rewritten at every call, a protection lost or a delay to tune) outweighs a
 blocking the user lifts in a moment. Any uncommitted change keeps counting as the holder's work in progress. The
-refusal names the holder's process and the paths that keep it, so the user commits or stashes them, or ends that
-process. This completes ADR 0024.
+refusal names the holder's process and the paths that keep it, so the user commits, stashes (`git stash -u`) or
+deletes them, or ends that process. This completes ADR 0024.
 
 ## Consequences
 A change the user makes by hand still blocks a new session behind an idle holder, now with what to do in the

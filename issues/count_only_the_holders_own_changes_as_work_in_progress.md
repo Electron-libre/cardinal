@@ -73,6 +73,9 @@ so the user knows what to commit, stash or end.
 1. [x] Name the holder's process and the blocking paths: the refusal of `check` lists them; spec and ADR 0027;
    verified by a behavior test of `crates/cardinal/tests/workspace_lock.rs` (the refusal names session, pid and
    path); makes true WSL-3. (autonomous)
+2. [x] Fixes of the `high` review of the issue: the advice follows what keeps the lock (`git stash -u` for the paths,
+   none for a claim), the list says how many paths it leaves out and indents them, `start` names the process and what
+   keeps the lock; verified by the WSL-3, WSL-5 and WSL-10 tests; makes true WSL-3, WSL-5. (autonomous)
 
 ## Decisions
 - Approach: document the limit and name the process and the paths in the refusal; rejected: the fingerprint with
@@ -93,6 +96,28 @@ so the user knows what to commit, stash or end.
 | code review | `low`, no findings |
 
 - red: WSL-3: `the refusal names the process and the paths that keep the lock: Refused: another live session (a) works in this worktree; ... or end that session.`
+Code review: no findings
+- not verified: none.
+- decisions needed: none.
+
+## High review of the issue
+7 findings: fixed `git stash` leaving untracked files (now `git stash -u`), the stash advice on a claim or an
+unreadable status, WSL-3 not covering the claim case, `start` dropping the process and the paths, the whole status
+decoded for ten lines, the cut list without a count; paths as data: indented, not fenced (a gate for cooperative
+agents, ADR 0005).
+
+## Summary of deliverable 2
+- done: the fixes of the `high` review listed above.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | WSL-3, WSL-5 amended and traced |
+| docs | `docs/gates.md`, ADR 0027 |
+| code review | `low`, no findings |
+
+- red: WSL-3, WSL-5: `the refusal names the process and the paths that keep the lock` (no `git stash -u`, no `and 3 more`); the `start` notice without `process <pid>`.
 Code review: no findings
 - not verified: none.
 - decisions needed: none.

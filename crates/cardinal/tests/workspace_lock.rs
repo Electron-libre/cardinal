@@ -201,8 +201,18 @@ fn check_refuses_another_session_while_the_holder_runs() {
         "{err}"
     );
     assert!(
-        err.contains(&format!("process {}", other.pid())) && err.contains("?? wip"),
+        err.contains(&format!("process {}", other.pid()))
+            && err.contains("    ?? wip")
+            && err.contains("git stash -u"),
         "the refusal names the process and the paths that keep the lock: {err}"
+    );
+    for i in 0..12 {
+        std::fs::write(r.main.join(format!("more{i}")), "").unwrap();
+    }
+    let (_, _, err) = hook("check", &r.main, "b", &live());
+    assert!(
+        err.contains("and 3 more"),
+        "a long list says what it leaves out: {err}"
     );
     assert!(lock(&r.main).contains("session a\n"));
 }
@@ -239,6 +249,10 @@ fn start_takes_the_lock_or_tells_the_agent_the_worktree_is_busy() {
     let (code, out, _) = hook("start", &r.main, "b", &live());
     assert_eq!(code, Some(0), "SessionStart cannot block");
     assert!(out.contains("busy") && out.contains("refused"), "{out}");
+    assert!(
+        out.contains(&format!("process {}", other.pid())) && out.contains("    ?? wip"),
+        "{out}"
+    );
     assert!(lock(&r.main).contains("session a\n"));
 }
 
@@ -282,6 +296,10 @@ fn a_holder_with_a_working_claim_keeps_the_lock_in_a_clean_worktree() {
     claim(&r.main, "foo", "a", &other.pid());
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(2), "claimed by its session: {err}");
+    assert!(
+        err.contains("the issue foo it claims") && !err.contains("git stash"),
+        "the refusal names the claim, not changes to stash: {err}"
+    );
     claim(&r.main, "foo", "cleared", &other.pid());
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(2), "claimed by its process: {err}");

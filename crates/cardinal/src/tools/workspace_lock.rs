@@ -121,22 +121,32 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
         .ok()
         .filter(|o| o.status.success());
     let Some(status) = status else {
-        return Some("git status could not be read".to_string());
+        return Some("its git status, which could not be read".to_string());
     };
     if !status.stdout.is_empty() {
-        let status = String::from_utf8_lossy(&status.stdout);
-        let mut paths: Vec<&str> = status.lines().take(MAX_PATHS + 1).collect();
-        if paths.len() > MAX_PATHS {
-            paths[MAX_PATHS] = "...";
+        let lines: Vec<&[u8]> = status
+            .stdout
+            .trim_ascii_end()
+            .split(|&b| b == b'\n')
+            .collect();
+        let mut paths: Vec<String> = lines
+            .iter()
+            .take(MAX_PATHS)
+            .map(|l| format!("    {}", String::from_utf8_lossy(l)))
+            .collect();
+        if lines.len() > MAX_PATHS {
+            paths.push(format!("    and {} more", lines.len() - MAX_PATHS));
         }
-        return Some(format!("uncommitted changes:\n{}", paths.join("\n")));
+        return Some(format!("these uncommitted changes, whoever made them (commit them, `git stash -u` them or delete them):\n{}", paths.join("\n")));
     }
     issue_claim::all(cwd)
         .into_iter()
         .find(|(_, _, c)| {
             c.state == "working" && (c.session == holder.session || c.pid == holder.pid)
         })
-        .map(|(stem, _, _)| format!("the issue {stem} it claims"))
+        .map(|(stem, _, _)| {
+            format!("the issue {stem} it claims, until that session closes it or ends")
+        })
 }
 
 /// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it
@@ -210,9 +220,9 @@ pub(super) fn main(args: &[String]) -> u8 {
         return 0;
     };
     if mode == "start" {
-        println!("This worktree is busy: the Claude Code session {} works in it and still runs. Your edits and commands will be refused here: tell the user to open another worktree or to end that session.", holder.session);
+        println!("This worktree is busy: the Claude Code session {} of process {} works in it and still runs. Your edits and commands will be refused here: tell the user to open another worktree or to end that session. It keeps the worktree for {work}", holder.session, holder.pid);
         return 0;
     }
-    eprintln!("Refused: another live session ({}) of process {} works in this worktree; two sessions would share its files, index and review marker. Stop and let the user open another worktree, end that session or commit or stash its work in progress, whoever made it: {work}", holder.session, holder.pid);
+    eprintln!("Refused: another live session ({}) of process {} works in this worktree; two sessions would share its files, index and review marker. Stop and let the user open another worktree or end that session. It keeps the worktree for {work}", holder.session, holder.pid);
     2
 }

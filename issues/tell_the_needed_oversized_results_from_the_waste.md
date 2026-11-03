@@ -64,15 +64,16 @@ the rules table and the verdicts need no change.
 2. [x] `cardinal-report --last <n>`: only the rows of the last `n` groups, verdicts over every group; refused with
    `--by setup` or a bad value; `skill:evaluate-harness` passes `--last 6`; verified by tests of `cardinal-report`;
    makes true REP-17. (autonomous)
-3. [ ] Measure the avoidable sources: share of `issues/`, `specs/`, `docs/` in the whole-issue diffs of the closed
+3. [x] Measure the avoidable sources: share of `issues/`, `specs/`, `docs/` in the whole-issue diffs of the closed
    issues, and the session's own `cat`/`Read` breaches by file and need; findings and the decision proposed in this
-   issue, a follow-up issue for any change of a skill or rule; verified by the numbers recorded here.
+   issue, a follow-up issue for any change of a skill or rule; verified by the numbers recorded here. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: f116984c0003b4b49ad4e4207326f221e426c5b0
 - Source of the waste: three waste rules (`oversized-result`, `oversized-result-review`, `oversized-result-subagent`), not a `--source` filter.
 - `skill:evaluate-harness` passes `--last 6` (the five complete groups and the open one).
+- The review filter and the read hint go to follow-up issues (deliverable 3).
 
 ## Deliverable 1
 done: `rule-breaches` tells the oversized results by source: `oversized-result` (the session's own),
@@ -109,3 +110,34 @@ red: REP-17: `FAIL - --last succeeds` (the option was refused as unknown)
 Code review: no findings
 
 not verified: the size of the real report with `--last 6` (deliverable 3 runs it).
+
+## Deliverable 3
+Measured 2026-11-03 on the transcripts of this machine, with the rules of deliverable 1:
+
+| rule | sessions applied | breached | breaches | bytes | bytes per session |
+|---|---|---|---|---|---|
+| `oversized-result` | 290 | 30 | 36 | 1.08 MB | 3,708 |
+| `oversized-result-review` | 262 | 108 | 138 | 4.74 MB | 18,078 |
+| `oversized-result-subagent` | 6 | 2 | 2 | 52 KB | 8,605 |
+
+* Reviewers' results over the threshold, by kind: 75 whole `Read`s of a `tool-results/` file (the diff Claude Code
+  saved because it was large, 3.3 MB), 102 `git diff` (2.8 MB; 21 already left paths out), 13 other: the waste of the
+  reviews is the diff itself, read whole.
+* Whole-issue diffs (`<base>..<close>^`) of the 204 closed issues with a base commit, 7 projects, by changed lines:
+  code and tests 64%, `issues/` 13%, `.claude/` 9% (synced copies of Cardinal), `files/` 8%, `specs/` 2%, `docs/` 2%;
+  median share of `issues/`, `specs/` and `docs/` per issue 29%.
+* The session's own results over the threshold, in every session of the machine (69, of which the 36 above in
+  the sessions with a Cardinal revision): `Read` 24 (10 whole code files, 8 whole `tool-results/` files, a result
+  Claude Code had cut), `cat` 22 (code 12, docs 5, other 5), `cd …;` commands 8, `WebFetch` 7, others 8.
+* `cardinal-report` with sessions, rules and fixed context: 28.8 KB in full, 8.5 KB with `--last 6`.
+
+Code review: 1 findings: the breakdown of the session's own results did not add up to 36 (it counted every session
+of the machine); fixed, its scope stated.
+
+Decisions, validated by the user:
+* The `high` review leaves out `issues/` and the synced copies (`.claude/`, the paths of `.claude/cardinal.lock`):
+  about a fifth of the lines, none of them code a review can fault; `specs/` and `docs/` stay (4%, the
+  requirements the code is read against): `issues/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md`.
+* No rule in the fixed context for the session's own reads: 3.7 KB per session does not pay a line every session
+  loads; a `PreToolUse` hint on a whole `Read` of a file over 25 KB (`tool-results/` included) costs nothing until
+  it fires: `issues/hint_before_a_whole_read_of_a_large_file.md`.

@@ -14,7 +14,7 @@ The main loop of the session drives the queue itself, in the worktree the sessio
 issues, writes their plans, stops once for all of them, then chains them, each in the mode validated for it, checking
 before each issue whether the issues already done made its plan stale. The state of each issue stays in its `#
 Tracking`, and a `Queue:` line of each plan names the queue and its base, so an automatic compaction or a resumed
-session picks it up from the files. Subagents stay what they are today: a delegated wide search.
+session picks it up from the files. No subagent takes part (the delegated wide search was folded back since).
 
 ## Consequences
 The reviews, the gates, the claims and `next-issue` work as for one issue. The context of the session grows with the

@@ -88,8 +88,7 @@ nothing: the agent reads that identity too. The spec file is the record of the r
 
 ## 3. For each deliverable, in order
 
-1. **Gather**: read the code and docs it touches; ask about missing
-   information (one batch of questions).
+1. **Gather**: read the code and docs it touches; ask about missing information (one batch of questions).
 2. **Test first**: write a behavior or end-to-end test that fails for the right reason. When the capability has a
    spec and the project has `specs/README.md`, the test proves a requirement and carries `// spec: ABC-n` (placement in `specs/README.md`), through the
    binary when that is cheap and stable, else internal with its reason, `// spec: ABC-n (internal: <reason>)`; the

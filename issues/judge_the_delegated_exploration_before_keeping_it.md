@@ -163,3 +163,24 @@ Sessions since the narrowing 0cd6083 (2026-10-31 to 2026-11-03), counted once fr
 - Code review: no findings
 - not verified: the effect on `main_context_peak` (verdict of the `Expected-effect:` later).
 - decisions needed: none.
+
+## Deliverable 5: fixes of the `high` review of the fold-back
+
+- done: ADR 0026 no longer names a delegated wide search; the Gather step of `issue-workflow` rewrapped.
+- not fixed: `Expected-effect: main_context_peak up` (the direction the plan set for a fold-back, validated by the
+  user; amending fb22aac would rewrite history); no line telling the agent to stay in the main thread (fixed context
+  the fold-back removes on purpose; the 5% of delegations happened with the paragraph inviting them); the roadmap
+  link (rewritten by `just close-issue`).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | `docs/adr/0026-a-queue-of-issues-is-chained-by-the-main-loop.md` |
+| code review | high: 5 findings, 2 fixed, 3 not fixed (above); low on the fixes, see below |
+
+- red: none (docs and skill text, no test).
+- Code review: no findings
+- not verified: none.
+- decisions needed: none.

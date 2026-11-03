@@ -24,8 +24,10 @@ rules brought.
      checkout of the Cardinal source (the `source` of `.claude/cardinal.toml` when it is a directory), for the
      `Expected-effect` lines of its commits; skip it, and `--changes`, when there is none;
    - `cardinal run cardinal-report --sessions <dir>/sessions.tsv --breaches <dir>/breaches.tsv --quality <dir>/quality-1.tsv … --context <dir>/context.tsv --changes <dir>/changes.tsv --last 6`
-     (the last groups, the trend it reads), with `--min-sessions <n>` when the user asks for another sample size than 10, `--min-issues <n>` than 5 issues;
-   - the same command with `--by setup`, for the setups (the main model alone, or advised by another) side by side.
+     (the last six groups, the trend it reads), with `--min-sessions <n>` when the user asks for another sample
+     size than 10, `--min-issues <n>` than 5 issues;
+   - the same command without `--last` (refused with it: the setups have no order in time) and with `--by setup`,
+     for the setups (the main model alone, or advised by another) side by side.
 2. **Read** each table of the report, oldest group first: the tables are the numbers, never recompute them.
    - A trend is a change kept over two groups or more; one group out of line is noise.
    - Before naming a trend, compare the `models`, `versions` and `projects` of the groups it spans: when they

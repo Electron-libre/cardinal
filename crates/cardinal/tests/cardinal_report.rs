@@ -1106,18 +1106,11 @@ fn last_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         ]
     };
     let (ok, out, _) = run(dir, &base_args("2"));
-    let tables = tables(&out);
-    let groups = |title: &str| -> Vec<String> {
-        tables
-            .get(title)
-            .map(|rows| rows.iter().skip(1).map(|r| r[0].clone()).collect())
-            .unwrap_or_default()
-    };
     let shown = ["Efficiency", "Rules", "Skills"]
         .iter()
-        .all(|t| groups(t) == ["rb", "rc"]);
+        .all(|t| group_names(&out, t) == ["rb", "rc"]);
     let (_, more, _) = run(dir, &base_args("5"));
-    let all = efficiency_groups(&more) == ["ra", "rb", "rc"];
+    let all = group_names(&more, "Efficiency") == ["ra", "rb", "rc"];
     let verdict_rows = verdicts(
         dir,
         tmp,
@@ -1152,10 +1145,10 @@ fn last_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
-/// The groups of the efficiency table of a report.
-fn efficiency_groups(out: &str) -> Vec<String> {
+/// The group of each row of the table `title` of a report.
+fn group_names(out: &str, title: &str) -> Vec<String> {
     tables(out)
-        .remove("Efficiency")
+        .remove(title)
         .map(|rows| rows.into_iter().skip(1).map(|r| r[0].clone()).collect())
         .unwrap_or_default()
 }

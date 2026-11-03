@@ -141,3 +141,14 @@ Decisions, validated by the user:
 * No rule in the fixed context for the session's own reads: 3.7 KB per session does not pay a line every session
   loads; a `PreToolUse` hint on a whole `Read` of a file over 25 KB (`tool-results/` included) costs nothing until
   it fires: `issues/hint_before_a_whole_read_of_a_large_file.md`.
+
+## Deliverable 4 (whole-issue review)
+`/code-review high` on `f116984..HEAD`: 7 findings. Code review of the fixes: no findings. (autonomous)
+* Fixed: `skill:evaluate-harness` ran the `--by setup` report with `--last 6`, which the tool refuses; the
+  duplicated helper of the `--last` test.
+* Not fixed, by design: the reviewer heuristic of BRE-22 (no other `general-purpose` sub-agent with no description
+  among 1,493 on the machine; the first prompt is the built-in's text, no steadier); the verdicts listing every
+  change (REP-17 keeps them, a verdict is the point of a change); `--last` counting the `too few` group (REP-4
+  shows it as a group); the hidden groups computed (a few medians); `hidden` on `Group` (every table reads it through
+  `table()`, an index would go through each of them).
+* Noted: the `Expected-effect` of `c652c48` is read by no verdict (no change of `files/`).

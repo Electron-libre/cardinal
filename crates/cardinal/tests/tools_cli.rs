@@ -21,12 +21,8 @@ fn tool(cwd: &Path, args: &[&str], stdin: &str) -> (i32, String, String) {
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(stdin.as_bytes())
-        .unwrap();
+    // a tool that reads no stdin may exit before the write: its broken pipe is not the test's failure
+    let _ = child.stdin.take().unwrap().write_all(stdin.as_bytes());
     let out = child.wait_with_output().unwrap();
     (
         out.status.code().unwrap(),
@@ -334,6 +330,11 @@ fn commit_check_exits_2_on_an_unknown_revision_or_extra_arguments() {
     );
     for (args, hint) in [
         (&["commit-check", "nosuchrev"][..], "nosuchrev"),
+        (
+            &["commit-check", ".claude/cardinal.toml"][..],
+            "cardinal.toml",
+        ),
+        (&["commit-check", "HEAD~1..HEAD"][..], "HEAD~1..HEAD"),
         (&["commit-check", "HEAD", "HEAD"][..], "usage"),
     ] {
         let (code, stdout, stderr) = tool(repo.path(), args, "");
@@ -564,16 +565,23 @@ fn the_managed_content_names_no_just_recipe_outside_the_just_files() {
     for path in &recipes {
         let text = fs::read_to_string(path).unwrap();
         names.extend(text.lines().filter_map(|l| {
+            // `@name:` declares a quiet recipe
+            let l = l.strip_prefix('@').unwrap_or(l);
             let name = l.split([' ', ':']).next()?;
-            let declares = !name.is_empty() && !l.starts_with(['#', ' ', '[', '@']);
+            let declares = !name.is_empty() && !l.starts_with(['#', ' ', '\t', '[']);
             (declares && !l.starts_with("import")).then(|| name.to_string())
         }));
     }
     assert!(names.len() > 5, "no recipe found: the scan is broken");
     for path in others {
         let text = fs::read_to_string(&path).unwrap_or_default();
-        for (at, _) in text.match_indices("just ") {
-            let word = text[at + "just ".len()..]
+        // `just` then its recipe, maybe on the next line of a wrapped paragraph
+        let words: Vec<&str> = text.split_whitespace().collect();
+        for pair in words.windows(2) {
+            if pair[0].trim_start_matches(['`', '(']) != "just" {
+                continue;
+            }
+            let word = pair[1]
                 .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
                 .next()
                 .unwrap_or("");
@@ -584,6 +592,18 @@ fn the_managed_content_names_no_just_recipe_outside_the_just_files() {
             );
         }
     }
+}
+
+/// The skills give `cardinal check` where they gave `just check-cardinal`, which the seeded `Bash(just *)` allowed.
+#[test]
+fn the_managed_settings_allow_the_drift_check_the_skills_give() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let named = files_under(&repo.join("files"))
+        .iter()
+        .any(|p| fs::read_to_string(p).is_ok_and(|t| t.contains("`cardinal check`")));
+    let entries = fs::read_to_string(repo.join("entries/.claude/settings.json")).unwrap();
+    assert!(named, "no skill names `cardinal check`: the scan is broken");
+    assert!(entries.contains("\"Bash(cardinal check)\""), "{entries}");
 }
 
 // spec: BIN-8

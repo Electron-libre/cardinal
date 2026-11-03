@@ -62,8 +62,10 @@ replay rev="HEAD" runs="1" claude="claude":
             cd "$dir"
             git init -q -b main
             cardinal init "$repo/.git" --rev "$commit" >/dev/null
-            # The check `cardinal run project-check` runs (an older revision ignores the key).
-            sed -i 's/^\[project\]$/[project]\ncheck_command = "just check"/' .claude/cardinal.toml
+            # The check `cardinal run project-check` runs before its spec check (an older revision ignores the key).
+            grep -q '^check_command' .claude/cardinal.toml \
+                || sed -i 's/^\[project\]$/[project]\ncheck_command = "just fmt clippy test"/' .claude/cardinal.toml
+            grep -q '^check_command' .claude/cardinal.toml
             # The setup is committed before the review gate exists, then a second sync installs it (a revision
             # older than the native gate installs none).
             cardinal sync >/dev/null

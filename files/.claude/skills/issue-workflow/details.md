@@ -5,8 +5,8 @@ The cases `SKILL.md` leaves out, read when one of them comes up.
 ## Review waiver
 
 Only the user can waive the review of step 3.5, with `cardinal run waive-review`: it creates the waiver of the current
-worktree (also in a linked worktree, where the waiver is per worktree). Never create that file nor run that recipe
-yourself. Deny rules of `.claude/settings.json` refuse the recipe and an edit of the file; naming them (commit
+worktree (also in a linked worktree, where the waiver is per worktree). Never create that file nor run that tool
+yourself. Deny rules of `.claude/settings.json` refuse it, its `just` alias and an edit of the file; naming them (commit
 message, `grep`) is fine.
 
 ## Split an issue
@@ -58,7 +58,7 @@ On a branch other than the trunk, once the user agreed to close the issue:
    Never rebase a pushed branch unasked. The merge is the host's (or the user's).
    No link to the next issue here: the `issues/` of the worktree is the branch's.
 
-`close-issue` refuses an issue of another worktree named by path. `close-worktree` refuses inside the worktree it would remove, and a branch whose work is not
+`close-issue` refuses an issue of another worktree named by path. `cardinal run worktree close` refuses inside the worktree it would remove, and a branch whose work is not
 on the main branch unless `--force`.
 
 ## Drive a queue

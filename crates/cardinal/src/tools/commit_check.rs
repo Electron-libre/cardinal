@@ -133,14 +133,31 @@ pub(super) fn violations(
     errors
 }
 
-/// The message of `rev`, as `git log` prints it at the current directory (CMC-2).
-fn message_of(rev: &str) -> Result<String, String> {
-    let out = Command::new("git")
-        .args(["log", "-1", "--format=%B", "--end-of-options", rev])
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
+/// The message of the commit `rev` names at the current directory, `rev` resolved first so that a path or a range is
+/// refused rather than read as a pathspec (CMC-2, CMC-3).
+pub(super) fn message_of(rev: &str) -> Result<String, String> {
+    let git = |args: &[&str]| {
+        Command::new("git")
+            .args(args)
+            .output()
+            .map_err(|e| format!("cannot run git: {e}"))
+    };
+    let refused = || format!("cannot read the message of the revision `{rev}`");
+    let commit = format!("{rev}^{{commit}}");
+    let out = git(&[
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        "--end-of-options",
+        &commit,
+    ])?;
     if !out.status.success() {
-        return Err(format!("cannot read the message of the revision `{rev}`"));
+        return Err(refused());
+    }
+    let hash = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    let out = git(&["log", "-1", "--format=%B", &hash, "--"])?;
+    if !out.status.success() {
+        return Err(refused());
     }
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }

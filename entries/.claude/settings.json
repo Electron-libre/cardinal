@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cardinal run *)"
+      "Bash(cardinal run *)",
+      "Bash(cardinal check)"
     ],
     "ask": [
       "Bash(cardinal run release *.*)",

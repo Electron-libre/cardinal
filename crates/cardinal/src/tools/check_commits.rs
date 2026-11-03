@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-use super::commit_check::{attribution_banned, scopes, violations};
+use super::commit_check::{attribution_banned, message_of, scopes, violations};
 
 pub(super) fn main(args: &[String]) -> u8 {
     let [base, head] = args else {
@@ -33,13 +33,10 @@ pub(super) fn main(args: &[String]) -> u8 {
     let mut failed = false;
     for rev in String::from_utf8_lossy(&out.stdout).lines() {
         println!("== {rev}");
-        let message = match git(&["log", "-1", "--format=%B", rev]) {
-            Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).into_owned(),
-            _ => {
-                println!("cannot read the message of {rev}");
-                failed = true;
-                continue;
-            }
+        let Ok(message) = message_of(rev) else {
+            println!("cannot read the message of {rev}");
+            failed = true;
+            continue;
         };
         let errors = violations(&message, scopes.as_deref(), attribution);
         for e in &errors {

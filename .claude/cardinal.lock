@@ -10,7 +10,7 @@ fdb77fd8baac0adda0d3b6a13d158abafa43211569b45e82b4f1882096ae2aa4  .claude/skills
 541fc4d023f06e2d6500a427b51a77b9e5ec14ca7508d8093c05d039b3e2320e  .claude/skills/create-issue/SKILL.md
 c712c355a02015cecd2b62ec0f0b79de0c70d5f8d447a226c6d435c3186751cd  .claude/skills/evaluate-harness/SKILL.md
 af87b1fd1bfefaaabab2f495d427db6892f4f179967be0e4a63ecda66f4febed  .claude/skills/issue-workflow/SKILL.md
-7d11d992fc7d2066596d7f0744b15bbcaf8f87ec904d999c0273a5188bad34cb  .claude/skills/issue-workflow/details.md
+ff6b31883e9a4a710e4d053fd6df24c13c8264bef4903949aea32617a713fd82  .claude/skills/issue-workflow/details.md
 b2039eb7cea742bef50665fa0230b97fb28f5284e79d62647eac70a6fadc66d3  .claude/skills/prioritize-issues/SKILL.md
 16d6037f8b5f9c91261361d8fff6c7f88301a2e0c1adfa2f2c823e55edfa0349  .claude/skills/update-docs/SKILL.md
 dd56cb23cc054829f70a72ce94aa6eb29c505d69a84214a01ea7992728bbbec6  .claude/skills/write-spec/SKILL.md
@@ -25,6 +25,7 @@ e2b7850ed69b1de0461dbd1f9deb55df6acd67961b275e747919c3f7766c52ed  cardinal.just
 6b838e7583aa8cbd2fd171577b7f804308d06a2cf01db0c7a37ed03985d87c5e  specs/README.md
 66c02d6a40b353ab64053572558e258ee2a65c4272abf394d2375356958e21f5  specs/TEMPLATE.md
 entry  {"allow":"Bash(cardinal run *)"}
+entry  {"allow":"Bash(cardinal check)"}
 entry  {"ask":"Bash(cardinal run release *.*)"}
 entry  {"ask":"Bash(just release *.*)"}
 entry  {"deny":"Bash(just waive-review)"}

@@ -51,11 +51,13 @@ rules. The readers already match both forms (BRE-16 `run`, the waiver, QUA-8 `pr
    the messages of `close-issue`, `next-issue` and the `CHANGELOG.md` header of `release`, the seeded `ROADMAP.md`,
    `CHANGELOG.md` and `cardinal.toml` comment; `check_command` of this repository; `cardinal-format`/`FORMAT` 9 and
    `migrations/9.toml`; verified by a test that no file of `files/` but the `.just` ones names a `just` recipe, and
-   the tests of the messages; makes true BIN-8 (amended).
+   the tests of the messages; makes true BIN-8 (amended). (autonomous)
 3. [x] Docs: `docs/tutorial.md` step 1 (`just` optional), `usage`, `workflow`, `architecture`, `gates`, `README.md`,
    the specs that say a consumer needs `just` (BIN intent), ADR 0001 and 0010 partly superseded by 0028; verified by
    `just check` (links, ADR index). (autonomous)
 
+4. [x] Fixes of the `high` review of the issue; verified by `just check` and the tests of CMC-3 (a path, a range),
+   the allow rule of `cardinal check` and BIN-8 (a wrapped line, a quiet recipe). (autonomous)
 Estimated size: ~150, ~400 (copies included), ~200 lines.
 
 ## Decisions
@@ -108,3 +110,30 @@ done: the tutorial (step 1: `cardinal` alone, `just` optional), `usage`, `workfl
 red: none (docs only)
 Code review: no findings
 not verified: nothing
+
+## Summary of deliverable 4
+done: the fixes of the `high` review of `8306fd8..af87f40`.
+
+| # | finding | done |
+|---|---|---|
+| 1 | `commit-check <path>` read as a pathspec | fixed: the revision resolved with `rev-parse --verify` first; a path and a range exit 2 |
+| 2 | `cardinal check` has no allow rule | fixed: `Bash(cardinal check)` in the managed allow rules |
+| 3 | the migration names `` `just check` `` only | not fixed: the other recipes stay as working aliases, a warning on each would be noise |
+| 4 | the BIN-8 test misses a wrapped line, a `@` recipe | fixed |
+| 5 | `details.md` names `close-worktree`, "the recipe" of the waiver | fixed |
+| 6 | the message of a revision read twice | fixed: `check-commits` calls `message_of` |
+| 7 | the CI keys `check-specs` on `cardinal-specs.just` | not fixed: the file belongs to the feature `specs` (FEA-31), present exactly when it is on |
+| 8 | the specs checked twice by `project-check` | fixed for the replay (`just fmt clippy test`); kept here, the strict check needs the recipe (decision 2) |
+| 9 | the replay `sed` silent or duplicating | fixed: skipped when the key exists, fails when it is still missing |
+| 10 | a broken pipe in the test helper | fixed: the write to stdin ignores it |
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| deliverable size | 106 lines, within |
+| docs | `details.md` |
+| code review (low) | pass |
+
+red: CMC-3: `cardinal run commit-check README.md` exited 0 on the message of HEAD (the `high` review)
+Code review: no findings
+not verified: the replay recipe (billed)

@@ -48,7 +48,7 @@ spare the read it fires on (the tool still runs). The `cat` through `Bash` is me
 
 ## Plan
 1. [x] Hook `read-hint`: the tool, its declaration in `entries/.claude/settings.json`, the feature `read-hint`, the docs; verified by `tests/read_hint.rs` and the features test; makes true RDH-1 to RDH-6. (autonomous)
-2. [ ] Measure the `cat` of a large file: of the `cat` results over 25,000 bytes, how many are a lone `cat <file>` that `shell.rs` reads; the verdict written in the issue, a follow-up issue if worth it; verified by the numbers in the issue.
+2. [x] Measure the `cat` of a large file: of the `cat` results over 25,000 bytes, how many are a lone `cat <file>` that `shell.rs` reads; the verdict written in the issue, a follow-up issue if worth it; verified by the numbers in the issue. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -73,3 +73,21 @@ red: RDH-1, RDH-2, RDH-3, RDH-4, RDH-5, RDH-6: `cardinal: unknown tool `read-hin
 Code review: no findings
 
 not verified: the hook in a live session (the pinned `cardinal` predates it until this commit is pinned).
+
+## Deliverable 2
+Measured 2026-11-03 on every transcript of this machine: the session's own `Bash` results over 25,000 bytes whose
+command holds `cat`.
+
+| shape of the command | results |
+|---|---|
+| a lone `cat <file>` (after a `cd`, no pipe nor redirection) | 3 |
+| a lone `cat` of several files | 3 |
+| `cat` in a list or a pipe (`cat a; cat b`, a `for` loop, `sed …; cat …`) | 20 |
+| total | 26 |
+
+Verdict: not worth a hook. The shape a hook could judge from the file size alone (a lone `cat` of one file) is 3 of
+26; the others would need the sizes of every file of a list, or the output of a loop, before the call. No follow-up
+issue. To watch: if `read-hint` turns whole reads into `cat` of the same files, rule `oversized-result` shows it, and
+the `cat` hint is worth measuring again.
+
+not verified: the shapes are read by a split on `;`, `&&`, `||` and newlines, not by `shell.rs` (a measure, not a gate).

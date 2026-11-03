@@ -29,7 +29,7 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
   `.claude/rules/user-language.md` and `.claude/rules/reports-to-the-user.md`: the language and the format of the reports
   to the user, loaded in every session.
 
-This repository is its own first consumer: its `.claude/`, `AGENTS.md`, `cardinal*.just`, `script/` and
+This repository is its own first consumer: its `.claude/`, `.github/`, `AGENTS.md`, `cardinal*.just` and
 `specs/README.md` are copies of `files/`. After changing `files/`, run `just sync`; `just check-cardinal`
 fails when a copy drifted.
 

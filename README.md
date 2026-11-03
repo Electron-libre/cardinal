@@ -6,6 +6,14 @@ Cardinal is one agent harness for many projects. This repository holds the Claud
 recipes and CI that a project needs to have an agent work its issues safely, plus `cardinal`, the tool that copies them
 into each project and tells when a copy drifted.
 
+New to Cardinal? Start with the **[tutorial](docs/tutorial.md)**: from an empty project to a first issue delivered by
+the agent.
+
+This README has two parts: [Use Cardinal](#use-cardinal) in a project (the `cardinal` binary, nothing else needed) and
+[Develop Cardinal](#develop-cardinal) itself (a clone, `cargo`, `just`).
+
+# Use Cardinal
+
 ## What a project gets
 
 | | |
@@ -43,12 +51,22 @@ flowchart LR
 
 ## Install
 
+Download the `cardinal` binary of the latest release (`x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl` or
+`aarch64-apple-darwin`) into a directory of your `PATH`, then adopt Cardinal in a git repository:
+
 ```sh
-cargo install --force --path crates/cardinal --locked   # from a clone
+target=x86_64-unknown-linux-musl
+curl -fsSL -o ~/.local/bin/cardinal \
+  "https://github.com/Electron-libre/cardinal/releases/latest/download/cardinal-$target"
+chmod +x ~/.local/bin/cardinal
 cd my-project
-cardinal init <git-url-or-path> [--rev main]    # writes .claude/cardinal.toml
-cardinal sync                                   # copies, seeds, merges the settings, installs the review gate
+cardinal init https://github.com/Electron-libre/cardinal.git   # writes .claude/cardinal.toml
+cardinal update                                                # pins the latest commit, then syncs
 ```
+
+No clone of this repository and no `just` needed: [`just`](https://github.com/casey/just#installation) is optional, its
+recipes are aliases of `cardinal run …`. The checksum, the other platforms and what `sync` prints:
+[docs/tutorial.md](docs/tutorial.md#1-install-the-tools).
 
 Then keep the Claude Code transcripts a year, the evaluation reads them:
 `{ "cleanupPeriodDays": 365 }` in `~/.claude/settings.json`.
@@ -83,6 +101,34 @@ delivers. Details: [docs/workflow.md](docs/workflow.md).
 - [docs/tutorial.md](docs/tutorial.md): a first walk through, from an empty project to a first issue delivered.
 - [docs/usage.md](docs/usage.md): every command in detail, the evaluation, parallel worktrees.
 - [docs/workflow.md](docs/workflow.md): how an issue goes from idea to merge, alone or in parallel.
-- [docs/architecture.md](docs/architecture.md): how Cardinal is built; [docs/gates.md](docs/gates.md) and
-  [docs/evaluation.md](docs/evaluation.md) hold the detail of its hooks and of its evaluation.
+- [docs/gates.md](docs/gates.md) and [docs/evaluation.md](docs/evaluation.md): the detail of the hooks and of the
+  evaluation.
+
+# Develop Cardinal
+
+For who changes Cardinal itself, not for a project that uses it. This repository is its own first consumer: its
+`.claude/`, `.github/` (the CI of a consumer), `AGENTS.md`, `cardinal*.just` and `specs/README.md` are copies of
+`files/`.
+
+```sh
+git clone https://github.com/Electron-libre/cardinal.git && cd cardinal
+just install          # cargo install --force --path crates/cardinal --locked
+just check            # fmt, clippy -D warnings, tests, spec traceability: before each commit
+just sync             # after a change of files/: refresh the copies of this repository
+just check-cardinal   # fails when a copy drifted
+```
+
+| Path | Holds |
+|---|---|
+| `files/` | the managed content, copied to the same path of every consumer: fix it here, never in a copy |
+| `seed/` | the project-owned starting points, copied once |
+| `entries/.claude/settings.json` | the hooks and the allow, ask and deny rules `sync` keeps in each project |
+| `features.toml` | the features a project may turn off |
+| `crates/cardinal/` | the `cardinal` binary and the tools of `cardinal run` |
+| `specs/` | what each capability must do, traced to its tests by `// spec: ID` |
+| `issues/`, `docs/adr/` | the open issues, the decisions |
+| `fixtures/replay/` | the project `just replay <rev> <runs>` runs headless against a revision (billed) |
+
+- [docs/architecture.md](docs/architecture.md): how Cardinal is built.
 - [specs/](specs/): what each capability must do; [docs/adr/](docs/adr/): why it is so.
+- [CLAUDE.md](CLAUDE.md): the conventions of this repository (commits, tests, formats and migrations).

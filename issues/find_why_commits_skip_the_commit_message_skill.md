@@ -70,16 +70,19 @@ with an evidence-based instruction change. Out of scope: the other routing rules
 1. [x] Rule scope: a commit in a throwaway repository (`git init`, `mktemp`, a `cd` or `git -C` outside the work
    tree, earlier in the same call) is no trigger, nor is a commit whose call runs the checker;
    verified by tests of `rule_breaches.rs` from the scenarios; makes true BRE-16. (autonomous)
-2. [ ] Remaining skips: run `skill:audit-instructions` with the counts of the kinds left after deliverable 1 and
+2. [x] Remaining skips: run `skill:audit-instructions` with the counts of the kinds left after deliverable 1 and
    apply the instruction change it proposes and the user validates (candidates: a line at the close of
    `skill:issue-workflow`, the output of `cardinal update`, a commit gate refusing an unchecked message); verified by
-   `just check` and the re-measured counts written in the issue.
+   `just check` and the re-measured counts written in the issue. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: f8c93e18b4d4d9f3f2633c8da9b00ad53dd4f69c
 - A commit whose call runs the message checker is no trigger: the skill's outcome is met (question 1).
 - Deliverable 2 runs `skill:audit-instructions` on the remaining kinds and applies the change the user validates (question 2).
+- Audit validated: the close commit of `skill:issue-workflow` names `skill:commit-message` (7 close commits in 7
+  sessions); the update output becomes [route_the_update_commit_to_the_message_skill](route_the_update_commit_to_the_message_skill.md);
+  a gate refusing an unchecked commit waits for the re-measure.
 
 ## Deliverable 1
 done: a commit in a throwaway repository or whose call runs the message checker is no trigger of BRE-16; re-measured
@@ -102,5 +105,25 @@ Code review: 1 finding
   `mktemp` or a `$(mktemp` substitution counts, with a test.
 
 not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+done: the close commit of `skill:issue-workflow` (Rules and "Merge back") takes its message from
+`skill:commit-message`; the follow-up issue for the update output is opened.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | the skill is the doc; `just sync` copied it |
+| code review | low: no findings |
+
+red: none
+
+Code review: no findings
+
+not verified: the effect on the close commits, until new sessions are measured
 
 decisions needed: none

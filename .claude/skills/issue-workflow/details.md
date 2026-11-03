@@ -46,7 +46,7 @@ On a branch other than the trunk, once the user agreed to close the issue:
 
 1. `just close-issue issues/<name>.md` on the branch: the claim becomes `merge pending` until the trunk holds the
    close. Commit what it staged (the move with the last tracking and what it rewrote, the milestone it set `done`
-   included) with a bare `git commit`, as the Rules of `SKILL.md` say; the commit needs no review.
+   included) with a bare `git commit` and a message from `skill:commit-message`, as the Rules of `SKILL.md` say; the commit needs no review.
 2. Run `just check-cardinal`: when it names a hook the installed `cardinal` refuses (the branch adds a subcommand the
    hooks call), run the install it prints before going on. After the merge the hooks of the main worktree
    call it too, and one the installed `cardinal` refuses blocks every command, the install included.

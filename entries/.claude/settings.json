@@ -10,6 +10,8 @@
     "deny": [
       "Bash(just waive-review)",
       "Bash(just waive-review *)",
+      "Bash(cardinal run waive-review)",
+      "Bash(cardinal run waive-review *)",
       "Edit(//**/claude-review-waived)"
     ]
   },

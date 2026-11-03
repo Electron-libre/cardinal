@@ -41,9 +41,11 @@ sequenceDiagram
   case: a project tracking its issues elsewhere may hold its own code there (FEA-36).
 - **check** reads a command only for what would skip the git hook (REV-12): a native hook does not run under
   `--no-verify` or `-n`, nor once `core.hooksPath` points elsewhere. A commit made by another tool is out of reach.
-- **Waiver**: only the user waives the next commit, with `just waive-review` (it creates `claude-review-waived` at
-  `git rev-parse --git-path`, REV-17). The managed deny rules make Claude Code refuse the agent the recipe and an edit
-  of the file (REV-19); they match the command the agent usually writes, not a `touch` or a script. A waiver is stamped
+- **Waiver**: only the user waives the next commit, with `cardinal run waive-review` or its alias `just waive-review`
+  (it creates `claude-review-waived` at `git rev-parse --git-path`, REV-17; it refuses with `review-gate` off,
+  REV-22). The managed deny rules make Claude Code refuse the agent both forms, which the allow rule
+  `Bash(cardinal run *)` would otherwise approve, and an edit of the file (REV-19); they match the command the agent
+  usually writes, not a `touch` or a script. A waiver is stamped
   with `HEAD` when it lets a commit through and removed at the first run after `HEAD` moved, so a command that does not
   commit leaves it usable.
 - **Install**: `sync` writes the git `pre-commit` (a small `sh` script marked by its second line) in the hooks

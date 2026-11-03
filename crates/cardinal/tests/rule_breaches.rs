@@ -184,12 +184,9 @@ fn session_a(repo: &Path, proj: &Path) -> Vec<String> {
     t.call("t5", "Bash", &bash("git commit -m x"));
     let refused2 = t.result("t5", true, "Refused: the diff holds files the last code review never saw. Or ask the user to waive the review.");
     let bypass = t.run("t6", "Bash", &bash("git add a && git commit -m y"), None);
-    let waive = t.run(
-        "t7",
-        "Bash",
-        &bash("just waive-review"),
-        Some("Permission to use Bash has been denied."),
-    );
+    let denied = Some("Permission to use Bash has been denied.");
+    let waive = t.run("t7", "Bash", &bash("just waive-review"), denied);
+    let waive_tool = t.run("t7b", "Bash", &bash("cardinal run waive-review"), denied);
     let waiver_file = t.run(
         "t8",
         "Write",
@@ -240,6 +237,7 @@ fn session_a(repo: &Path, proj: &Path) -> Vec<String> {
         a("review-before-commit", "blocked", refused2, ""),
         a("review-before-commit", "breach", bypass, ""),
         a("review-waiver", "blocked", waive, ""),
+        a("review-waiver", "blocked", waive_tool, ""),
         a("review-waiver", "breach", waiver_file, ""),
         a("review-waiver", "blocked", waive_refused, ""),
         a("managed-copy", "breach", managed, ".claude/hooks/x.rs"),
@@ -448,7 +446,7 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "oversized-result-subagent\tr1\t1\t0\t0\t0\t0",
         "review-before-commit\tr1\t4\t1\t1\t3\t",
         "review-before-commit\tr2\t1\t0\t0\t0\t",
-        "review-waiver\tr1\t4\t1\t1\t2\t",
+        "review-waiver\tr1\t4\t1\t1\t3\t",
         "review-waiver\tr2\t1\t0\t0\t0\t",
         "stage-everything\tr1\t1\t0\t0\t0\t",
         "validation-stop\tr1\t1\t1\t1\t0\t",

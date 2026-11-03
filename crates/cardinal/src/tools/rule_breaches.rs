@@ -436,7 +436,7 @@ impl Verdict {
         if shell::stages_everything(&call.commands) {
             self.add("stage-everything", blocked, &call.location, String::new());
         }
-        if has("just") && has("waive-review") {
+        if has("waive-review") && (has("just") || (has("cardinal") && has("run"))) {
             self.add("review-waiver", blocked, &call.location, String::new());
         }
     }

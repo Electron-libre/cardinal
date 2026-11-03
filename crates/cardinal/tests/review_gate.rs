@@ -153,7 +153,8 @@ fn worktree_checks(hook: &Path) -> Vec<(&'static str, bool)> {
 }
 
 // spec: REV-17
-/// `just waive-review` creates the waiver of the worktree it runs in, prints its path and changes nothing else.
+/// `cardinal run waive-review` creates the waiver of the worktree it runs in, prints its path and changes nothing
+/// else; the recipe `waive-review` runs it.
 fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     let recipes = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../files/cardinal-review.just");
     let root = tempfile::tempdir().unwrap().keep();
@@ -162,7 +163,6 @@ fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     fs::create_dir_all(main.join("sub")).unwrap();
     sh(&main, &["init", "-q", "."]);
     fs::write(main.join("a.txt"), "one\n").unwrap();
-    fs::copy(&recipes, main.join("justfile")).unwrap();
     sh(&main, &["add", "-A"]);
     sh(&main, &["commit", "-qm", "init"]);
     sh(
@@ -189,13 +189,21 @@ fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
         .to_string()
     };
     let recipe = |dir: &Path| {
-        Command::new("just")
-            .arg("waive-review")
+        Command::new(hook)
+            .args(["tool", "waive-review"])
             .current_dir(dir)
             .output()
             .unwrap()
     };
     let mut out = Vec::new();
+    let text = fs::read_to_string(&recipes).unwrap();
+    out.push((
+        "the recipe runs the tool",
+        text.lines()
+            .skip_while(|l| !l.starts_with("waive-review:"))
+            .nth(1)
+            .is_some_and(|l| l.trim() == "cardinal run waive-review"),
+    ));
 
     let before = status(&main);
     let run = recipe(&main.join("sub"));
@@ -203,7 +211,7 @@ fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
         git_dir_of(&main).join(&name),
         git_dir_of(&linked).join(&name),
     );
-    out.push(("the recipe runs", run.status.success()));
+    out.push(("the tool runs", run.status.success()));
     out.push((
         "it creates the waiver of the main worktree, from a subdirectory",
         main_waiver.exists(),
@@ -229,6 +237,11 @@ fn recipe_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     out.push((
         "it prints the path of the linked worktree",
         String::from_utf8_lossy(&run.stdout).contains(linked_waiver.to_str().unwrap()),
+    ));
+    fs::write(&main_waiver, "kept").unwrap();
+    out.push((
+        "it keeps the content of a waiver already there",
+        recipe(&main).status.success() && fs::read_to_string(&main_waiver).unwrap() == "kept",
     ));
     fs::write(linked.join("a.txt"), "two\n").unwrap();
     out.push((
@@ -1178,6 +1191,34 @@ fn review_gate() {
 
     let _ = fs::remove_dir_all(&project);
     assert!(!failed, "a check failed: see the FAIL lines");
+}
+
+// spec: REV-22
+/// With the review gate off, its deny rules are not synced: `waive-review` refuses and creates no waiver.
+#[test]
+fn the_waiver_is_refused_with_the_review_gate_off() {
+    let hook = Path::new(env!("CARGO_BIN_EXE_cardinal"));
+    let tmp = tempfile::tempdir().unwrap();
+    let project = tmp.path();
+    sh(project, &["init", "-q", "."]);
+    fs::create_dir_all(project.join(".claude")).unwrap();
+    fs::write(
+        project.join(".claude/cardinal.toml"),
+        "[cardinal]\ndisabled = [\"review-gate\"]\n",
+    )
+    .unwrap();
+    let run = Command::new(hook)
+        .args(["tool", "waive-review"])
+        .current_dir(project)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&run.stderr);
+    assert_eq!(run.status.code(), Some(1), "{stderr}");
+    assert!(stderr.contains("review-gate"), "{stderr}");
+    let waiver = project
+        .join(".git")
+        .join(["claude-review", "waived"].join("-"));
+    assert!(!waiver.exists());
 }
 
 // spec: FEA-36

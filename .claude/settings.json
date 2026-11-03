@@ -34,7 +34,9 @@
     "deny": [
       "Bash(just waive-review)",
       "Bash(just waive-review *)",
-      "Edit(//**/claude-review-waived)"
+      "Edit(//**/claude-review-waived)",
+      "Bash(cardinal run waive-review)",
+      "Bash(cardinal run waive-review *)"
     ],
     "ask": [
       "Bash(cardinal run release *.*)",

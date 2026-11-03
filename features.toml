@@ -41,8 +41,8 @@ entries = [
     "hook SessionStart cardinal run workspace-lock start",
 ]
 
-# The review gate (specs/review-gate.md): its two hooks, the deny rules of its waiver and the recipe `waive-review`, for
-# a project that reviews in pull requests or a solo user; `sync` then removes the native git gate it installed and
+# The review gate (specs/review-gate.md): its two hooks, the deny rules of its waiver and the recipe `waive-review` (the
+# tool refuses), for a project that reviews in pull requests or a solo user; `sync` then removes the native git gate it installed and
 # gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too,
 # and the rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` of `rule-breaches`.
 [review-gate]
@@ -50,6 +50,8 @@ files = ["cardinal-review.just"]
 entries = [
     "deny Bash(just waive-review)",
     "deny Bash(just waive-review *)",
+    "deny Bash(cardinal run waive-review)",
+    "deny Bash(cardinal run waive-review *)",
     "deny Edit(//**/claude-review-waived)",
     "hook PreToolUse Bash cardinal run review-gate check",
     "hook PostToolUse Skill cardinal run review-gate record",

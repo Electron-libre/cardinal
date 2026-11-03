@@ -35,3 +35,43 @@ without `just` can still waive a review (ADR 0028).
 * A deny rule matches the command text: without its own rule, the agent can run the new command, which the managed
   allow rule `Bash(cardinal run *)` approves with no prompt; declare both the bare and the `*` form.
 * With the feature `review-gate` off, the tool must refuse or be absent, as its deny rules are not synced.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+Give the user `cardinal run waive-review` (the recipe becomes its alias), denied to the agent like the recipe, refused
+when `review-gate` is off, and found by `rule-breaches`. Out of scope: renaming `just waive-review` to the new form in
+the skills and docs (`name_cardinal_run_in_the_managed_content`), dropping the `just` deny rules.
+
+## Plan
+1. [x] Tool `waive-review`, recipe alias, deny rules, rule: the tool creates and prints the waiver of the worktree, refuses
+   with `review-gate` off; `cardinal-review.just` runs it; the two `cardinal run` deny rules in
+   `entries/.claude/settings.json`, `features.toml`, `DENY_RULES`; `rule-breaches` finds both forms; verified by the
+   tests of `tests/review_gate.rs` (tool through the binary), `settings_warnings_cli.rs`, `skills.rs` (FEA-23) and
+   `rule_breaches.rs`; makes true REV-17, REV-19, REV-22, BRE-6 (~200 lines). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 9385c1d9ecb0e0df4ef303d483d51d827b94a00e
+- No `FORMAT` raise: the deny rules are added, nothing is replaced, and `cardinal run` runs the tool of the pinned revision.
+
+## Deliverable 1
+
+done: `cardinal run waive-review` creates and prints the waiver, refuses with `review-gate` off; the recipe is its
+alias; two `cardinal run` deny rules; `rule-breaches` finds both forms; gates, usage and architecture docs updated.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | updated (`docs/gates.md`, `docs/usage.md`, `docs/architecture.md`) |
+| code review | done (`low`) |
+
+red: REV-17, REV-22, BRE-6: `FAIL - the tool runs` (unknown tool `waive-review`), `the_waiver_is_refused_with_the_review_gate_off` exit 3 not 1, `FAIL - finds a proj r1 review-waiver blocked a.jsonl:16`
+
+Code review: no findings
+
+not verified: the deny rules in a live Claude Code session.

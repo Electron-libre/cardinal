@@ -34,6 +34,7 @@ mod session_metrics;
 mod shell;
 mod spec_coverage;
 mod transcripts;
+mod waive_review;
 mod workspace_lock;
 mod worktree;
 
@@ -172,6 +173,11 @@ pub const TOOLS: &[Tool] = &[
         name: "spec-coverage",
         about: "[root]: the test files that cite no requirement of an accepted spec, largest first",
         main: spec_coverage::main,
+    },
+    Tool {
+        name: "waive-review",
+        about: "for the user only: waive the code review of the next commit of this worktree, print the waiver",
+        main: waive_review::main,
     },
     Tool {
         name: "workspace-lock",

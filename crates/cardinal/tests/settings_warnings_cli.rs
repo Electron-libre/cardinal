@@ -16,9 +16,11 @@ use tempfile::{tempdir, TempDir};
 const SETTINGS: &str = ".claude/settings.json";
 const FRAGMENT: &str = "entries/.claude/settings.json";
 /// The deny rules of REV-19.
-const DENY_RULES: [&str; 3] = [
+const DENY_RULES: [&str; 5] = [
     "Bash(just waive-review)",
     "Bash(just waive-review *)",
+    "Bash(cardinal run waive-review)",
+    "Bash(cardinal run waive-review *)",
     "Edit(//**/claude-review-waived)",
 ];
 const ATTRIBUTION_ON: &str = "warning: .claude/settings.json does not turn off the attribution";
@@ -86,11 +88,11 @@ fn check_warns_of_each_deny_rule_the_settings_lack() {
     put(
         root.path(),
         SETTINGS,
-        &settings(&record_hook(), &DENY_RULES[..2]),
+        &settings(&record_hook(), &DENY_RULES[..4]),
     );
     assert_eq!(
         warnings(&check(&home, &root)),
-        vec![deny_warning(DENY_RULES[2])]
+        vec![deny_warning(DENY_RULES[4])]
     );
     put(
         root.path(),

@@ -11,9 +11,11 @@ use serde_json::Value;
 use crate::entries::SETTINGS;
 
 /// The `permissions.deny` rules that keep the review waiver from the agent (REV-19).
-pub const DENY_RULES: [&str; 3] = [
+pub const DENY_RULES: [&str; 5] = [
     "Bash(just waive-review)",
     "Bash(just waive-review *)",
+    "Bash(cardinal run waive-review)",
+    "Bash(cardinal run waive-review *)",
     "Edit(//**/claude-review-waived)",
 ];
 /// The settings of the project kept out of git, relative to its root.

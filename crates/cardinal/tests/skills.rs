@@ -902,7 +902,7 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
             }
         }
     }
-    assert_eq!(declared.len(), 5, "{declared:?}");
+    assert_eq!(declared.len(), 7, "{declared:?}");
     let table = features
         .get("review-gate")
         .and_then(|t| t.as_table())

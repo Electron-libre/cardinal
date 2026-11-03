@@ -83,20 +83,25 @@ pub(super) fn commands(line: &str) -> Vec<Vec<String>> {
 }
 
 /// Each `git` invocation of a command: its subcommand, the first word after `git` that is not a global option
-/// (`GIT_VALUE_OPTIONS` taking the next word), with the words after it.
-pub(super) fn git_invocations(command: &[String]) -> impl Iterator<Item = (&str, &[String])> {
+/// (`GIT_VALUE_OPTIONS` taking the next word), with the words after it and the directory of its last `-C`.
+pub(super) fn git_invocations(
+    command: &[String],
+) -> impl Iterator<Item = (&str, &[String], Option<&str>)> {
     let is_git = |w: &String| w.rsplit('/').next() == Some("git");
     (0..command.len())
         .filter(move |i| is_git(&command[*i]))
         .filter_map(move |at| {
-            let mut i = at + 1;
+            let (mut i, mut directory) = (at + 1, None);
             while let Some(word) = command.get(i) {
                 if GIT_VALUE_OPTIONS.contains(&word.as_str()) {
+                    if word == "-C" {
+                        directory = command.get(i + 1).map(String::as_str);
+                    }
                     i += 2;
                 } else if word.starts_with('-') {
                     i += 1;
                 } else {
-                    return Some((word.as_str(), &command[i + 1..]));
+                    return Some((word.as_str(), &command[i + 1..], directory));
                 }
             }
             None
@@ -107,7 +112,7 @@ pub(super) fn git_invocations(command: &[String]) -> impl Iterator<Item = (&str,
 /// pathspec of the whole tree (`.`, `./`, `:/`), unless it is a dry run (`-n`, `--dry-run`).
 pub(super) fn stages_everything(commands: &[Vec<String>]) -> bool {
     commands.iter().any(|command| {
-        git_invocations(command).any(|(subcommand, args)| {
+        git_invocations(command).any(|(subcommand, args, _)| {
             let short = |a: &str, flag: char| {
                 a.strip_prefix('-')
                     .is_some_and(|s| !s.starts_with('-') && s.contains(flag))

@@ -17,7 +17,7 @@ use crate::features;
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use transcripts::{
     commit_config, committed_config, committed_file, for_each_numbered_line, git, project_name,
     projects, projects_root, repository, result_text, revision, sessions, subagents, user_command,
@@ -283,46 +283,73 @@ const MESSAGE_CHECKERS: [&str; 4] = [
     "commit_check.rs",
 ];
 
+/// Whether a command runs the commit message checker: its first word, the word after a first `just` or
+/// `rust-script`, or the word after `run`, has a file name of `MESSAGE_CHECKERS` (BRE-16).
+fn runs_checker(command: &[String]) -> bool {
+    let checker = |w: &String| MESSAGE_CHECKERS.contains(&w.rsplit('/').next().unwrap_or_default());
+    let launcher = command
+        .first()
+        .is_some_and(|w| w == "just" || w == "rust-script");
+    command.first().is_some_and(checker)
+        || (launcher && command.get(1).is_some_and(checker))
+        || command.windows(2).any(|p| p[0] == "run" && checker(&p[1]))
+}
+
+/// `path` with its `.` and `..` components resolved on the text alone (the path may be gone).
+fn lexical(path: &str) -> PathBuf {
+    let mut out = PathBuf::new();
+    for part in Path::new(path).components() {
+        match part {
+            Component::ParentDir => {
+                out.pop();
+            }
+            Component::CurDir => {}
+            other => out.push(other),
+        }
+    }
+    out
+}
+
 /// Whether a `Bash` call runs `git commit` with a message to write in the project of its line (in the work tree
 /// `worktree`, when known) and leaves the check of that message to the skill (BRE-16): a commit after `--no-edit`, in
 /// a throwaway repository or in a call that runs the checker is no trigger.
 fn writes_commit_message(call: &Call, worktree: Option<&Path>) -> bool {
-    let words = || call.commands.iter().flatten();
-    // the quotes of `cd "$(mktemp -d)"` drop the command from the words: read the substitution in the text
-    if call.input["command"]
-        .as_str()
-        .unwrap_or_default()
-        .contains("$(mktemp")
-        || call
-            .commands
-            .iter()
-            .any(|c| c.first().is_some_and(|w| w == "mktemp"))
-        || words().any(|w| MESSAGE_CHECKERS.contains(&w.rsplit('/').next().unwrap_or_default()))
-    {
+    if call.commands.iter().any(|c| runs_checker(c)) {
         return false;
     }
-    // an absolute path out of the work tree: another repository
-    let elsewhere = |dir: &String| {
-        dir.starts_with('/') && worktree.is_some_and(|tree| !Path::new(dir).starts_with(tree))
+    // whether an absolute directory lies out of the work tree; `None` when either is unknown
+    let outside = |dir: &str| {
+        (dir.starts_with('/'))
+            .then_some(worktree?)
+            .map(|tree| !lexical(dir).starts_with(tree))
     };
+    let text = call.input["command"].as_str().unwrap_or_default();
+    // the quotes of `cd "$(mktemp -d)"` drop the command from the words: read the text before the first commit
+    let mut throwaway = text
+        .find("commit")
+        .is_some_and(|end| text[..end].contains("$(mktemp"));
     for command in &call.commands {
-        if command.first().is_some_and(|w| w == "cd") && command.get(1).is_some_and(elsewhere) {
-            return false;
-        }
-        let mut git = shell::git_invocations(command).peekable();
-        if git.peek().is_some()
-            && command
-                .windows(2)
-                .any(|pair| pair[0] == "-C" && elsewhere(&pair[1]))
-        {
-            return false;
-        }
-        for (subcommand, args) in git {
-            if subcommand == "commit" && !args.iter().any(|a| a == "--no-edit") {
-                return true;
+        match command.first().map(String::as_str) {
+            Some("mktemp") => throwaway = true,
+            // a `cd` back into the work tree ends the detour
+            Some("cd") => {
+                if let Some(out) = command.get(1).and_then(|dir| outside(dir)) {
+                    throwaway = out;
+                }
             }
-            if subcommand == "init" {
-                return false;
+            _ => {}
+        }
+        for (subcommand, args, directory) in shell::git_invocations(command) {
+            match subcommand {
+                "init" | "clone" => throwaway = true,
+                "commit"
+                    if !args.iter().any(|a| a == "--no-edit")
+                        && !throwaway
+                        && directory.and_then(outside) != Some(true) =>
+                {
+                    return true;
+                }
+                _ => {}
             }
         }
     }

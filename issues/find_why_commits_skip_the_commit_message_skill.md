@@ -74,6 +74,9 @@ with an evidence-based instruction change. Out of scope: the other routing rules
    apply the instruction change it proposes and the user validates (candidates: a line at the close of
    `skill:issue-workflow`, the output of `cardinal update`, a commit gate refusing an unchecked message); verified by
    `just check` and the re-measured counts written in the issue. (autonomous)
+3. [x] Fixes of the `high` review: the trigger reads the commands in order (a `mktemp`, `git init` or `git clone` before
+   the commit, a `cd` back into the work tree ends the detour, `..` resolved), the checker only as a command, `-C` read
+   by `shell::git_invocations`; verified by the table of commits of the routing test; makes true BRE-16. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -125,5 +128,40 @@ red: none
 Code review: no findings
 
 not verified: the effect on the close commits, until new sessions are measured
+
+decisions needed: none
+
+## Deliverable 3
+done: the fixes of the `high` review of `f8c93e1..81f0732`; re-measured: still 33 findings in 22 sessions.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: BRE-16 is the doc, amended |
+| code review | high: 10 findings, 7 fixed; low of the fixes: no findings |
+
+red: BRE-16: on the code of deliverable 1, `git clone … && git commit` was a finding and the checker staged, a later
+`mktemp`, a `$(mktemp` in a message, a `cd` back and `<repo>/sub/..` were none.
+
+High review findings:
+- the checker read in any word (a staged `commit_check.rs`): fixed, a command running it only;
+- a `$(mktemp` in a message: fixed, the text before the first `commit` only;
+- a `mktemp` after the commit: fixed, the commands read in order;
+- a `cd` back into the project: fixed;
+- `git clone` into a scratch directory: fixed, read like `git init`;
+- `-C` read by a second parser: fixed, `shell::git_invocations` returns it;
+- `..` in a path: fixed, resolved on the text;
+- symlinked paths: not fixed, the paths of a transcript may be gone and the measure runs on Linux;
+- a removed worktree whose line had a subdirectory `cwd`: not fixed, the fallback of `worktree()` is shared by
+  every rule of BRE-7;
+- a `cd` to another worktree of the same repository: not fixed, the agent never redirects to the main worktree
+  (`skill:issue-workflow` step 0) and the gone path cannot be asked for its common dir;
+- quoted substitutions dropped by `shell::commands`: not fixed here, a change of the shared tokenizer for every rule.
+
+Code review: 10 findings
+
+not verified: none
 
 decisions needed: none

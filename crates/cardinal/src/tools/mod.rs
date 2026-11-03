@@ -24,6 +24,7 @@ mod next_issue;
 mod release;
 mod repo_files;
 mod review_gate;
+mod review_target;
 mod roadmap;
 mod rule_breaches;
 mod session_metrics;
@@ -133,6 +134,11 @@ pub const TOOLS: &[Tool] = &[
         name: "review-gate",
         about: "record | check | native: the code review gate of a commit",
         main: review_gate::main,
+    },
+    Tool {
+        name: "review-target",
+        about: "[<base>]: the target of a code review, without the issue files and the managed copies",
+        main: review_target::main,
     },
     Tool {
         name: "rule-breaches",

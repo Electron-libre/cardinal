@@ -244,6 +244,13 @@ fn read_lock(root: &Path) -> Result<Option<Lock>> {
     Ok(Some(lock))
 }
 
+/// The managed files the lock of the project at `root` lists, sorted by path; none when it has no lock.
+pub(crate) fn managed_files(root: &Path) -> Result<Vec<String>> {
+    Ok(read_lock(root)?
+        .map(|lock| lock.files.into_keys().collect())
+        .unwrap_or_default())
+}
+
 /// The command that installs the `cardinal` of the revision the configuration pins, quoted, or what to install when it
 /// cannot be read.
 fn install_hint(root: &Path) -> String {

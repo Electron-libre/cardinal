@@ -38,3 +38,41 @@ Lean agent loop
 * The commit gate (`cardinal run review-gate native`) refuses a commit whose diff holds a file the last review never
   saw: a filtered `low` review could block the commit.
 * Verdict: `Expected-effect: bytes_per_session:oversized-result-review down`.
+
+# Specs
+* [specs/review-target.md](../specs/review-target.md) (RVT-1 to RVT-5), FEA-39 of [specs/features.md](../specs/features.md).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+The reviews of `skill:issue-workflow` get a target that leaves out `issues/` and the managed copies of the lock, built
+by a new tool `cardinal run review-target [<base>]`, since `/code-review` passes its arguments verbatim as the
+`Review target:` its reviewers diff (they already add `':!issues'` on their own). Out of scope: lock files, untracked files.
+
+## Plan
+1. [x] Tool `review-target`: prints `<base>..HEAD -- ':/' ':(top,exclude)issues' ':(top,exclude)<managed>'...`, or
+   `HEAD -- ...` with no argument; verified by tests through the binary; makes true RVT-1 to RVT-5, FEA-39. (autonomous)
+2. [ ] `skill:issue-workflow`: step 3.5 invokes `/code-review low <the line of review-target>`, the whole-issue review
+   `/code-review high <the line of review-target <base>>`; docs (`docs/architecture.md`, CLAUDE.md index if needed);
+   verified by `just check-cardinal` and a reread; `Expected-effect: bytes_per_session:oversized-result-review down`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 513aae292a5ffc35640c5d7b33606d316bdd33f6
+- Lock files of the dependencies stay in the target (question 1 a): out of scope.
+- `/code-review` (built-in) takes no path filter of its own: its arguments become the `Review target:` line of the
+  reviewer's prompt, which runs the diff of that target, so a pathspec after the range is followed.
+- The `low` reviews take the same filter: `review-gate record` snapshots the whole diff whatever the reviewer read
+  (`record` in `crates/cardinal/src/tools/review_gate.rs`), so a filtered review cannot block the commit.
+
+## Deliverable 1
+- done: `cardinal run review-target [<base>]` prints the review target without `issues/` and the managed files of the
+  lock; `managed_files` of `lib.rs` reads them; `docs/usage.md` documents it; spec `accepted`.
+- red: RVT-1, RVT-2, RVT-3, RVT-4, RVT-5, FEA-39: `cardinal: unknown tool `review-target`` (exit 3 where 0 was expected).
+- Code review: 1 findings: the base was printed unquoted, so `@{u}` broke in a shell; fixed, quoted when it holds a
+  character a shell reads (RVT-5, test `quotes_a_base_a_shell_would_expand`).
+- not verified: what a reviewer does with the line (deliverable 2, measured by `cardinal-report` after use).
+- Follow-up for deliverable 2: `git diff HEAD` leaves the untracked files out, so step 3.5 marks the new files
+  intent-to-add (`git add -N`) before the `low` review.

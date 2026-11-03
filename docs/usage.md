@@ -77,7 +77,7 @@ names both, and turning both off is accepted.
 | `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts the user settings keep |
 | `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
-| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, and `rule-breaches` applies rule `validation-stop` to no session |
+| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
 | `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI and the seeded `check` skip `check-specs` without `cardinal-specs.just`. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
 | `workspace-lock` | the three hooks of the worktree lock, for a user who never runs two sessions in one worktree: the hook call of each tool call goes; `issue-claim` stays, so `next-issue` still skips an issue another worktree works |
 
@@ -137,6 +137,14 @@ working tree against `HEAD`, against `deliverable_size_limit` (1000); with a rev
 `issue_size_limit` (3000), both in the `[project]` table of `.claude/cardinal.toml`. A rename counts 0 unless the file
 also changed: then its whole old and new content count. It exits 1 over the limit; `issue-workflow` cuts the
 deliverable then.
+
+## Target of a code review
+
+`cardinal run review-target [<base>]` ([specs/review-target.md](../specs/review-target.md)) prints the target
+`issue-workflow` hands to `/code-review`: `HEAD` (the working tree) or `<base>..HEAD`, then `-- ':/'` and one
+`':(top,exclude)<path>'` for `issues/` and each managed file of `.claude/cardinal.lock`, so the reviewers diff the code,
+tests, specs and docs and not the issue tracking nor the managed copies. The commit gate still records the whole diff as
+reviewed.
 
 ## Releases
 

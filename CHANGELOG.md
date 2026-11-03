@@ -4,6 +4,34 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `just release <version>` from the commits,
 then reread before the release is committed.
 
+## [3.1.0] - 2026-11-03
+
+### Milestones
+
+- Lean agent loop
+
+### Added
+
+- count only the fixes of the lines an issue wrote
+- tell the oversized results of the reviewers apart
+- print only the last groups of the report
+- print a review target without the issues and copies
+- hand the reviews a target without the issues and copies
+- fold the delegated exploration back into the main loop
+- name the commit skill as the next step of an update
+- send the agent back once before a whole read of a large file
+
+### Fixed
+
+- blame the fixes whatever the git configuration
+- count only the project commits skipping the message skill
+- read the commands of a commit call in their order
+- run the setup report of evaluate-harness without --last
+- review the uncommitted edits and untracked files too
+- know the four new line types of the transcripts
+- judge the update next step where the update writes
+- estimate the result of a read as Claude Code returns it
+
 ## [3.0.0] - 2026-11-02
 
 ### Milestones

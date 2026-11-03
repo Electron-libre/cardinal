@@ -91,6 +91,7 @@ The work done before this file existed is in `issues/done/`.
 - Why: the one subagent of the workflow never got its verdict, a skill missed when due is not counted, the
   instructions grew one issue at a time, and every verdict is observational.
 - State: done
+- Released: v3.1.0
 - Issues:
   - [show_the_cache_read_share_in_the_efficiency_table](issues/done/show_the_cache_read_share_in_the_efficiency_table.md)
   - [report_the_tokens_spent_per_closed_issue](issues/done/report_the_tokens_spent_per_closed_issue.md)

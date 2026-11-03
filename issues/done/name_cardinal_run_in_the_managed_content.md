@@ -12,7 +12,7 @@ README, the messages of the tools, the CI and the docs name `cardinal run <tool>
 
 # Findings
 * 2026-11-03, the inventory of
-  [explore_dropping_just_for_the_consumers](done/explore_dropping_just_for_the_consumers.md): 33 mentions of `just` in
+  [explore_dropping_just_for_the_consumers](explore_dropping_just_for_the_consumers.md): 33 mentions of `just` in
   the skills, 4 in `files/specs/README.md`, the messages of `close_issue.rs` and `next_issue.rs`, the two jobs of
   `files/.github/workflows/cardinal.yml` that install `just`, about 66 lines of docs, and ADR 0001 and 0010.
 
@@ -28,7 +28,7 @@ README, the messages of the tools, the CI and the docs name `cardinal run <tool>
 5. Likely two deliverables: the managed content and the tools, then the docs.
 
 # Resources
-* [ADR 0028](../docs/adr/0028-a-consumer-needs-only-cardinal.md), ADR 0014, ADR 0017.
+* [ADR 0028](../../docs/adr/0028-a-consumer-needs-only-cardinal.md), ADR 0014, ADR 0017.
 * `files/.claude/skills/*/SKILL.md`, `files/specs/README.md`, `files/.github/workflows/cardinal.yml`,
   `docs/tutorial.md`, `docs/usage.md`, `docs/workflow.md`, `docs/architecture.md`.
 

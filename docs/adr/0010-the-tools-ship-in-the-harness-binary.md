@@ -1,6 +1,6 @@
 # 0010. The tools ship in the `harness` binary of the pinned revision
 
-Status: Accepted
+Status: Accepted, partly superseded by 0028 (a consumer needs `cardinal`, not `just`)
 Date: 2026-10-27
 
 ## Context

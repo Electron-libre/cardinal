@@ -92,3 +92,8 @@ its own `check` recipe (strict specs).
   script); ADR 0028 still `Proposed` (its acceptance is the user's).
 - Code review: no findings
 - not verified: none.
+
+## Closing
+- ADR 0028 accepted (validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03); ADR 0001 and ADR 0010
+  marked partly superseded by it. Code review: no findings
+- Done. Left: the skills, docs and CI still name `just`, for the issues ADR 0028 opened.

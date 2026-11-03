@@ -30,7 +30,7 @@ on purpose, anything a future reader would otherwise undo by accident.
 
 | ADR | Status |
 |---|---|
-| [0001. Shared harness, synchronised by a Rust tool](0001-shared-harness-synced-by-a-rust-tool.md) | Accepted |
+| [0001. Shared harness, synchronised by a Rust tool](0001-shared-harness-synced-by-a-rust-tool.md) | Accepted, partly superseded by 0028 |
 | [0002. `rev` pins the resolved commit](0002-rev-pins-the-resolved-commit.md) | Accepted |
 | [0003. One worktree per issue](0003-one-worktree-per-issue.md) | Superseded by 0008 |
 | [0004. The review gate moves from the command to the repository](0004-review-gate-moves-from-the-command-to-the-repository.md) | Accepted, partly superseded by 0005 |
@@ -39,7 +39,7 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0007. Sync manages entries of the seeded settings](0007-sync-manages-entries-of-the-seeded-settings.md) | Accepted |
 | [0008. Issue worktrees nest under .claude/worktrees](0008-issue-worktrees-nest-under-claude-worktrees.md) | Superseded by 0023 |
 | [0009. The scanners list the repository files through git](0009-scanners-list-the-repository-files-through-git.md) | Accepted |
-| [0010. The tools ship in the `harness` binary of the pinned revision](0010-the-tools-ship-in-the-harness-binary.md) | Accepted |
+| [0010. The tools ship in the `harness` binary of the pinned revision](0010-the-tools-ship-in-the-harness-binary.md) | Accepted, partly superseded by 0028 |
 | [0011. The user opens the issue worktree](0011-the-user-opens-the-issue-worktree.md) | Accepted |
 | [0012. The product is named Cardinal](0012-the-product-is-named-cardinal.md) | Accepted |
 | [0013. Sync manages the allow rules too](0013-sync-manages-the-allow-rules-too.md) | Accepted |
@@ -57,4 +57,4 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0025. A project turns off a feature at sync](0025-a-project-turns-off-a-feature-at-sync.md) | Accepted |
 | [0026. A queue of issues is chained by the main loop](0026-a-queue-of-issues-is-chained-by-the-main-loop.md) | Accepted |
 | [0027. Any uncommitted change keeps the worktree lock](0027-any-uncommitted-change-keeps-the-worktree-lock.md) | Accepted |
-| [0028. A consumer needs only `cardinal`](0028-a-consumer-needs-only-cardinal.md) | Proposed |
+| [0028. A consumer needs only `cardinal`](0028-a-consumer-needs-only-cardinal.md) | Accepted |

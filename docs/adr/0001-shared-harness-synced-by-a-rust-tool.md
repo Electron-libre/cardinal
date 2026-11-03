@@ -1,6 +1,6 @@
 # 0001. Shared harness, synchronised by a Rust tool
 
-Status: Accepted
+Status: Accepted, partly superseded by 0028 (a consumer needs `cardinal`, not `just`)
 Date: 2026-10-24
 
 ## Context

@@ -90,7 +90,7 @@ The work done before this file existed is in `issues/done/`.
   each change of the instructions before it spreads.
 - Why: the one subagent of the workflow never got its verdict, a skill missed when due is not counted, the
   instructions grew one issue at a time, and every verdict is observational.
-- State: in issues
+- State: done
 - Issues:
   - [show_the_cache_read_share_in_the_efficiency_table](issues/done/show_the_cache_read_share_in_the_efficiency_table.md)
   - [report_the_tokens_spent_per_closed_issue](issues/done/report_the_tokens_spent_per_closed_issue.md)
@@ -111,7 +111,7 @@ The work done before this file existed is in `issues/done/`.
   - [find_why_the_advisor_is_never_consulted](issues/done/find_why_the_advisor_is_never_consulted.md)
   - [know_the_new_line_types_of_the_transcripts](issues/done/know_the_new_line_types_of_the_transcripts.md)
   - [leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review](issues/done/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md)
-  - [hint_before_a_whole_read_of_a_large_file](issues/hint_before_a_whole_read_of_a_large_file.md)
+  - [hint_before_a_whole_read_of_a_large_file](issues/done/hint_before_a_whole_read_of_a_large_file.md)
 
 ## User control
 

@@ -140,7 +140,7 @@ Decisions, validated by the user:
   requirements the code is read against): `issues/done/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md`.
 * No rule in the fixed context for the session's own reads: 3.7 KB per session does not pay a line every session
   loads; a `PreToolUse` hint on a whole `Read` of a file over 25 KB (`tool-results/` included) costs nothing until
-  it fires: `issues/hint_before_a_whole_read_of_a_large_file.md`.
+  it fires: `issues/done/hint_before_a_whole_read_of_a_large_file.md`.
 
 ## Deliverable 4 (whole-issue review)
 `/code-review high` on `f116984..HEAD`: 7 findings. Code review of the fixes: no findings. (autonomous)

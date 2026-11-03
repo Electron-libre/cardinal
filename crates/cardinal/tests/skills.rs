@@ -643,11 +643,14 @@ fn seeded_roadmap_is_seeded() {
         !roadmap.is_empty(),
         "the seeded configuration names no roadmap"
     );
-    let config = std::fs::read_to_string(seed.join(".claude/cardinal.toml")).unwrap();
-    let archive = config
-        .lines()
-        .find_map(|l| l.strip_prefix("roadmap_archive = "))
-        .map(|v| v.trim_matches('"').to_string());
+    let config: toml::Table = std::fs::read_to_string(seed.join(".claude/cardinal.toml"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let archive = config["project"]
+        .get("roadmap_archive")
+        .and_then(toml::Value::as_str)
+        .map(String::from);
     for doc in roadmap.into_iter().filter(|d| Some(d) != archive.as_ref()) {
         assert!(
             seed.join(&doc).is_file(),

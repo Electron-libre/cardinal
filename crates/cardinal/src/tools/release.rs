@@ -200,44 +200,49 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
 /// The new texts of the `roadmap` documents once the milestones `version` delivers are marked (REL-9) and the released
 /// ones moved to the `roadmap_archive` (REL-13), as `(path, text before, new text)`, and the list of the marked names.
 fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), String> {
-    let documents = super::config_list(root, "roadmap").unwrap_or_default();
-    let archive = project_str(root, "roadmap_archive");
-    if let Some(a) = archive
-        .as_deref()
-        .filter(|a| !documents.iter().any(|d| same_path(d, a)))
-    {
-        return Err(format!(
-            "the roadmap_archive `{a}` is not one of the roadmap documents"
-        ));
+    let mut documents: Vec<(String, Vec<String>)> = Vec::new();
+    for (rel, at) in super::close_issue::roadmap_documents(root, &[]) {
+        if !documents.iter().any(|(_, seen)| *seen == at) {
+            documents.push((rel, at));
+        }
     }
+    let archive = match project_str(root, "roadmap_archive") {
+        Some(a) => Some(
+            super::close_issue::resolve(&[], &a)
+                .filter(|at| documents.iter().any(|(_, d)| d == at))
+                .ok_or_else(|| {
+                    format!("the roadmap_archive `{a}` is not one of the roadmap documents")
+                })?,
+        ),
+        None => None,
+    };
     let mut roadmaps = Vec::new();
     let mut milestones = String::new();
     // The released sections moved to the archive (REL-13), each opened by a blank line.
     let mut moved = String::new();
     // The archive as read and as marked, when it exists.
     let mut archived = None;
-    let dir_of = |rel: &str| {
-        super::close_issue::components(Path::new(rel).parent().unwrap_or(Path::new("")))
-    };
-    for rel in &documents {
-        let is_archive = archive.as_deref().is_some_and(|a| same_path(a, rel));
+    let dir_of = |at: &[String]| at[..at.len().saturating_sub(1)].to_vec();
+    for (rel, at) in &documents {
         let path = root.join(rel);
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
+        let text = match std::fs::read_to_string(&path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
         };
         let (mut marked, names) = mark_released(&text, version);
         for name in names {
             let _ = writeln!(milestones, "- {name}");
         }
-        if is_archive {
+        if archive.as_ref() == Some(at) {
             archived = Some((path, Some(text), marked));
             continue;
         }
-        if let Some(a) = archive.as_deref() {
+        if let Some(a) = &archive {
             let (kept, sections) = take_released(&marked);
             moved.push_str(&super::close_issue::relink_links(
                 &sections,
-                &dir_of(rel),
+                &dir_of(at),
                 &dir_of(a),
                 &HashMap::new(),
             ));
@@ -247,25 +252,29 @@ fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), Str
             roadmaps.push((path, Some(text), marked));
         }
     }
-    if let Some(a) = archive.as_deref() {
+    if let Some(a) = &archive {
         let (path, before, mut text) =
-            archived.unwrap_or_else(|| (root.join(a), None, ARCHIVE_HEADER.to_string()));
+            archived.unwrap_or_else(|| (root.join(a.join("/")), None, ARCHIVE_HEADER.to_string()));
         if !moved.is_empty() {
             text = format!("{}\n{moved}", text.trim_end());
         }
-        if before.as_ref() != Some(&text) && !(before.is_none() && moved.is_empty()) {
+        if before.as_ref() != Some(&text) && (before.is_some() || !moved.is_empty()) {
             roadmaps.push((path, before, text));
         }
     }
     Ok((roadmaps, milestones))
 }
 
-/// Write each file its new text; `(path, text before, new text)`.
 /// The files to write: `(path, text before, new text)`, the text before `None` for a file to create.
 type Writes = Vec<(PathBuf, Option<String>, String)>;
 
+/// Write each file its new text, creating its directory when missing.
 fn write_all(writes: &Writes) -> Result<(), String> {
     for (path, _, text) in writes {
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)
+                .map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+        }
         std::fs::write(path, text).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     }
     Ok(())
@@ -423,11 +432,6 @@ fn mark_released(text: &str, version: Version) -> (String, Vec<String>) {
         }
     }
     (out, marked.into_iter().map(|(_, name)| name).collect())
-}
-
-/// Whether the paths `a` and `b` of the configuration name the same file, a leading `./` aside.
-fn same_path(a: &str, b: &str) -> bool {
-    Path::new(a.trim_start_matches("./")) == Path::new(b.trim_start_matches("./"))
 }
 
 /// A roadmap without the sections of its milestones that have a `Released:` line, and those sections in order, each

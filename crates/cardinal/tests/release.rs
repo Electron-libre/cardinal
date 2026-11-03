@@ -718,3 +718,32 @@ fn keeps_the_milestones_of_an_archive_named_with_a_leading_dot() {
         format!("{archive}\n## New\n\n- State: done\n- Released: v0.3.0\n")
     );
 }
+
+// spec: REL-13
+/// Paths spelled with `./` resolve to the same documents, and a missing archive gets its directories.
+#[test]
+fn creates_an_archive_in_a_new_directory_from_dotted_paths() {
+    let dir = repo();
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## New\n\n- State: done\n- Issues:\n  - [a](issues/done/a.md)\n",
+    )
+    .unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"./ROADMAP.md\", \"ROADMAP.md\", \"docs/new/done.md\"]\nroadmap_archive = \"./docs/new/done.md\"\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(read(dir.path(), "ROADMAP.md"), "# Roadmap\n");
+    let archive = read(dir.path(), "docs/new/done.md");
+    assert!(
+        archive.ends_with(
+            "\n\n## New\n\n- State: done\n- Released: v0.3.0\n- Issues:\n  - [a](../../issues/done/a.md)\n"
+        ),
+        "{archive}"
+    );
+    assert_eq!(archive.matches("## New").count(), 1, "{archive}");
+}

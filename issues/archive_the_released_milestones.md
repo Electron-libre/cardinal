@@ -62,6 +62,10 @@ scope: moving a milestone back, archiving at `close-issue`.
    `docs/workflow.md`; verified by `tests/release.rs` (move, refusal, link rebase, restore on a failed version
    command) and a `roadmap.rs` unit test of the section range; makes true REL-13, REL-5. (~350 lines) (autonomous)
 
+2. [x] Whole-issue review fixes: the roadmap documents resolved and deduplicated through `roadmap_documents`, a read
+   error other than a missing archive refused, the archive directory created; verified by
+   `creates_an_archive_in_a_new_directory_from_dotted_paths`; makes true REL-13. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - No seeded `ROADMAP-done.md`: `release` creates it, so a consumer without the key gets no orphan file;
@@ -82,3 +86,12 @@ scope: moving a milestone back, archiving at `close-issue`.
   milestones taken out, two writes of one file): fixed (`same_path` everywhere, the archive kept apart in the loop),
   test `keeps_the_milestones_of_an_archive_named_with_a_leading_dot`.
 - not verified: a real release of this repository (the next one moves its 6 released milestones).
+
+## Deliverable 2 (high review of the issue)
+- done: the 8 findings of the `high` review handled; `just check` ok; code review low: no findings.
+- red: REL-13: the `./` archive rebased the links to `../issues/...` (finding 1), the missing directory failed the write.
+- Code review: 8 findings: 7 fixed (dotted paths in the link rebase, archive read errors, missing directory,
+  duplicated documents, `write_all` doc, the TOML parse of the seed test, the duplicated path handling); 1 not fixed:
+  content after the last milestone moves with it when it is released, as REL-13 defines a section (to the next
+  milestone heading); the roadmaps use inline links.
+- not verified: a real release of this repository.

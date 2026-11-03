@@ -124,7 +124,7 @@ pub(super) fn components(path: &Path) -> RepoPath {
 }
 
 /// `target` (a `/`-separated relative path) resolved against the directory `dir`; `None` when it climbs above the root.
-fn resolve(dir: &[String], target: &str) -> Option<RepoPath> {
+pub(super) fn resolve(dir: &[String], target: &str) -> Option<RepoPath> {
     let mut parts = dir.to_vec();
     for part in target.split('/') {
         match part {

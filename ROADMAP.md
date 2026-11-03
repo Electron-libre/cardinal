@@ -123,4 +123,4 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
-  - [ask_the_user_through_the_question_tool](issues/ask_the_user_through_the_question_tool.md)
+  - [ask_the_user_through_the_question_tool](issues/done/ask_the_user_through_the_question_tool.md)

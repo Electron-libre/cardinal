@@ -182,12 +182,13 @@ fn first_session(worktree: &Path) -> String {
         ),
         line("attachment", worktree, "2026-10-26T11:00:00.000Z", ""),
         "{\"type\":\"ai-title\",\"sessionId\":\"x\"}\n".to_string(),
-        // the metadata types of Claude Code since 2026-11, written without a timestamp
+        // the metadata types of Claude Code since 2026-11, in their real shape: no timestamp, cwd nor gitBranch
         "{\"type\":\"tools-used\",\"tools\":[\"Bash\"],\"sessionId\":\"x\"}\n".to_string(),
         "{\"type\":\"relocated\",\"relocatedCwd\":\"/elsewhere\",\"sessionId\":\"x\"}\n"
             .to_string(),
         "{\"type\":\"worktree-state\",\"worktreeSession\":{},\"sessionId\":\"x\"}\n".to_string(),
-        "{\"type\":\"permission-mode\",\"sessionId\":\"x\"}\n".to_string(),
+        "{\"type\":\"permission-mode\",\"permissionMode\":\"auto\",\"sessionId\":\"x\"}\n"
+            .to_string(),
     ]
     .concat()
 }

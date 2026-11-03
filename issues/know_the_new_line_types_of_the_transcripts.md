@@ -41,6 +41,8 @@ scope: reading any of these lines for a column.
 1. [x] Known new line types: the four types join `KNOWN_TYPES`; verified by a check of `tests/session_metrics.rs`
    whose fixture holds one line of each type, without `timestamp` as Claude Code writes them, and still counts
    `unknown_lines` 1 and `missing_fields` 1, plus `unknown_lines` 0 on the local transcripts; makes true EVA-9. (autonomous)
+2. [x] Fixes of the `high` review: the fixture lines take the key sets of the real lines (`permissionMode` added);
+   verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -67,3 +69,32 @@ Code review: no findings
 not verified: none
 
 decisions needed: none
+
+## High review (base..c371ed7): 3 findings
+1. `relocated` known hides a change of `cwd`, `project` stays the first one: not fixed. `unknown_lines` was never a
+   relocation signal, and the 7 `relocatedCwd` seen are worktrees of the same repository (counted with it) and one
+   `/tmp` probe.
+2. The new lines could feed `issues` or `project` through `cwd`/`gitBranch`: not applicable, the real lines of the
+   four types carry neither (key sets read over every local transcript).
+3. The fixture shapes are made up: fixed in deliverable 2, each line now has the keys of the real ones.
+
+## Deliverable 2 summary
+done: the `permission-mode` fixture line carries `permissionMode` as the real ones; the comment says the lines have
+no `timestamp`, `cwd` nor `gitBranch`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: test fixture only |
+| code review | see below |
+
+red: none
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+All deliverables done.

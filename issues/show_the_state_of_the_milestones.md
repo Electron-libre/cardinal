@@ -79,3 +79,6 @@ scope. The links of an `Issues:` list are resolved by a function shared with CLS
 - checks: `just check` green; 85 changed lines.
 - red: RMP-3, RMP-5: `left: Some(0)` `right: Some(2)` (invalid configuration), names `["...", "Later", "Old"]` for
   `Later \| soon`.
+- Code review: no findings
+- not verified: none
+- decisions needed: none

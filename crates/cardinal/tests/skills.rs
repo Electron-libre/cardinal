@@ -633,7 +633,8 @@ fn skills_drop_the_restated_rules() {
     assert!(failures.is_empty(), "{failures:#?}");
 }
 
-/// The skills read the `roadmap` documents of the seeded configuration: a new project must get them from `seed/`.
+/// The skills read the `roadmap` documents of the seeded configuration: a new project must get them from `seed/`, but
+/// its `roadmap_archive`, which `release` creates.
 #[test]
 fn seeded_roadmap_is_seeded() {
     let seed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../seed");
@@ -642,7 +643,12 @@ fn seeded_roadmap_is_seeded() {
         !roadmap.is_empty(),
         "the seeded configuration names no roadmap"
     );
-    for doc in roadmap {
+    let config = std::fs::read_to_string(seed.join(".claude/cardinal.toml")).unwrap();
+    let archive = config
+        .lines()
+        .find_map(|l| l.strip_prefix("roadmap_archive = "))
+        .map(|v| v.trim_matches('"').to_string());
+    for doc in roadmap.into_iter().filter(|d| Some(d) != archive.as_ref()) {
         assert!(
             seed.join(&doc).is_file(),
             "the seeded roadmap '{doc}' is not seeded"

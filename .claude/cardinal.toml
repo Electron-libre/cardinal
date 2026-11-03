@@ -18,7 +18,9 @@ skipped_dirs = ["fixtures"]
 release_version_command = "just set-version"
 release_breaking_files = ["cardinal-format"]
 # Where the agent finds the context of the project (issue-workflow, create-issue, prioritize-issues).
-roadmap = ["ROADMAP.md"]
+roadmap = ["ROADMAP.md", "ROADMAP-done.md"]
+# The roadmap document `release` moves the released milestones to (created when missing); listed in `roadmap` too.
+roadmap_archive = "ROADMAP-done.md"
 architecture = "docs/architecture.md"
 # Where the rules for writing tests are (issue-workflow, step "test first").
 test_conventions = "CLAUDE.md"

@@ -59,9 +59,10 @@ fn visible(lines: &[&str]) -> Vec<bool> {
         .collect()
 }
 
-/// A milestone of a roadmap: its name and the indexes of the visible lines of its body.
+/// A milestone of a roadmap: its name, the index of its heading and the indexes of the visible lines of its body.
 pub(super) struct Milestone {
     pub(super) name: String,
+    pub(super) start: usize,
     pub(super) body: Vec<usize>,
 }
 
@@ -77,6 +78,7 @@ pub(super) fn milestones(lines: &[&str]) -> Vec<Milestone> {
                 name: name[..name.find("<!--").unwrap_or(name.len())]
                     .trim()
                     .to_string(),
+                start: i,
                 body: Vec::new(),
             });
         } else if let Some(m) = out.last_mut() {
@@ -152,5 +154,14 @@ mod tests {
         assert_eq!(m.state_line(&lines, "done"), None);
         assert_eq!(m.state_line(&lines, "idea"), Some(1));
         assert_eq!(m.issues(&lines), "  - x\n");
+    }
+
+    // spec: REL-13 (internal: where a section starts, a heading inside a fence being none)
+    #[test]
+    fn a_milestone_starts_at_its_heading() {
+        let text = "# R\n## A\n```\n## X\n```\n## B\n";
+        let lines: Vec<&str> = text.split_inclusive('\n').collect();
+        let starts: Vec<usize> = milestones(&lines).iter().map(|m| m.start).collect();
+        assert_eq!(starts, [1, 5]);
     }
 }

@@ -117,7 +117,7 @@ fn relink_text(text: &str, stems: &HashSet<String>) -> String {
 /// A path relative to the repository root, as its components.
 type RepoPath = Vec<String>;
 
-fn components(path: &Path) -> RepoPath {
+pub(super) fn components(path: &Path) -> RepoPath {
     path.components()
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
         .collect()
@@ -266,7 +266,7 @@ fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
 }
 
 /// Rewrite the Markdown link targets of `text`, written from `old_dir` and read from `new_dir` (CLS-2, CLS-4).
-fn relink_links(
+pub(super) fn relink_links(
     text: &str,
     old_dir: &[String],
     new_dir: &[String],

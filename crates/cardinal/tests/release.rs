@@ -591,3 +591,130 @@ fn a_release_across_the_turn_off_lists_each_commit_by_its_convention() {
         changelog(dir.path())
     );
 }
+
+fn read(dir: &Path, file: &str) -> String {
+    std::fs::read_to_string(dir.join(file)).unwrap_or_default()
+}
+
+// spec: REL-13
+#[test]
+fn moves_the_released_milestones_to_the_archive() {
+    let dir = repo();
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "# Roadmap\n\nIntro.\n\n## Old\n\n- State: done\n- Released: v0.2.0\n\n## Later\n\n- State: in issues\n\n## New\n\n- State: done\n- Issues:\n  - [a](issues/done/a.md)\n",
+    )
+    .unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"ROADMAP.md\", \"ROADMAP-done.md\"]\nroadmap_archive = \"ROADMAP-done.md\"\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(
+        read(dir.path(), "ROADMAP.md"),
+        "# Roadmap\n\nIntro.\n\n## Later\n\n- State: in issues\n"
+    );
+    let archive = read(dir.path(), "ROADMAP-done.md");
+    assert!(archive.starts_with("# Roadmap archive\n"), "{archive}");
+    assert!(
+        archive.ends_with(
+            "\n\n## Old\n\n- State: done\n- Released: v0.2.0\n\n## New\n\n- State: done\n- Released: v0.3.0\n- Issues:\n  - [a](issues/done/a.md)\n"
+        ),
+        "{archive}"
+    );
+    assert!(changelog(dir.path()).contains("### Milestones\n\n- New\n"));
+}
+
+// spec: REL-13
+#[test]
+fn appends_to_an_archive_in_another_directory_with_its_links_rebased() {
+    let dir = repo();
+    std::fs::create_dir_all(dir.path().join("docs")).unwrap();
+    std::fs::write(
+        dir.path().join("docs/done.md"),
+        "# Done\n\n## First\n\n- State: done\n- Released: v0.1.0\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## New\n\n- State: done\n- Issues:\n  - [a](issues/done/a.md)\n",
+    )
+    .unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"ROADMAP.md\", \"docs/done.md\"]\nroadmap_archive = \"docs/done.md\"\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(read(dir.path(), "ROADMAP.md"), "# Roadmap\n");
+    assert_eq!(
+        read(dir.path(), "docs/done.md"),
+        "# Done\n\n## First\n\n- State: done\n- Released: v0.1.0\n\n## New\n\n- State: done\n- Released: v0.3.0\n- Issues:\n  - [a](../issues/done/a.md)\n"
+    );
+}
+
+// spec: REL-13
+#[test]
+fn refuses_an_archive_the_roadmap_does_not_list() {
+    let dir = repo();
+    let roadmap = "# Roadmap\n\n## M\n\n- State: done\n";
+    std::fs::write(dir.path().join("ROADMAP.md"), roadmap).unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\nroadmap_archive = \"ROADMAP-done.md\"\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(!out.status.success(), "{out:?}");
+    assert_eq!(read(dir.path(), "ROADMAP.md"), roadmap);
+    assert!(!dir.path().join("ROADMAP-done.md").exists());
+    assert!(!dir.path().join("CHANGELOG.md").exists());
+}
+
+// spec: REL-5
+#[test]
+fn a_failing_version_command_removes_the_archive_it_created() {
+    let dir = repo();
+    let roadmap = "# Roadmap\n\n## M\n\n- State: done\n";
+    std::fs::write(dir.path().join("ROADMAP.md"), roadmap).unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"ROADMAP.md\", \"ROADMAP-done.md\"]\nroadmap_archive = \"ROADMAP-done.md\"\nrelease_version_command = \"false\"\n",
+    );
+    assert!(!release(dir.path(), &["0.2.0"]).status.success());
+    assert_eq!(read(dir.path(), "ROADMAP.md"), roadmap);
+    assert!(!dir.path().join("ROADMAP-done.md").exists());
+}
+
+// spec: REL-13
+/// The archive named with a leading `./` is the roadmap document it names: its milestones stay, in one write.
+#[test]
+fn keeps_the_milestones_of_an_archive_named_with_a_leading_dot() {
+    let dir = repo();
+    let archive = "# Archive\n\n## First\n\n- State: done\n- Released: v0.1.0\n";
+    std::fs::write(dir.path().join("ROADMAP-done.md"), archive).unwrap();
+    std::fs::write(
+        dir.path().join("ROADMAP.md"),
+        "# Roadmap\n\n## New\n\n- State: done\n",
+    )
+    .unwrap();
+    config(
+        dir.path(),
+        "[project]\nroadmap = [\"ROADMAP.md\", \"ROADMAP-done.md\"]\nroadmap_archive = \"./ROADMAP-done.md\"\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: add a flag", "a.txt");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(out.status.success(), "{out:?}");
+    assert_eq!(read(dir.path(), "ROADMAP.md"), "# Roadmap\n");
+    assert_eq!(
+        read(dir.path(), "ROADMAP-done.md"),
+        format!("{archive}\n## New\n\n- State: done\n- Released: v0.3.0\n")
+    );
+}

@@ -45,3 +45,40 @@ land, with no manual step.
 * A milestone section ends at the next `##` heading outside fenced blocks and HTML comments: reuse the grammar of
   `roadmap.rs`, never a raw text search (the template milestone of the seed sits in an HTML comment).
 * The move must keep the order of the milestones still in the main roadmap: `next-issue` orders by it.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-03
+
+## Understanding
+`release <version>` moves every released milestone (newly marked or released before) of the main `roadmap` documents
+to the end of an archive named by a new key `roadmap_archive`, itself listed in `roadmap`; no key, no move. Out of
+scope: moving a milestone back, archiving at `close-issue`.
+
+## Plan
+1. [x] Archive on release: `roadmap_archive` read by `release`, the section move through `roadmap.rs` (a section
+   range per milestone), links rebased with the helpers of `close_issue.rs`, REL-5 restore extended, the seeded
+   `ROADMAP.md`, `.claude/cardinal.toml` and `ROADMAP-done.md` header, this repository's config, `docs/usage.md`,
+   `docs/workflow.md`; verified by `tests/release.rs` (move, refusal, link rebase, restore on a failed version
+   command) and a `roadmap.rs` unit test of the section range; makes true REL-13, REL-5. (~350 lines) (autonomous)
+
+## Decisions
+- Mode: autonomous
+- No seeded `ROADMAP-done.md`: `release` creates it, so a consumer without the key gets no orphan file;
+  `seeded_roadmap_is_seeded` exempts the seeded `roadmap_archive`.
+- Base commit: e8110012510a8e0810d6a0bd842f349fba342017
+- Archive named by the key `roadmap_archive`, refused when `roadmap` does not list it (1 a).
+- Moved milestones go to the end of the archive, release order (2 a).
+- Every milestone with a `Released:` line moves, the earlier releases included (3 a).
+- The seeded `.claude/cardinal.toml` sets `roadmap_archive = "ROADMAP-done.md"` (4 a).
+
+## Deliverable 1
+- done: `release` moves the released milestones to the `roadmap_archive`, rebasing their links; seed, config and docs name it.
+- checks: `just check` ok (fmt, clippy, tests, specs); docs updated (`docs/usage.md`, `docs/workflow.md`, seeds,
+  `ROADMAP.md`); code review low done.
+- red: REL-13: `moves_the_released_milestones_to_the_archive` failed on the `ROADMAP.md` assertion (the milestones
+  stayed), `refuses_an_archive_the_roadmap_does_not_list` on the exit (accepted).
+- Code review: 1 findings: an archive named `./ROADMAP-done.md` was not recognised as the archive (its own released
+  milestones taken out, two writes of one file): fixed (`same_path` everywhere, the archive kept apart in the loop),
+  test `keeps_the_milestones_of_an_archive_named_with_a_leading_dot`.
+- not verified: a real release of this repository (the next one moves its 6 released milestones).

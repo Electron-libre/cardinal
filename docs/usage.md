@@ -30,7 +30,9 @@ hand.
 
 The seeded `roadmap` key names `ROADMAP.md`, the milestones `skill:create-issue` and `skill:prioritize-issues` keep. A
 project seeded before names `docs/TODO.md`, which nothing seeds: `sync` copies `ROADMAP.md` when it is missing, and
-the project points its key at it by hand.
+the project points its key at it by hand. The seeded `roadmap_archive` names `ROADMAP-done.md`, listed in `roadmap`
+too: `release` moves the released milestones there, so `ROADMAP.md` keeps only the ones still to land; a project
+without the key keeps them where they are.
 
 The seeded `user_language` is the default language of the conversation. Each person may set their own in a
 `[project]` table of `.claude/cardinal.local.toml`, which the managed `.claude/.gitignore` keeps out of git: the
@@ -157,7 +159,7 @@ ask rules `Bash(cardinal run release *.*)` and `Bash(just release *.*)`, auto mo
 | Step | What it does |
 |---|---|
 | `just release` | prints the proposed version: from the last `vX.Y.Z` tag, the major raised by a breaking commit (`!`, a `BREAKING CHANGE:` footer, or a file of `release_breaking_files`), else the minor by a `feat`, else the patch; `0.1.0` with no tag yet |
-| `just release <version>` | refuses a version lower than the proposed one, or any when no commit follows the last tag; writes its section of `CHANGELOG.md` (Milestones, Breaking, Added, Fixed; `First numbered release.` with no tag yet), adds `- Released: v<version>` to the `done` milestones of the `roadmap` documents that had none, runs `release_version_command` with the version as last argument. Reread and edit the section, then commit it. |
+| `just release <version>` | refuses a version lower than the proposed one, or any when no commit follows the last tag; writes its section of `CHANGELOG.md` (Milestones, Breaking, Added, Fixed; `First numbered release.` with no tag yet), adds `- Released: v<version>` to the `done` milestones of the `roadmap` documents that had none, moves every released milestone to the end of the `roadmap_archive` when the project names one, runs `release_version_command` with the version as last argument. Reread and edit the section, then commit it. |
 | `just release <version> --tag` | once the release is committed, creates the annotated tag `v<version>` on `HEAD`, the section as its message, and prints `git push origin v<version>`: the push is the user's |
 
 A consumer of Cardinal pins a version with `cardinal update --rev v<version>` and reads in `CHANGELOG.md` what

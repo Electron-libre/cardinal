@@ -2,7 +2,7 @@
 
 The planned work of Cardinal, grouped into milestones, in the order they are meant to land. A milestone becomes
 issues once it is shaped; the `priority` and `depends_on` of each issue file order those issues within a milestone (`just next-issue`). States: `idea`, `shaped`, `in issues`, `done` (set by `just close-issue`);
-`just release` adds `- Released: v<version>` to a `done` one.
+`just release` adds `- Released: v<version>` to a `done` one and moves it to `ROADMAP-done.md` (`roadmap_archive`).
 The work done before this file existed is in `issues/done/`.
 
 ## Plan and release

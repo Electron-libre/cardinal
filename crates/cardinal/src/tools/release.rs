@@ -5,6 +5,7 @@
 //! reread and commit; with `--tag` too, once that commit is made, create the annotated tag `v<version>` on `HEAD`.
 //! Never commits nor pushes: it prints the push command.
 
+use std::collections::HashMap;
 use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -21,6 +22,11 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 then reread before the release is committed.
 ";
 const CHANGELOG: &str = "CHANGELOG.md";
+/// The header of a new `roadmap_archive` (REL-13).
+const ARCHIVE_HEADER: &str = "# Roadmap archive
+
+The released milestones, moved out of the roadmap by `release`, oldest first.
+";
 /// The section of a release with no version tag before it.
 const FIRST: &str = "First numbered release.";
 
@@ -114,8 +120,8 @@ fn run(args: &[String]) -> Result<(), String> {
     }
 }
 
-/// Write the section of `version`, mark the milestones it delivers and run the version command (REL-3 to REL-6,
-/// REL-9); on a failure, the files written are put back.
+/// Write the section of `version`, mark the milestones it delivers, move the released ones to the archive and run the
+/// version command (REL-3 to REL-6, REL-9, REL-13); on a failure, the files written are put back.
 fn prepare(root: &Path, version: Version) -> Result<(), String> {
     let (proposal, last, commits) = proposed(root)?;
     let path = root.join(CHANGELOG);
@@ -128,21 +134,7 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
     if section(&text, version).is_some() {
         return Err(format!("{CHANGELOG} already has a section for {version}"));
     }
-    let mut roadmaps = Vec::new();
-    let mut milestones = String::new();
-    for rel in super::config_list(root, "roadmap").unwrap_or_default() {
-        let path = root.join(rel);
-        let Ok(text) = std::fs::read_to_string(&path) else {
-            continue;
-        };
-        let (marked, names) = mark_released(&text, version);
-        if !names.is_empty() {
-            for name in names {
-                let _ = writeln!(milestones, "- {name}");
-            }
-            roadmaps.push((path, Some(text), marked));
-        }
-    }
+    let (roadmaps, milestones) = roadmap_writes(root, version)?;
     let today = chrono::Local::now().format("%Y-%m-%d");
     let mut new = format!("## [{version}] - {today}\n");
     if !milestones.is_empty() {
@@ -205,8 +197,74 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
     Ok(())
 }
 
+/// The new texts of the `roadmap` documents once the milestones `version` delivers are marked (REL-9) and the released
+/// ones moved to the `roadmap_archive` (REL-13), as `(path, text before, new text)`, and the list of the marked names.
+fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), String> {
+    let documents = super::config_list(root, "roadmap").unwrap_or_default();
+    let archive = project_str(root, "roadmap_archive");
+    if let Some(a) = archive
+        .as_deref()
+        .filter(|a| !documents.iter().any(|d| same_path(d, a)))
+    {
+        return Err(format!(
+            "the roadmap_archive `{a}` is not one of the roadmap documents"
+        ));
+    }
+    let mut roadmaps = Vec::new();
+    let mut milestones = String::new();
+    // The released sections moved to the archive (REL-13), each opened by a blank line.
+    let mut moved = String::new();
+    // The archive as read and as marked, when it exists.
+    let mut archived = None;
+    let dir_of = |rel: &str| {
+        super::close_issue::components(Path::new(rel).parent().unwrap_or(Path::new("")))
+    };
+    for rel in &documents {
+        let is_archive = archive.as_deref().is_some_and(|a| same_path(a, rel));
+        let path = root.join(rel);
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let (mut marked, names) = mark_released(&text, version);
+        for name in names {
+            let _ = writeln!(milestones, "- {name}");
+        }
+        if is_archive {
+            archived = Some((path, Some(text), marked));
+            continue;
+        }
+        if let Some(a) = archive.as_deref() {
+            let (kept, sections) = take_released(&marked);
+            moved.push_str(&super::close_issue::relink_links(
+                &sections,
+                &dir_of(rel),
+                &dir_of(a),
+                &HashMap::new(),
+            ));
+            marked = kept;
+        }
+        if marked != text {
+            roadmaps.push((path, Some(text), marked));
+        }
+    }
+    if let Some(a) = archive.as_deref() {
+        let (path, before, mut text) =
+            archived.unwrap_or_else(|| (root.join(a), None, ARCHIVE_HEADER.to_string()));
+        if !moved.is_empty() {
+            text = format!("{}\n{moved}", text.trim_end());
+        }
+        if before.as_ref() != Some(&text) && !(before.is_none() && moved.is_empty()) {
+            roadmaps.push((path, before, text));
+        }
+    }
+    Ok((roadmaps, milestones))
+}
+
 /// Write each file its new text; `(path, text before, new text)`.
-fn write_all(writes: &[(PathBuf, Option<String>, String)]) -> Result<(), String> {
+/// The files to write: `(path, text before, new text)`, the text before `None` for a file to create.
+type Writes = Vec<(PathBuf, Option<String>, String)>;
+
+fn write_all(writes: &Writes) -> Result<(), String> {
     for (path, _, text) in writes {
         std::fs::write(path, text).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     }
@@ -365,6 +423,37 @@ fn mark_released(text: &str, version: Version) -> (String, Vec<String>) {
         }
     }
     (out, marked.into_iter().map(|(_, name)| name).collect())
+}
+
+/// Whether the paths `a` and `b` of the configuration name the same file, a leading `./` aside.
+fn same_path(a: &str, b: &str) -> bool {
+    Path::new(a.trim_start_matches("./")) == Path::new(b.trim_start_matches("./"))
+}
+
+/// A roadmap without the sections of its milestones that have a `Released:` line, and those sections in order, each
+/// opened by a blank line (REL-13).
+fn take_released(text: &str) -> (String, String) {
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let milestones = roadmap::milestones(&lines);
+    let mut kept = String::new();
+    let mut moved = String::new();
+    let mut from = 0;
+    for (k, m) in milestones.iter().enumerate() {
+        let end = milestones.get(k + 1).map_or(lines.len(), |n| n.start);
+        if m.body
+            .iter()
+            .any(|&i| roadmap::is_field(lines[i], "Released:"))
+        {
+            kept.push_str(&lines[from..m.start].concat());
+            let _ = writeln!(moved, "\n{}", lines[m.start..end].concat().trim_end());
+            from = end;
+        }
+    }
+    if moved.is_empty() {
+        return (text.to_string(), moved);
+    }
+    kept.push_str(&lines[from..].concat());
+    (format!("{}\n", kept.trim_end()), moved)
 }
 
 /// The section of `version` in a changelog, from its heading to the next `## ` heading, trimmed.

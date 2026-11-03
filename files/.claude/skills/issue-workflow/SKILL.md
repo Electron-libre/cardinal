@@ -105,7 +105,9 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    `docs/adr/` (template and numbering in `docs/adr/README.md`) and update the
    diagrams in the `architecture` document of `.claude/cardinal.toml` when the flow changed.
 5. **Review (mandatory)**: run `just check` (the project's format, lint and tests, and the specs); when `cardinal run deliverable-size`
-   exits 1 (over the limit of a deliverable), cut the deliverable before the review; then **invoke `/code-review low` on the diff with the Skill tool** (always name the level)
+   exits 1 (over the limit of a deliverable), cut the deliverable before the review; then mark the new files intent-to-add (`git add -N <file>`: `git diff HEAD`
+   leaves the untracked ones out) and **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
+   `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say
    why one is not fixed; a finding outside the requirements of the deliverable becomes an issue
    (`skill:create-issue`), not a fix in this deliverable.
@@ -130,7 +132,7 @@ nothing: the agent reads that identity too. The spec file is the record of the r
 
 Then move to the next deliverable (autonomous mode: chain into it). Don't chain into it without saying so if the user asked to stop.
 After the last deliverable, run `skill:update-docs` on the whole issue (`<base>..HEAD`, the base commit recorded in
-`## Decisions`), then invoke `/code-review high` once on it; the docs edits and the review fixes are one more
+`## Decisions`), then invoke `/code-review high <target>` once on it, `<target>` the line `cardinal run review-target <base>` prints; the docs edits and the review fixes are one more
 deliverable, steps 3.2 to 3.8 with their own `low` review (the commit gate only knows the files that review saw).
 
 ## Autonomous mode

@@ -62,6 +62,9 @@ flowchart TD
   the steps are in the skill's `details.md`, "Drive a queue".
 - **Size limit**: an issue too large for one session is split at step 2 (the limits are in step 1 of the skill);
   `cardinal run deliverable-size` counts a deliverable at step 3.5 and what the issue changed since its base commit.
+- **Review target**: `cardinal run review-target` gives `/code-review` its target, the diff without `issues/` nor the
+  managed copies of `.claude/cardinal.lock`, for the `low` review of a deliverable and the `high` one of the issue;
+  `bytes_per_session:oversized-result-review` in `cardinal-report` measures the effect.
 - **Delegated exploration**: only a wide search (the git history, many files of a large repository) at step 1 or 3.1
   goes to a read-only `Explore` subagent, which returns its conclusion with the paths and lines behind it;
   `main_context_peak` in `cardinal-report` measures the effect.

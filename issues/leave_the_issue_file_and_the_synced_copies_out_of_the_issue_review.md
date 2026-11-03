@@ -37,7 +37,7 @@ Lean agent loop
 # Hints
 * The commit gate (`cardinal run review-gate native`) refuses a commit whose diff holds a file the last review never
   saw: a filtered `low` review could block the commit.
-* Verdict: `Expected-effect: bytes_per_session:oversized-result-review down`.
+* Verdict: `Expected-effect: bytes_per_session:oversized-result-review down`. (autonomous)
 
 # Specs
 * [specs/review-target.md](../specs/review-target.md) (RVT-1 to RVT-5), FEA-39 of [specs/features.md](../specs/features.md).
@@ -54,7 +54,7 @@ by a new tool `cardinal run review-target [<base>]`, since `/code-review` passes
 ## Plan
 1. [x] Tool `review-target`: prints `<base>..HEAD -- ':/' ':(top,exclude)issues' ':(top,exclude)<managed>'...`, or
    `HEAD -- ...` with no argument; verified by tests through the binary; makes true RVT-1 to RVT-5, FEA-39. (autonomous)
-2. [ ] `skill:issue-workflow`: step 3.5 invokes `/code-review low <the line of review-target>`, the whole-issue review
+2. [x] `skill:issue-workflow`: step 3.5 invokes `/code-review low <the line of review-target>`, the whole-issue review
    `/code-review high <the line of review-target <base>>`; docs (`docs/architecture.md`, CLAUDE.md index if needed);
    verified by `just check-cardinal` and a reread; `Expected-effect: bytes_per_session:oversized-result-review down`.
 
@@ -76,3 +76,10 @@ by a new tool `cardinal run review-target [<base>]`, since `/code-review` passes
 - not verified: what a reviewer does with the line (deliverable 2, measured by `cardinal-report` after use).
 - Follow-up for deliverable 2: `git diff HEAD` leaves the untracked files out, so step 3.5 marks the new files
   intent-to-add (`git add -N`) before the `low` review.
+
+## Deliverable 2
+- done: step 3.5 marks the new files intent-to-add and hands `/code-review low` the line of `review-target`; the
+  whole-issue review hands `/code-review high` the line of `review-target <base>`; `docs/workflow.md` says so; synced.
+- red: none (a skill text, checked by `just check-cardinal`).
+- Code review: no findings
+- not verified: the fall of `oversized-result-review`, read by `skill:evaluate-harness` once sessions use it.

@@ -30,4 +30,4 @@ Lean agent loop
 
 # Resources
 * `specs/sync.md`, `crates/cardinal/src/main.rs`.
-* `issues/find_why_commits_skip_the_commit_message_skill.md`.
+* `issues/done/find_why_commits_skip_the_commit_message_skill.md`.

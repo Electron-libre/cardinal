@@ -84,7 +84,7 @@ with an evidence-based instruction change. Out of scope: the other routing rules
 - A commit whose call runs the message checker is no trigger: the skill's outcome is met (question 1).
 - Deliverable 2 runs `skill:audit-instructions` on the remaining kinds and applies the change the user validates (question 2).
 - Audit validated: the close commit of `skill:issue-workflow` names `skill:commit-message` (7 close commits in 7
-  sessions); the update output becomes [route_the_update_commit_to_the_message_skill](route_the_update_commit_to_the_message_skill.md);
+  sessions); the update output becomes [route_the_update_commit_to_the_message_skill](../route_the_update_commit_to_the_message_skill.md);
   a gate refusing an unchecked commit waits for the re-measure.
 
 ## Deliverable 1

@@ -222,7 +222,8 @@ fn scoped(rule: &str) -> bool {
 }
 
 /// The `@<path>` imports of a memory file: in its text as the `CommonMark` lexer reads it, outside every code span and
-/// code block (indented or fenced, in a block quote or a list item too), as Claude Code skips its code tokens.
+/// code block (indented or fenced, in a block quote or a list item too), as Claude Code skips its code tokens, and
+/// outside HTML but what an HTML block that starts with a comment holds besides its comments.
 fn imports(text: &str) -> Vec<String> {
     use pulldown_cmark::{Event, Parser, Tag, TagEnd};
     let mut found = Vec::new();
@@ -230,6 +231,8 @@ fn imports(text: &str) -> Vec<String> {
     // scans each text token apart, so an `@` right after a code span or an emphasis starts an import
     let mut run = String::new();
     let mut code_block = false;
+    // the lines of the HTML block being read: `marked` makes one token of a block, `pulldown-cmark` one event per line
+    let mut html_block = String::new();
     for (event, range) in Parser::new(text).into_offset_iter() {
         match event {
             Event::Text(_) if !code_block => {
@@ -245,8 +248,10 @@ fn imports(text: &str) -> Vec<String> {
             }
             Event::Start(Tag::CodeBlock(_)) => code_block = true,
             Event::End(TagEnd::CodeBlock) => code_block = false,
-            // an HTML line or tag is a token of its own
-            Event::Html(_) | Event::InlineHtml(_) => run_imports(&text[range], &mut found),
+            Event::Html(line) => html_block.push_str(&line),
+            Event::End(TagEnd::HtmlBlock) => {
+                html_imports(&std::mem::take(&mut html_block), &mut found);
+            }
             _ => {}
         }
         run_imports(&run, &mut found);
@@ -254,6 +259,27 @@ fn imports(text: &str) -> Vec<String> {
     }
     run_imports(&run, &mut found);
     found
+}
+
+/// Adds to `found` the imports of an HTML block as Claude Code reads its `html` token: none unless it starts with a
+/// comment closed in it, else those of what is left once its `<!--...-->` comments are removed.
+fn html_imports(block: &str, found: &mut Vec<String>) {
+    let trimmed = block.trim_start();
+    if !trimmed.starts_with("<!--") || !trimmed.contains("-->") {
+        return;
+    }
+    // as Claude Code's `/<!--[\s\S]*?-->/g`: a close searched after the opening, an open comment left as text
+    let mut rest = String::new();
+    let mut tail = block;
+    while let Some(start) = tail.find("<!--") {
+        let Some(end) = tail[start + 4..].find("-->") else {
+            break;
+        };
+        rest.push_str(&tail[..start]);
+        tail = &tail[start + 4 + end + 3..];
+    }
+    rest.push_str(tail);
+    run_imports(&rest, found);
 }
 
 /// Adds to `found` the imports of a run of text: an `@` at its start or after a white space, the path ending at the
@@ -332,11 +358,32 @@ mod tests {
         assert_eq!(imports("Run `x`@a.md and @b/*c*.md"), ["a.md", "b/"]);
         // an escape keeps its backslash; an HTML tag is a token of its own
         assert_eq!(imports("\\@a.md @b\\_c.md"), ["b\\_c.md"]);
-        assert_eq!(imports("x <b> @a.md</b> <!-- @c.md -->"), ["a.md", "c.md"]);
+        assert_eq!(imports("x <b> @a.md</b> <!-- @c.md -->"), ["a.md"]);
         // a paragraph continues on the next line, a quote and a list item hold text
         assert_eq!(
             imports("text\n    @a.md\n> @b.md\n- @c.md\n"),
             ["a.md", "b.md", "c.md"]
         );
+    }
+
+    // spec: REP-2 (internal: the reader of one memory file; fixed_context.rs proves the counts through the binary)
+    #[test]
+    fn an_import_stands_outside_html() {
+        // a tag or comment inside a paragraph is a token of its own, the text between two tags another
+        assert_eq!(
+            imports("<!-- old: @docs/big.md -->\n\ntext <!-- @a.md --> <span>@b.md</span>\n"),
+            ["b.md"]
+        );
+        assert_eq!(
+            imports("<div>\n@docs/big.md\n</div>\n"),
+            Vec::<String>::new()
+        );
+        // a block that starts with a whole comment is scanned once its comments are removed, over all its lines
+        assert_eq!(
+            imports("<!-- note\n--> @docs/rules.md\n"),
+            ["docs/rules.md"]
+        );
+        assert_eq!(imports("> <!-- a -->\n> <!-- b -->@x.md\n"), ["x.md"]);
+        assert_eq!(imports("<!-- open\n@docs/big.md\n"), Vec::<String>::new());
     }
 }

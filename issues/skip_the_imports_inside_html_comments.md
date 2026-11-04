@@ -30,3 +30,47 @@ removed, so a commented-out import counts a file a session never loads.
 
 # Hints
 * What counts is what Claude Code loads, not only CommonMark.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-05
+
+## Understanding
+Read HTML as Claude Code 2.1.318 does (`h()` of its import scanner): an inline HTML event counts nothing (a `marked`
+tag token is the tag or comment alone), and an HTML block, its `Html` lines gathered between `Start(HtmlBlock)` and
+`End(HtmlBlock)`, counts only when, trimmed, it starts with `<!--` and holds `-->`, then in what is left once the
+`<!--...-->` comments are removed. Out of scope: the content stripping of loaded files (`jYe`), which `claude_md_bytes`
+does not model.
+
+## Plan
+1. [x] HTML read as Claude Code reads it: `imports` gathers each HTML block, skips it unless it starts with a whole
+   comment, else scans its text without comments, and skips inline HTML; verified by the unit tests of `memory.rs`
+   (one-line and multi-line comment blocks, a block quote, a `<div>` block, inline comment and tag); makes true REP-2. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 93e8d59f2b7dd9e0be8698cf1661ce5e585a1491
+- Inline HTML still only splits the text: `marked` reads the text between two tags as a text token, so
+  `<span>@b.md</span>` imports `b.md`; REP-2 says so.
+
+## Summary of deliverable 1
+done: an HTML block counts its imports only when it starts with a whole comment, once its comments are removed; an
+inline comment counts nothing.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | REP-2 and its scenario, doc comment of `imports` |
+| code review | see below |
+
+red: REP-2: `left: ["docs/big.md", "a.md", "b.md"] right: []` (`an_import_stands_outside_html`)
+
+Code review: 2 findings
+- `<!-->` counted closed by the check, not by the removal loop: no change, Claude Code does the same (`includes("-->")`
+  then `/<!--[\s\S]*?-->/g`, whose close is searched after the opening).
+- an unclosed comment after a closed one is scanned: no change, the regex of Claude Code leaves it in place too.
+
+not verified: none
+decisions needed: none

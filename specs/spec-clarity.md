@@ -21,7 +21,7 @@ marks instead of guessing, and the wording of a requirement that leaves its obli
 - **CLR-5** (deterministic) The marker search of CLR-1 and CLR-2 and the word checks of CLR-3 and CLR-4 must ignore the text inside inline code spans (between backticks) and inside fenced code blocks.
 - **CLR-6** (deterministic) The word checks of CLR-3 and CLR-4 must ignore the text inside double quotes and skip a withdrawn requirement.
 - **CLR-7** (deterministic) The checker must not print a wording warning (CLR-3, CLR-4) for an `accepted` spec.
-- **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement with its continuation lines: the non-blank lines that follow its item line, up to the next blank line, list item, heading or fence line.
+- **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement with its continuation lines: the lines that follow its item line, up to one that ends a Markdown paragraph: blank, a list item (`-`, `*`, `+`, or `1.` and `1)` only, nested or not), a heading, a fence, a quote (`>`) or an HTML comment.
 
 ## Scenarios
 

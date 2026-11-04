@@ -324,9 +324,7 @@ fn parse_requirements(
         let (kind, first) = kind.map_or((String::new(), ""), |(k, rest)| {
             (k.to_string(), rest.trim())
         });
-        let statement = with_continuation(first, &lines[i + 1..]);
-        let statement = statement.as_str();
-        let withdrawn = statement.starts_with("withdrawn:");
+        let withdrawn = first.starts_with("withdrawn:");
         // `quality` was a kind proved by a benchmark: still read, untraced, so older specs keep passing
         if kind == "quality" && !withdrawn {
             warn.push(format!("warning: {file}: requirement {id}: kind `quality` is deprecated, reword it for a test or withdraw it"));
@@ -339,7 +337,7 @@ fn parse_requirements(
         }
         // with no `(kind)`, the statement was not found: the format problem is enough
         if spec.status == "draft" && !withdrawn && !kind.is_empty() {
-            check_wording(file, id, statement, warn);
+            check_wording(file, id, &with_continuation(first, &lines[i + 1..]), warn);
         }
         spec.requirements.push(Requirement {
             id: id.to_string(),
@@ -348,13 +346,19 @@ fn parse_requirements(
     }
 }
 
-/// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a blank
-/// line, a list item, a heading or a fence line.
+/// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
+/// ends the paragraph: blank, a list item, a heading, a fence, a quote or an HTML comment.
 fn with_continuation(first: &str, rest: &[&str]) -> String {
     let mut statement = first.to_string();
     for (line, fenced) in super::fenced(rest.iter().copied()) {
         let trimmed = line.trim();
-        if fenced || trimmed.is_empty() || is_list_item(trimmed) || line.starts_with('#') {
+        if fenced
+            || trimmed.is_empty()
+            || is_list_item(trimmed)
+            || is_heading(trimmed)
+            || trimmed.starts_with('>')
+            || trimmed.starts_with("<!--")
+        {
             break;
         }
         statement.push(' ');
@@ -363,15 +367,22 @@ fn with_continuation(first: &str, rest: &[&str]) -> String {
     statement
 }
 
-/// Whether the trimmed line `trimmed` opens a list item, nested or not: `-`, `*`, `+`, `1.` or `1)` then a space.
+/// Whether the trimmed line `trimmed` opens a list item that can break a paragraph: `-`, `*`, `+`, `1.` or `1)` (an
+/// ordered list must start at 1 to break one, as in the `CommonMark` spec), then a space, a tab or nothing.
 fn is_list_item(trimmed: &str) -> bool {
-    let rest = trimmed.trim_start_matches(|c: char| c.is_ascii_digit());
-    let marker = if rest.len() < trimmed.len() {
-        rest.strip_prefix(['.', ')'])
-    } else {
-        trimmed.strip_prefix(['-', '*', '+'])
-    };
-    marker.is_some_and(|r| r.starts_with(' '))
+    let marker = trimmed.strip_prefix(['-', '*', '+']).or_else(|| {
+        trimmed
+            .strip_prefix("1.")
+            .or_else(|| trimmed.strip_prefix("1)"))
+    });
+    marker.is_some_and(|r| r.is_empty() || r.starts_with([' ', '\t']))
+}
+
+/// Whether the trimmed line `trimmed` is an ATX heading: one to six `#`, then a space, a tab or nothing.
+fn is_heading(trimmed: &str) -> bool {
+    let rest = trimmed.trim_start_matches('#');
+    let level = trimmed.len() - rest.len();
+    (1..=6).contains(&level) && (rest.is_empty() || rest.starts_with([' ', '\t']))
 }
 
 /// Every file under `dir` (outside a git repository, where no worktree can nest), but those of the directories

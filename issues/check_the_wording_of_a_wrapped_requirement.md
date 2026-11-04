@@ -73,3 +73,14 @@ gets the warnings its whole statement deserves. Out of scope: the format checks,
   `specs/spec-clarity.md` back to `accepted`.
 - red: CLR-8: `FAIL - the must of a continuation line is counted`, `FAIL - the vague word of a continuation line is warned of`
 - Code review: 1 findings: a nested or `*`/`1.` list item was read as a continuation line; fixed (`is_list_item`, a test case per marker).
+2. [x] Settle the `high` review: a continuation line ends at a line that ends a Markdown paragraph (a heading
+   trimmed, a nested item with a tab or empty, an ordered item only at `1`, a quote, an HTML comment); the joined
+   statement is built only for the wording checks; CLR-8 and `files/specs/README.md` say so. (autonomous)
+
+## Deliverable 2
+- done: `is_list_item` and `is_heading` follow CommonMark's paragraph breaks; CLR-8 cases for each end and for a
+  continuation line opening with `30.` or `#42`.
+- red: none (review fixes on the cases of deliverable 1)
+- Code review: no findings (low). High review: 8 findings: 1 to 6 fixed; 7 (the fenced lines of the section read by the format checks) predates
+  the issue, filed as `issues/skip_the_fenced_lines_of_the_requirements_section.md`; 8 not a defect (an indented
+  code block cannot break a paragraph, so CommonMark also reads it as a continuation line).

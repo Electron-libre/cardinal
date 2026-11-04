@@ -1084,7 +1084,7 @@ fn wording_checks(case: &Case, report: &dyn Fn(&str, bool)) {
 }
 
 // spec: CLR-8
-/// The continuation lines of a requirement are read with it, up to a blank line, an item, a heading or a fence.
+/// The continuation lines of a requirement are read with it, up to a line that ends the paragraph.
 fn wording_continuation_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     let draft = SPEC.replace("status: accepted", "status: draft");
     let wrapped = draft.replace(
@@ -1100,29 +1100,33 @@ fn wording_continuation_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "the vague word of a continuation line is warned of",
         stderr.contains("requirement RER-2: vague word `may`"),
     );
-    let fenced = draft.replace(
-        "A run must resume.",
-        "A run must resume.\n  ```\n  it may must\n  ```",
-    );
-    let stderr = case("a fence in a requirement passes", &fenced, "", &[], None);
-    report(
-        "a fence ends the continuation lines",
-        !stderr.contains("warning"),
-    );
-    for item in ["- ", "* ", "1. "] {
-        let nested = draft.replace(
+    for wrap in ["30. seconds,", "#42"] {
+        let numbered = draft.replace(
             "A run must resume.",
-            &format!("A run must resume.\n  {item}it may must"),
+            &format!("A run, past\n  {wrap} must resume."),
         );
-        let stderr = case(
-            "a nested item in a requirement passes",
-            &nested,
-            "",
-            &[],
-            None,
-        );
+        let stderr = case("a wrapped requirement passes", &numbered, "", &[], None);
         report(
-            &format!("a nested item ends the continuation lines: {item}"),
+            &format!("a continuation line is not cut short: {wrap}"),
+            !stderr.contains("`must`, expected 1"),
+        );
+    }
+    let ends = [
+        "\n  ```\n  it may must\n  ```\n  then it may stop",
+        "\n\n  it may must",
+        "\n   ## Note may must",
+        "\n  - it may must",
+        "\n  * it may must",
+        "\n  1. it may must",
+        "\n  -\tit may must",
+        "\n  > it may must",
+        "\n<!-- it may must -->",
+    ];
+    for end in ends {
+        let ended = draft.replace("A run must resume.", &format!("A run must resume.{end}"));
+        let stderr = case("a requirement and its end pass", &ended, "", &[], None);
+        report(
+            &format!("the continuation lines end before {end:?}"),
             !stderr.contains("warning"),
         );
     }

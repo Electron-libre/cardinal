@@ -159,7 +159,6 @@ fn traceability_checks(case: &Case) {
     );
 }
 
-/// The front matter, sections and requirement lines of a spec.
 /// A fenced block of the requirements section is an example: its lines are neither requirements nor headings.
 fn fenced_requirement_checks(case: &Case) {
     case(
@@ -182,8 +181,23 @@ fn fenced_requirement_checks(case: &Case) {
         &[],
         Some("RER-3 malformed"),
     );
+    case(
+        "a fenced section heading does not stand for the section",
+        &SPEC.replace("## Scenarios\n", "```\n## Scenarios\n```\n"),
+        TESTS,
+        &[],
+        Some("missing section `## Scenarios`"),
+    );
+    case(
+        "an unclosed fence is flagged",
+        &SPEC.replace("## Requirements\n", "## Requirements\n\n````text\n```\n"),
+        TESTS,
+        &[],
+        Some("unclosed fenced block"),
+    );
 }
 
+/// The front matter, sections and requirement lines of a spec.
 fn format_checks(case: &Case) {
     case(
         "bad status is flagged",

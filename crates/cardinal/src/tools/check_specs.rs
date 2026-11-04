@@ -262,27 +262,39 @@ fn parse(
             ),
         );
     }
+    let marked: Vec<_> = super::fenced(lines.iter().copied()).collect();
     for section in SECTIONS {
-        if !lines.iter().any(|l| l.trim() == section) {
+        if !marked
+            .iter()
+            .any(|&(l, fenced)| !fenced && l.trim() == section)
+        {
             problem(out, file, format_args!("missing section `{section}`"));
         }
     }
-    parse_requirements(file, &lines, &mut spec, out, warn);
+    // an open fence hides every line after it: the requirements there would pass unread
+    if lines
+        .iter()
+        .fold(None, |open, line| super::fence(open, line))
+        .is_some()
+    {
+        problem(out, file, format_args!("unclosed fenced block"));
+    }
+    parse_requirements(file, &marked, &mut spec, out, warn);
     check_markers(file, &lines, spec.status == "accepted", out, warn);
     spec
 }
 
-/// Read the requirement lines of the `## Requirements` section of `lines` into `spec`.
+/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is fenced) into
+/// `spec`.
 fn parse_requirements(
     file: &str,
-    lines: &[&str],
+    marked: &[(&str, bool)],
     spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
     let mut seen = BTreeSet::new();
     let mut in_requirements = false;
-    let marked: Vec<_> = super::fenced(lines.iter().copied()).collect();
     for (i, &(line, fenced)) in marked.iter().enumerate() {
         if fenced {
             continue;

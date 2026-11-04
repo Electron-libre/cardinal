@@ -42,6 +42,8 @@ fence state instead of its own scan. No spec: the format checks are a non-goal o
 1. [x] Skip the fenced lines of the requirements section: one fence state for the loop and the continuation lines;
    verified by `format_checks` cases of `tests/check_specs.rs` (a fenced `- ` line under a requirement passes, a
    fenced `## ` line keeps the requirements after it read: a malformed one after it is still flagged); no spec id. (autonomous)
+2. [x] Fixes of the `high` review: the required-section check ignores a fenced heading, an unclosed fence is
+   flagged (it hid every requirement after it); verified by two more cases of `fenced_requirement_checks`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -59,6 +61,28 @@ fence state instead of its own scan. No spec: the format checks are a non-goal o
 
 - red: none (no spec id; `tests/check_specs.rs` failed before the code: `requirement line must start with
   `- **RER-<n>**`: `- an example item`` and the fenced `## ` case passed the malformed `RER-3` line)
+- Code review: no findings
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Summary of deliverable 2
+- done: findings of the `high` review of `7b5ea17..HEAD` (7):
+  - fixed: an unclosed fence hid every requirement after it (now `unclosed fenced block`); the required-section check
+    read fenced headings; the doc comment of `format_checks` had moved onto `fenced_requirement_checks`.
+  - not fixed: HTML comments are out of this issue: `issues/skip_the_html_comments_of_the_requirements_section.md`;
+    the second fence scan of `check_markers` is a few lines of a small file; no spec, as the plan decided (non-goal
+    of `specs/spec-clarity.md`); `fenced_requirement_checks` is called from `format_checks` because `check_specs()`
+    is at the 100-line limit of clippy.
+
+| check | result |
+|---|---|
+| tests, lint, specs | `cardinal run project-check` passes |
+| code review | `low`: no findings |
+| docs | n/a: unchanged |
+
+- red: none (no spec id; before the code: `missing section` not printed for a fenced `## Scenarios`, no
+  `unclosed fenced block`)
 - Code review: no findings
 - not verified: none
 - decisions needed: none

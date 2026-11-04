@@ -31,3 +31,44 @@ should be skipped by its format checks too.
 * `crates/cardinal/src/tools/check_specs.rs` (`parse_requirements`, `with_continuation`)
 * `crates/cardinal/src/tools/roadmap.rs` (`visible`)
 * `crates/cardinal/tests/check_specs.rs`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+`check-specs` reads the lines of a spec inside an HTML comment as hidden, as it does the fenced ones: the required
+sections, the requirement lines and their continuation skip them, and an unclosed comment is flagged like an unclosed
+fence. The fence grammar of `check-specs` (`super::fence`) stays; only the comment grammar of `roadmap` is shared.
+The marker and wording checks (CLR-5, CLR-8) are unchanged.
+
+## Plan
+1. [x] Hide the commented lines of a spec: extract the comment step of `roadmap::visible` into a shared helper, mark
+   each line of `check-specs` fenced or commented in one pass (a fence inside a comment opens nothing), flag an
+   unclosed comment; verified by `tests/check_specs.rs` cases (a commented `- ` template, a commented `## ` heading
+   inside the requirements, a commented section heading, an unclosed comment); makes true no spec requirement (format
+   checks are a non-goal of `specs/spec-clarity.md`). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 6b0400015da16ac4710176836b9d2e2ac25485f6
+- CLR-5 and CLR-8 unchanged: a marker inside a comment is still an open question (1 a).
+- An unclosed HTML comment is flagged, like an unclosed fence (2 a).
+
+## Deliverable 1
+- done: `roadmap::hidden` (generic over the fence grammar) marks the fenced and commented lines; `check-specs` reads
+  its sections, requirements and continuations through it and flags an unclosed HTML comment.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clippy clean |
+| specs | traceability passes; no spec change (format checks are a non-goal of `specs/spec-clarity.md`) |
+| docs | `files/specs/README.md`: a hidden item is no requirement |
+| code review | `low`: no findings |
+
+- red: none (no spec requirement; `tests/check_specs.rs`: `FAIL - a commented requirement template passes`,
+  `FAIL - an unclosed comment is flagged`)
+- Code review: no findings
+- not verified: none
+- decisions needed: none

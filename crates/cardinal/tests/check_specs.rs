@@ -197,6 +197,51 @@ fn fenced_requirement_checks(case: &Case) {
     );
 }
 
+/// An HTML comment of the requirements section is hidden: its lines are neither requirements nor headings.
+fn commented_requirement_checks(case: &Case) {
+    case(
+        "a commented requirement template passes",
+        &SPEC.replace(
+            "- **RER-2**",
+            "<!--\n- **RER-<n>** (deterministic) <statement>\n-->\n- **RER-2**",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
+        "a commented heading does not end the requirements section",
+        &SPEC.replace(
+            "- **RER-2**",
+            "<!--\n## Example\n-->\n- RER-3 malformed\n- **RER-2**",
+        ),
+        TESTS,
+        &[],
+        Some("RER-3 malformed"),
+    );
+    case(
+        "a commented section heading does not stand for the section",
+        &SPEC.replace("## Scenarios\n", "<!--\n## Scenarios\n-->\n"),
+        TESTS,
+        &[],
+        Some("missing section `## Scenarios`"),
+    );
+    case(
+        "a fence inside a comment opens no block",
+        &SPEC.replace("## Requirements\n", "## Requirements\n\n<!-- \n```\n-->\n"),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
+        "an unclosed comment is flagged",
+        &SPEC.replace("## Requirements\n", "## Requirements\n\n<!--\n"),
+        TESTS,
+        &[],
+        Some("unclosed HTML comment"),
+    );
+}
+
 /// The front matter, sections and requirement lines of a spec.
 fn format_checks(case: &Case) {
     case(
@@ -292,6 +337,7 @@ fn format_checks(case: &Case) {
         Some("front matter"),
     );
     fenced_requirement_checks(case);
+    commented_requirement_checks(case);
 }
 
 /// The tests found in every directory of the tree, whatever its name.

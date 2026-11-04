@@ -262,30 +262,30 @@ fn parse(
             ),
         );
     }
-    let marked: Vec<_> = super::fenced(lines.iter().copied()).collect();
+    let (hidden, fence, comment) = super::roadmap::hidden(&lines, super::fence);
+    let marked: Vec<_> = lines.iter().copied().zip(hidden).collect();
     for section in SECTIONS {
         if !marked
             .iter()
-            .any(|&(l, fenced)| !fenced && l.trim() == section)
+            .any(|&(l, hidden)| !hidden && l.trim() == section)
         {
             problem(out, file, format_args!("missing section `{section}`"));
         }
     }
-    // an open fence hides every line after it: the requirements there would pass unread
-    if lines
-        .iter()
-        .fold(None, |open, line| super::fence(open, line))
-        .is_some()
-    {
+    // an open fence or comment hides every line after it: the requirements there would pass unread
+    if fence.is_some() {
         problem(out, file, format_args!("unclosed fenced block"));
+    }
+    if comment {
+        problem(out, file, format_args!("unclosed HTML comment"));
     }
     parse_requirements(file, &marked, &mut spec, out, warn);
     check_markers(file, &lines, spec.status == "accepted", out, warn);
     spec
 }
 
-/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is fenced) into
-/// `spec`.
+/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: fenced
+/// or commented) into `spec`.
 fn parse_requirements(
     file: &str,
     marked: &[(&str, bool)],
@@ -295,8 +295,8 @@ fn parse_requirements(
 ) {
     let mut seen = BTreeSet::new();
     let mut in_requirements = false;
-    for (i, &(line, fenced)) in marked.iter().enumerate() {
-        if fenced {
+    for (i, &(line, hidden)) in marked.iter().enumerate() {
+        if hidden {
             continue;
         }
         if line.starts_with("## ") {
@@ -364,12 +364,12 @@ fn parse_requirements(
 
 /// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
 /// ends the paragraph: blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
-/// with whether it is fenced.
+/// with whether it is hidden: fenced or commented.
 fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
     let mut statement = first.to_string();
-    for &(line, fenced) in rest {
+    for &(line, hidden) in rest {
         let trimmed = line.trim();
-        if fenced
+        if hidden
             || trimmed.is_empty()
             || is_list_item(trimmed)
             || is_heading(trimmed)

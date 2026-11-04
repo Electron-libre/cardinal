@@ -28,19 +28,30 @@ pub(super) fn next_fence(open: Option<Fence>, line: &str) -> Option<Fence> {
     }
 }
 
-/// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment
-/// (a line that opens one with `<!--` after its text stays text).
+/// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment.
 fn visible(lines: &[&str]) -> Vec<bool> {
+    let (hidden, _, _) = hidden(lines, next_fence);
+    hidden.into_iter().map(|h| !h).collect()
+}
+
+/// Whether each line of `lines` is part of a fenced block (its fences included) or of an HTML comment (a line that
+/// opens one with `<!--` after its text stays text), the fences read by `step` (the fence open after a line, given the
+/// one open before it); then the fence and whether a comment are still open after the last line. A fence inside a
+/// comment opens no block.
+pub(super) fn hidden<F: Copy>(
+    lines: &[&str],
+    step: impl Fn(Option<F>, &str) -> Option<F>,
+) -> (Vec<bool>, Option<F>, bool) {
     let mut fence = None;
     let mut comment = false;
-    lines
+    let hidden = lines
         .iter()
         .map(|line| {
             let body = line.trim_start_matches(' ');
             // an indented code block (four spaces) holds no comment
             let text = line.len() - body.len() <= 3;
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
-            let hidden = in_comment || fence.is_some() || fence_marker(line).is_some();
+            let before = fence;
             if comment || (fence.is_none() && text) {
                 // the text outside the code spans, in order
                 let prose: String = line.split('`').step_by(2).collect();
@@ -52,11 +63,12 @@ fn visible(lines: &[&str]) -> Vec<bool> {
                 };
             }
             if !in_comment {
-                fence = next_fence(fence, line);
+                fence = step(fence, line);
             }
-            !hidden
+            in_comment || before.is_some() || fence.is_some()
         })
-        .collect()
+        .collect();
+    (hidden, fence, comment)
 }
 
 /// A milestone of a roadmap: its name, the index of its heading and the indexes of the visible lines of its body.

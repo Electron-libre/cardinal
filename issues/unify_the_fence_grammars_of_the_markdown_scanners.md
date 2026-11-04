@@ -13,7 +13,7 @@ holds a backtick is inline code) and `roadmap::next_fence` (three spaces of inde
 CommonMark reads an indented code block. One grammar, close to CommonMark, should mark the hidden lines of every tool.
 
 # Findings
-* Found by the `high` review of `issues/skip_the_html_comments_of_the_requirements_section.md` (2026-11-04).
+* Found by the `high` review of `issues/done/skip_the_html_comments_of_the_requirements_section.md` (2026-11-04).
 * `check-specs` passes `super::fence` to `hidden`; `roadmap` passes `next_fence`; `language` and
   `delivered_quality` still use `super::fenced`.
 * A `<!--` after the text of a list item (`- **RER-1** ... <!-- see`) opens a comment that hides the following items

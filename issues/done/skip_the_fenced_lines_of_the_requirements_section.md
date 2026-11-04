@@ -69,7 +69,7 @@ fence state instead of its own scan. No spec: the format checks are a non-goal o
 - done: findings of the `high` review of `7b5ea17..HEAD` (7):
   - fixed: an unclosed fence hid every requirement after it (now `unclosed fenced block`); the required-section check
     read fenced headings; the doc comment of `format_checks` had moved onto `fenced_requirement_checks`.
-  - not fixed: HTML comments are out of this issue: `issues/skip_the_html_comments_of_the_requirements_section.md`;
+  - not fixed: HTML comments are out of this issue: `issues/done/skip_the_html_comments_of_the_requirements_section.md`;
     the second fence scan of `check_markers` is a few lines of a small file; no spec, as the plan decided (non-goal
     of `specs/spec-clarity.md`); `fenced_requirement_checks` is called from `format_checks` because `check_specs()`
     is at the 100-line limit of clippy.

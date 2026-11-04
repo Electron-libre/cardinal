@@ -27,3 +27,38 @@ format checks, as it already is by the wording checks (CLR-5, CLR-8).
 * `crates/cardinal/src/tools/check_specs.rs` (`parse_requirements`, `with_continuation`)
 * `crates/cardinal/src/tools/mod.rs` (`fenced`)
 * `crates/cardinal/tests/check_specs.rs`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+`parse_requirements` reads its lines through `super::fenced` and skips the fenced ones: a `- ` or `## ` line inside a
+fence of the `## Requirements` section is neither a requirement nor a section end; `with_continuation` reads the same
+fence state instead of its own scan. No spec: the format checks are a non-goal of `specs/spec-clarity.md`, tested by
+`crates/cardinal/tests/check_specs.rs`.
+
+## Plan
+1. [x] Skip the fenced lines of the requirements section: one fence state for the loop and the continuation lines;
+   verified by `format_checks` cases of `tests/check_specs.rs` (a fenced `- ` line under a requirement passes, a
+   fenced `## ` line keeps the requirements after it read: a malformed one after it is still flagged); no spec id. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 7b5ea17e7ed157ffd093253fc2d8a135be283184
+
+## Summary of deliverable 1
+- done: `parse_requirements` skips the fenced lines and hands their fence state to `with_continuation`, which no
+  longer scans on its own.
+
+| check | result |
+|---|---|
+| tests, lint, specs | `cardinal run project-check` passes |
+| code review | `low`: no findings |
+| docs | n/a: no document stated that a fenced line was read as a requirement |
+
+- red: none (no spec id; `tests/check_specs.rs` failed before the code: `requirement line must start with
+  `- **RER-<n>**`: `- an example item`` and the fenced `## ` case passed the malformed `RER-3` line)
+- Code review: no findings
+- not verified: none
+- decisions needed: none

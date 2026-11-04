@@ -160,6 +160,30 @@ fn traceability_checks(case: &Case) {
 }
 
 /// The front matter, sections and requirement lines of a spec.
+/// A fenced block of the requirements section is an example: its lines are neither requirements nor headings.
+fn fenced_requirement_checks(case: &Case) {
+    case(
+        "a fenced list item under a requirement passes",
+        &SPEC.replace(
+            "A run must resume.\n",
+            "A run must resume.\n\n```markdown\n- an example item\n```\n",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
+        "a fenced heading does not end the requirements section",
+        &SPEC.replace(
+            "- **RER-2**",
+            "```markdown\n## Example\n```\n\n- RER-3 malformed\n- **RER-2**",
+        ),
+        TESTS,
+        &[],
+        Some("RER-3 malformed"),
+    );
+}
+
 fn format_checks(case: &Case) {
     case(
         "bad status is flagged",
@@ -253,6 +277,7 @@ fn format_checks(case: &Case) {
         &[("specs/other.md", "# none either\n")],
         Some("front matter"),
     );
+    fenced_requirement_checks(case);
 }
 
 /// The tests found in every directory of the tree, whatever its name.

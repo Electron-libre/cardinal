@@ -282,7 +282,11 @@ fn parse_requirements(
 ) {
     let mut seen = BTreeSet::new();
     let mut in_requirements = false;
-    for (i, line) in lines.iter().enumerate() {
+    let marked: Vec<_> = super::fenced(lines.iter().copied()).collect();
+    for (i, &(line, fenced)) in marked.iter().enumerate() {
+        if fenced {
+            continue;
+        }
         if line.starts_with("## ") {
             in_requirements = line.trim() == "## Requirements";
         }
@@ -337,7 +341,7 @@ fn parse_requirements(
         }
         // with no `(kind)`, the statement was not found: the format problem is enough
         if spec.status == "draft" && !withdrawn && !kind.is_empty() {
-            check_wording(file, id, &with_continuation(first, &lines[i + 1..]), warn);
+            check_wording(file, id, &with_continuation(first, &marked[i + 1..]), warn);
         }
         spec.requirements.push(Requirement {
             id: id.to_string(),
@@ -347,10 +351,11 @@ fn parse_requirements(
 }
 
 /// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
-/// ends the paragraph: blank, a list item, a heading, a fence, a quote or an HTML comment.
-fn with_continuation(first: &str, rest: &[&str]) -> String {
+/// ends the paragraph: blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
+/// with whether it is fenced.
+fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
     let mut statement = first.to_string();
-    for (line, fenced) in super::fenced(rest.iter().copied()) {
+    for &(line, fenced) in rest {
         let trimmed = line.trim();
         if fenced
             || trimmed.is_empty()

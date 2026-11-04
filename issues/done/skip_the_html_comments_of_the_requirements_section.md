@@ -93,7 +93,7 @@ The marker and wording checks (CLR-5, CLR-8) are unchanged.
   a fence line, the place of `hidden` (out of `roadmap.rs`), the second scan of the markers. Not fixed: markers in a
   comment still reported (decision 1 a); the `<!--` check of `with_continuation` kept for a comment indented deeper
   in a list item, which `hidden` reads as code; the two fence grammars and the comment opened after the text of an
-  item go to `issues/unify_the_fence_grammars_of_the_markdown_scanners.md`.
+  item go to `issues/done/unify_the_fence_grammars_of_the_markdown_scanners.md`.
 - Code review: no findings
 - not verified: none
 - decisions needed: none

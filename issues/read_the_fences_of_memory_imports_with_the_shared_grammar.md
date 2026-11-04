@@ -13,7 +13,7 @@ line ```` ```just check``` fails. ```` opens a fence there and hides every later
 undercounts. The imports should be read with the same fence grammar as the other Markdown scanners.
 
 # Findings
-* Found by the `high` review of `issues/unify_the_fence_grammars_of_the_markdown_scanners.md` (2026-11-04).
+* Found by the `high` review of `issues/done/unify_the_fence_grammars_of_the_markdown_scanners.md` (2026-11-04).
 * `memory.rs` is outside `tools/`: the shared fence step is private to `tools/mod.rs`.
 
 # Approach

@@ -51,11 +51,9 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
     let mut comment = false;
     // whether the open comment was opened after the text of its line
     let mut inline = false;
-    let spans = code_spans_by_line(lines);
     let hidden = lines
         .iter()
-        .zip(&spans)
-        .map(|(line, spans)| {
+        .map(|line| {
             let body = line.trim_start_matches(' ');
             // an indented code block (four spaces) holds no comment
             let text = line.len() - body.len() <= 3;
@@ -66,7 +64,7 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
             if comment || (fence.is_none() && text && marker.is_none()) {
-                let (open, opener) = comment_after(line, spans, comment);
+                let (open, opener) = comment_after(line, comment);
                 // a comment opened on this line: after text (a code span is text) or at its start
                 if let Some(at) = opener {
                     inline = !line[..at].trim().is_empty();
@@ -88,9 +86,9 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
 }
 
 /// Whether a comment is open after `line`, given whether one is open before it, and the byte offset of the `<!--`
-/// that opened it on this line, if any: a comment holds no code span and ends at its first `-->`, a `<!--` inside
-/// one of the code spans `spans` of the line opens none.
-fn comment_after(line: &str, spans: &[Range<usize>], mut open: bool) -> (bool, Option<usize>) {
+/// that opened it on this line, if any: a comment holds no code span and ends at its first `-->` (`<!-->` and `<!--->`
+/// are whole comments), a `<!--` inside a code span of the line opens none.
+fn comment_after(line: &str, mut open: bool) -> (bool, Option<usize>) {
     let mut opener = None;
     let mut at = 0;
     loop {
@@ -103,16 +101,18 @@ fn comment_after(line: &str, spans: &[Range<usize>], mut open: bool) -> (bool, O
             opener = None;
             at += close + 3;
         } else {
+            let spans = code_spans(rest);
             let start = rest
                 .match_indices("<!--")
                 .map(|(i, _)| i)
-                .find(|i| !spans.iter().any(|span| span.contains(&(at + i))));
+                .find(|i| !spans.iter().any(|span| span.contains(i)));
             let Some(start) = start else {
                 return (false, None);
             };
             open = true;
             opener = Some(at + start);
-            at += start + 4;
+            // the `--` of the opener may begin the closer: `<!-->` is a whole comment
+            at += start + 2;
         }
     }
 }
@@ -182,9 +182,9 @@ pub(crate) fn code_spans(line: &str) -> Vec<Range<usize>> {
 }
 
 /// The byte ranges of each line of `lines` inside a code span, the spans read over the line endings of each paragraph
-/// (`breaks_paragraph`; a heading is a paragraph of one line, a fenced block holds none), as in `CommonMark`.
-pub(crate) fn code_spans_by_line(lines: &[&str]) -> Vec<Vec<Range<usize>>> {
-    let fences: Vec<bool> = fenced(lines.iter().copied()).map(|(_, f)| f).collect();
+/// (`breaks_paragraph`; a heading is a paragraph of one line, a fenced block holds none), as in `CommonMark`; `fences`
+/// says whether each line belongs to a fenced block (`fenced`).
+pub(crate) fn code_spans_by_line(lines: &[&str], fences: &[bool]) -> Vec<Vec<Range<usize>>> {
     let mut out = Vec::with_capacity(lines.len());
     let mut start = 0;
     while start < lines.len() {

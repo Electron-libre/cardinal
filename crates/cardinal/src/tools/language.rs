@@ -98,9 +98,12 @@ fn name_in(config: &toml::Table) -> Option<&str> {
 /// line endings of each paragraph, are removed.
 fn prose_words(text: &str) -> Vec<String> {
     let lines: Vec<&str> = text.lines().collect();
-    let spans = crate::markdown::code_spans_by_line(&lines);
+    let fences: Vec<bool> = crate::markdown::fenced(lines.iter().copied())
+        .map(|(_, fenced)| fenced)
+        .collect();
+    let spans = crate::markdown::code_spans_by_line(&lines, &fences);
     let mut prose = String::new();
-    for ((line, fenced), spans) in crate::markdown::fenced(lines.iter().copied()).zip(&spans) {
+    for ((line, fenced), spans) in lines.iter().zip(&fences).zip(&spans) {
         if !fenced {
             prose.push_str(&crate::markdown::without_spans(line, spans));
             prose.push('\n');

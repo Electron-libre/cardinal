@@ -30,3 +30,30 @@ holds no code span (its first `-->` closes it), and a code span can run over the
 
 # Hints
 * RMP-1 says a comment ends at its `-->`: step 1 makes that literal; amend the specs to name the rules.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+Make `crate::markdown` follow CommonMark on two points: an open HTML comment ends at its first `-->` in the raw text
+(no code span inside it), and a code span runs over the line endings of its paragraph (`prose_words`, `hidden`).
+Out of scope: finding 3 (indented blocks and quoted fences read as prose by the tools), no move to `pulldown-cmark`.
+
+## Plan
+1. [x] Comment closer in the raw text: `hidden` searches `-->` in the raw line once a comment is open, and after the
+   opener on its line; verified by a `roadmap` test (a comment holding ``use `-->` here`` then `## B`); makes true
+   RMP-1 (amended). ~60 lines. (autonomous)
+   - done: `hidden` reads the `-->` of an open comment in the raw text (`markdown::comment_after`).
+   - red: RMP-1: `no row B`.
+   - Code review: see the commit.
+2. [ ] Code spans over a paragraph: a `markdown` function that masks the code spans of each paragraph (lines grouped by
+   `breaks_paragraph`, outside fences), used by `prose_words` and by `hidden` for its openers; verified by a
+   `rule-breaches` test (a span split over two lines) and a `roadmap` test (``see `the <!--`` / ``marker` here``);
+   makes true BRE-10 (amended), LNG-4, RMP-1. ~150 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 95533a484bfc11a5d970c98d99d0205609ec6aea
+- Finding 3 (indented blocks, quoted fences): out of scope, an issue of its own.
+- `check_specs` (CLR-5) keeps reading code spans line by line.

@@ -138,6 +138,18 @@ fn a_comment_opener_in_a_code_span_opens_no_comment() {
     assert_eq!(row(&out, "Next")[1], "shaped", "{out}");
 }
 
+// spec: RMP-1
+/// A comment holds no code span: its first `-->` closes it, even between backticks.
+#[test]
+fn a_comment_ends_at_a_closer_between_backticks() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## A\n- State: idea\n\n<!--\nuse `-->` here\n\n## B\n- State: shaped\n",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "B")[1], "shaped", "{out}");
+}
+
 // spec: RMP-6
 /// A milestone on hold says so after its state.
 #[test]

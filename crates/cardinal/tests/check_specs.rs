@@ -189,6 +189,13 @@ fn fenced_requirement_checks(case: &Case) {
         Some("missing section `## Scenarios`"),
     );
     case(
+        "a fence indented by four spaces opens no block",
+        &SPEC.replace("- **RER-2**", "    ```\n- RER-3 malformed\n- **RER-2**"),
+        TESTS,
+        &[],
+        Some("RER-3 malformed"),
+    );
+    case(
         "an unclosed fence is flagged",
         &SPEC.replace("## Requirements\n", "## Requirements\n\n````text\n```\n"),
         TESTS,

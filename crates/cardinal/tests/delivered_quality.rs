@@ -345,8 +345,8 @@ fn review_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
 
 /// An issue file whose Goal quotes the template in a backtick fence and whose old-layout Tracking holds an indented
 /// `~~~` fence and a longer backtick fence, each with a line that would be a heading outside it; its Findings open a
-/// line with inline code, not a fence.
-const DELTA: &str = "# delta\n\n# Goal\nThe template:\n```md\n# Tracking\n\n## Plan\n1. [x] a\n2. [x] b\n- Code review: 9 findings\n- red: ABC-1: failed\n```\n\n# Findings\n```just check``` fails.\n\n# Tracking\n\n1. [x] one\n   ~~~sh\n# build\n   ```\n   ~~~\n````md\n```\n# not a heading\n````\n2. [x] two\n- Code review: 2 findings\n- red: ABC-2: failed\n\n# Notes\n- Code review: 4 findings\n";
+/// line with inline code, then a line of backticks indented by four spaces, an indented code block, not a fence.
+const DELTA: &str = "# delta\n\n# Goal\nThe template:\n```md\n# Tracking\n\n## Plan\n1. [x] a\n2. [x] b\n- Code review: 9 findings\n- red: ABC-1: failed\n```\n\n# Findings\n```just check``` fails.\n\n    ```sh\n\n# Tracking\n\n1. [x] one\n   ~~~sh\n# build\n   ```\n   ~~~\n````md\n```\n# not a heading\n````\n2. [x] two\n- Code review: 2 findings\n- red: ABC-2: failed\n\n# Notes\n- Code review: 4 findings\n";
 
 // spec: QUA-11, QUA-12
 fn fence_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {

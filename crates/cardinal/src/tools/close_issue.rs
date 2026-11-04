@@ -230,8 +230,8 @@ fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
     for line in text.split_inclusive('\n') {
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = &line[indent..];
-        let marker = roadmap::fence_marker(line);
-        fence = roadmap::next_fence(fence, line);
+        let marker = super::fence_marker(line);
+        fence = super::next_fence(fence, line);
         if fence.is_some() || marker.is_some() {
             offset += line.len();
             continue;

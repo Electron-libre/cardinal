@@ -2,35 +2,9 @@
 //! (NXT-10): a milestone is a `## <name>` heading outside fenced code blocks and HTML comments, its body the lines of
 //! its section outside them.
 
-/// A fence of a fenced code block: its character (`` ` `` or `~`) and its length, three at least.
-#[derive(Clone, Copy, PartialEq)]
-pub(super) struct Fence {
-    ch: char,
-    len: usize,
-}
-
-/// The fence `line` starts with, indented by three spaces at most, and whether nothing but spaces follows it.
-pub(super) fn fence_marker(line: &str) -> Option<(Fence, bool)> {
-    let body = line.trim_start_matches(' ');
-    let ch = body.chars().next().filter(|c| ['`', '~'].contains(c))?;
-    let len = body.len() - body.trim_start_matches(ch).len();
-    (line.len() - body.len() <= 3 && len >= 3)
-        .then(|| (Fence { ch, len }, body[len..].trim().is_empty()))
-}
-
-/// The fence open after `line`, given the one open before it (`None` outside a fenced block): a block closes on a
-/// bare fence of its character at least as long as the one that opened it.
-pub(super) fn next_fence(open: Option<Fence>, line: &str) -> Option<Fence> {
-    match (open, fence_marker(line)) {
-        (None, Some((f, _))) => Some(f),
-        (Some(o), Some((f, true))) if f.ch == o.ch && f.len >= o.len => None,
-        (open, _) => open,
-    }
-}
-
 /// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment.
 fn visible(lines: &[&str]) -> Vec<bool> {
-    let (hidden, _, _) = super::hidden(lines, next_fence);
+    let (hidden, _, _) = super::hidden(lines);
     hidden
         .into_iter()
         .map(|(fenced, commented)| !fenced && !commented)

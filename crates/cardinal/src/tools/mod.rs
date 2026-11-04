@@ -210,19 +210,32 @@ pub fn run(args: &[String]) -> u8 {
     crate::NOT_A_REFUSAL
 }
 
-/// The fenced code block open after `line`, given the one `open` before it (its character and length): a line
-/// starting, indent allowed, with three or more backticks (none after them, else it is inline code) or tildes opens
-/// one; a line of only its character, at least as many, closes it.
-fn fence(open: Option<(char, usize)>, line: &str) -> Option<(char, usize)> {
-    let Some((c, n)) = open else {
-        let line = line.trim_start();
-        let c = line.chars().next().filter(|c| *c == '`' || *c == '~')?;
-        let rest = line.trim_start_matches(c);
-        let n = line.len() - rest.len();
-        return (n >= 3 && !(c == '`' && rest.contains('`'))).then_some((c, n));
-    };
-    let line = line.trim();
-    open.filter(|_| line.len() < n || !line.chars().all(|x| x == c))
+/// A fence of a fenced code block: its character (`` ` `` or `~`) and its length, three at least.
+#[derive(Clone, Copy, PartialEq)]
+struct Fence {
+    ch: char,
+    len: usize,
+}
+
+/// The fence `line` starts with, indented by three spaces at most (four make an indented code block), and whether
+/// nothing but spaces follows it; a backtick fence followed by a backtick is inline code, not a fence (QUA-12).
+fn fence_marker(line: &str) -> Option<(Fence, bool)> {
+    let body = line.trim_start_matches(' ');
+    let ch = body.chars().next().filter(|c| ['`', '~'].contains(c))?;
+    let len = body.len() - body.trim_start_matches(ch).len();
+    let rest = &body[len..];
+    (line.len() - body.len() <= 3 && len >= 3 && !(ch == '`' && rest.contains('`')))
+        .then(|| (Fence { ch, len }, rest.trim().is_empty()))
+}
+
+/// The fence open after `line`, given the one open before it (`None` outside a fenced block): a block closes on a
+/// bare fence of its character at least as long as the one that opened it.
+fn next_fence(open: Option<Fence>, line: &str) -> Option<Fence> {
+    match (open, fence_marker(line)) {
+        (None, Some((f, _))) => Some(f),
+        (Some(o), Some((f, true))) if f.ch == o.ch && f.len >= o.len => None,
+        (open, _) => open,
+    }
 }
 
 /// Whether each line of `lines` belongs to a fenced code block, its fence lines included.
@@ -230,19 +243,15 @@ fn fenced<'a>(lines: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = 
     let mut open = None;
     lines.into_iter().map(move |line| {
         let before = open;
-        open = fence(open, line);
+        open = next_fence(open, line);
         (line, before.is_some() || open.is_some())
     })
 }
 
 /// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
-/// comment (a line that opens one with `<!--` after its text stays text), the fences read by `step` (the fence open
-/// after a line, given the one open before it); then the fence and whether a comment are still open after the last
-/// line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment.
-fn hidden<F: Copy>(
-    lines: &[&str],
-    step: impl Fn(Option<F>, &str) -> Option<F>,
-) -> (Vec<(bool, bool)>, Option<F>, bool) {
+/// comment (a line that opens one with `<!--` after its text stays text); then the fence and whether a comment are
+/// still open after the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment.
+fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
     let mut fence = None;
     let mut comment = false;
     let hidden = lines
@@ -253,7 +262,7 @@ fn hidden<F: Copy>(
             let text = line.len() - body.len() <= 3;
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
-            if comment || (fence.is_none() && text && step(None, line).is_none()) {
+            if comment || (fence.is_none() && text && fence_marker(line).is_none()) {
                 // the text outside the code spans, in order
                 let prose: String = line.split('`').step_by(2).collect();
                 comment = match (prose.rfind("<!--"), prose.rfind("-->")) {
@@ -264,7 +273,7 @@ fn hidden<F: Copy>(
                 };
             }
             if !in_comment {
-                fence = step(fence, line);
+                fence = next_fence(fence, line);
             }
             (
                 !in_comment && (before.is_some() || fence.is_some()),

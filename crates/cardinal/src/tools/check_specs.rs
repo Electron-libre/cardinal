@@ -264,7 +264,7 @@ fn parse(
             ),
         );
     }
-    let (hidden, fence, comment) = super::hidden(&lines, super::fence);
+    let (hidden, fence, comment) = super::hidden(&lines);
     let marked: Vec<_> = lines
         .iter()
         .zip(&hidden)

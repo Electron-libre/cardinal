@@ -32,3 +32,42 @@ an indented code block, a fence inside a block quote or a list item, and a code 
 
 # Hints
 * What counts is what Claude Code loads, not only CommonMark.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+Read the imports of a memory file as Claude Code does: its `marked` lexer drops every `code` and `codespan` token,
+walking into block quotes and list items (checked in the 2.1.318 binary), so the three cases import nothing.
+Means: approach 3, `pulldown-cmark` (no default features), the text events joined per block, code events cut the run.
+Out of scope: the other filters of Claude Code (a `#` fragment cut, the path's first character, HTML comments).
+
+## Plan
+1. [x] Read the imports from the `CommonMark` events: `imports` scans the text runs of `pulldown-cmark` outside code
+   spans and blocks; verified by unit tests of the three cases and a `fixed_context` scenario; makes true REP-2. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 8ed8ab686443889e3722c01d583813cdf24a2604
+- Dependency: `pulldown-cmark`, default features off (1 a).
+- HTML comments: out of scope, a follow-up issue (2 a).
+
+## Deliverable 1
+done: `imports` reads the `pulldown-cmark` text runs outside code spans and blocks; the three cases import nothing.
+
+| check | result |
+|---|---|
+| tests (`project-check`) | pass |
+| lint | pass |
+| specs | REP-2 amended, scenario traced |
+| docs | none other names the rule |
+| code review | low, 2 findings |
+
+red: REP-2: `assertion failed: imports("Example:\n\n    @docs/big.md\n").is_empty()`; `fixed_context`: `claude_md_bytes` 114 for 104 (`docs/big.md` counted)
+
+Code review: 2 findings
+- An `@` right after a code span counts: kept, Claude Code scans each text token apart (`^` of its regex); commented, tested.
+- An emphasis cuts a path (`@b/*c*.md` gives `b/`): kept, the same in Claude Code; tested.
+
+not verified: a real session's `/memory` listing (read from the 2.1.318 binary instead).

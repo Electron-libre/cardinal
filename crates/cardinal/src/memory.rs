@@ -221,32 +221,63 @@ fn scoped(rule: &str) -> bool {
     false
 }
 
-/// The `@<path>` imports of a memory file: at the start of a line or after a white space, outside a code span and a
-/// fenced code block (QUA-12), the path ending at the first white space a backslash
-/// does not escape; a quoted path imports nothing.
+/// The `@<path>` imports of a memory file: in its text as the `CommonMark` lexer reads it, outside every code span and
+/// code block (indented or fenced, in a block quote or a list item too), as Claude Code skips its code tokens.
 fn imports(text: &str) -> Vec<String> {
+    use pulldown_cmark::{Event, Parser, Tag, TagEnd};
     let mut found = Vec::new();
-    for line in crate::markdown::unfenced(text.lines()) {
-        let code = crate::markdown::code_spans(line);
-        let mut chars = line.char_indices().peekable();
-        let mut previous = None;
-        while let Some((at, c)) = chars.next() {
-            let starts = c == '@' && previous.is_none_or(char::is_whitespace);
-            previous = Some(c);
-            if !starts || code.iter().any(|span| span.contains(&at)) {
-                continue;
+    // the text read since the last block, inline tag or code span boundary, in its source form (escapes kept): Claude
+    // Code scans each text token apart, so an `@` right after a code span or an emphasis starts an import
+    let mut run = String::new();
+    let mut code_block = false;
+    for (event, range) in Parser::new(text).into_offset_iter() {
+        match event {
+            Event::Start(Tag::CodeBlock(_)) => code_block = true,
+            Event::End(TagEnd::CodeBlock) => code_block = false,
+            Event::Text(_) | Event::Html(_) | Event::InlineHtml(_) if !code_block => {
+                run.push_str(&text[range]);
             }
-            let mut path = String::new();
-            while let Some((_, c)) = chars.next_if(|&(_, c)| !c.is_whitespace()) {
-                if c == '\\' && chars.peek().is_some_and(|&(_, next)| next == ' ') {
-                    path.push(chars.next().map_or(' ', |(_, c)| c));
-                } else {
-                    path.push(c);
-                }
+            Event::SoftBreak | Event::HardBreak => run.push('\n'),
+            _ => {}
+        }
+        if !matches!(
+            event,
+            Event::Text(_)
+                | Event::Html(_)
+                | Event::InlineHtml(_)
+                | Event::SoftBreak
+                | Event::HardBreak
+        ) {
+            found.extend(run_imports(&run));
+            run.clear();
+        }
+    }
+    found.extend(run_imports(&run));
+    found
+}
+
+/// The imports of a run of text: an `@` at its start or after a white space, the path ending at the first white space
+/// a backslash does not escape; a quoted path imports nothing.
+fn run_imports(run: &str) -> Vec<String> {
+    let mut found = Vec::new();
+    let mut chars = run.chars().peekable();
+    let mut previous = None;
+    while let Some(c) = chars.next() {
+        let starts = c == '@' && previous.is_none_or(char::is_whitespace);
+        previous = Some(c);
+        if !starts {
+            continue;
+        }
+        let mut path = String::new();
+        while let Some(c) = chars.next_if(|c| !c.is_whitespace()) {
+            if c == '\\' && chars.peek() == Some(&' ') {
+                path.push(chars.next().unwrap_or(' '));
+            } else {
+                path.push(c);
             }
-            if !path.is_empty() && !path.starts_with(['"', '\'']) {
-                found.push(path);
-            }
+        }
+        if !path.is_empty() && !path.starts_with(['"', '\'']) {
+            found.push(path);
         }
     }
     found
@@ -280,7 +311,22 @@ mod tests {
     #[test]
     fn an_import_stands_outside_the_code_spans() {
         assert_eq!(imports("``a`b`` @x"), ["x"]);
-        assert_eq!(imports("@a`b @c`"), ["a`b"]);
+        assert_eq!(imports("@a`b @c`"), ["a"]);
         assert_eq!(imports("x@y `@z` @my\\ file.md '@q'"), ["my file.md"]);
+    }
+
+    // spec: REP-2 (internal: the reader of one memory file; fixed_context.rs proves the counts through the binary)
+    #[test]
+    fn an_import_stands_outside_every_code_block() {
+        assert_eq!(imports("Example:\n\n    @docs/big.md\n"), [""; 0]);
+        assert_eq!(imports("> ```\n> @docs/big.md\n> ```\n"), [""; 0]);
+        assert_eq!(imports("- item\n\n  ```\n  @docs/big.md\n  ```\n"), [""; 0]);
+        assert_eq!(imports("Run `just\n@docs/x.md` now"), [""; 0]);
+        assert_eq!(imports("Run `x`@a.md and @b/*c*.md"), ["a.md", "b/"]);
+        // a paragraph continues on the next line, a quote and a list item hold text
+        assert_eq!(
+            imports("text\n    @a.md\n> @b.md\n- @c.md\n"),
+            ["a.md", "b.md", "c.md"]
+        );
     }
 }

@@ -13,7 +13,7 @@ fenced and commented lines (RMP-1), as `close-issue` and `release` read them (CL
 should be skipped by its format checks too.
 
 # Findings
-* Found by the `high` review of `issues/skip_the_fenced_lines_of_the_requirements_section.md` (2026-11-04).
+* Found by the `high` review of `issues/done/skip_the_fenced_lines_of_the_requirements_section.md` (2026-11-04).
 * `check-specs` marks its lines with `super::fenced`; `roadmap::visible` adds the comment state (a line that opens
   one after its text stays text, an indented code block holds none).
 

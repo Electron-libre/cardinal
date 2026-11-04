@@ -82,5 +82,5 @@ gets the warnings its whole statement deserves. Out of scope: the format checks,
   continuation line opening with `30.` or `#42`.
 - red: none (review fixes on the cases of deliverable 1)
 - Code review: no findings (low). High review: 8 findings: 1 to 6 fixed; 7 (the fenced lines of the section read by the format checks) predates
-  the issue, filed as `issues/skip_the_fenced_lines_of_the_requirements_section.md`; 8 not a defect (an indented
+  the issue, filed as `issues/done/skip_the_fenced_lines_of_the_requirements_section.md`; 8 not a defect (an indented
   code block cannot break a paragraph, so CommonMark also reads it as a continuation line).

@@ -11,7 +11,7 @@ ends the section for the requirements that follow. A fenced example under a requ
 format checks, as it already is by the wording checks (CLR-5, CLR-8).
 
 # Findings
-* Found by the `high` review of `issues/check_the_wording_of_a_wrapped_requirement.md` (2026-11-04); the behaviour
+* Found by the `high` review of `issues/done/check_the_wording_of_a_wrapped_requirement.md` (2026-11-04); the behaviour
   predates that issue.
 * `with_continuation` runs its own fence scan through `super::fenced`, the main loop of `parse_requirements` none.
 

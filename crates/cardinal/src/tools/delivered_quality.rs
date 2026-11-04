@@ -165,7 +165,7 @@ enum Section<'a> {
 /// both outside a fenced code block (QUA-12).
 fn section<'a>(text: &'a str, heading: &str, ends: impl Fn(&str) -> bool) -> Section<'a> {
     let mut quoted = false;
-    let mut lines = super::fenced(text.lines()).skip_while(|&(line, fenced)| {
+    let mut lines = crate::markdown::fenced(text.lines()).skip_while(|&(line, fenced)| {
         let found = line.trim_end() == heading;
         quoted |= found && fenced;
         fenced || !found

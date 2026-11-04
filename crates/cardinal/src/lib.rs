@@ -44,6 +44,7 @@ mod entries;
 mod features;
 mod gate;
 mod launcher;
+mod markdown;
 mod memory;
 mod migration;
 pub mod run;

@@ -222,11 +222,11 @@ fn scoped(rule: &str) -> bool {
 }
 
 /// The `@<path>` imports of a memory file: at the start of a line or after a white space, outside a code span and a
-/// fenced code block (the fence grammar of the tools, QUA-12), the path ending at the first white space a backslash
+/// fenced code block (QUA-12), the path ending at the first white space a backslash
 /// does not escape; a quoted path imports nothing.
 fn imports(text: &str) -> Vec<String> {
     let mut found = Vec::new();
-    for line in crate::tools::unfenced(text.lines()) {
+    for line in crate::markdown::unfenced(text.lines()) {
         let chars: Vec<char> = line.chars().collect();
         let mut i = 0;
         while i < chars.len() {

@@ -188,52 +188,19 @@ fn target_span(line: &str, start: usize) -> std::ops::Range<usize> {
     }
 }
 
-/// Byte ranges of `line` inside inline code spans (a run of backticks up to the next run of the same length).
-fn code_spans(line: &str) -> Vec<std::ops::Range<usize>> {
-    let mut spans = vec![];
-    let mut from = 0;
-    while let Some(i) = line[from..].find('`') {
-        let open = from + i;
-        let ticks = line[open..].len() - line[open..].trim_start_matches('`').len();
-        let fence = &line[open..open + ticks];
-        let mut search = open + ticks;
-        let close = loop {
-            match line[search..].find(fence) {
-                Some(j) => {
-                    let at = search + j;
-                    let run = line[at..].len() - line[at..].trim_start_matches('`').len();
-                    if run == ticks {
-                        break Some(at);
-                    }
-                    search = at + run;
-                }
-                None => break None,
-            }
-        };
-        match close {
-            Some(close) => {
-                spans.push(open..close + ticks);
-                from = close + ticks;
-            }
-            None => from = open + ticks,
-        }
-    }
-    spans
-}
-
 /// Byte ranges of the link targets of a Markdown text: inline `[text](target)` and reference `[label]: target`,
 /// outside code spans, fenced code blocks and footnotes (CLS-6).
 fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
     let mut spans = vec![];
     let mut offset = 0;
-    for (line, fenced) in super::fenced(text.split_inclusive('\n')) {
+    for (line, fenced) in crate::markdown::fenced(text.split_inclusive('\n')) {
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = &line[indent..];
         if fenced {
             offset += line.len();
             continue;
         }
-        let code = code_spans(line);
+        let code = crate::markdown::code_spans(line);
         let mut found = vec![];
         let label = body
             .strip_prefix('[')

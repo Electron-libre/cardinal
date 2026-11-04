@@ -4,7 +4,7 @@
 
 /// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment.
 fn visible(lines: &[&str]) -> Vec<bool> {
-    let (hidden, _, _) = super::hidden(lines);
+    let (hidden, _, _) = crate::markdown::hidden(lines);
     hidden
         .into_iter()
         .map(|(fenced, commented)| !fenced && !commented)
@@ -108,7 +108,11 @@ mod tests {
         assert_eq!(names(text), ["A", "B", "C"]);
         // a line indented by four spaces continues the paragraph, and the comment with it
         let commented = |lines: &[&str]| -> Vec<bool> {
-            crate::tools::hidden(lines).0.iter().map(|h| h.1).collect()
+            crate::markdown::hidden(lines)
+                .0
+                .iter()
+                .map(|h| h.1)
+                .collect()
         };
         assert_eq!(
             commented(&["Z <!--", "    ## x", "y", ""]),
@@ -122,7 +126,7 @@ mod tests {
         );
         assert_eq!(commented(&["## a <!--", "b"]), [false, false]);
         // an inline comment open at the end is closed by its paragraph
-        assert!(!crate::tools::hidden(&["a <!--"]).2);
+        assert!(!crate::markdown::hidden(&["a <!--"]).2);
     }
 
     #[test]

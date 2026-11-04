@@ -25,3 +25,29 @@ both grammars once, the core no longer depending on the tools.
 
 # Hints
 * Step 2 changes what QUA-12 and the language check read: check whether their specs name the code-span rule.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+One `crate::markdown` module holds the fence grammar (with `hidden` and its paragraph helpers) and one code-span
+reader (CommonMark runs of equal length); the core (`memory.rs`) no longer imports `crate::tools`. Five readers of code
+spans exist (`imports`, `close_issue::code_spans`, `check_specs::without_code_spans`, `prose_words`, `hidden`): all go
+through the shared one, so `prose_words` and `hidden` stop pairing single backticks.
+
+## Plan
+1. [x] Move: `Fence`, `fence_marker`, `next_fence`, `fenced`, `unfenced`, `hidden`, `breaks_paragraph`, `is_list_item`, `is_heading` from `tools/mod.rs` and `code_spans` from `close_issue.rs` to `crates/cardinal/src/markdown.rs`, callers updated, no change of behaviour; verified by `just check`. (autonomous)
+2. [ ] Read `imports`, `without_code_spans`, `prose_words` and `hidden` through `markdown::code_spans`; verified by tests through the binary (a two-backtick span holding a backtick: not prose for the language check, a `<!--` in it opens no roadmap comment); makes true the amended BRE-10, CLR-5 and RMP-1.
+
+## Decisions
+- Mode: autonomous
+- Base commit: ed375d6dd71e383ef148c8d09e7c392ed4896234
+- Specs amended (still `accepted`, ids kept): BRE-10 and CLR-5 name the CommonMark code-span rule, RMP-1 says a `<!--` in a code span opens no comment; one scenario each for BRE-10 and RMP-1.
+
+## Deliverable 1
+- done: the fence grammar, `hidden` and its helpers, and `code_spans` moved to `crates/cardinal/src/markdown.rs`; callers read `crate::markdown`; the spec amendments of deliverable 2 committed with it.
+- checks: `cardinal run project-check` passes; `deliverable-size` 367 lines, within.
+- red: none (a move, no new behaviour)
+- Code review: no findings
+- not verified: none; decisions needed: none

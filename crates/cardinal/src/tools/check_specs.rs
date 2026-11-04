@@ -264,7 +264,7 @@ fn parse(
             ),
         );
     }
-    let (hidden, fence, comment) = super::hidden(&lines);
+    let (hidden, fence, comment) = crate::markdown::hidden(&lines);
     let marked: Vec<_> = lines
         .iter()
         .zip(&hidden)
@@ -374,7 +374,12 @@ fn parse_requirements(
 fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
     let mut statement = first.to_string();
     for &(line, hidden) in rest {
-        if hidden || super::breaks_paragraph(line, super::fence_marker(line).is_some()) {
+        if hidden
+            || crate::markdown::breaks_paragraph(
+                line,
+                crate::markdown::fence_marker(line).is_some(),
+            )
+        {
             break;
         }
         statement.push(' ');

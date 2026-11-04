@@ -10,7 +10,7 @@ block or a fence inside a block quote is code for the imports and prose for the 
 code blocks and code spans as CommonMark does.
 
 # Findings
-* `high` review of `issues/read_html_comments_and_multiline_code_spans_as_commonmark.md` (2026-11-04): an indented
+* `high` review of `issues/done/read_html_comments_and_multiline_code_spans_as_commonmark.md` (2026-11-04): an indented
   block or a quoted fence is code for `imports` and prose for `hidden`, `fenced` and `prose_words`.
 * Its second `high` review (2026-11-05): `markdown::code_spans_by_line` reads an indented block after a blank line and
   the `-->` line that ends an HTML block as paragraph text, so a code span pairs across them (`prose_words`, BRE-10).

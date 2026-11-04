@@ -65,7 +65,7 @@ through the shared one, so `prose_words` and `hidden` stop pairing single backti
 - checks: `cardinal run project-check` passes.
 - red: CLR-5: "FAIL - a clarification marker in a code span after an unmatched backtick run passes" on the base code; the BRE-10 case of `rule-breaches` passed on the code of deliverable 2, which it guards.
 - not verified: the REP-2 unit test was not run on the base code (it lives in the file it tests); read from the base code, `@a`b @c`` gave the second import `c``.
-- High review of the issue: 8 findings. Fixed: the comment after a code span, the dead line, the missing tests of `imports`, CLR-5 and BRE-10 (5 findings). Not fixed: a path that runs into a code span (REP-2 ends a path at the first white space only); a `-->` in a code span inside a comment and a code span over two lines, both already there before this issue, moved to `issues/read_html_comments_and_multiline_code_spans_as_commonmark.md`.
+- High review of the issue: 8 findings. Fixed: the comment after a code span, the dead line, the missing tests of `imports`, CLR-5 and BRE-10 (5 findings). Not fixed: a path that runs into a code span (REP-2 ends a path at the first white space only); a `-->` in a code span inside a comment and a code span over two lines, both already there before this issue, moved to `issues/done/read_html_comments_and_multiline_code_spans_as_commonmark.md`.
 
 - Code review: no findings
 - decisions needed: none

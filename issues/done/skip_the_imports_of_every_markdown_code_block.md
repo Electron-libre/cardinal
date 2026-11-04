@@ -94,7 +94,7 @@ Code review: 10 findings
 - REP-2 still said "start of a line or after a white space": fixed (start of a text token, the end of a token ends a path).
 - HTML comments scanned: not fixed, decision 2 a; `issues/skip_the_imports_inside_html_comments.md`.
 - The fixture's two-line code span proved nothing: fixed (`@big.md b`, 106 bytes).
-- Two Markdown readers in the crate: not fixed, added to `issues/read_html_comments_and_multiline_code_spans_as_commonmark.md` (option 3).
+- Two Markdown readers in the crate: not fixed, added to `issues/done/read_html_comments_and_multiline_code_spans_as_commonmark.md` (option 3).
 - The text-like events listed twice: fixed (the text arms `continue`, every other event flushes).
 - A `Vec` per flush: fixed (`run_imports` pushes to `found`).
 - `[""; 0]`: fixed (`Vec::<String>::new()`).

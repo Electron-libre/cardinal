@@ -47,10 +47,13 @@ Out of scope: finding 3 (indented blocks and quoted fences read as prose by the 
    - done: `hidden` reads the `-->` of an open comment in the raw text (`markdown::comment_after`).
    - red: RMP-1: `no row B`.
    - Code review: see the commit.
-2. [ ] Code spans over a paragraph: a `markdown` function that masks the code spans of each paragraph (lines grouped by
+2. [x] Code spans over a paragraph: a `markdown` function that masks the code spans of each paragraph (lines grouped by
    `breaks_paragraph`, outside fences), used by `prose_words` and by `hidden` for its openers; verified by a
    `rule-breaches` test (a span split over two lines) and a `roadmap` test (``see `the <!--`` / ``marker` here``);
-   makes true BRE-10 (amended), LNG-4, RMP-1. ~150 lines.
+   makes true BRE-10 (amended), LNG-4, RMP-1. ~150 lines. (autonomous)
+   - done: `markdown::code_spans_by_line` reads the spans of each paragraph; `prose_words` and `hidden` use it; `unfenced` dropped.
+   - red: BRE-10, RMP-1: the split span was read as English prose (`FAIL - a long block ... is a breach`); the link after ``see `the <!--`` was hidden (`issues` cell empty).
+   - Code review: no findings
 
 ## Decisions
 - Mode: autonomous

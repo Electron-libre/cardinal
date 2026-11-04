@@ -27,7 +27,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-1) Given milestone `Next` whose line `- State: shaped <!-- see` is followed by the item `- Issues:` listing `issues/a.md`, and a later heading `## Later`, when `roadmap` runs, then the rows of `Next` and `Later` are printed and the `issues` cell of `Next` reads `1/1 open`.
 - (RMP-1) Given milestone `Next` whose section opens with a line ```` ``<!--`` opens a comment ```` followed by `- State: shaped`, when `roadmap` runs, then the `state` cell of `Next` reads `shaped`: the `<!--` is in a code span.
 - (RMP-1) Given a line `<!--`, then a line ``use `-->` here``, then a heading `## B`, when `roadmap` runs, then the row of `B` is printed: the comment ends at the `-->` of the code-like text.
-- (RMP-1) Given milestone `Next` whose section opens with the lines ``see `the <!--`` and ``marker` here`` followed by `- State: shaped`, when `roadmap` runs, then the `state` cell of `Next` reads `shaped`: the code span runs over the line ending.
+- (RMP-1) Given milestone `Next` whose item ``- Issues: see `the <!--`` goes on with the line ``marker` and [a](issues/a.md)``, when `roadmap` runs, then the `issues` cell of `Next` reads `1/1 open`: the code span runs over the line ending.
 - (RMP-3) Given milestone `Draft` with no `State:` line and milestone `Odd` with `- State: paused`, when `roadmap` runs, then their state cells read `(none)` and `paused (unknown)`.
 - (RMP-3) Given milestone `Later` with `- State: shaped <!-- by a reviewer -->`, when `roadmap` runs, then its state cell reads `shaped`.
 - (RMP-6) Given milestone `Later` with `- State: shaped` and `- On hold: after the release`, when `roadmap` runs, then its state cell reads `shaped (on hold)`.

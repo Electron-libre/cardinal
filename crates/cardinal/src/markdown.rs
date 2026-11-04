@@ -1,5 +1,7 @@
 //! The Markdown scanning of the tools: fenced code blocks (QUA-12), HTML comments and code spans.
 
+use std::ops::Range;
+
 /// A fence of a fenced code block: its character (`` ` `` or `~`) and its length, three at least.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct Fence {
@@ -40,13 +42,6 @@ pub(crate) fn fenced<'a>(
     })
 }
 
-/// The lines of `lines` outside every fenced code block, its fence lines included.
-pub(crate) fn unfenced<'a>(
-    lines: impl IntoIterator<Item = &'a str>,
-) -> impl Iterator<Item = &'a str> {
-    fenced(lines).filter_map(|(line, fenced)| (!fenced).then_some(line))
-}
-
 /// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
 /// comment (one ends at its first `-->`, code spans aside: see `comment_after`; a line that opens one with `<!--` after its text stays text, and that comment ends at the end of its
 /// paragraph, as in `CommonMark`: see `breaks_paragraph`, or with its line on a heading); then the fence and whether a
@@ -56,9 +51,11 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
     let mut comment = false;
     // whether the open comment was opened after the text of its line
     let mut inline = false;
+    let spans = code_spans_by_line(lines);
     let hidden = lines
         .iter()
-        .map(|line| {
+        .zip(&spans)
+        .map(|(line, spans)| {
             let body = line.trim_start_matches(' ');
             // an indented code block (four spaces) holds no comment
             let text = line.len() - body.len() <= 3;
@@ -69,7 +66,7 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
             if comment || (fence.is_none() && text && marker.is_none()) {
-                let (open, opener) = comment_after(line, comment);
+                let (open, opener) = comment_after(line, spans, comment);
                 // a comment opened on this line: after text (a code span is text) or at its start
                 if let Some(at) = opener {
                     inline = !line[..at].trim().is_empty();
@@ -91,9 +88,9 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
 }
 
 /// Whether a comment is open after `line`, given whether one is open before it, and the byte offset of the `<!--`
-/// that opened it on this line, if any: a comment holds no code span and ends at its first `-->`, a `<!--` inside a
-/// code span opens none.
-fn comment_after(line: &str, mut open: bool) -> (bool, Option<usize>) {
+/// that opened it on this line, if any: a comment holds no code span and ends at its first `-->`, a `<!--` inside
+/// one of the code spans `spans` of the line opens none.
+fn comment_after(line: &str, spans: &[Range<usize>], mut open: bool) -> (bool, Option<usize>) {
     let mut opener = None;
     let mut at = 0;
     loop {
@@ -106,11 +103,10 @@ fn comment_after(line: &str, mut open: bool) -> (bool, Option<usize>) {
             opener = None;
             at += close + 3;
         } else {
-            let spans = code_spans(rest);
             let start = rest
                 .match_indices("<!--")
                 .map(|(i, _)| i)
-                .find(|i| !spans.iter().any(|span| span.contains(i)));
+                .find(|i| !spans.iter().any(|span| span.contains(&(at + i))));
             let Some(start) = start else {
                 return (false, None);
             };
@@ -153,7 +149,7 @@ fn is_heading(trimmed: &str) -> bool {
 }
 
 /// Byte ranges of `line` inside inline code spans (a run of backticks up to the next run of the same length).
-pub(crate) fn code_spans(line: &str) -> Vec<std::ops::Range<usize>> {
+pub(crate) fn code_spans(line: &str) -> Vec<Range<usize>> {
     let mut spans = vec![];
     let mut from = 0;
     while let Some(i) = line[from..].find('`') {
@@ -185,18 +181,56 @@ pub(crate) fn code_spans(line: &str) -> Vec<std::ops::Range<usize>> {
     spans
 }
 
-/// `line` with each of its code spans (`code_spans`) replaced by a space: its text outside them, in order.
-pub(crate) fn without_code_spans(line: &str) -> String {
-    replace_code_spans(line, " ")
+/// The byte ranges of each line of `lines` inside a code span, the spans read over the line endings of each paragraph
+/// (`breaks_paragraph`; a heading is a paragraph of one line, a fenced block holds none), as in `CommonMark`.
+pub(crate) fn code_spans_by_line(lines: &[&str]) -> Vec<Vec<Range<usize>>> {
+    let fences: Vec<bool> = fenced(lines.iter().copied()).map(|(_, f)| f).collect();
+    let mut out = Vec::with_capacity(lines.len());
+    let mut start = 0;
+    while start < lines.len() {
+        let mut end = start + 1;
+        if !fences[start] && !is_heading_line(lines[start]) {
+            while end < lines.len() && !fences[end] && !breaks_paragraph(lines[end], false) {
+                end += 1;
+            }
+        }
+        let paragraph = lines[start..end].join("\n");
+        let spans = if fences[start] {
+            vec![]
+        } else {
+            code_spans(&paragraph)
+        };
+        let mut offset = 0;
+        for line in &lines[start..end] {
+            let within = |span: &Range<usize>| {
+                let (from, to) = (span.start.max(offset), span.end.min(offset + line.len()));
+                (from < to).then(|| from - offset..to - offset)
+            };
+            out.push(spans.iter().filter_map(within).collect());
+            offset += line.len() + 1;
+        }
+        start = end;
+    }
+    out
 }
 
-/// `line` with each of its code spans (`code_spans`) replaced by `with`.
-fn replace_code_spans(line: &str, with: &str) -> String {
+/// Whether `line` is an ATX heading indented by three spaces at most.
+fn is_heading_line(line: &str) -> bool {
+    line.len() - line.trim_start_matches(' ').len() <= 3 && is_heading(line.trim())
+}
+
+/// `line` with each of its code spans (`code_spans`) replaced by a space: its text outside them, in order.
+pub(crate) fn without_code_spans(line: &str) -> String {
+    without_spans(line, &code_spans(line))
+}
+
+/// `line` with each of the ranges `spans`, in order, replaced by a space.
+pub(crate) fn without_spans(line: &str, spans: &[Range<usize>]) -> String {
     let mut out = String::new();
     let mut last = 0;
-    for span in code_spans(line) {
+    for span in spans {
         out.push_str(&line[last..span.start]);
-        out.push_str(with);
+        out.push(' ');
         last = span.end;
     }
     out.push_str(&line[last..]);

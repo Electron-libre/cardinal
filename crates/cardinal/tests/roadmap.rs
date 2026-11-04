@@ -150,6 +150,18 @@ fn a_comment_ends_at_a_closer_between_backticks() {
     assert_eq!(row(&out, "B")[1], "shaped", "{out}");
 }
 
+// spec: RMP-1
+/// A code span runs over the line endings of its paragraph: a `<!--` inside it opens no comment.
+#[test]
+fn a_comment_opener_in_a_code_span_over_two_lines_opens_no_comment() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## Next\n- State: shaped\n- Issues: see `the <!--\n  marker` and [a](issues/a.md)\n",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "Next")[3], "1/1 open", "{out}");
+}
+
 // spec: RMP-6
 /// A milestone on hold says so after its state.
 #[test]

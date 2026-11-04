@@ -714,6 +714,8 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             &format!("Voici le diff :\n```\n{ENGLISH}\n```\net `{ENGLISH}` fini."),
         );
         t.text("m8", &format!("{FRENCH} ``{ENGLISH} {ENGLISH} ` x``"));
+        // a code span runs over the line endings of its paragraph
+        t.text("m9", &format!("{FRENCH}\n`{ENGLISH}\n{ENGLISH}` fini."));
         t.text(
             "m6",
             &format!("Voici la sortie :\n   ~~~\n{ENGLISH}\n   ~~~\nfini."),

@@ -10,7 +10,7 @@ departs from CommonMark in list items and in the HTML that may interrupt a parag
 differ from the files a session loads.
 
 # Findings
-* Found by the `high` review of `issues/skip_the_imports_inside_html_comments.md` (2026-11-05); cases 1 and 3
+* Found by the `high` review of `issues/done/skip_the_imports_inside_html_comments.md` (2026-11-05); cases 1 and 3
   derived from the rules of the `marked` lexer, not yet run against it.
 * Claude Code 2.1.318 scans the imports per `marked` token: `if(S.type==="text")s(S.text||""); if(S.tokens)h(S.tokens)`.
 * 1. In a list item (`state.top` false) `marked` makes block `text` tokens, not paragraphs, whose `.text` is the raw
@@ -33,7 +33,7 @@ differ from the files a session loads.
 
 # Resources
 * `crates/cardinal/src/memory.rs` (`imports`, `html_imports`)
-* `issues/skip_the_imports_inside_html_comments.md` (the reading of Claude Code's scanner)
+* `issues/done/skip_the_imports_inside_html_comments.md` (the reading of Claude Code's scanner)
 
 # Hints
 * What counts is what Claude Code loads, not only CommonMark.

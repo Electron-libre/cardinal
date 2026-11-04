@@ -62,7 +62,6 @@ fence state instead of its own scan. No spec: the format checks are a non-goal o
 - red: none (no spec id; `tests/check_specs.rs` failed before the code: `requirement line must start with
   `- **RER-<n>**`: `- an example item`` and the fenced `## ` case passed the malformed `RER-3` line)
 - Code review: no findings
-- Code review: no findings
 - not verified: none
 - decisions needed: none
 

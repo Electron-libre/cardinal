@@ -1,6 +1,6 @@
 ---
 id: REL
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -26,7 +26,7 @@ reads in the changelog what changed since its last pin.
 - **REL-8** (deterministic) `release` must never push.
 - **REL-11** (deterministic) `release` must read each commit since the last version tag with the convention of its own revision: a commit whose `.claude/cardinal.toml` (`.claude/harness.toml` before its rename, ADR 0015), as of that commit, turns off the feature `conventional-commits` counts as breaking only when it changes a file of `release_breaking_files`, with no commit type nor `BREAKING CHANGE:` footer read, and is otherwise neither a `feat` nor a `fix`; a commit with no readable configuration follows the convention. When it proposes a version (no argument) or prepares one (`release <version>`) and a commit since the last tag is read without the convention, it prints to stderr the warning `release: conventional-commits is off: the version is proposed from release_breaking_files only`, followed, when `release_breaking_files` lists no file, by the line `release: release_breaking_files lists no file: the commits written with conventional-commits off are a patch`; its stdout with no version stays the version alone.
 - **REL-12** (deterministic) `release <version>` must list each non-merge commit since the last version tag read without the convention (REL-11) that is not breaking under a subsection `### Changed`, after `### Fixed`, one line `- <subject>` (the whole subject) per commit, oldest first; the lines of `### Breaking` for such commits hold the whole subject too. The commits read with the convention stay listed as REL-4 says.
-- **REL-9** (deterministic) `release <version>` must list under `### Milestones`, first in the section, every milestone (a `## <name>` heading outside fenced code blocks and HTML comments, its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` whose `State:` is `done` and that has no `Released:` line, and add to each of them the line `- Released: v<version>` after its `State:` line.
+- **REL-9** (deterministic) `release <version>` must list under `### Milestones`, first in the section, every milestone (a `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them), its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` whose `State:` is `done` and that has no `Released:` line, and add to each of them the line `- Released: v<version>` after its `State:` line.
 - **REL-13** (deterministic) When `.claude/cardinal.toml` names a `roadmap_archive` (a path from the root of the work tree), `release <version>` must, after REL-9, move each milestone of the other `roadmap` documents that has a `Released:` line, its whole section (from its heading to the next milestone heading, REL-9's grammar), to the end of the archive, in the order of those documents, leaving the other milestones and their order unchanged; it creates a missing archive with a short header, and rewrites the relative link targets of a moved section when the archive is in another directory. A `roadmap_archive` that `roadmap` does not list is refused, with a non-zero exit and no file changed. With no `roadmap_archive`, no milestone moves.
 
 ## Scenarios

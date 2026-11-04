@@ -181,51 +181,13 @@ pub(crate) fn code_spans(line: &str) -> Vec<Range<usize>> {
     spans
 }
 
-/// The byte ranges of each line of `lines` inside a code span, the spans read over the line endings of each paragraph
-/// (`breaks_paragraph`; a heading is a paragraph of one line, a fenced block holds none), as in `CommonMark`; `fences`
-/// says whether each line belongs to a fenced block (`fenced`).
-pub(crate) fn code_spans_by_line(lines: &[&str], fences: &[bool]) -> Vec<Vec<Range<usize>>> {
-    let mut out = Vec::with_capacity(lines.len());
-    let mut start = 0;
-    while start < lines.len() {
-        let mut end = start + 1;
-        if !fences[start] && !is_heading_line(lines[start]) {
-            while end < lines.len() && !fences[end] && !breaks_paragraph(lines[end], false) {
-                end += 1;
-            }
-        }
-        let paragraph = lines[start..end].join("\n");
-        let spans = if fences[start] {
-            vec![]
-        } else {
-            code_spans(&paragraph)
-        };
-        let mut offset = 0;
-        for line in &lines[start..end] {
-            let within = |span: &Range<usize>| {
-                let (from, to) = (span.start.max(offset), span.end.min(offset + line.len()));
-                (from < to).then(|| from - offset..to - offset)
-            };
-            out.push(spans.iter().filter_map(within).collect());
-            offset += line.len() + 1;
-        }
-        start = end;
-    }
-    out
-}
-
-/// Whether `line` is an ATX heading indented by three spaces at most.
-fn is_heading_line(line: &str) -> bool {
-    line.len() - line.trim_start_matches(' ').len() <= 3 && is_heading(line.trim())
-}
-
 /// `line` with each of its code spans (`code_spans`) replaced by a space: its text outside them, in order.
 pub(crate) fn without_code_spans(line: &str) -> String {
     without_spans(line, &code_spans(line))
 }
 
 /// `line` with each of the ranges `spans`, in order, replaced by a space.
-pub(crate) fn without_spans(line: &str, spans: &[Range<usize>]) -> String {
+fn without_spans(line: &str, spans: &[Range<usize>]) -> String {
     let mut out = String::new();
     let mut last = 0;
     for span in spans {

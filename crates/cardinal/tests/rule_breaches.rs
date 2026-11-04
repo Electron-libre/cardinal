@@ -720,6 +720,14 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             "m6",
             &format!("Voici la sortie :\n   ~~~\n{ENGLISH}\n   ~~~\nfini."),
         );
+        // an indented block and a fenced block inside a quote are code, as in CommonMark
+        t.text("m10", &format!("{FRENCH}\n\n    {ENGLISH}\n    {ENGLISH}"));
+        t.text("m11", &format!("{FRENCH}\n\n> ```\n> {ENGLISH}\n> ```"));
+        // the backtick of the line that closes an HTML block is HTML: it pairs with none after it
+        let html = t.text(
+            "m12",
+            &format!("{FRENCH}\n<!--\n--> `\n{ENGLISH} {ENGLISH}` fini."),
+        );
         t.write(&projects.join(format!("-{name}/s.jsonl")));
         let mut sub = Transcript::new(&repo, "2026-02-01T10:01:00.000Z");
         sub.text("m5", ENGLISH);
@@ -728,13 +736,16 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             expected.push(format!(
                 "s\tfr\tr1\tuser-language\tbreach\ts.jsonl:{english}\tintermediate"
             ));
+            expected.push(format!(
+                "s\tfr\tr1\tuser-language\tbreach\ts.jsonl:{html}\tfinal"
+            ));
         }
     }
     let (ok, out) = run(dir, &projects, false);
     let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
     let (_, summary) = run(dir, &projects, true);
     let summary: Vec<&str> = summary.lines().collect();
-    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t1\t0\t"];
+    let want_summary = [SUMMARY, "user-language\tr1\t1\t1\t2\t0\t"];
     if rows != expected || summary != want_summary {
         println!("{out}{}", summary.join("\n"));
     }

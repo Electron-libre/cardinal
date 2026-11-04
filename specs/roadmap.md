@@ -1,6 +1,6 @@
 ---
 id: RMP
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -13,7 +13,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 
 ## Requirements
 
-- **RMP-1** (deterministic) `roadmap` must print one row per milestone (a `## <name>` heading outside fenced code blocks and HTML comments, its section read without the lines inside them, REL-9; a `<!--` inside a code span of its line (CLR-5) opening none, a comment ending at the first `-->` after the `<!` of its `<!--` (`<!-->` and `<!--->` are whole comments), a backtick inside it opening no code span, and one opened by a `<!--` after the text of a line ending there or at the end of its paragraph: a blank line, a list item, a heading, a fence or a quote) of the `roadmap` documents of `.claude/cardinal.toml` of the current directory, in the order of the documents then of the milestones in each, as a Markdown table of the columns `milestone`, `state`, `released`, `issues` and `document`: its name, the value of its first `State:` line, the value of its `Released:` line (empty when it has none), each read without a trailing HTML comment and with a `|` written `\|`, the issues of RMP-2 and the document as the configuration writes it.
+- **RMP-1** (deterministic) `roadmap` must print one row per milestone (a `## <name>` heading outside code blocks and HTML comments, its section read without the lines inside them, REL-9, both read as CommonMark reads them: a code block is fenced or indented, inside a quote or a list item or not, its fences included; a comment is an HTML block opening with `<!--`, up to the line holding its first `-->` after the `<!` (`<!-->` and `<!--->` are whole comments), or an inline `<!--...-->` of a paragraph, a backtick inside it opening no code span; a `<!--` inside a code span, or that no `-->` closes in its paragraph, is text; a line is inside a code block or a comment when its first character, the markers of its quotes and list items aside, is) of the `roadmap` documents of `.claude/cardinal.toml` of the current directory, in the order of the documents then of the milestones in each, as a Markdown table of the columns `milestone`, `state`, `released`, `issues` and `document`: its name, the value of its first `State:` line, the value of its `Released:` line (empty when it has none), each read without a trailing HTML comment and with a `|` written `\|`, the issues of RMP-2 and the document as the configuration writes it.
 - **RMP-2** (deterministic) The `issues` cell of a milestone must read `<open>/<listed> open`, where `<listed>` counts the distinct issue files its `Issues:` list links in the `issues` directory (an anchor of the target aside) (a URL, an anchor or another document aside, resolved against the directory of the document as CLS-8 resolves them) and `<open>` those of them that do not designate an existing file directly under `issues/done/`; a milestone with no such link reads an empty cell.
 - **RMP-3** (deterministic) A milestone with no `State:` line must show `(none)` in its `state` cell, and one whose state is not `idea`, `shaped`, `in issues` or `done` its value followed by ` (unknown)`; neither is skipped.
 - **RMP-4** (deterministic) With `--open`, `roadmap` must leave out the milestones that have a `Released:` line.
@@ -28,6 +28,8 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-1) Given milestone `Next` whose section opens with a line ```` ``<!--`` opens a comment ```` followed by `- State: shaped`, when `roadmap` runs, then the `state` cell of `Next` reads `shaped`: the `<!--` is in a code span.
 - (RMP-1) Given a line `<!--`, then a line ``use `-->` here``, then a heading `## B`, when `roadmap` runs, then the row of `B` is printed: the comment ends at the `-->` of the code-like text.
 - (RMP-1) Given milestone `A` whose `- State: idea` is followed by a line `<!-->`, then the item `- Issues:` listing `issues/a.md`, then a line `<!--->` and a heading `## B`, when `roadmap` runs, then the `issues` cell of `A` reads `1/1 open` and the row of `B` is printed: both are whole comments.
+- (RMP-1) Given milestone `A` whose section holds, after a blank line, the indented line `    ## B`, then the quoted fenced block `> ~~~`, `> ## C`, `> ~~~` and a heading `## D`, when `roadmap` runs, then only the rows of `A` and `D` are printed.
+- (RMP-1) Given a line `Shape: <!--`, then a heading `## B`, when `roadmap` runs, then the row of `B` is printed: the unclosed `<!--` is text.
 - (RMP-3) Given milestone `Draft` with no `State:` line and milestone `Odd` with `- State: paused`, when `roadmap` runs, then their state cells read `(none)` and `paused (unknown)`.
 - (RMP-3) Given milestone `Later` with `- State: shaped <!-- by a reviewer -->`, when `roadmap` runs, then its state cell reads `shaped`.
 - (RMP-6) Given milestone `Later` with `- State: shaped` and `- On hold: after the release`, when `roadmap` runs, then its state cell reads `shaped (on hold)`.

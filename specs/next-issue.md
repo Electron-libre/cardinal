@@ -1,6 +1,6 @@
 ---
 id: NXT
-status: accepted
+status: draft
 adrs: [0019, 0021]
 ---
 
@@ -24,7 +24,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - **NXT-7** (deterministic) An open issue is ready when every stem of the `depends_on` of its front matter (`depends_on: [<stem>, <stem>...]` on one line, `[]` or no key for none) is an issue of `issues/done/`, else blocked: `next-issue` must never offer a blocked issue.
 - **NXT-8** (deterministic) A stem of `depends_on` that is neither an open issue nor an issue of `issues/done/`, or a `depends_on` that is not a list of stems, must be reported on stderr as `unknown dependency of <stem>: <dependency>` or `invalid depends_on: <stem>` with exit code 1, the issue counting as blocked by it.
 - **NXT-9** (deterministic) Open issues whose dependencies form a cycle must be reported on stderr once per group of issues that depend on each other as `dependency cycle: <stem>, <stem>...` (its stems sorted) with exit code 1, the issues of the cycle staying blocked.
-- **NXT-10** (deterministic) The milestone of an issue is the first non-empty line of its `# Milestone` section, and its order the position of the `## <name>` heading outside fenced code blocks and HTML comments of the same name in the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory), read in the listed order: `next-issue` must order the issues of an earlier milestone first, and those with no milestone after those with one.
+- **NXT-10** (deterministic) The milestone of an issue is the first non-empty line of its `# Milestone` section, and its order the position of the `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them) of the same name in the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory), read in the listed order: `next-issue` must order the issues of an earlier milestone first, and those with no milestone after those with one.
 - **NXT-11** (deterministic) `next-issue` must list each blocked issue after the ready ones, in the order of NXT-1, on a line `Blocked: <stem> (by <stem>, <stem>...)` naming the stems that are not done.
 - **NXT-12** (deterministic) When the free issues are all blocked or on hold (NXT-15), `next-issue` must print `No ready issue: every free one waits on another.` instead of an issue, or `No ready issue: every free one is on hold or waits on another.` when one of them is on hold.
 - **NXT-13** (deterministic) A milestone that no roadmap heading names must be reported on stderr as `unknown milestone of <stem>: <name>` with exit code 1, the issue ordered as one with no milestone.

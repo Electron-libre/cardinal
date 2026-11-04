@@ -94,19 +94,19 @@ fn name_in(config: &toml::Table) -> Option<&str> {
     config.get("project")?.get("user_language")?.as_str()
 }
 
-/// The lower-cased words of a text once fenced code blocks (the fence rule of QUA-12) and inline code, read over the
-/// line endings of each paragraph, are removed.
+/// The lower-cased words of the prose of a text as `CommonMark` reads it: its text, without its code blocks (fenced or
+/// indented, in a quote or a list item or not), its code spans and its HTML.
 fn prose_words(text: &str) -> Vec<String> {
-    let lines: Vec<&str> = text.lines().collect();
-    let fences: Vec<bool> = crate::markdown::fenced(lines.iter().copied())
-        .map(|(_, fenced)| fenced)
-        .collect();
-    let spans = crate::markdown::code_spans_by_line(&lines, &fences);
+    use pulldown_cmark::{Event, Parser, Tag, TagEnd};
     let mut prose = String::new();
-    for ((line, fenced), spans) in lines.iter().zip(&fences).zip(&spans) {
-        if !fenced {
-            prose.push_str(&crate::markdown::without_spans(line, spans));
-            prose.push('\n');
+    let mut code_block = false;
+    for event in Parser::new(text) {
+        match event {
+            Event::Start(Tag::CodeBlock(_)) => code_block = true,
+            Event::End(TagEnd::CodeBlock) => code_block = false,
+            Event::Text(text) if !code_block => prose.push_str(&text),
+            // a word ends at a code span, a line ending or a block
+            _ => prose.push(' '),
         }
     }
     prose

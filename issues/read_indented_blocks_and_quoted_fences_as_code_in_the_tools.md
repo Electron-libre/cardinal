@@ -33,3 +33,41 @@ code blocks and code spans as CommonMark does.
 
 # Hints
 * `check-specs` (`hidden`, CLR-5) and `roadmap` read the same module: a change of `hidden` moves both.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-05
+
+## Understanding
+`prose_words` (BRE-10, LNG-4) and `markdown::hidden` (RMP-1, CLR-5, and the milestone grammar of REL-9, CLS-8,
+NXT-10) read Markdown with `pulldown-cmark`, as `memory::imports` does: indented and quoted code blocks become code, an
+unclosed inline `<!--` becomes text. Out of scope: `fenced`/`code_spans` of `close-issue` and `delivered-quality`
+(QUA-12), the per-line code spans of `check_markers`, and the paragraph rule of CLR-8.
+
+## Plan
+1. [x] Prose words as CommonMark: `prose_words` keeps the `Event::Text` outside code blocks (code spans, HTML left out); `code_spans_by_line` and `without_spans` removed if unused; verified by tests of the two new BRE-10 scenarios and the existing ones; makes true BRE-10, LNG-4. (autonomous)
+2. [ ] Hidden lines as CommonMark: `hidden` marks a line code or comment when its first content lies in a code block or an HTML comment (block or inline), reports a fenced block or a comment block reaching the end unclosed; the hand-written comment scan (`comment_after`, the inline rule) removed; verified by the new RMP-1 scenarios through `roadmap`, the amended internal tests of `roadmap.rs` and a CLR-5 test of an indented block; makes true RMP-1, CLR-5, REL-9, CLS-8, NXT-10.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 27d0c25193de9a876fab967b0d4748a8101c6b52
+- The words of an HTML comment are not prose (BRE-10): only `Event::Text` counts.
+- `fenced`, `code_spans` (close-issue, QUA-12) and the paragraph rule of CLR-8 stay out of scope.
+
+## Deliverable 1
+
+done: `prose_words` reads the prose with `pulldown-cmark` (code blocks, code spans and HTML left out); `code_spans_by_line` removed; the spec drafts of the whole issue committed with it (`rule-breaches`, `language-hint` accepted again, the others `draft` until deliverable 2).
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass (two older wording warnings, CLS-9 and BRE-5, untouched) |
+| docs | n/a: no document describes how the prose is read |
+| code review | no findings |
+
+red: BRE-10: the indented block of English stop words was a breach (`s.jsonl:10`) and the backtick of the `-->` line paired with the next one, hiding the breach of `s.jsonl:12`.
+
+Code review: no findings (`low`).
+
+not verified: none. decisions needed: none.

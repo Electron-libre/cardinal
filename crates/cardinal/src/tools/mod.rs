@@ -250,6 +250,13 @@ pub(crate) fn fenced<'a>(
     })
 }
 
+/// The lines of `lines` outside every fenced code block, its fence lines included.
+pub(crate) fn unfenced<'a>(
+    lines: impl IntoIterator<Item = &'a str>,
+) -> impl Iterator<Item = &'a str> {
+    fenced(lines).filter_map(|(line, fenced)| (!fenced).then_some(line))
+}
+
 /// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
 /// comment (a line that opens one with `<!--` after its text stays text, and that comment ends at the end of its
 /// paragraph, as in `CommonMark`: see `breaks_paragraph`, or with its line on a heading); then the fence and whether a

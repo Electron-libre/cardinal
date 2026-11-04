@@ -46,6 +46,8 @@ REP-2 keeps its wording ("a fenced code block" is CommonMark's); one scenario st
 1. [x] Shared fence grammar for imports: `fenced` reachable from `memory.rs`, `imports` reads through it, a REP-2
    scenario for the inline-code line; verified by a `budget_cli` test (a ```` ```just check``` ```` line, then an import
    counted); makes true REP-2. (autonomous)
+2. [x] Fixes of the `high` review: the REP-2 scenario names the tab case, `tools::unfenced` replaces the filter of
+   `memory.rs` and `language.rs`; verified by project-check. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -59,3 +61,16 @@ REP-2 keeps its wording ("a fenced code block" is CommonMark's); one scenario st
 - checks: project-check green, docs unchanged (no doc names this grammar), deliverable-size 56 lines.
 - Code review: no findings
 - not verified: that Claude Code's own scanner treats a tab-indented fence as no fence (read from `marked`'s rule).
+
+## Summary of deliverable 2
+- done: the fixes of the `high` review (9 findings).
+- red: none (a scenario wording and a refactor under green tests).
+- Code review (high): 9 findings
+  - tab case not in a scenario: fixed (REP-2 scenario).
+  - repeated `fenced` filter: fixed (`unfenced`).
+  - REP-2 does not name QUA-12: not fixed, decision 1 a keeps its wording.
+  - test through `check`, not a report row: not fixed, `check` and `fixed-context` share `memory::measure`.
+  - indented blocks, fences in block quotes and list items, spans over two lines: issue
+    `issues/skip_the_imports_of_every_markdown_code_block.md`.
+  - grammar in `tools/`, two code-span grammars: issue `issues/move_the_markdown_scanning_to_a_module_of_its_own.md`.
+- Code review (low): no findings

@@ -97,7 +97,7 @@ fn name_in(config: &toml::Table) -> Option<&str> {
 /// The lower-cased words of a text once fenced code blocks (the fence rule of QUA-12) and inline code are removed.
 fn prose_words(text: &str) -> Vec<String> {
     let mut prose = String::new();
-    for (line, _) in super::fenced(text.lines()).filter(|&(_, fenced)| !fenced) {
+    for line in super::unfenced(text.lines()) {
         prose.extend(line.split('`').step_by(2).flat_map(|part| [part, " "]));
         prose.push('\n');
     }

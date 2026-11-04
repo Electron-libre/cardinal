@@ -235,6 +235,46 @@ fn fenced<'a>(lines: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = 
     })
 }
 
+/// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
+/// comment (a line that opens one with `<!--` after its text stays text), the fences read by `step` (the fence open
+/// after a line, given the one open before it); then the fence and whether a comment are still open after the last
+/// line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment.
+fn hidden<F: Copy>(
+    lines: &[&str],
+    step: impl Fn(Option<F>, &str) -> Option<F>,
+) -> (Vec<(bool, bool)>, Option<F>, bool) {
+    let mut fence = None;
+    let mut comment = false;
+    let hidden = lines
+        .iter()
+        .map(|line| {
+            let body = line.trim_start_matches(' ');
+            // an indented code block (four spaces) holds no comment
+            let text = line.len() - body.len() <= 3;
+            let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
+            let before = fence;
+            if comment || (fence.is_none() && text && step(None, line).is_none()) {
+                // the text outside the code spans, in order
+                let prose: String = line.split('`').step_by(2).collect();
+                comment = match (prose.rfind("<!--"), prose.rfind("-->")) {
+                    (Some(open), Some(close)) => open > close,
+                    (Some(_), None) => true,
+                    (None, Some(_)) => false,
+                    (None, None) => comment,
+                };
+            }
+            if !in_comment {
+                fence = step(fence, line);
+            }
+            (
+                !in_comment && (before.is_some() || fence.is_some()),
+                in_comment,
+            )
+        })
+        .collect();
+    (hidden, fence, comment)
+}
+
 /// Root of the repository holding the current directory.
 fn repo_root() -> Result<PathBuf, String> {
     let out = Command::new("git")

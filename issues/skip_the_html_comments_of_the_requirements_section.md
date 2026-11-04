@@ -49,6 +49,8 @@ The marker and wording checks (CLR-5, CLR-8) are unchanged.
    inside the requirements, a commented section heading, an unclosed comment); makes true no spec requirement (format
    checks are a non-goal of `specs/spec-clarity.md`). (autonomous)
 
+2. [x] High review fixes: one hidden pass for the markers too, no comment opened in a fence line; verified by
+   `tests/check_specs.rs`. (autonomous)
 ## Decisions
 - Mode: autonomous
 - Base commit: 6b0400015da16ac4710176836b9d2e2ac25485f6
@@ -69,6 +71,29 @@ The marker and wording checks (CLR-5, CLR-8) are unchanged.
 
 - red: none (no spec requirement; `tests/check_specs.rs`: `FAIL - a commented requirement template passes`,
   `FAIL - an unclosed comment is flagged`)
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2 (high review fixes)
+- done: `hidden` moves to `tools/mod.rs` and tells fenced from commented lines; `check_markers` reads the same pass
+  (a commented fence no longer hides a later marker); a fence line never opens a comment (`~~~html <!--`).
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clippy clean |
+| specs | traceability passes |
+| docs | doc comments of `hidden`, `check_markers` |
+| code review | `low`: no findings |
+
+- red: none (no spec requirement; `FAIL - a marker after a commented fence is flagged`,
+  `FAIL - a fence whose info string holds a comment opener opens no comment`)
+- High review: 10 findings. Fixed: the comment-unaware pass of `check_markers` (and its test), the comment opened in
+  a fence line, the place of `hidden` (out of `roadmap.rs`), the second scan of the markers. Not fixed: markers in a
+  comment still reported (decision 1 a); the `<!--` check of `with_continuation` kept for a comment indented deeper
+  in a list item, which `hidden` reads as code; the two fence grammars and the comment opened after the text of an
+  item go to `issues/unify_the_fence_grammars_of_the_markdown_scanners.md`.
 - Code review: no findings
 - not verified: none
 - decisions needed: none

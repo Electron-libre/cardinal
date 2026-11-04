@@ -86,15 +86,17 @@ fn question(after: &str) -> &str {
 }
 
 /// An open question left in the spec: a problem once `accepted`, a warning while `draft`. A marker cited in a code
-/// span or a fenced code block is an example, not a question.
+/// span or a fenced code block is an example, not a question; one in an HTML comment is still a question. `hidden`
+/// says whether each line is fenced, then whether it is commented.
 fn check_markers(
     file: &str,
     lines: &[&str],
+    hidden: &[(bool, bool)],
     accepted: bool,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
-    for (i, (line, fenced)) in super::fenced(lines.iter().copied()).enumerate() {
+    for (i, (line, &(fenced, _))) in lines.iter().zip(hidden).enumerate() {
         if fenced {
             continue;
         }
@@ -262,8 +264,12 @@ fn parse(
             ),
         );
     }
-    let (hidden, fence, comment) = super::roadmap::hidden(&lines, super::fence);
-    let marked: Vec<_> = lines.iter().copied().zip(hidden).collect();
+    let (hidden, fence, comment) = super::hidden(&lines, super::fence);
+    let marked: Vec<_> = lines
+        .iter()
+        .zip(&hidden)
+        .map(|(&line, &(fenced, commented))| (line, fenced || commented))
+        .collect();
     for section in SECTIONS {
         if !marked
             .iter()
@@ -280,7 +286,7 @@ fn parse(
         problem(out, file, format_args!("unclosed HTML comment"));
     }
     parse_requirements(file, &marked, &mut spec, out, warn);
-    check_markers(file, &lines, spec.status == "accepted", out, warn);
+    check_markers(file, &lines, &hidden, spec.status == "accepted", out, warn);
     spec
 }
 

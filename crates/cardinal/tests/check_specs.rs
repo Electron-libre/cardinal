@@ -234,6 +234,16 @@ fn commented_requirement_checks(case: &Case) {
         None,
     );
     case(
+        "a fence whose info string holds a comment opener opens no comment",
+        &SPEC.replace(
+            "## Requirements\n",
+            "## Requirements\n\n~~~html <!--\nx\n~~~\n",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
         "an unclosed comment is flagged",
         &SPEC.replace("## Requirements\n", "## Requirements\n\n<!--\n"),
         TESTS,
@@ -872,6 +882,17 @@ fn marker_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     case(
         "a marker after a fence holding a shorter fence is flagged",
         &nested,
+        TESTS,
+        &[],
+        Some("NEEDS CLARIFICATION"),
+    );
+    let commented = SPEC.replace(
+        "- None.\n",
+        "- None.\n\n<!--\n```\n-->\n\n[NEEDS CLARIFICATION: hidden?]\n",
+    );
+    case(
+        "a marker after a commented fence is flagged",
+        &commented,
         TESTS,
         &[],
         Some("NEEDS CLARIFICATION"),

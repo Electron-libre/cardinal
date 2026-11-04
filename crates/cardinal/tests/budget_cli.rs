@@ -155,6 +155,27 @@ fn a_nested_fence_hides_its_imports_and_an_open_front_matter_scopes_nothing() {
     );
 }
 
+// spec: SYN-38, REP-2
+#[test]
+fn a_backtick_fence_followed_by_a_backtick_hides_no_import() {
+    let home = Home::new();
+    let (_source, root) = measured(&home);
+    set_budget(root.path(), "0");
+    let root = root.path();
+    // a tab indents as four spaces: no fence; then inline code, no fence either
+    let claude = "\t```\n@docs/tab.md\n```just check``` fails.\n@docs/big.md\n";
+    put(root, "CLAUDE.md", claude);
+    put(root, "docs/big.md", &"b".repeat(1000));
+    put(root, "docs/tab.md", &"t".repeat(100));
+    let memory = (claude.len() + 1000 + 100) as u64;
+    let run = home.ok(root, &["check"]);
+    assert_eq!(
+        budget(&run),
+        [over(memory + 10, 0, "CLAUDE.md", memory).as_str()],
+        "{run:?}"
+    );
+}
+
 // spec: SYN-38
 #[test]
 fn update_warns_once_judging_the_work_tree_it_leaves() {

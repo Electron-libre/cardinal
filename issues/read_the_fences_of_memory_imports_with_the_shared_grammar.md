@@ -31,3 +31,31 @@ undercounts. The imports should be read with the same fence grammar as the other
 # Hints
 * What counts is what Claude Code loads: the grammar should match the way Claude Code itself skips the imports in
   code blocks, not only CommonMark.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+`memory.rs::imports` reads its fences with `tools/mod.rs::fenced` (made `pub(crate)`) instead of its own parser: a
+backtick fence followed by a backtick is inline code, a tab does not indent a fence. Claude Code tokenizes memory files
+with `marked`, whose fence rule (` {0,3}`, no backtick in a backtick info string) is the one `fence_marker` already has.
+REP-2 keeps its wording ("a fenced code block" is CommonMark's); one scenario states the case.
+
+## Plan
+1. [x] Shared fence grammar for imports: `fenced` reachable from `memory.rs`, `imports` reads through it, a REP-2
+   scenario for the inline-code line; verified by a `budget_cli` test (a ```` ```just check``` ```` line, then an import
+   counted); makes true REP-2. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- REP-2 keeps its wording; a scenario states the inline-code case (answer 1 a).
+- Base commit: 318b9b25f2e32ee849534defdee060075ad8d0ff
+
+## Summary of deliverable 1
+- done: `imports` reads its fences through `tools::fenced` (`pub(crate)`); a REP-2 scenario states the inline-code case.
+- red: REP-2: the fixed context is 65 bytes, CLAUDE.md 55 (expected 1165 and 1155: the tab-indented fence and the
+  inline-code line hid both imports).
+- checks: project-check green, docs unchanged (no doc names this grammar), deliverable-size 56 lines.
+- Code review: no findings
+- not verified: that Claude Code's own scanner treats a tab-indented fence as no fence (read from `marked`'s rule).

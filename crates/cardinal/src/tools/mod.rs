@@ -239,7 +239,9 @@ fn next_fence(open: Option<Fence>, line: &str) -> Option<Fence> {
 }
 
 /// Whether each line of `lines` belongs to a fenced code block, its fence lines included.
-fn fenced<'a>(lines: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = (&'a str, bool)> {
+pub(crate) fn fenced<'a>(
+    lines: impl IntoIterator<Item = &'a str>,
+) -> impl Iterator<Item = (&'a str, bool)> {
     let mut open = None;
     lines.into_iter().map(move |line| {
         let before = open;

@@ -222,35 +222,11 @@ fn scoped(rule: &str) -> bool {
 }
 
 /// The `@<path>` imports of a memory file: at the start of a line or after a white space, outside a code span and a
-/// fenced code block, the path ending at the first white space a backslash does not escape; a quoted path imports
-/// nothing.
+/// fenced code block (the fence grammar of the tools, QUA-12), the path ending at the first white space a backslash
+/// does not escape; a quoted path imports nothing.
 fn imports(text: &str) -> Vec<String> {
     let mut found = Vec::new();
-    // the character and length of the open fence
-    let mut fence: Option<(char, usize)> = None;
-    for line in text.lines() {
-        let trimmed = line.trim_start();
-        let marker = ['`', '~'].into_iter().find_map(|c| {
-            let run = trimmed.chars().take_while(|&t| t == c).count();
-            (run >= 3 && line.len() - trimmed.len() < 4).then_some((c, run))
-        });
-        match (fence, marker) {
-            (None, Some(m)) => {
-                fence = Some(m);
-                continue;
-            }
-            // a closing fence is as long as the opening one at least and holds nothing else
-            (Some((c, n)), Some((m, run)))
-                if m == c && run >= n && trimmed[run..].trim().is_empty() =>
-            {
-                fence = None;
-                continue;
-            }
-            _ => {}
-        }
-        if fence.is_some() {
-            continue;
-        }
+    for (line, _) in crate::tools::fenced(text.lines()).filter(|&(_, fenced)| !fenced) {
         let chars: Vec<char> = line.chars().collect();
         let mut i = 0;
         while i < chars.len() {

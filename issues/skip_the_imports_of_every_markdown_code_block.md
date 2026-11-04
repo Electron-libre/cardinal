@@ -11,7 +11,7 @@ count a file a session never loads and `claude_md_bytes` and the budget overcoun
 an indented code block, a fence inside a block quote or a list item, and a code span that spans a line break.
 
 # Findings
-* Found by the `high` review of `issues/read_the_fences_of_memory_imports_with_the_shared_grammar.md` (2026-11-04).
+* Found by the `high` review of `issues/done/read_the_fences_of_memory_imports_with_the_shared_grammar.md` (2026-11-04).
 * `Example:\n\n    @docs/big.md\n` counts `docs/big.md` (indented code block).
 * `> ```\n> @docs/big.md\n> ```\n` counts it: `fence_marker` sees `>` first and opens no fence.
 * ``Run `just\n@docs/x.md` now`` counts `docs/x.md`: `imports` scans each line on its own.

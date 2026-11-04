@@ -114,7 +114,7 @@ iterator over that one step: `language` and `delivered_quality` must not hide co
 
 - red: none (the `hidden` cases were written with the fixes)
 - High code review: 8 findings: 7 fixed; the fence parser of `memory.rs` (REP-2) is out of the tools: became
-  `issues/read_the_fences_of_memory_imports_with_the_shared_grammar.md`. `next_fence` still calls `fence_marker` once
+  `issues/done/read_the_fences_of_memory_imports_with_the_shared_grammar.md`. `next_fence` still calls `fence_marker` once
   more per line: negligible.
 - Code review: no findings (low)
 - not verified: none

@@ -12,7 +12,7 @@ are read two ways: `memory.rs::imports` matches backtick runs of equal length, `
 both grammars once, the core no longer depending on the tools.
 
 # Findings
-* Found by the `high` review of `issues/read_the_fences_of_memory_imports_with_the_shared_grammar.md` (2026-11-04).
+* Found by the `high` review of `issues/done/read_the_fences_of_memory_imports_with_the_shared_grammar.md` (2026-11-04).
 * On ``` ``a`b`` @x ```, `imports` reads one span then `@x`; `split('`')` pairs the backticks otherwise.
 
 # Approach

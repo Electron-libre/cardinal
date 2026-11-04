@@ -46,6 +46,9 @@ does not model.
 1. [x] HTML read as Claude Code reads it: `imports` gathers each HTML block, skips it unless it starts with a whole
    comment, else scans its text without comments, and skips inline HTML; verified by the unit tests of `memory.rs`
    (one-line and multi-line comment blocks, a block quote, a `<div>` block, inline comment and tag); makes true REP-2. (autonomous)
+2. [x] Fixes of the `high` review: the binary test `fixed_context.rs` proves the HTML cases of REP-2; the cases where
+   `marked` departs from CommonMark go to `issues/read_list_items_and_html_interruptions_as_marked_does.md`;
+   verified by `fixed_context`, failing on the code of the base commit; makes true REP-2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -74,3 +77,31 @@ Code review: 2 findings
 
 not verified: none
 decisions needed: none
+
+## High review of the issue
+Code review: 4 findings
+- tight-list text tokens scanned raw by Claude Code (`- note <!-- @a.md -->`): outside the requirements, issue
+  `read_list_items_and_html_interruptions_as_marked_does.md`.
+- HTML blocks of types 3 to 5 that `marked` does not let interrupt a paragraph: same issue.
+- a lone tag line in a list item, an HTML block for `marked`: same issue.
+- no binary test of the HTML scenario: fixed, deliverable 2.
+
+## Summary of deliverable 2
+done: `docs/x.md` of the `fixed_context` fixture holds a commented and a `<div>` import of `big.md`, not counted.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | none to change |
+| code review | see below |
+
+red: REP-2: `FAIL - the bytes and skills come from the commit the revision came in force with` (on the code of the base commit)
+
+Code review: no findings
+
+not verified: cases 1 and 3 of the new issue are derived from the rules of `marked`, not run
+decisions needed: none
+
+All deliverables done.

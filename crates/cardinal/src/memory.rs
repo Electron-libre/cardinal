@@ -227,37 +227,27 @@ fn scoped(rule: &str) -> bool {
 fn imports(text: &str) -> Vec<String> {
     let mut found = Vec::new();
     for line in crate::markdown::unfenced(text.lines()) {
-        let chars: Vec<char> = line.chars().collect();
-        let mut i = 0;
-        while i < chars.len() {
-            if chars[i] == '`' {
-                let run = chars[i..].iter().take_while(|&&c| c == '`').count();
-                i += run;
-                // the span ends at the next run of the same length; without one the backticks are literal
-                if let Some(end) = (i..chars.len()).find(|&j| {
-                    chars[j..].iter().take_while(|&&c| c == '`').count() == run
-                        && (j == 0 || chars[j - 1] != '`')
-                }) {
-                    i = end + run;
-                }
+        let code = crate::markdown::code_spans(line);
+        let mut chars = line.char_indices().peekable();
+        let mut previous = None;
+        while let Some((at, c)) = chars.next() {
+            let starts = c == '@' && previous.is_none_or(char::is_whitespace);
+            previous = Some(c);
+            if !starts || code.iter().any(|span| span.contains(&at)) {
                 continue;
             }
-            if chars[i] == '@' && (i == 0 || chars[i - 1].is_whitespace()) {
-                let mut path = String::new();
-                i += 1;
-                while i < chars.len() && !chars[i].is_whitespace() {
-                    if chars[i] == '\\' && chars.get(i + 1) == Some(&' ') {
-                        i += 1;
-                    }
-                    path.push(chars[i]);
-                    i += 1;
+            let mut path = String::new();
+            while let Some((_, c)) = chars.next_if(|&(_, c)| !c.is_whitespace()) {
+                if c == '\\' && chars.peek().is_some_and(|&(_, next)| next == ' ') {
+                    path.push(chars.next().map_or(' ', |(_, c)| c));
+                } else {
+                    path.push(c);
                 }
-                if !path.is_empty() && !path.starts_with(['"', '\'']) {
-                    found.push(path);
-                }
-                continue;
             }
-            i += 1;
+            previous = path.chars().last().or(previous);
+            if !path.is_empty() && !path.starts_with(['"', '\'']) {
+                found.push(path);
+            }
         }
     }
     found

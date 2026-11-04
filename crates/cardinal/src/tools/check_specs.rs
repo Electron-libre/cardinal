@@ -43,30 +43,6 @@ pub(super) fn is_req_id(s: &str) -> bool {
     })
 }
 
-/// `line` with the content of its inline code spans (a run of backticks up to the next run of the same length)
-/// blanked out, so a cited marker or word is not read as the spec's own.
-fn without_code_spans(line: &str) -> String {
-    let mut out = String::new();
-    let mut rest = line;
-    while let Some(start) = rest.find('`') {
-        out.push_str(&rest[..start]);
-        let run = rest[start..].len() - rest[start..].trim_start_matches('`').len();
-        let after = &rest[start + run..];
-        let fence = "`".repeat(run);
-        let close = after
-            .match_indices(&fence)
-            .find(|(i, _)| !after[i + run..].starts_with('`') && !after[..*i].ends_with('`'));
-        let Some((end, _)) = close else {
-            out.push_str(&rest[start..]);
-            return out;
-        };
-        out.push(' ');
-        rest = &after[end + run..];
-    }
-    out.push_str(rest);
-    out
-}
-
 const MARKER: &str = "[NEEDS CLARIFICATION:";
 
 /// The text of a marker up to its closing bracket, brackets inside it included.
@@ -100,7 +76,7 @@ fn check_markers(
         if fenced {
             continue;
         }
-        let text = without_code_spans(line);
+        let text = crate::markdown::without_code_spans(line);
         let mut rest = text.as_str();
         while let Some(start) = rest.find(MARKER) {
             let after = &rest[start + MARKER.len()..];
@@ -151,7 +127,7 @@ fn without_quotes(text: &str) -> String {
 /// only: the word list has false positives.
 fn check_wording(file: &str, id: &str, statement: &str, warn: &mut Vec<String>) {
     // `shouldn't` holds `should` and `mustn't` a `must`
-    let text = without_quotes(&without_code_spans(statement))
+    let text = without_quotes(&crate::markdown::without_code_spans(statement))
         .to_lowercase()
         .replace("n't", " not")
         .replace("n\u{2019}t", " not");

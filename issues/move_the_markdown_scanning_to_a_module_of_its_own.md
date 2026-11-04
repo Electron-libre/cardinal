@@ -38,7 +38,7 @@ through the shared one, so `prose_words` and `hidden` stop pairing single backti
 
 ## Plan
 1. [x] Move: `Fence`, `fence_marker`, `next_fence`, `fenced`, `unfenced`, `hidden`, `breaks_paragraph`, `is_list_item`, `is_heading` from `tools/mod.rs` and `code_spans` from `close_issue.rs` to `crates/cardinal/src/markdown.rs`, callers updated, no change of behaviour; verified by `just check`. (autonomous)
-2. [ ] Read `imports`, `without_code_spans`, `prose_words` and `hidden` through `markdown::code_spans`; verified by tests through the binary (a two-backtick span holding a backtick: not prose for the language check, a `<!--` in it opens no roadmap comment); makes true the amended BRE-10, CLR-5 and RMP-1.
+2. [x] Read `imports`, `without_code_spans`, `prose_words` and `hidden` through `markdown::code_spans`; verified by tests through the binary (a two-backtick span holding a backtick: not prose for the language check, a `<!--` in it opens no roadmap comment); makes true the amended BRE-10, CLR-5 and RMP-1. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -49,5 +49,12 @@ through the shared one, so `prose_words` and `hidden` stop pairing single backti
 - done: the fence grammar, `hidden` and its helpers, and `code_spans` moved to `crates/cardinal/src/markdown.rs`; callers read `crate::markdown`; the spec amendments of deliverable 2 committed with it.
 - checks: `cardinal run project-check` passes; `deliverable-size` 367 lines, within.
 - red: none (a move, no new behaviour)
+- Code review: no findings
+- not verified: none; decisions needed: none
+
+## Deliverable 2
+- done: `markdown::without_code_spans` (over `code_spans`) replaces the backtick split of `hidden` and `prose_words` and the reader of `check_specs`; `imports` skips the `@` inside `code_spans`.
+- checks: `cardinal run project-check` passes.
+- red: LNG-4, BRE-10, RMP-1: the hook sent the reply back (`code: Some(2)`, "Your last reply is not in French") for an English code span holding a backtick; `roadmap` read the state of `Next` as `(none)` after a line ``` ``<!--`` opens a comment ```.
 - Code review: no findings
 - not verified: none; decisions needed: none

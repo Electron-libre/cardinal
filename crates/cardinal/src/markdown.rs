@@ -69,8 +69,7 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool)
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
             if comment || (fence.is_none() && text && marker.is_none()) {
-                // the text outside the code spans, in order
-                let prose: String = line.split('`').step_by(2).collect();
+                let prose = without_code_spans(line);
                 let (opener, closer) = (prose.rfind("<!--"), prose.rfind("-->"));
                 let before_close = closer.is_some();
                 let open = match (opener, closer) {
@@ -161,4 +160,17 @@ pub(crate) fn code_spans(line: &str) -> Vec<std::ops::Range<usize>> {
         }
     }
     spans
+}
+
+/// `line` with each of its code spans (`code_spans`) replaced by a space: its text outside them, in order.
+pub(crate) fn without_code_spans(line: &str) -> String {
+    let mut out = String::new();
+    let mut last = 0;
+    for span in code_spans(line) {
+        out.push_str(&line[last..span.start]);
+        out.push(' ');
+        last = span.end;
+    }
+    out.push_str(&line[last..]);
+    out
 }

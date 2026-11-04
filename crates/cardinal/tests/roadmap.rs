@@ -123,6 +123,21 @@ fn a_comment_after_text_ends_with_its_paragraph() {
     assert_eq!(row(&out, "Later")[1], "idea", "{out}");
 }
 
+// spec: RMP-1
+/// A `<!--` inside a code span opens no comment: the state that follows is read.
+#[test]
+fn a_comment_opener_in_a_code_span_opens_no_comment() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## Next
+``<!--`` opens a comment
+- State: shaped
+",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "Next")[1], "shaped", "{out}");
+}
+
 // spec: RMP-6
 /// A milestone on hold says so after its state.
 #[test]

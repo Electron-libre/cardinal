@@ -111,6 +111,17 @@ fn code_short_replies_and_replies_in_the_language_pass() {
     }
 }
 
+// spec: LNG-4, BRE-10
+/// A code span runs to the next run of backticks of its length: the single backtick inside it does not end it.
+#[test]
+fn a_code_span_holding_a_backtick_is_code() {
+    let dir = tempdir().unwrap();
+    repo(dir.path(), Some("French"));
+    let message = format!("{FRENCH} ``{ENGLISH} {ENGLISH} ` x``");
+    let run = hook(dir.path(), &stop(dir.path(), &message));
+    assert!(silent_pass(&run), "{message}: {run:?}");
+}
+
 // spec: LNG-6
 #[test]
 fn a_reply_that_cannot_be_judged_passes() {

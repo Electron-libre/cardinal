@@ -98,7 +98,7 @@ fn name_in(config: &toml::Table) -> Option<&str> {
 fn prose_words(text: &str) -> Vec<String> {
     let mut prose = String::new();
     for line in crate::markdown::unfenced(text.lines()) {
-        prose.extend(line.split('`').step_by(2).flat_map(|part| [part, " "]));
+        prose.push_str(&crate::markdown::without_code_spans(line));
         prose.push('\n');
     }
     prose

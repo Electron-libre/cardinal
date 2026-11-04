@@ -71,6 +71,6 @@ REP-2 keeps its wording ("a fenced code block" is CommonMark's); one scenario st
   - REP-2 does not name QUA-12: not fixed, decision 1 a keeps its wording.
   - test through `check`, not a report row: not fixed, `check` and `fixed-context` share `memory::measure`.
   - indented blocks, fences in block quotes and list items, spans over two lines: issue
-    `issues/skip_the_imports_of_every_markdown_code_block.md`.
+    `issues/done/skip_the_imports_of_every_markdown_code_block.md`.
   - grammar in `tools/`, two code-span grammars: issue `issues/done/move_the_markdown_scanning_to_a_module_of_its_own.md`.
 - Code review (low): no findings

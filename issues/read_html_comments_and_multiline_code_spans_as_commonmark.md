@@ -14,7 +14,7 @@ holds no code span (its first `-->` closes it), and a code span can run over the
   comment stays open and hides `## B` (`roadmap`, `check-specs`).
 * `prose_words`: ``Use `the result of the`` then ``function` here`` on the next line: both halves hold an unmatched
   backtick and are read as prose by the language check (LNG-4, BRE-10).
-* Since `issues/skip_the_imports_of_every_markdown_code_block.md`, `memory.rs::imports` reads Markdown with
+* Since `issues/done/skip_the_imports_of_every_markdown_code_block.md`, `memory.rs::imports` reads Markdown with
   `pulldown-cmark` and the tools with `crate::markdown`: an indented block or a quoted fence is code for the imports
   and prose for the tools (`high` review, 2026-11-04).
 

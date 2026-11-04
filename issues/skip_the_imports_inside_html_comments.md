@@ -10,7 +10,7 @@ an HTML token unless it starts with a comment, and then scans only what is left 
 removed, so a commented-out import counts a file a session never loads.
 
 # Findings
-* Found by the `high` review of `issues/skip_the_imports_of_every_markdown_code_block.md` (2026-11-04), left out
+* Found by the `high` review of `issues/done/skip_the_imports_of_every_markdown_code_block.md` (2026-11-04), left out
   of it by its decision 2 a.
 * `<!-- old: @docs/big.md -->` counts `docs/big.md` in `claude_md_bytes` and `instruction_files`.
 * Claude Code 2.1.318 (read from its binary): `if(S.type==="html"){... if(H.startsWith("<!--")&&H.includes("-->"))

@@ -107,9 +107,22 @@ mod tests {
         let text = "## A <!-- was Z -->\nShape: <!--\n## B\n    <!-- code\nUse `<!--` for notes\n## C\nX <!--\n- y\n<!--\n\n## D\n-->\n";
         assert_eq!(names(text), ["A", "B", "C"]);
         // a line indented by four spaces continues the paragraph, and the comment with it
-        let lines = ["Z <!--", "    - x", "y", ""];
-        let commented: Vec<bool> = crate::tools::hidden(&lines).0.iter().map(|h| h.1).collect();
-        assert_eq!(commented, [false, true, true, false]);
+        let commented = |lines: &[&str]| -> Vec<bool> {
+            crate::tools::hidden(lines).0.iter().map(|h| h.1).collect()
+        };
+        assert_eq!(
+            commented(&["Z <!--", "    ## x", "y", ""]),
+            [false, true, true, false]
+        );
+        // a nested item and a comment block end it; a heading ends it on its own line
+        assert_eq!(commented(&["- a <!--", "    - b"]), [false, false]);
+        assert_eq!(
+            commented(&["a <!--", "<!-- b", "## c", "-->"]),
+            [false, true, true, true]
+        );
+        assert_eq!(commented(&["## a <!--", "b"]), [false, false]);
+        // an inline comment open at the end is closed by its paragraph
+        assert!(!crate::tools::hidden(&["a <!--"]).2);
     }
 
     #[test]

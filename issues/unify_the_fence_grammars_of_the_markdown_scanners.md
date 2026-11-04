@@ -52,6 +52,9 @@ iterator over that one step: `language` and `delivered_quality` must not hide co
 2. [x] A comment opened after the text of a line ends at the end of its paragraph (blank, list item, heading, fence,
    quote), the paragraph breakers of `check-specs` moved to `tools/mod.rs`; verified by `tests/roadmap.rs` and a
    `tests/check_specs.rs` case (`- **ABC-1** ... <!-- see` followed by `- **ABC-2**`); makes true RMP-1. (autonomous)
+3. [x] High review fixes: a comment block and a nested item end an inline comment, a heading ends it on its line, an
+   inline comment open at the end is not unclosed, `with_continuation` and `link_targets` reuse the shared steps;
+   verified by the `hidden` cases of `roadmap.rs`; makes true RMP-1. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -92,5 +95,27 @@ iterator over that one step: `language` and `delivered_quality` must not hide co
 
 - red: RMP-1: `roadmap`: "a_comment_after_text_ends_with_its_paragraph" failed (the `issues` cell of `Next` read empty); `check_specs`: "a comment opened after the text of a requirement ends with its paragraph" failed (RER-2 hidden).
 - Code review: 1 finding: `breaks_paragraph` ignored indentation, so a line indented by four spaces ended the comment; fixed (three spaces at most), proved by a `hidden` case in `roadmap.rs`.
+- not verified: none
+- decisions needed: none
+
+## Deliverable 3
+- done: fixes of the `high` review of `668d716..b376800` (8 findings): `breaks_paragraph` ends an inline comment on
+  a comment opener and on a list item at any indentation (nested items); a heading ends a comment opened after its
+  text on its own line; `hidden` reports no unclosed comment for an inline one; `with_continuation` (CLR-8) calls
+  `breaks_paragraph`; `link_targets` reads its fences through `fenced`; `hidden` computes the fence marker once.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clippy clean |
+| specs | no change (RMP-1 as amended) |
+| docs | none |
+| code review | `high`: 8 findings, 7 fixed, 1 became an issue; `low`: no findings |
+
+- red: none (the `hidden` cases were written with the fixes)
+- High code review: 8 findings: 7 fixed; the fence parser of `memory.rs` (REP-2) is out of the tools: became
+  `issues/read_the_fences_of_memory_imports_with_the_shared_grammar.md`. `next_fence` still calls `fence_marker` once
+  more per line: negligible.
+- Code review: no findings (low)
 - not verified: none
 - decisions needed: none

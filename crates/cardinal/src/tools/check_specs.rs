@@ -369,23 +369,16 @@ fn parse_requirements(
 }
 
 /// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
-/// ends the paragraph: blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
+/// ends the paragraph (`breaks_paragraph`): blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
 /// with whether it is hidden: fenced or commented.
 fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
     let mut statement = first.to_string();
     for &(line, hidden) in rest {
-        let trimmed = line.trim();
-        if hidden
-            || trimmed.is_empty()
-            || super::is_list_item(trimmed)
-            || super::is_heading(trimmed)
-            || trimmed.starts_with('>')
-            || trimmed.starts_with("<!--")
-        {
+        if hidden || super::breaks_paragraph(line, super::fence_marker(line).is_some()) {
             break;
         }
         statement.push(' ');
-        statement.push_str(trimmed);
+        statement.push_str(line.trim());
     }
     statement
 }

@@ -250,8 +250,8 @@ fn fenced<'a>(lines: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = 
 
 /// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
 /// comment (a line that opens one with `<!--` after its text stays text, and that comment ends at the end of its
-/// paragraph, as in `CommonMark`: see `breaks_paragraph`); then the fence and whether a comment are still open after
-/// the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment (RMP-1).
+/// paragraph, as in `CommonMark`: see `breaks_paragraph`, or with its line on a heading); then the fence and whether a
+/// comment are still open after the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment (RMP-1).
 fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
     let mut fence = None;
     let mut comment = false;
@@ -263,12 +263,13 @@ fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
             let body = line.trim_start_matches(' ');
             // an indented code block (four spaces) holds no comment
             let text = line.len() - body.len() <= 3;
-            if comment && inline && breaks_paragraph(line) {
+            let marker = fence_marker(line);
+            if comment && inline && breaks_paragraph(line, marker.is_some()) {
                 comment = false;
             }
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
-            if comment || (fence.is_none() && text && fence_marker(line).is_none()) {
+            if comment || (fence.is_none() && text && marker.is_none()) {
                 // the text outside the code spans, in order
                 let prose: String = line.split('`').step_by(2).collect();
                 let (opener, closer) = (prose.rfind("<!--"), prose.rfind("-->"));
@@ -283,7 +284,8 @@ fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
                 if let Some(at) = opener.filter(|_| open && (!comment || before_close)) {
                     inline = !prose[..at].trim().is_empty();
                 }
-                comment = open;
+                // a heading is one line: a comment opened after its text ends with it
+                comment = open && !(inline && text && is_heading(body.trim()));
             }
             if !in_comment {
                 fence = next_fence(fence, line);
@@ -294,18 +296,21 @@ fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
             )
         })
         .collect();
-    (hidden, fence, comment)
+    // an inline comment open at the end ends with its paragraph
+    (hidden, fence, comment && !inline)
 }
 
-/// Whether `line` ends a paragraph: blank, or a list item, a heading, a fence or a quote indented by three spaces at
-/// most (a line indented by four continues the paragraph).
-fn breaks_paragraph(line: &str) -> bool {
+/// Whether `line`, a fence or not as `fence` says, ends a paragraph: blank, a list item (at any indentation, nested
+/// items included), or a heading, a quote or an HTML comment indented by three spaces at most (indented by four, they
+/// continue it).
+fn breaks_paragraph(line: &str, fence: bool) -> bool {
     let trimmed = line.trim();
     let indent = line.len() - line.trim_start_matches(' ').len();
-    trimmed.is_empty()
+    fence
+        || trimmed.is_empty()
+        || is_list_item(trimmed)
         || (indent <= 3
-            && (is_list_item(trimmed) || is_heading(trimmed) || trimmed.starts_with('>')))
-        || fence_marker(line).is_some()
+            && (is_heading(trimmed) || trimmed.starts_with('>') || trimmed.starts_with("<!--")))
 }
 
 /// Whether the trimmed line `trimmed` opens a list item that can break a paragraph: `-`, `*`, `+`, `1.` or `1)` (an

@@ -1,4 +1,4 @@
-//! The Markdown scanning shared by the core and the tools: fenced code blocks (QUA-12), HTML comments and code spans.
+//! The Markdown scanning of the tools: fenced code blocks (QUA-12), HTML comments and code spans.
 
 /// A fence of a fenced code block: its character (`` ` `` or `~`) and its length, three at least.
 #[derive(Clone, Copy, PartialEq)]

@@ -46,6 +46,8 @@ Out of scope: the other filters of Claude Code (a `#` fragment cut, the path's f
 ## Plan
 1. [x] Read the imports from the `CommonMark` events: `imports` scans the text runs of `pulldown-cmark` outside code
    spans and blocks; verified by unit tests of the three cases and a `fixed_context` scenario; makes true REP-2. (autonomous)
+2. [x] The docs and the fixes of the `high` review of the issue: an escaped `\@` stays text, an HTML tag is a token
+   of its own, REP-2 names the token rule, the fixture's code span proves its case. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -71,3 +73,28 @@ Code review: 2 findings
 - An emphasis cuts a path (`@b/*c*.md` gives `b/`): kept, the same in Claude Code; tested.
 
 not verified: a real session's `/memory` listing (read from the 2.1.318 binary instead).
+
+## Deliverable 2 (high review of the issue: 10 findings)
+done: the fixes below; `crate::markdown` now documented as the tools' reader.
+
+| check | result |
+|---|---|
+| tests (`project-check`) | pass |
+| lint | pass |
+| specs | REP-2 reworded (token rule, escapes) |
+| docs | `markdown.rs` module doc |
+| code review | high on the issue (10 findings), low on this deliverable (no findings) |
+
+red: REP-2: `\\@a.md` imported `a.md` (the escape's range starts after its backslash); `x <b> @a.md</b>` gave `a.md</b>`
+
+Code review: 10 findings
+- `\@` imported: fixed (the backslash before an escaped punctuation is kept).
+- Inline HTML joined to the text around it: fixed (an HTML event is a run of its own).
+- "escapes kept" comment wrong: fixed with the first.
+- REP-2 still said "start of a line or after a white space": fixed (start of a text token, the end of a token ends a path).
+- HTML comments scanned: not fixed, decision 2 a; `issues/skip_the_imports_inside_html_comments.md`.
+- The fixture's two-line code span proved nothing: fixed (`@big.md b`, 106 bytes).
+- Two Markdown readers in the crate: not fixed, added to `issues/read_html_comments_and_multiline_code_spans_as_commonmark.md` (option 3).
+- The text-like events listed twice: fixed (the text arms `continue`, every other event flushes).
+- A `Vec` per flush: fixed (`run_imports` pushes to `found`).
+- `[""; 0]`: fixed (`Vec::<String>::new()`).

@@ -111,7 +111,7 @@ fn pinned_project(tmp: &Path, projects: &Path) -> (String, String) {
             // no import in an indented block, a quoted fence or a code span over two lines
             (
                 "docs/x.md",
-                "xxx\n\n    @big.md\n\n> ```\n> @big.md\n> ```\n\n`a\n@big.md`\n",
+                "xxx\n\n    @big.md\n\n> ```\n> @big.md\n> ```\n\n`a\n@big.md b`\n",
             ),
             ("docs/big.md", "SECRET big"),
             // imported from the directory of the linked rule's target
@@ -222,7 +222,7 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             full(&own)
         ),
         // the memory files and their imports; AGENTS.md only when imported or in place of the CLAUDE.md files
-        format!("pinned\tr1\t{c1}\t104\t4\t7\tone"),
+        format!("pinned\tr1\t{c1}\t106\t4\t7\tone"),
         format!("pinned\tr2\t{c2}\t15\t10\t18\tone,three,two"),
     ];
     let lines: Vec<&str> = out.lines().collect();

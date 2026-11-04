@@ -14,11 +14,15 @@ holds no code span (its first `-->` closes it), and a code span can run over the
   comment stays open and hides `## B` (`roadmap`, `check-specs`).
 * `prose_words`: ``Use `the result of the`` then ``function` here`` on the next line: both halves hold an unmatched
   backtick and are read as prose by the language check (LNG-4, BRE-10).
+* Since `issues/skip_the_imports_of_every_markdown_code_block.md`, `memory.rs::imports` reads Markdown with
+  `pulldown-cmark` and the tools with `crate::markdown`: an indented block or a quoted fence is code for the imports
+  and prose for the tools (`high` review, 2026-11-04).
 
 # Approach
 1. In `hidden`, search `-->` in the raw text of a line once a comment is open, and after the opener on its line.
 2. Read the code spans of `prose_words` over each paragraph, not each line; check whether `hidden` and `imports` need
    the same.
+3. Or tokenize with `pulldown-cmark`, as `imports` does, where the tools' rules match CommonMark.
 
 # Resources
 * `crates/cardinal/src/markdown.rs`, `crates/cardinal/src/tools/language.rs`, `specs/roadmap.md` (RMP-1),

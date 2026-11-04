@@ -226,40 +226,39 @@ fn scoped(rule: &str) -> bool {
 fn imports(text: &str) -> Vec<String> {
     use pulldown_cmark::{Event, Parser, Tag, TagEnd};
     let mut found = Vec::new();
-    // the text read since the last block, inline tag or code span boundary, in its source form (escapes kept): Claude
-    // Code scans each text token apart, so an `@` right after a code span or an emphasis starts an import
+    // the text read since the last block, inline tag, HTML or code span boundary, in its source form: Claude Code
+    // scans each text token apart, so an `@` right after a code span or an emphasis starts an import
     let mut run = String::new();
     let mut code_block = false;
     for (event, range) in Parser::new(text).into_offset_iter() {
         match event {
+            Event::Text(_) if !code_block => {
+                // the range of an escaped character starts after its backslash, which keeps `\@` from importing
+                let escaped = text[..range.start].ends_with('\\')
+                    && text[range.start..].starts_with(|c: char| c.is_ascii_punctuation());
+                run.push_str(&text[range.start - usize::from(escaped)..range.end]);
+                continue;
+            }
+            Event::SoftBreak | Event::HardBreak => {
+                run.push('\n');
+                continue;
+            }
             Event::Start(Tag::CodeBlock(_)) => code_block = true,
             Event::End(TagEnd::CodeBlock) => code_block = false,
-            Event::Text(_) | Event::Html(_) | Event::InlineHtml(_) if !code_block => {
-                run.push_str(&text[range]);
-            }
-            Event::SoftBreak | Event::HardBreak => run.push('\n'),
+            // an HTML line or tag is a token of its own
+            Event::Html(_) | Event::InlineHtml(_) => run_imports(&text[range], &mut found),
             _ => {}
         }
-        if !matches!(
-            event,
-            Event::Text(_)
-                | Event::Html(_)
-                | Event::InlineHtml(_)
-                | Event::SoftBreak
-                | Event::HardBreak
-        ) {
-            found.extend(run_imports(&run));
-            run.clear();
-        }
+        run_imports(&run, &mut found);
+        run.clear();
     }
-    found.extend(run_imports(&run));
+    run_imports(&run, &mut found);
     found
 }
 
-/// The imports of a run of text: an `@` at its start or after a white space, the path ending at the first white space
-/// a backslash does not escape; a quoted path imports nothing.
-fn run_imports(run: &str) -> Vec<String> {
-    let mut found = Vec::new();
+/// Adds to `found` the imports of a run of text: an `@` at its start or after a white space, the path ending at the
+/// first white space a backslash does not escape; a quoted path imports nothing.
+fn run_imports(run: &str, found: &mut Vec<String>) {
     let mut chars = run.chars().peekable();
     let mut previous = None;
     while let Some(c) = chars.next() {
@@ -280,7 +279,6 @@ fn run_imports(run: &str) -> Vec<String> {
             found.push(path);
         }
     }
-    found
 }
 
 /// The path of an import (or of the target of a symbolic link) relative to the root of the tree; `None` for an
@@ -318,11 +316,23 @@ mod tests {
     // spec: REP-2 (internal: the reader of one memory file; fixed_context.rs proves the counts through the binary)
     #[test]
     fn an_import_stands_outside_every_code_block() {
-        assert_eq!(imports("Example:\n\n    @docs/big.md\n"), [""; 0]);
-        assert_eq!(imports("> ```\n> @docs/big.md\n> ```\n"), [""; 0]);
-        assert_eq!(imports("- item\n\n  ```\n  @docs/big.md\n  ```\n"), [""; 0]);
-        assert_eq!(imports("Run `just\n@docs/x.md` now"), [""; 0]);
+        assert_eq!(
+            imports("Example:\n\n    @docs/big.md\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            imports("> ```\n> @docs/big.md\n> ```\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            imports("- item\n\n  ```\n  @docs/big.md\n  ```\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(imports("Run `just\n@docs/x.md` now"), Vec::<String>::new());
         assert_eq!(imports("Run `x`@a.md and @b/*c*.md"), ["a.md", "b/"]);
+        // an escape keeps its backslash; an HTML tag is a token of its own
+        assert_eq!(imports("\\@a.md @b\\_c.md"), ["b\\_c.md"]);
+        assert_eq!(imports("x <b> @a.md</b> <!-- @c.md -->"), ["a.md", "c.md"]);
         // a paragraph continues on the next line, a quote and a list item hold text
         assert_eq!(
             imports("text\n    @a.md\n> @b.md\n- @c.md\n"),

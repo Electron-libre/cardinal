@@ -49,9 +49,9 @@ iterator over that one step: `language` and `delivered_quality` must not hide co
    `check-specs` use `next_fence`, `hidden` loses its type parameter; verified by `tests/delivered_quality.rs` (a
    four-space fence left open no longer hides `# Tracking`) and a `tests/check_specs.rs` case (a four-space fence
    left open hides no requirement and is not an unclosed block); makes true QUA-12. (autonomous)
-2. [ ] A comment opened after the text of a line ends at the end of its paragraph (blank, list item, heading, fence,
+2. [x] A comment opened after the text of a line ends at the end of its paragraph (blank, list item, heading, fence,
    quote), the paragraph breakers of `check-specs` moved to `tools/mod.rs`; verified by `tests/roadmap.rs` and a
-   `tests/check_specs.rs` case (`- **ABC-1** ... <!-- see` followed by `- **ABC-2**`); makes true RMP-1.
+   `tests/check_specs.rs` case (`- **ABC-1** ... <!-- see` followed by `- **ABC-2**`); makes true RMP-1. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -74,5 +74,23 @@ iterator over that one step: `language` and `delivered_quality` must not hide co
 
 - red: QUA-12: `delivered_quality`: "a heading inside a fence neither starts nor ends a section, whatever the fence" failed (a four-space fence left open hid `# Tracking`); `check_specs`: "a fence indented by four spaces opens no block" failed.
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+- done: `hidden` ends a comment opened after the text of a line at the end of its paragraph (`breaks_paragraph`:
+  blank, list item, heading, fence, quote); `is_list_item` and `is_heading` moved from `check_specs.rs` to
+  `tools/mod.rs`; the unit test of the old behaviour now states the new one.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clippy clean |
+| specs | RMP-1 amended, with its scenario |
+| docs | no doc states the comment rule |
+| code review | `low`: 1 finding, fixed |
+
+- red: RMP-1: `roadmap`: "a_comment_after_text_ends_with_its_paragraph" failed (the `issues` cell of `Next` read empty); `check_specs`: "a comment opened after the text of a requirement ends with its paragraph" failed (RER-2 hidden).
+- Code review: 1 finding: `breaks_paragraph` ignored indentation, so a line indented by four spaces ended the comment; fixed (three spaces at most), proved by a `hidden` case in `roadmap.rs`.
 - not verified: none
 - decisions needed: none

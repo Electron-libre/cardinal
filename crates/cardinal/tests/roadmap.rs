@@ -110,6 +110,19 @@ fn a_link_to_a_missing_closed_issue_stays_open() {
     assert_eq!(row(&out, "Next")[3], "1/1 open", "{out}");
 }
 
+// spec: RMP-1
+/// A comment opened after the text of a line ends with its paragraph: the next item and the next heading are read.
+#[test]
+fn a_comment_after_text_ends_with_its_paragraph() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## Next\n- State: shaped <!-- see\n- Issues:\n  - [a](issues/a.md)\n\n## Later\n- State: idea\n",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "Next")[3], "1/1 open", "{out}");
+    assert_eq!(row(&out, "Later")[1], "idea", "{out}");
+}
+
 // spec: RMP-6
 /// A milestone on hold says so after its state.
 #[test]

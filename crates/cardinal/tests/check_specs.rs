@@ -251,6 +251,16 @@ fn commented_requirement_checks(case: &Case) {
         None,
     );
     case(
+        "a comment opened after the text of a requirement ends with its paragraph",
+        &SPEC.replace(
+            "reuse a saved result.\n",
+            "reuse a saved result. <!-- see\n",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
         "an unclosed comment is flagged",
         &SPEC.replace("## Requirements\n", "## Requirements\n\n<!--\n"),
         TESTS,

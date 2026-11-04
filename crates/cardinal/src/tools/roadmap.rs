@@ -103,9 +103,13 @@ mod tests {
 
     // spec: CLS-8 (internal: the fence and comment cases of the grammar the three tools share)
     #[test]
-    fn a_comment_opened_after_text_hides_what_follows() {
-        let text = "## A <!-- was Z -->\nShape: <!--\n## B\n-->\n    <!-- code\nUse `<!--` for notes\n## C\n";
-        assert_eq!(names(text), ["A", "C"]);
+    fn a_comment_opened_after_text_ends_with_its_paragraph() {
+        let text = "## A <!-- was Z -->\nShape: <!--\n## B\n    <!-- code\nUse `<!--` for notes\n## C\nX <!--\n- y\n<!--\n\n## D\n-->\n";
+        assert_eq!(names(text), ["A", "B", "C"]);
+        // a line indented by four spaces continues the paragraph, and the comment with it
+        let lines = ["Z <!--", "    - x", "y", ""];
+        let commented: Vec<bool> = crate::tools::hidden(&lines).0.iter().map(|h| h.1).collect();
+        assert_eq!(commented, [false, true, true, false]);
     }
 
     #[test]

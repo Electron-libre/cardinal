@@ -377,8 +377,8 @@ fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
         let trimmed = line.trim();
         if hidden
             || trimmed.is_empty()
-            || is_list_item(trimmed)
-            || is_heading(trimmed)
+            || super::is_list_item(trimmed)
+            || super::is_heading(trimmed)
             || trimmed.starts_with('>')
             || trimmed.starts_with("<!--")
         {
@@ -388,24 +388,6 @@ fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
         statement.push_str(trimmed);
     }
     statement
-}
-
-/// Whether the trimmed line `trimmed` opens a list item that can break a paragraph: `-`, `*`, `+`, `1.` or `1)` (an
-/// ordered list must start at 1 to break one, as in the `CommonMark` spec), then a space, a tab or nothing.
-fn is_list_item(trimmed: &str) -> bool {
-    let marker = trimmed.strip_prefix(['-', '*', '+']).or_else(|| {
-        trimmed
-            .strip_prefix("1.")
-            .or_else(|| trimmed.strip_prefix("1)"))
-    });
-    marker.is_some_and(|r| r.is_empty() || r.starts_with([' ', '\t']))
-}
-
-/// Whether the trimmed line `trimmed` is an ATX heading: one to six `#`, then a space, a tab or nothing.
-fn is_heading(trimmed: &str) -> bool {
-    let rest = trimmed.trim_start_matches('#');
-    let level = trimmed.len() - rest.len();
-    (1..=6).contains(&level) && (rest.is_empty() || rest.starts_with([' ', '\t']))
 }
 
 /// Every file under `dir` (outside a git repository, where no worktree can nest), but those of the directories

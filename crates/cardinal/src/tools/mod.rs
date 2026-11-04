@@ -249,28 +249,41 @@ fn fenced<'a>(lines: impl IntoIterator<Item = &'a str>) -> impl Iterator<Item = 
 }
 
 /// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
-/// comment (a line that opens one with `<!--` after its text stays text); then the fence and whether a comment are
-/// still open after the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment.
+/// comment (a line that opens one with `<!--` after its text stays text, and that comment ends at the end of its
+/// paragraph, as in `CommonMark`: see `breaks_paragraph`); then the fence and whether a comment are still open after
+/// the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment (RMP-1).
 fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
     let mut fence = None;
     let mut comment = false;
+    // whether the open comment was opened after the text of its line
+    let mut inline = false;
     let hidden = lines
         .iter()
         .map(|line| {
             let body = line.trim_start_matches(' ');
             // an indented code block (four spaces) holds no comment
             let text = line.len() - body.len() <= 3;
+            if comment && inline && breaks_paragraph(line) {
+                comment = false;
+            }
             let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
             let before = fence;
             if comment || (fence.is_none() && text && fence_marker(line).is_none()) {
                 // the text outside the code spans, in order
                 let prose: String = line.split('`').step_by(2).collect();
-                comment = match (prose.rfind("<!--"), prose.rfind("-->")) {
+                let (opener, closer) = (prose.rfind("<!--"), prose.rfind("-->"));
+                let before_close = closer.is_some();
+                let open = match (opener, closer) {
                     (Some(open), Some(close)) => open > close,
                     (Some(_), None) => true,
                     (None, Some(_)) => false,
                     (None, None) => comment,
                 };
+                // a comment opened on this line: after text or at its start
+                if let Some(at) = opener.filter(|_| open && (!comment || before_close)) {
+                    inline = !prose[..at].trim().is_empty();
+                }
+                comment = open;
             }
             if !in_comment {
                 fence = next_fence(fence, line);
@@ -282,6 +295,35 @@ fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
         })
         .collect();
     (hidden, fence, comment)
+}
+
+/// Whether `line` ends a paragraph: blank, or a list item, a heading, a fence or a quote indented by three spaces at
+/// most (a line indented by four continues the paragraph).
+fn breaks_paragraph(line: &str) -> bool {
+    let trimmed = line.trim();
+    let indent = line.len() - line.trim_start_matches(' ').len();
+    trimmed.is_empty()
+        || (indent <= 3
+            && (is_list_item(trimmed) || is_heading(trimmed) || trimmed.starts_with('>')))
+        || fence_marker(line).is_some()
+}
+
+/// Whether the trimmed line `trimmed` opens a list item that can break a paragraph: `-`, `*`, `+`, `1.` or `1)` (an
+/// ordered list must start at 1 to break one, as in the `CommonMark` spec), then a space, a tab or nothing.
+fn is_list_item(trimmed: &str) -> bool {
+    let marker = trimmed.strip_prefix(['-', '*', '+']).or_else(|| {
+        trimmed
+            .strip_prefix("1.")
+            .or_else(|| trimmed.strip_prefix("1)"))
+    });
+    marker.is_some_and(|r| r.is_empty() || r.starts_with([' ', '\t']))
+}
+
+/// Whether the trimmed line `trimmed` is an ATX heading: one to six `#`, then a space, a tab or nothing.
+fn is_heading(trimmed: &str) -> bool {
+    let rest = trimmed.trim_start_matches('#');
+    let level = trimmed.len() - rest.len();
+    (1..=6).contains(&level) && (rest.is_empty() || rest.starts_with([' ', '\t']))
 }
 
 /// Root of the repository holding the current directory.

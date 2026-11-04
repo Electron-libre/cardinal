@@ -244,7 +244,6 @@ fn imports(text: &str) -> Vec<String> {
                     path.push(c);
                 }
             }
-            previous = path.chars().last().or(previous);
             if !path.is_empty() && !path.starts_with(['"', '\'']) {
                 found.push(path);
             }
@@ -271,4 +270,17 @@ pub(crate) fn resolve(dir: &Path, import: &str) -> Option<String> {
         }
     }
     Some(parts.join("/"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::imports;
+
+    // spec: REP-2 (internal: the reader of one memory file; fixed_context.rs proves the counts through the binary)
+    #[test]
+    fn an_import_stands_outside_the_code_spans() {
+        assert_eq!(imports("``a`b`` @x"), ["x"]);
+        assert_eq!(imports("@a`b @c`"), ["a`b"]);
+        assert_eq!(imports("x@y `@z` @my\\ file.md '@q'"), ["my file.md"]);
+    }
 }

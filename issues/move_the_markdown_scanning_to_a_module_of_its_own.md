@@ -39,6 +39,7 @@ through the shared one, so `prose_words` and `hidden` stop pairing single backti
 ## Plan
 1. [x] Move: `Fence`, `fence_marker`, `next_fence`, `fenced`, `unfenced`, `hidden`, `breaks_paragraph`, `is_list_item`, `is_heading` from `tools/mod.rs` and `code_spans` from `close_issue.rs` to `crates/cardinal/src/markdown.rs`, callers updated, no change of behaviour; verified by `just check`. (autonomous)
 2. [x] Read `imports`, `without_code_spans`, `prose_words` and `hidden` through `markdown::code_spans`; verified by tests through the binary (a two-backtick span holding a backtick: not prose for the language check, a `<!--` in it opens no roadmap comment); makes true the amended BRE-10, CLR-5 and RMP-1. (autonomous)
+3. [x] Fixes of the `high` review of the issue: a comment after a code span is inline, a dead line of `imports` dropped, tests for `imports`, an unmatched run (CLR-5) and the BRE-10 reader; verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -58,3 +59,13 @@ through the shared one, so `prose_words` and `hidden` stop pairing single backti
 - red: LNG-4, BRE-10, RMP-1: the hook sent the reply back (`code: Some(2)`, "Your last reply is not in French") for an English code span holding a backtick; `roadmap` read the state of `Next` as `(none)` after a line ``` ``<!--`` opens a comment ```.
 - Code review: no findings
 - not verified: none; decisions needed: none
+
+## Deliverable 3
+- done: the `high` review of `ed375d6..HEAD` fixed; `hidden` replaces a code span by a backtick, so a `<!--` after one opens an inline comment.
+- checks: `cardinal run project-check` passes.
+- red: CLR-5: "FAIL - a clarification marker in a code span after an unmatched backtick run passes" on the base code; the BRE-10 case of `rule-breaches` passed on the code of deliverable 2, which it guards.
+- not verified: the REP-2 unit test was not run on the base code (it lives in the file it tests); read from the base code, `@a`b @c`` gave the second import `c``.
+- High review of the issue: 8 findings. Fixed: the comment after a code span, the dead line, the missing tests of `imports`, CLR-5 and BRE-10 (5 findings). Not fixed: a path that runs into a code span (REP-2 ends a path at the first white space only); a `-->` in a code span inside a comment and a code span over two lines, both already there before this issue, moved to `issues/read_html_comments_and_multiline_code_spans_as_commonmark.md`.
+
+- Code review: no findings
+- decisions needed: none

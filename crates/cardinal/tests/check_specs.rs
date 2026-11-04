@@ -837,8 +837,21 @@ fn in_git(script: &Path, report: &dyn Fn(&str, bool)) {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+// spec: CLR-5
+/// An unmatched backtick run is literal: a code span after it still hides its marker.
+fn unmatched_run_checks(case: &Case) {
+    case(
+        "a clarification marker in a code span after an unmatched backtick run passes",
+        &SPEC.replace("then c.", "then c. a `` b `[NEEDS CLARIFICATION: x]`"),
+        TESTS,
+        &[],
+        None,
+    );
+}
+
 // spec: CLR-1, CLR-2, CLR-5
 fn marker_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    unmatched_run_checks(case);
     let marked = SPEC.replace("then c.", "then c. [NEEDS CLARIFICATION: which exit code?]");
     case(
         "a clarification marker in an accepted spec is flagged with its line",

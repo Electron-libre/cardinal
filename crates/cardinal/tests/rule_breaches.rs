@@ -713,6 +713,7 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             "m4",
             &format!("Voici le diff :\n```\n{ENGLISH}\n```\net `{ENGLISH}` fini."),
         );
+        t.text("m8", &format!("{FRENCH} ``{ENGLISH} {ENGLISH} ` x``"));
         t.text(
             "m6",
             &format!("Voici la sortie :\n   ~~~\n{ENGLISH}\n   ~~~\nfini."),

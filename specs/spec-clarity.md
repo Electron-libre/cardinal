@@ -21,6 +21,7 @@ marks instead of guessing, and the wording of a requirement that leaves its obli
 - **CLR-5** (deterministic) The marker search of CLR-1 and CLR-2 and the word checks of CLR-3 and CLR-4 must ignore the text inside inline code spans (between backticks) and inside fenced code blocks.
 - **CLR-6** (deterministic) The word checks of CLR-3 and CLR-4 must ignore the text inside double quotes and skip a withdrawn requirement.
 - **CLR-7** (deterministic) The checker must not print a wording warning (CLR-3, CLR-4) for an `accepted` spec.
+- **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement with its continuation lines: the non-blank lines that follow its item line, up to the next blank line, list item, heading or fence line.
 
 ## Scenarios
 
@@ -32,11 +33,15 @@ marks instead of guessing, and the wording of a requirement that leaves its obli
   block ends only at the next line of four or more backticks.
 - (CLR-6) Given a `draft` requirement with an unclosed quote (an inch mark), when the checker runs, then the text after
   it is still checked; `shouldn't` holds `should` and `mustn't` counts as one `must`.
+- (CLR-8) Given a `draft` requirement "The hook, given a file," whose next line, indented, reads "must print its name,
+  then may stop.", when the checker runs, then it warns of `may` and not of the count of `must`.
 
 ## Non-goals
 
 - The format and traceability checks the checker already runs (front matter, sections, ids, citations): out of this
   spec, tested by `test_check_specs.rs`.
 - A marker spread over several lines.
+- A paragraph of a requirement after a blank line, or the content of a fenced block inside it: not read as its
+  statement.
 - Judging whether a requirement is complete or observable: that is the checklist of `skill:write-spec`, read by the
   model, not a check.

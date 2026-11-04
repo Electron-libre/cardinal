@@ -282,7 +282,7 @@ fn parse_requirements(
 ) {
     let mut seen = BTreeSet::new();
     let mut in_requirements = false;
-    for line in lines {
+    for (i, line) in lines.iter().enumerate() {
         if line.starts_with("## ") {
             in_requirements = line.trim() == "## Requirements";
         }
@@ -321,9 +321,11 @@ fn parse_requirements(
             .trim()
             .strip_prefix('(')
             .and_then(|a| a.split_once(')'));
-        let (kind, statement) = kind.map_or((String::new(), ""), |(k, rest)| {
+        let (kind, first) = kind.map_or((String::new(), ""), |(k, rest)| {
             (k.to_string(), rest.trim())
         });
+        let statement = with_continuation(first, &lines[i + 1..]);
+        let statement = statement.as_str();
         let withdrawn = statement.starts_with("withdrawn:");
         // `quality` was a kind proved by a benchmark: still read, untraced, so older specs keep passing
         if kind == "quality" && !withdrawn {
@@ -344,6 +346,32 @@ fn parse_requirements(
             exempt: withdrawn || kind == "quality",
         });
     }
+}
+
+/// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a blank
+/// line, a list item, a heading or a fence line.
+fn with_continuation(first: &str, rest: &[&str]) -> String {
+    let mut statement = first.to_string();
+    for (line, fenced) in super::fenced(rest.iter().copied()) {
+        let trimmed = line.trim();
+        if fenced || trimmed.is_empty() || is_list_item(trimmed) || line.starts_with('#') {
+            break;
+        }
+        statement.push(' ');
+        statement.push_str(trimmed);
+    }
+    statement
+}
+
+/// Whether the trimmed line `trimmed` opens a list item, nested or not: `-`, `*`, `+`, `1.` or `1)` then a space.
+fn is_list_item(trimmed: &str) -> bool {
+    let rest = trimmed.trim_start_matches(|c: char| c.is_ascii_digit());
+    let marker = if rest.len() < trimmed.len() {
+        rest.strip_prefix(['.', ')'])
+    } else {
+        trimmed.strip_prefix(['-', '*', '+'])
+    };
+    marker.is_some_and(|r| r.starts_with(' '))
 }
 
 /// Every file under `dir` (outside a git repository, where no worktree can nest), but those of the directories

@@ -1079,7 +1079,53 @@ fn wording_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "mustn't counts as a must",
         !stderr.contains("`must`, expected 1"),
     );
+    wording_continuation_checks(case, report);
     wording_scope_checks(case, report);
+}
+
+// spec: CLR-8
+/// The continuation lines of a requirement are read with it, up to a blank line, an item, a heading or a fence.
+fn wording_continuation_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    let draft = SPEC.replace("status: accepted", "status: draft");
+    let wrapped = draft.replace(
+        "A run must resume.",
+        "A run, given a file,\n  must resume, then may stop.",
+    );
+    let stderr = case("a wrapped requirement passes", &wrapped, "", &[], None);
+    report(
+        "the must of a continuation line is counted",
+        !stderr.contains("`must`, expected 1"),
+    );
+    report(
+        "the vague word of a continuation line is warned of",
+        stderr.contains("requirement RER-2: vague word `may`"),
+    );
+    let fenced = draft.replace(
+        "A run must resume.",
+        "A run must resume.\n  ```\n  it may must\n  ```",
+    );
+    let stderr = case("a fence in a requirement passes", &fenced, "", &[], None);
+    report(
+        "a fence ends the continuation lines",
+        !stderr.contains("warning"),
+    );
+    for item in ["- ", "* ", "1. "] {
+        let nested = draft.replace(
+            "A run must resume.",
+            &format!("A run must resume.\n  {item}it may must"),
+        );
+        let stderr = case(
+            "a nested item in a requirement passes",
+            &nested,
+            "",
+            &[],
+            None,
+        );
+        report(
+            &format!("a nested item ends the continuation lines: {item}"),
+            !stderr.contains("warning"),
+        );
+    }
 }
 
 // spec: CLR-3, CLR-4, CLR-5, CLR-6, CLR-7

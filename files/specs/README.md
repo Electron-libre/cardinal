@@ -29,7 +29,7 @@ adrs: [0005]       # ADR numbers that justify the spec
 ### Requirements
 
 One list item per requirement (every top-level item under `## Requirements` is one), `- **<ID>-<n>** (deterministic) <statement>`. The statement holds exactly one "must" or "must
-not" (two obligations are two requirements) and none of the vague words `should`, `may`, `etc.`, `appropriate`, `fast`; text in a code span or in double quotes is not checked. The ids are stable once the spec is `accepted`: tests and issues cite them; a dropped requirement keeps
+not" (two obligations are two requirements) and none of the vague words `should`, `may`, `etc.`, `appropriate`, `fast`; text in a code span or in double quotes is not checked. A statement may wrap onto the lines that follow its item, up to a blank line, the next item, a heading or a fenced block. The ids are stable once the spec is `accepted`: tests and issues cite them; a dropped requirement keeps
 its number (start its statement with `withdrawn:`, which exempts it from the check) and a new one takes the next number.
 
 The kind, `deterministic`, says that a test with no network and no external service (fakes, temp dirs, pure

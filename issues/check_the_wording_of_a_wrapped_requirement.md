@@ -47,3 +47,29 @@ breaks the specs of the consumers that already wrap.
 * A fenced code block inside a list item (CLR-5) must stay ignored once the continuation lines are joined.
 * An indented continuation line must not be read as a malformed requirement line (`requirement line must start
   with ...`).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-04
+
+## Understanding
+Read the continuation lines of a requirement (approach 1) in the wording checks, so a wrapped `draft` requirement
+gets the warnings its whole statement deserves. Out of scope: the format checks, the markers (CLR-1, CLR-2).
+
+## Plan
+1. [x] Join the continuation lines: `parse_requirements` appends the lines that follow an item line, up to a blank
+   line, an item, a heading or a fence line, to its statement before the `withdrawn:` test and `check_wording`;
+   verified by a case of `wording_checks` (a `must` and a `may` on the continuation line); makes true CLR-8, then
+   sets `specs/spec-clarity.md` back to `accepted`. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2bcce842cdc06f0db4fe8fb1afd1104075b2dca0
+- 1 a: a paragraph of a requirement after a blank line is not read (non-goal of the spec).
+
+## Deliverable 1
+- done: the wording checks read the continuation lines of a requirement (`with_continuation`, stopping at a blank
+  line, an item, a heading or a fenced line through the shared `fenced`); `files/specs/README.md` says a statement may wrap;
+  `specs/spec-clarity.md` back to `accepted`.
+- red: CLR-8: `FAIL - the must of a continuation line is counted`, `FAIL - the vague word of a continuation line is warned of`
+- Code review: 1 findings: a nested or `*`/`1.` list item was read as a continuation line; fixed (`is_list_item`, a test case per marker).

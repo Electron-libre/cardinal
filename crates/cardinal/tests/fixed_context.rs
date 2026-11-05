@@ -108,11 +108,14 @@ fn pinned_project(tmp: &Path, projects: &Path) -> (String, String) {
             ("AGENTS.md", "aaaa"),
             ("CLAUDE.md", "@AGENTS.md"),
             (".claude/CLAUDE.md", "@../docs/x.md `@AGENTS.md`"),
-            // no import in an indented block, a quoted fence, a code span over two lines, a comment or HTML
+            // no import in an indented block, a quoted fence, a code span over two lines, a comment or HTML, but in
+            // the source of a list item and after a processing instruction, as `marked` reads them
             (
                 "docs/x.md",
-                "xxx\n\n    @big.md\n\n> ```\n> @big.md\n> ```\n\n`a\n@big.md b`\n\n<!-- old: @big.md -->\n\n<div>@big.md</div>\n",
+                "xxx\n\n    @big.md\n\n> ```\n> @big.md\n> ```\n\n`a\n@big.md b`\n\n<!-- old: @big.md -->\n\n<div>@big.md</div>\n\n- note <!-- @li.md -->\n\ntext\n<?x?> @pi.md\n\n- item\n  <span>\n  @big.md\n",
             ),
+            ("docs/li.md", "ll"),
+            ("docs/pi.md", "ppp"),
             ("docs/big.md", "SECRET big"),
             // imported from the directory of the linked rule's target
             ("shared/rule.md", "@inc.md"),
@@ -222,7 +225,7 @@ fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             full(&own)
         ),
         // the memory files and their imports; AGENTS.md only when imported or in place of the CLAUDE.md files
-        format!("pinned\tr1\t{c1}\t149\t4\t7\tone"),
+        format!("pinned\tr1\t{c1}\t224\t4\t7\tone"),
         format!("pinned\tr2\t{c2}\t15\t10\t18\tone,three,two"),
     ];
     let lines: Vec<&str> = out.lines().collect();

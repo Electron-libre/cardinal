@@ -16,7 +16,7 @@ CommonMark does, from one shared walk of the parser.
   says a code span as in CommonMark: in an accepted spec, ``Write `the marker`` then
   ``[NEEDS CLARIFICATION: x]` like this.`` on the next line leaves the marker flagged.
 * 2. `close_issue` finds code with `markdown::fenced` and `markdown::code_spans` by line: a link in a fenced block
-  inside a quote or a list item (`> ```` / `> [a](issues/a.md)`), or in an indented block, is rewritten (CLS-6).
+  inside a quote or a list item (`> ```` / `> [a](../issues/a.md)`), or in an indented block, is rewritten (CLS-6).
 * 3. The continuation lines of CLR-8 end at `markdown::breaks_paragraph` (with `fence_marker`, `is_list_item`,
   `is_heading`): a type-6 HTML block (`<div>`) or a setext underline (`---`) does not end the statement, so its text
   joins the wording checks of CLR-3 and CLR-4.

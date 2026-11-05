@@ -94,7 +94,7 @@ not verified: none. decisions needed: none.
 
 ## Deliverable 3
 
-`high` review of `27d0c25..ec0d88d`: 8 findings. Fixed: 1 (a comment in a `<details>` block hid nothing), 2 (`## <!-- x --> Later` was hidden), 6 (stale comments). Filed in `issues/read_the_last_markdown_of_the_tools_as_commonmark.md`, outside the validated scope (decision 2): 3 (`check_markers` code spans by line), 4 (`close_issue` fences by line), 5 (CLR-8 paragraph rule), 8 (three walkers of `pulldown-cmark`). Not fixed: 7 (`hidden` copies the lines into one text: the callers hold lines, the copy is cheap).
+`high` review of `27d0c25..ec0d88d`: 8 findings. Fixed: 1 (a comment in a `<details>` block hid nothing), 2 (`## <!-- x --> Later` was hidden), 6 (stale comments). Filed in `issues/done/read_the_last_markdown_of_the_tools_as_commonmark.md`, outside the validated scope (decision 2): 3 (`check_markers` code spans by line), 4 (`close_issue` fences by line), 5 (CLR-8 paragraph rule), 8 (three walkers of `pulldown-cmark`). Not fixed: 7 (`hidden` copies the lines into one text: the callers hold lines, the copy is cheap).
 
 done: `hidden` reads the comments of every HTML block (`html_comments`) and the `#` of a heading as its first character; RMP-1 and two scenarios amended.
 

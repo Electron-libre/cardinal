@@ -10,7 +10,7 @@ links by scanning each line for `](` and `[label]:`. Link detection and code det
 that can disagree. The targets should come from the `CommonMark` parser itself.
 
 # Findings
-* `high` review of `issues/read_the_last_markdown_of_the_tools_as_commonmark.md` (2026-11-05), read from the code, not
+* `high` review of `issues/done/read_the_last_markdown_of_the_tools_as_commonmark.md` (2026-11-05), read from the code, not
   run:
 * a `](` inside an HTML comment or HTML block, an autolink, or escaped brackets (`\[a\](x)`) is still taken as a
   link target and rewritten;

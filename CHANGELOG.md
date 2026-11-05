@@ -4,6 +4,21 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [4.1.1] - 2026-11-05
+
+### Fixed
+
+- `check-specs` reads a requirement as CommonMark does: a statement wrapped onto several lines, or whose line ends in
+  spaces, ends where its paragraph ends, and its wording is checked whole; fenced lines, HTML comments and an
+  unclosed fence of the requirements section are handled.
+- Specs and roadmaps read their code blocks, code spans and HTML comments from one CommonMark walk: a commented or
+  fenced heading cuts no section.
+- The memory imports skip every code block, code span and HTML as Claude Code does (list items and processing
+  instructions read as `marked` reads them), and keep an escaped `@` apart.
+- The language rule reads the prose of a reply as CommonMark.
+- `close-issue` takes its link targets from the CommonMark parser: a reference definition in a quote or a list item
+  is relinked; a link in HTML, an autolink or escaped brackets is left as written.
+
 ## [4.1.0] - 2026-11-04
 
 ### Added

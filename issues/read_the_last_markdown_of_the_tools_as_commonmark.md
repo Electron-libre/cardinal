@@ -10,7 +10,7 @@ scan it by hand, line by line, and read code spans, code blocks and paragraphs o
 CommonMark does, from one shared walk of the parser.
 
 # Findings
-* `high` review of `issues/read_indented_blocks_and_quoted_fences_as_code_in_the_tools.md` (2026-11-05), read from the
+* `high` review of `issues/done/read_indented_blocks_and_quoted_fences_as_code_in_the_tools.md` (2026-11-05), read from the
   code, not run:
 * 1. `check_specs::check_markers` removes the code spans line by line (`markdown::without_code_spans`), while CLR-5
   says a code span as in CommonMark: in an accepted spec, ``Write `the marker`` then

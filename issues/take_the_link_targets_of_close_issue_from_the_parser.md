@@ -29,3 +29,47 @@ that can disagree. The targets should come from the `CommonMark` parser itself.
 
 # Hints
 * The commit gate replays `rewritten` (REV-20): both read the same targets.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-05
+
+## Understanding
+`link_targets` takes its targets from the `pulldown-cmark` events (`Tag::Link`/`Tag::Image` of inline links) and its
+reference definitions, with their source offsets, instead of a line scan. Out of scope: reference-style links themselves
+(their target lives in the definition), duplicate definitions (`pulldown-cmark` keeps the first only).
+`listed_issues` parses the `Issues:` fragment with its lines dedented, so a deep indent is not read as a code block.
+
+## Plan
+1. [x] Targets from the parser: `link_targets` walks the inline links and images and the reference definitions of
+   `pulldown-cmark`, a footnote label (`^`) aside; links in HTML comments and blocks, autolinks and escaped brackets
+   are no longer rewritten; verified by `relinks_the_markdown_links` (new cases) and the close-issue unit tests; makes
+   true CLS-2, CLS-6 (amended). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 7f9f24af369a956033a6163073dc4b208cfb578e
+- A Markdown link inside an HTML comment or block is not rewritten (CLS-6, HTML stays a non-goal); a root path there
+  still is (CLS-1).
+- A reference definition right under a paragraph line is paragraph text, as `CommonMark` reads it, so it is not
+  rewritten; the fixtures of `relinks_the_markdown_links` that relied on the line scan got their blank lines.
+- A duplicate reference definition is not rewritten: `pulldown-cmark` keeps the first one only, as `CommonMark` does.
+
+## Deliverable 1 summary
+done: `link_targets` reads the inline links, images and reference definitions of `pulldown-cmark` by their offsets;
+`listed_issues` dedents the `Issues:` list before reading it.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clean |
+| specs | CLS-2, CLS-6 amended, traced |
+| docs | nothing to change (no doc describes the line scan) |
+| code review | see below |
+
+red: CLS-2, CLS-6: `FAIL - a reference definition in a quote or a list item follows the issue`, `FAIL - a link in HTML, escaped brackets or an autolink is untouched`
+
+Code review: no findings
+
+not verified: nothing.
+decisions needed: none.

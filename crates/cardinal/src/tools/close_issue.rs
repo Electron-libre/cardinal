@@ -16,6 +16,7 @@ use super::{issue_claim, repo_files, roadmap};
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -176,56 +177,95 @@ fn relink_target(
     (dest != &resolved || old_dir != new_dir).then(|| relative(new_dir, dest) + slash + anchor)
 }
 
-/// The range of the link target starting at `start` of `line`, inside its `<...>` when it has them.
-fn target_span(line: &str, start: usize) -> std::ops::Range<usize> {
-    if let Some(rest) = line[start..].strip_prefix('<') {
-        start + 1..start + 1 + rest.find('>').unwrap_or(0)
-    } else {
-        let len = line[start..]
-            .find(|c: char| c.is_whitespace() || c == ')')
-            .unwrap_or(line.len() - start);
-        start..start + len
+/// The range of the link destination starting at `start` of `text`, after the blanks before it: inside its `<...>`
+/// when it has them, else up to a blank or the `)` that closes the link (balanced parentheses and `\` escapes
+/// inside), as `CommonMark` reads a destination; empty when there is none.
+fn destination(text: &str, start: usize) -> Range<usize> {
+    let start = start + (text.len() - start - text[start..].trim_start().len());
+    let rest = &text[start..];
+    if let Some(inner) = rest.strip_prefix('<') {
+        let len = inner
+            .find(['>', '\n'])
+            .filter(|&i| inner[i..].starts_with('>'));
+        return start + 1..start + 1 + len.unwrap_or(0);
     }
+    let (mut depth, mut escaped) = (0usize, false);
+    for (i, c) in rest.char_indices() {
+        match c {
+            _ if escaped => escaped = false,
+            '\\' => escaped = true,
+            '(' => depth += 1,
+            ')' if depth == 0 => return start..start + i,
+            ')' => depth -= 1,
+            c if c.is_whitespace() || c.is_control() => return start..start + i,
+            _ => {}
+        }
+    }
+    start..text.len()
 }
 
-/// Byte ranges of the link targets of a Markdown text: inline `[text](target)` and reference `[label]: target`,
-/// outside code spans, code blocks (as `markdown::walk` reads them) and footnotes (CLS-6).
-fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
-    let mut spans = vec![];
-    let mut offset = 0;
-    let lines: Vec<&str> = text.split_inclusive('\n').collect();
-    let walk = crate::markdown::walk(&lines);
-    for (line, read) in lines.iter().zip(&walk.lines) {
-        let indent = line.len() - line.trim_start_matches(' ').len();
-        let body = &line[indent..];
-        if read.code {
-            offset += line.len();
-            continue;
+/// The range of the destination of the reference definition `[label]: target` that `def` spans in `text`, after
+/// the markers of the quotes its target line may hold; `None` for a footnote (`[^1]: text`).
+fn definition_target(text: &str, def: Range<usize>) -> Option<Range<usize>> {
+    let open = def.start + text[def.clone()].find('[')?;
+    let mut escaped = false;
+    let close = text[open + 1..def.end].char_indices().find_map(|(i, c)| {
+        let end = !escaped && c == ']';
+        escaped = !escaped && c == '\\';
+        end.then_some(open + 1 + i)
+    })?;
+    if text[open + 1..].starts_with('^') || !text[close + 1..].starts_with(':') {
+        return None;
+    }
+    let mut at = close + 2;
+    while let Some(c) = text[at..def.end].chars().next() {
+        if !c.is_whitespace() && c != '>' {
+            break;
         }
-        let code = &read.spans;
-        let mut found = vec![];
-        let label = body
-            .strip_prefix('[')
-            .and_then(|rest| rest.split_once("]:"));
-        if let Some((label, after)) = label
-            .filter(|(label, _)| indent <= 3 && !label.contains(']') && !label.starts_with('^'))
-        {
-            let start = indent + 1 + label.len() + 2 + (after.len() - after.trim_start().len());
-            found.push(target_span(line, start));
+        at += c.len_utf8();
+    }
+    Some(destination(text, at)).filter(|t| !t.is_empty() && t.end <= def.end)
+}
+
+/// Byte ranges of the link targets of a Markdown text as `CommonMark` reads it (`pulldown-cmark`): the destinations
+/// of its inline links and images `[text](target)` and of its reference definitions `[label]: target`, so none of a
+/// code span, a code block, an HTML comment or block, an autolink or escaped brackets, nor a footnote (CLS-2, CLS-6).
+fn link_targets(text: &str) -> Vec<Range<usize>> {
+    use pulldown_cmark::{Event, LinkType, Parser, Tag, TagEnd};
+    let parser = Parser::new(text);
+    let mut spans: Vec<Range<usize>> = parser
+        .reference_definitions()
+        .iter()
+        .filter_map(|(_, def)| definition_target(text, def.span.clone()))
+        .collect();
+    // the links and images being read, inline or not, and the end of the text of each read so far
+    let mut open: Vec<(bool, usize)> = vec![];
+    for (event, range) in parser.into_offset_iter() {
+        let closed = match &event {
+            Event::End(TagEnd::Link | TagEnd::Image) => open.pop(),
+            _ => None,
+        };
+        for (_, text_end) in &mut open {
+            *text_end = (*text_end).max(range.end);
         }
-        let mut from = 0;
-        while let Some(i) = line[from..].find("](") {
-            let start = from + i + 2;
-            found.push(target_span(line, start));
-            from = start;
+        match event {
+            Event::Start(Tag::Link { link_type, .. } | Tag::Image { link_type, .. }) => {
+                let opener = if text[range.start..].starts_with('!') {
+                    2
+                } else {
+                    1
+                };
+                open.push((link_type == LinkType::Inline, range.start + opener));
+            }
+            _ => {
+                if let Some((true, text_end)) = closed {
+                    let target = text[text_end..range.end]
+                        .find("](")
+                        .map(|i| destination(text, text_end + i + 2));
+                    spans.extend(target.filter(|t| !t.is_empty()));
+                }
+            }
         }
-        spans.extend(
-            found
-                .into_iter()
-                .filter(|s| !s.is_empty() && !code.iter().any(|c| c.contains(&s.start)))
-                .map(|s| offset + s.start..offset + s.end),
-        );
-        offset += line.len();
     }
     spans.sort_by_key(|s| s.start);
     spans
@@ -296,7 +336,12 @@ pub(super) fn rewritten(
 /// under the `issues` directory; a URL, an anchor or another document is no issue (CLS-8, RMP-2).
 pub(super) fn listed_issues(path: &[String], list: &str, issues: &[String]) -> Vec<RepoPath> {
     let dir = &path[..path.len().saturating_sub(1)];
-    link_targets(list)
+    // dedented, so an item indented by four spaces or more is no code block
+    let list: String = list
+        .lines()
+        .map(|l| l.trim_start().to_string() + "\n")
+        .collect();
+    link_targets(&list)
         .into_iter()
         .filter_map(|span| {
             let target = &list[span];
@@ -764,4 +809,31 @@ pub(super) fn main(args: &[String]) -> u8 {
     free_claim(dir, stem);
     println!("{}", super::next_issue::next(dir));
     u8::from(!staged)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn targets(text: &str) -> Vec<&str> {
+        link_targets(text).into_iter().map(|r| &text[r]).collect()
+    }
+
+    // spec: CLS-2 (internal: the shapes of a destination the parser hands over by its offsets)
+    #[test]
+    fn reads_the_destinations_as_commonmark_does() {
+        assert_eq!(
+            targets("[a `](x)`](a.md \"t\") ![i](i.png) [![j](j.png)](b(1).md) [e](<c d.md>)\n"),
+            ["a.md", "i.png", "j.png", "b(1).md", "c d.md"]
+        );
+        assert_eq!(targets("> [z]:\n> q.md\n\n[^1]: n.md\n"), ["q.md"]);
+    }
+
+    // spec: CLS-8 (internal: an `Issues:` list indented as a code block would be)
+    #[test]
+    fn a_deeply_indented_list_still_lists_its_issues() {
+        let issues = vec!["issues".to_string()];
+        let listed = listed_issues(&["R.md".to_string()], "      - [a](issues/a.md)\n", &issues);
+        assert_eq!(listed, [vec!["issues".to_string(), "a.md".to_string()]]);
+    }
 }

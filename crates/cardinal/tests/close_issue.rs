@@ -213,17 +213,23 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
     let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap();
     write(
         "issues/foo.md",
-        "[bar](bar.md) [q](gone.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
+        "[bar](bar.md) [q](gone.md#top) [old](done/old.md) [d](../docs/a.md) [u](https://x.org/a.md) [o](../../out.md)\n[c](done/) [docs](../docs/) `[e](bar.md)`\n\n[^1]: Some text\n\n[y]: <bar.md>\n```text\n[f](bar.md)\n```\n",
     );
-    write("issues/bar.md", "[foo](foo.md)\n[f]: ./foo.md#goal\n");
+    write("issues/bar.md", "[foo](foo.md)\n\n[f]: ./foo.md#goal\n");
     write("issues/old.md", "x");
     write(
         "docs/a.md",
-        "[a](../issues/foo.md) [g](../issues/foo.md#goal) [s](issues/sibling.md)\n[z]: <../issues/foo.md>\n`[k](../issues/foo.md)`\n",
+        "[a](../issues/foo.md) [g](../issues/foo.md#goal) [s](issues/sibling.md)\n\n[z]: <../issues/foo.md>\n\n`[k](../issues/foo.md)`\n",
     );
     write("docs/adr/b.md", "[b](../../issues/foo.md)\n");
     let code = "`a\n[i](../issues/foo.md)` b\n\n> ```\n> [g](../issues/foo.md)\n> ```\n\n    [h](../issues/foo.md)\n";
     write("docs/code.md", code);
+    write(
+        "docs/parsed.md",
+        "> [z]: ../issues/foo.md\n\n- [w]: ../issues/foo.md\n\n- item\n\n  [v]: <../issues/foo.md#goal>\n",
+    );
+    let html = "<!-- [c](../issues/foo.md) -->\n\n<div>[d](../issues/foo.md)</div>\n\n\\[e\\](../issues/foo.md) <https://x.org/a](../issues/foo.md)>\n";
+    write("docs/html.md", html);
     write(
         "README.md",
         "[x](../issues/foo.md) [y](docs/issues/foo.md)\n",
@@ -250,7 +256,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
         ("closing an issue with Markdown links succeeds", closed),
         (
             "a relative link from docs/ and docs/adr/ follows the issue, anchor kept",
-            docs == "[a](../issues/done/foo.md) [g](../issues/done/foo.md#goal) [s](issues/sibling.md)\n[z]: <../issues/done/foo.md>\n`[k](../issues/foo.md)`\n"
+            docs == "[a](../issues/done/foo.md) [g](../issues/done/foo.md#goal) [s](issues/sibling.md)\n\n[z]: <../issues/done/foo.md>\n\n`[k](../issues/foo.md)`\n"
                 && adr == "[b](../../issues/done/foo.md)\n",
         ),
         (
@@ -258,8 +264,17 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
             read("docs/code.md") == code,
         ),
         (
+            "a reference definition in a quote or a list item follows the issue",
+            read("docs/parsed.md")
+                == "> [z]: ../issues/done/foo.md\n\n- [w]: ../issues/done/foo.md\n\n- item\n\n  [v]: <../issues/done/foo.md#goal>\n",
+        ),
+        (
+            "a link in HTML, escaped brackets or an autolink is untouched",
+            read("docs/html.md") == html,
+        ),
+        (
             "a link between issues follows the issue, inline and reference",
-            bar == "[foo](done/foo.md)\n[f]: done/foo.md#goal\n",
+            bar == "[foo](done/foo.md)\n\n[f]: done/foo.md#goal\n",
         ),
         (
             "a link that does not resolve to the issue is untouched",
@@ -269,7 +284,7 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
         (
             "the links of the moved issue still resolve from done/",
             moved
-                == "[bar](../bar.md) [q](../gone.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n[^1]: Some text\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
+                == "[bar](../bar.md) [q](../gone.md#top) [old](old.md) [d](../../docs/a.md) [u](https://x.org/a.md) [o](../../../out.md)\n[c](./) [docs](../../docs/) `[e](bar.md)`\n\n[^1]: Some text\n\n[y]: <../bar.md>\n```text\n[f](bar.md)\n```\n",
         ),
         (
             "--relink repairs a relative link to an issue already in done/",

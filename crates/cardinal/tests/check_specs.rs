@@ -838,8 +838,18 @@ fn in_git(script: &Path, report: &dyn Fn(&str, bool)) {
 }
 
 // spec: CLR-5
-/// An unmatched backtick run is literal: a code span after it still hides its marker.
+/// An unmatched backtick run is literal: a code span after it still hides its marker; a code span runs over a line end.
 fn unmatched_run_checks(case: &Case) {
+    case(
+        "a clarification marker in a code span over two lines of an accepted spec passes",
+        &SPEC.replace(
+            "then c.",
+            "then c. Write `the marker\n  [NEEDS CLARIFICATION: x]` like this.",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
     case(
         "a clarification marker in a code span after an unmatched backtick run passes",
         &SPEC.replace("then c.", "then c. a `` b `[NEEDS CLARIFICATION: x]`"),

@@ -40,3 +40,41 @@ CommonMark does, from one shared walk of the parser.
 
 # Hints
 * `delivered_quality` keeps the fence rule of QUA-12 (`markdown::fenced`): an older issue file must be read as before.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-05
+
+## Understanding
+One `pulldown-cmark` walk in `markdown.rs` gives, per line, code block, comment, code span ranges, and the paragraph
+line ranges; `check_markers`, `check_wording` (CLR-5, CLR-8) and `close_issue::link_targets` (CLS-6) read it, and the
+hand-written helpers left unused go. Out of scope: `memory::imports` (follows `marked`), `delivered_quality` (QUA-12),
+`prose_words` (reads text, not lines: it stays on its own walk).
+
+## Plan
+1. [ ] Shared walk and code: `markdown::walk` (code, comment, code spans per line; `hidden` becomes a view of it),
+   `check_markers` and `check_wording` drop the code spans it reads, `link_targets` skips its code blocks and spans;
+   verified by tests of a code span over two lines (check-specs) and of a link in a quoted fence and in an indented
+   block (close-issue); makes true CLR-5, CLS-6. ~250 lines.
+2. [ ] Statement as a paragraph: the walk gives the paragraph line ranges, `with_continuation` reads them;
+   `breaks_paragraph`, `is_list_item`, `is_heading`, `code_spans`, `without_code_spans` dropped; verified by a test of
+   a `<div>` and a `---` after a requirement; makes true CLR-8. ~150 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 99ef7c199683ea47f31d68398f2e26ab3f466510
+- Q1: a, CLR-8 and CLS-6 keep their ids, their wording is amended.
+
+## Deliverable 1
+done: `markdown::walk` gives code, comment and code spans per line; `check_markers`, `check_wording` and
+`link_targets` read it; `code_spans` and `without_code_spans` dropped.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`spec-clarity` draft until deliverable 2) |
+| docs | module doc of `markdown.rs` |
+| code review | see below |
+
+red: CLR-5, CLS-6: `FAIL - a clarification marker in a code span over two lines of an accepted spec passes`, `FAIL - a link in a code span over two lines, a quoted fence or an indented block is untouched`

@@ -1,6 +1,6 @@
 ---
 id: CLR
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -21,7 +21,7 @@ marks instead of guessing, and the wording of a requirement that leaves its obli
 - **CLR-5** (deterministic) The marker search of CLR-1 and CLR-2 and the word checks of CLR-3 and CLR-4 must ignore the text inside inline code spans (a run of backticks up to the next run of the same length, as in CommonMark) and inside code blocks (fenced or indented, inside a quote or a list item or not, as RMP-1 of `specs/roadmap.md` reads them).
 - **CLR-6** (deterministic) The word checks of CLR-3 and CLR-4 must ignore the text inside double quotes and skip a withdrawn requirement.
 - **CLR-7** (deterministic) The checker must not print a wording warning (CLR-3, CLR-4) for an `accepted` spec.
-- **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement with its continuation lines: the lines that follow its item line, up to one that ends a Markdown paragraph: blank, a list item (`-`, `*`, `+`, or `1.` and `1)` only, nested or not), a heading, a fence, a quote (`>`) or an HTML comment.
+- **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement as the paragraph of its list item, as CommonMark reads it: its item line and the lines that continue it, up to the end of that paragraph (a blank line, a list item, a heading, a fence, a quote, an HTML block, a setext underline or a thematic break ends it).
 
 ## Scenarios
 
@@ -35,6 +35,11 @@ marks instead of guessing, and the wording of a requirement that leaves its obli
   it is still checked; `shouldn't` holds `should` and `mustn't` counts as one `must`.
 - (CLR-8) Given a `draft` requirement "The hook, given a file," whose next line, indented, reads "must print its name,
   then may stop.", when the checker runs, then it warns of `may` and not of the count of `must`.
+- (CLR-5) Given an `accepted` spec with a line ending in ``Write `the marker`` and the next one reading
+  ``[NEEDS CLARIFICATION: x]` like this.``, when the checker runs, then the marker, inside a code span over two lines,
+  is not reported.
+- (CLR-8) Given a `draft` requirement whose item line holds one `must`, followed by a line `<div>` then a line that may
+  stop, when the checker runs, then it warns of neither `may` nor the count of `must`.
 
 ## Non-goals
 

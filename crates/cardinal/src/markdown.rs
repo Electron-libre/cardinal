@@ -1,5 +1,5 @@
-//! The Markdown scanning of the tools: fenced code blocks (QUA-12), code spans, and the lines hidden in code blocks or
-//! HTML comments as `CommonMark` reads them (RMP-1).
+//! The Markdown scanning of the tools: the fenced code blocks of QUA-12, read by hand, and one walk of `pulldown-cmark`
+//! that says of each line whether it lies in a code block or an HTML comment and where its code spans are (RMP-1).
 
 use std::ops::Range;
 
@@ -43,12 +43,28 @@ pub(crate) fn fenced<'a>(
     })
 }
 
-/// Whether each line of `lines` lies in a code block and whether it lies in an HTML comment, as `CommonMark` reads them
-/// (RMP-1): a line lies where its first character does, the markers of its quotes and list items aside. A code block
-/// is fenced (its fences included) or indented, in a quote or a list item or not; a comment is one of an HTML block
-/// (`html_comments`) or an inline `<!--...-->`. Then whether a fenced block and whether a comment block run to the end of the
-/// text with no closing fence or `-->`.
-pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
+/// What the `CommonMark` reading of a text says of one of its lines (RMP-1): whether it lies in a code block, whether it
+/// lies in an HTML comment, and the byte ranges of the line inside inline code spans.
+#[derive(Clone, Default)]
+pub(crate) struct Line {
+    pub(crate) code: bool,
+    pub(crate) comment: bool,
+    pub(crate) spans: Vec<Range<usize>>,
+}
+
+/// The lines of a text as `CommonMark` reads them, then whether a fenced block and whether a comment block run to the
+/// end of the text with no closing fence or `-->`.
+pub(crate) struct Walk {
+    pub(crate) lines: Vec<Line>,
+    pub(crate) open_fence: bool,
+    pub(crate) open_comment: bool,
+}
+
+/// Read `lines` as `CommonMark` does, in one walk of `pulldown-cmark` (RMP-1): a line lies where its first character
+/// does, the markers of its quotes and list items aside. A code block is fenced (its fences included) or indented, in
+/// a quote or a list item or not; a comment is one of an HTML block (`html_comments`) or an inline `<!--...-->`. A code
+/// span, backticks included, may run over several lines: each of them gets its part, the line ending aside.
+pub(crate) fn walk(lines: &[&str]) -> Walk {
     use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
     let mut text = String::new();
     let mut starts = Vec::with_capacity(lines.len());
@@ -61,6 +77,7 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
     }
     let line_of = |at: usize| starts.partition_point(|&start| start <= at) - 1;
     let mut hidden = vec![None; lines.len()];
+    let mut spans = vec![Vec::new(); lines.len()];
     let (mut open_fence, mut open_comment) = (false, false);
     // the range of the fenced block being read and the end of its content so far
     let mut fence: Option<(Range<usize>, usize)> = None;
@@ -112,6 +129,17 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
                 Some((false, false))
             }
             Event::InlineHtml(html) => Some((false, html.starts_with("<!--"))),
+            Event::Code(_) => {
+                for i in line_of(range.start)..=line_of(range.end - 1) {
+                    let content = lines[i].trim_end_matches(['\n', '\r']).len();
+                    let span =
+                        range.start.saturating_sub(starts[i])..(range.end - starts[i]).min(content);
+                    if !span.is_empty() {
+                        spans[i].push(span);
+                    }
+                }
+                Some((false, false))
+            }
             Event::Start(_) | Event::End(_) | Event::SoftBreak | Event::HardBreak => None,
             _ => Some((false, false)),
         };
@@ -121,8 +149,52 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
             }
         }
     }
-    let hidden = hidden.into_iter().map(Option::unwrap_or_default).collect();
-    (hidden, open_fence, open_comment)
+    let lines = hidden
+        .into_iter()
+        .zip(spans)
+        .map(|(kind, spans)| {
+            let (code, comment) = kind.unwrap_or_default();
+            Line {
+                code,
+                comment,
+                spans,
+            }
+        })
+        .collect();
+    Walk {
+        lines,
+        open_fence,
+        open_comment,
+    }
+}
+
+impl Walk {
+    /// Each of `lines`, the lines it was read from, with its code spans blanked (`blank`); `None` for a line of a code
+    /// block.
+    pub(crate) fn prose(&self, lines: &[&str]) -> Vec<Option<String>> {
+        lines
+            .iter()
+            .zip(&self.lines)
+            .map(|(line, read)| (!read.code).then(|| blank(line, &read.spans)))
+            .collect()
+    }
+}
+
+/// Whether each line of `lines` lies in a code block and whether it lies in an HTML comment, as `walk` reads them,
+/// then whether a fenced block and whether a comment block run to the end of the text unclosed.
+pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
+    let walk = walk(lines);
+    let hidden = walk.lines.iter().map(|l| (l.code, l.comment)).collect();
+    (hidden, walk.open_fence, walk.open_comment)
+}
+
+/// `line` with each byte of the ranges `spans` replaced by a space: its text outside them, at the same offsets.
+fn blank(line: &str, spans: &[Range<usize>]) -> String {
+    let mut out = line.as_bytes().to_vec();
+    for span in spans {
+        out[span.clone()].fill(b' ');
+    }
+    String::from_utf8(out).expect("whole characters replaced by spaces")
 }
 
 /// The byte ranges of the HTML comments of the HTML block `block` of `text`: from a `<!--` to its first `-->` after the
@@ -169,55 +241,4 @@ fn is_heading(trimmed: &str) -> bool {
     let rest = trimmed.trim_start_matches('#');
     let level = trimmed.len() - rest.len();
     (1..=6).contains(&level) && (rest.is_empty() || rest.starts_with([' ', '\t']))
-}
-
-/// Byte ranges of `line` inside inline code spans (a run of backticks up to the next run of the same length).
-pub(crate) fn code_spans(line: &str) -> Vec<Range<usize>> {
-    let mut spans = vec![];
-    let mut from = 0;
-    while let Some(i) = line[from..].find('`') {
-        let open = from + i;
-        let ticks = line[open..].len() - line[open..].trim_start_matches('`').len();
-        let fence = &line[open..open + ticks];
-        let mut search = open + ticks;
-        let close = loop {
-            match line[search..].find(fence) {
-                Some(j) => {
-                    let at = search + j;
-                    let run = line[at..].len() - line[at..].trim_start_matches('`').len();
-                    if run == ticks {
-                        break Some(at);
-                    }
-                    search = at + run;
-                }
-                None => break None,
-            }
-        };
-        match close {
-            Some(close) => {
-                spans.push(open..close + ticks);
-                from = close + ticks;
-            }
-            None => from = open + ticks,
-        }
-    }
-    spans
-}
-
-/// `line` with each of its code spans (`code_spans`) replaced by a space: its text outside them, in order.
-pub(crate) fn without_code_spans(line: &str) -> String {
-    without_spans(line, &code_spans(line))
-}
-
-/// `line` with each of the ranges `spans`, in order, replaced by a space.
-fn without_spans(line: &str, spans: &[Range<usize>]) -> String {
-    let mut out = String::new();
-    let mut last = 0;
-    for span in spans {
-        out.push_str(&line[last..span.start]);
-        out.push(' ');
-        last = span.end;
-    }
-    out.push_str(&line[last..]);
-    out
 }

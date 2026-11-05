@@ -222,6 +222,8 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
         "[a](../issues/foo.md) [g](../issues/foo.md#goal) [s](issues/sibling.md)\n[z]: <../issues/foo.md>\n`[k](../issues/foo.md)`\n",
     );
     write("docs/adr/b.md", "[b](../../issues/foo.md)\n");
+    let code = "`a\n[i](../issues/foo.md)` b\n\n> ```\n> [g](../issues/foo.md)\n> ```\n\n    [h](../issues/foo.md)\n";
+    write("docs/code.md", code);
     write(
         "README.md",
         "[x](../issues/foo.md) [y](docs/issues/foo.md)\n",
@@ -250,6 +252,10 @@ fn relinks_the_markdown_links(script: &Path) -> Vec<(&'static str, bool)> {
             "a relative link from docs/ and docs/adr/ follows the issue, anchor kept",
             docs == "[a](../issues/done/foo.md) [g](../issues/done/foo.md#goal) [s](issues/sibling.md)\n[z]: <../issues/done/foo.md>\n`[k](../issues/foo.md)`\n"
                 && adr == "[b](../../issues/done/foo.md)\n",
+        ),
+        (
+            "a link in a code span over two lines, a quoted fence or an indented block is untouched",
+            read("docs/code.md") == code,
         ),
         (
             "a link between issues follows the issue, inline and reference",

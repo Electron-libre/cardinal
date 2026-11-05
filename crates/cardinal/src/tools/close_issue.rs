@@ -189,18 +189,20 @@ fn target_span(line: &str, start: usize) -> std::ops::Range<usize> {
 }
 
 /// Byte ranges of the link targets of a Markdown text: inline `[text](target)` and reference `[label]: target`,
-/// outside code spans, fenced code blocks and footnotes (CLS-6).
+/// outside code spans, code blocks (as `markdown::walk` reads them) and footnotes (CLS-6).
 fn link_targets(text: &str) -> Vec<std::ops::Range<usize>> {
     let mut spans = vec![];
     let mut offset = 0;
-    for (line, fenced) in crate::markdown::fenced(text.split_inclusive('\n')) {
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let walk = crate::markdown::walk(&lines);
+    for (line, read) in lines.iter().zip(&walk.lines) {
         let indent = line.len() - line.trim_start_matches(' ').len();
         let body = &line[indent..];
-        if fenced {
+        if read.code {
             offset += line.len();
             continue;
         }
-        let code = crate::markdown::code_spans(line);
+        let code = &read.spans;
         let mut found = vec![];
         let label = body
             .strip_prefix('[')

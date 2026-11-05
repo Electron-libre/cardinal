@@ -62,21 +62,19 @@ fn question(after: &str) -> &str {
 }
 
 /// An open question left in the spec: a problem once `accepted`, a warning while `draft`. A marker cited in a code
-/// span or a code block (fenced or indented) is an example, not a question; one in an HTML comment is still a question. `hidden`
-/// says whether each line is code, then whether it is commented.
+/// span or a code block (fenced or indented) is an example, not a question; one in an HTML comment is still a question.
+/// `prose` holds each line with its code spans blanked (`markdown::blank`), `None` for a line of a code block.
 fn check_markers(
     file: &str,
-    lines: &[&str],
-    hidden: &[(bool, bool)],
+    prose: &[Option<String>],
     accepted: bool,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
-    for (i, (line, &(code, _))) in lines.iter().zip(hidden).enumerate() {
-        if code {
+    for (i, text) in prose.iter().enumerate() {
+        let Some(text) = text else {
             continue;
-        }
-        let text = crate::markdown::without_code_spans(line);
+        };
         let mut rest = text.as_str();
         while let Some(start) = rest.find(MARKER) {
             let after = &rest[start + MARKER.len()..];
@@ -123,11 +121,11 @@ fn without_quotes(text: &str) -> String {
     out
 }
 
-/// Warns of a `draft` requirement whose wording is vague: a word of `VAGUE`, or not exactly one `must`. Warnings
+/// Warns of a `draft` requirement whose wording `statement`, its code spans blanked, is vague: a word of `VAGUE`, or not exactly one `must`. Warnings
 /// only: the word list has false positives.
 fn check_wording(file: &str, id: &str, statement: &str, warn: &mut Vec<String>) {
     // `shouldn't` holds `should` and `mustn't` a `must`
-    let text = without_quotes(&crate::markdown::without_code_spans(statement))
+    let text = without_quotes(statement)
         .to_lowercase()
         .replace("n't", " not")
         .replace("n\u{2019}t", " not");
@@ -240,12 +238,13 @@ fn parse(
             ),
         );
     }
-    let (hidden, fence, comment) = crate::markdown::hidden(&lines);
+    let walk = crate::markdown::walk(&lines);
     let marked: Vec<_> = lines
         .iter()
-        .zip(&hidden)
-        .map(|(&line, &(code, commented))| (line, code || commented))
+        .zip(&walk.lines)
+        .map(|(&line, read)| (line, read.code || read.comment))
         .collect();
+    let prose = walk.prose(&lines);
     for section in SECTIONS {
         if !marked
             .iter()
@@ -255,22 +254,23 @@ fn parse(
         }
     }
     // an open fence or comment hides every line after it: the requirements there would pass unread
-    if fence {
+    if walk.open_fence {
         problem(out, file, format_args!("unclosed fenced block"));
     }
-    if comment {
+    if walk.open_comment {
         problem(out, file, format_args!("unclosed HTML comment"));
     }
-    parse_requirements(file, &marked, &mut spec, out, warn);
-    check_markers(file, &lines, &hidden, spec.status == "accepted", out, warn);
+    parse_requirements(file, &marked, &prose, &mut spec, out, warn);
+    check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
 }
 
 /// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: in a code
-/// block or commented) into `spec`.
+/// block or commented) into `spec`; `prose` holds the lines with their code spans blanked (`check_markers`).
 fn parse_requirements(
     file: &str,
     marked: &[(&str, bool)],
+    prose: &[Option<String>],
     spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
@@ -319,9 +319,11 @@ fn parse_requirements(
             .trim()
             .strip_prefix('(')
             .and_then(|a| a.split_once(')'));
-        let (kind, first) = kind.map_or((String::new(), ""), |(k, rest)| {
-            (k.to_string(), rest.trim())
+        // the statement starts after the `(kind)`; with none, it was not found
+        let (kind, at) = kind.map_or((String::new(), line.len()), |(k, rest)| {
+            (k.to_string(), line.len() - rest.len())
         });
+        let first = line[at..].trim();
         let withdrawn = first.starts_with("withdrawn:");
         // `quality` was a kind proved by a benchmark: still read, untraced, so older specs keep passing
         if kind == "quality" && !withdrawn {
@@ -335,7 +337,14 @@ fn parse_requirements(
         }
         // with no `(kind)`, the statement was not found: the format problem is enough
         if spec.status == "draft" && !withdrawn && !kind.is_empty() {
-            check_wording(file, id, &with_continuation(first, &marked[i + 1..]), warn);
+            // the prose of the line has its bytes at the same offsets, its code spans blanked
+            let first = prose[i].as_deref().map_or("", |p| p[at..].trim());
+            check_wording(
+                file,
+                id,
+                &with_continuation(first, &marked[i + 1..], &prose[i + 1..]),
+                warn,
+            );
         }
         spec.requirements.push(Requirement {
             id: id.to_string(),
@@ -346,10 +355,10 @@ fn parse_requirements(
 
 /// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
 /// ends the paragraph (`breaks_paragraph`): blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
-/// with whether it is hidden: in a code block or commented.
-fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
+/// with whether it is hidden: in a code block or commented, and `prose` gives its text with its code spans blanked.
+fn with_continuation(first: &str, rest: &[(&str, bool)], prose: &[Option<String>]) -> String {
     let mut statement = first.to_string();
-    for &(line, hidden) in rest {
+    for (&(line, hidden), text) in rest.iter().zip(prose) {
         if hidden
             || crate::markdown::breaks_paragraph(
                 line,
@@ -359,7 +368,7 @@ fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
             break;
         }
         statement.push(' ');
-        statement.push_str(line.trim());
+        statement.push_str(text.as_deref().unwrap_or_default().trim());
     }
     statement
 }

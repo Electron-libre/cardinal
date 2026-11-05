@@ -124,7 +124,7 @@ High review of the issue: 7 findings
    HTML comment); rare.
 4. a code span over several lines blanks the quote markers of its later lines: documented; no caller reads them.
 5. `link_targets` still scans `](` by hand: out of the requirements of this issue,
-   `issues/take_the_link_targets_of_close_issue_from_the_parser.md` created.
+   `issues/done/take_the_link_targets_of_close_issue_from_the_parser.md` created.
 6. three parallel vectors in `check_specs`: fixed (`Read`).
 7. a full walk per file in `close-issue --relink`: not fixed; `pulldown-cmark` is linear and the files are small.
 

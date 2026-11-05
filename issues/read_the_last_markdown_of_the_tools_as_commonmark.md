@@ -60,6 +60,10 @@ hand-written helpers left unused go. Out of scope: `memory::imports` (follows `m
    `breaks_paragraph`, `is_list_item`, `is_heading`, `code_spans`, `without_code_spans` dropped; verified by a test of
    a `<div>` and a `---` after a requirement; makes true CLR-8. ~150 lines. (autonomous)
 
+3. [x] Fixes of the `high` review of the issue: the statement offset of a requirement line ending in spaces, one
+   `Read` of the walk in `check_specs` instead of three parallel vectors; verified by a test of a line ending in a hard
+   break; makes true CLR-8. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 99ef7c199683ea47f31d68398f2e26ab3f466510
@@ -96,3 +100,36 @@ red: CLR-8: `FAIL - the continuation lines end before "\n<div>\nit may must\n</d
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Deliverable 3
+done: the statement offset of a requirement no longer counts the trailing spaces of its line (a panic or a misread
+`withdrawn:`); `check_specs` passes one `Read` of the walk; the doc of `walk` says where a code span over several lines
+starts on its later lines.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | doc comments of `walk` and `with_continuation` |
+| code review | no findings |
+
+red: CLR-8: `FAIL - a requirement line ending in a hard break passes` (panic: byte index not a char boundary)
+
+High review of the issue: 7 findings
+1. offset of the statement past trailing spaces: fixed.
+2. backticks in an HTML comment no longer hide a marker: kept, as CLR-5 reads code spans as CommonMark does, and
+   CommonMark reads none in HTML; no spec of this repository or the local consumers cites a marker that way.
+3. a line inside a multi-line inline comment ends the statement: not fixed, as before this issue (CLR-8 ends at an
+   HTML comment); rare.
+4. a code span over several lines blanks the quote markers of its later lines: documented; no caller reads them.
+5. `link_targets` still scans `](` by hand: out of the requirements of this issue,
+   `issues/take_the_link_targets_of_close_issue_from_the_parser.md` created.
+6. three parallel vectors in `check_specs`: fixed (`Read`).
+7. a full walk per file in `close-issue --relink`: not fixed; `pulldown-cmark` is linear and the files are small.
+
+Code review: no findings
+
+not verified: none. decisions needed: none.
+
+All deliverables done.

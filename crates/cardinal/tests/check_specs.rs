@@ -1272,6 +1272,18 @@ fn wording_continuation_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "the vague word of a continuation line is warned of",
         stderr.contains("requirement RER-2: vague word `may`"),
     );
+    let broken = draft.replace("A run must resume.", "\u{201c}A\u{201d} run must resume.  ");
+    let stderr = case(
+        "a requirement line ending in a hard break passes",
+        &broken,
+        "",
+        &[],
+        None,
+    );
+    report(
+        "the statement of a line ending in a hard break is read whole",
+        !stderr.contains("warning"),
+    );
     for wrap in ["30. seconds,", "#42"] {
         let numbered = draft.replace(
             "A run must resume.",

@@ -66,7 +66,8 @@ pub(crate) struct Walk {
 /// Read `lines` as `CommonMark` does, in one walk of `pulldown-cmark` (RMP-1): a line lies where its first character
 /// does, the markers of its quotes and list items aside. A code block is fenced (its fences included) or indented, in
 /// a quote or a list item or not; a comment is one of an HTML block (`html_comments`) or an inline `<!--...-->`. A code
-/// span, backticks included, may run over several lines: each of them gets its part, the line ending aside.
+/// span, backticks included, may run over several lines: each of them gets its part, the line ending aside, from the
+/// start of the line on the lines after its first (the markers of a quote or a list item included).
 pub(crate) fn walk(lines: &[&str]) -> Walk {
     use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
     let mut text = String::new();
@@ -203,6 +204,13 @@ fn is_inline(event: &pulldown_cmark::Event) -> bool {
         | Event::FootnoteReference(_)
         | Event::TaskListMarker(_) => true,
         Event::Html(_) | Event::DisplayMath(_) | Event::Rule => false,
+    }
+}
+
+impl Line {
+    /// Whether the line lies in a code block or an HTML comment.
+    pub(crate) fn hidden(&self) -> bool {
+        self.code || self.comment
     }
 }
 

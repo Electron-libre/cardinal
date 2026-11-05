@@ -239,17 +239,12 @@ fn parse(
         );
     }
     let walk = crate::markdown::walk(&lines);
-    let marked: Vec<_> = lines
-        .iter()
-        .zip(&walk.lines)
-        .map(|(&line, read)| (line, read.code || read.comment))
-        .collect();
     let prose = walk.prose(&lines);
-    let paragraphs: Vec<_> = walk.lines.iter().map(|read| read.paragraph).collect();
     for section in SECTIONS {
-        if !marked
+        if !lines
             .iter()
-            .any(|&(l, hidden)| !hidden && l.trim() == section)
+            .zip(&walk.lines)
+            .any(|(l, read)| !read.hidden() && l.trim() == section)
         {
             problem(out, file, format_args!("missing section `{section}`"));
         }
@@ -261,27 +256,36 @@ fn parse(
     if walk.open_comment {
         problem(out, file, format_args!("unclosed HTML comment"));
     }
-    parse_requirements(file, &marked, &prose, &paragraphs, &mut spec, out, warn);
+    let read = Read {
+        lines: &lines,
+        walk: &walk.lines,
+        prose: &prose,
+    };
+    parse_requirements(file, &read, &mut spec, out, warn);
     check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
 }
 
-/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: in a code
-/// block or commented) into `spec`; `prose` holds the lines with their code spans blanked (`check_markers`), and
-/// `paragraphs` the paragraph of each (`markdown::Line`).
+/// The lines of a spec as `markdown::walk` read them, each with its text with its code spans blanked (`check_markers`).
+struct Read<'a> {
+    lines: &'a [&'a str],
+    walk: &'a [crate::markdown::Line],
+    prose: &'a [Option<String>],
+}
+
+/// Read the requirement lines of the `## Requirements` section of `read`, the lines hidden in a code block or a comment
+/// aside, into `spec`.
 fn parse_requirements(
     file: &str,
-    marked: &[(&str, bool)],
-    prose: &[Option<String>],
-    paragraphs: &[Option<usize>],
+    read: &Read,
     spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
     let mut seen = BTreeSet::new();
     let mut in_requirements = false;
-    for (i, &(line, hidden)) in marked.iter().enumerate() {
-        if hidden {
+    for (i, (&line, walked)) in read.lines.iter().zip(read.walk).enumerate() {
+        if walked.hidden() {
             continue;
         }
         if line.starts_with("## ") {
@@ -318,8 +322,9 @@ fn parse_requirements(
         if !seen.insert(id.to_string()) {
             problem(out, file, format_args!("duplicate requirement {id}"));
         }
+        // trimmed at the start only: `rest` stays a suffix of `line`, so `at` is its offset
         let kind = after
-            .trim()
+            .trim_start()
             .strip_prefix('(')
             .and_then(|a| a.split_once(')'));
         // the statement starts after the `(kind)`; with none, it was not found
@@ -341,19 +346,8 @@ fn parse_requirements(
         // with no `(kind)`, the statement was not found: the format problem is enough
         if spec.status == "draft" && !withdrawn && !kind.is_empty() {
             // the prose of the line has its bytes at the same offsets, its code spans blanked
-            let first = prose[i].as_deref().map_or("", |p| p[at..].trim());
-            check_wording(
-                file,
-                id,
-                &with_continuation(
-                    first,
-                    paragraphs[i],
-                    &marked[i + 1..],
-                    &prose[i + 1..],
-                    &paragraphs[i + 1..],
-                ),
-                warn,
-            );
+            let first = read.prose[i].as_deref().map_or("", |p| p[at..].trim());
+            check_wording(file, id, &with_continuation(first, read, i), warn);
         }
         spec.requirements.push(Requirement {
             id: id.to_string(),
@@ -362,20 +356,14 @@ fn parse_requirements(
     }
 }
 
-/// The statement `first` of a requirement followed by its continuation lines: the start of `rest` in the paragraph
-/// `paragraph` of its item line, as `CommonMark` reads it (CLR-8), up to a line hidden in a code block or a comment. Each
-/// line of `rest` comes with whether it is hidden, its text with its code spans blanked in `prose`, and its paragraph in
-/// `paragraphs`.
-fn with_continuation(
-    first: &str,
-    paragraph: Option<usize>,
-    rest: &[(&str, bool)],
-    prose: &[Option<String>],
-    paragraphs: &[Option<usize>],
-) -> String {
+/// The statement `first` of the requirement of line `item` of `read` followed by its continuation lines: the lines
+/// after it in the paragraph of the item line, as `CommonMark` reads it (CLR-8), up to a line hidden in a code block or
+/// a comment, read with their code spans blanked.
+fn with_continuation(first: &str, read: &Read, item: usize) -> String {
     let mut statement = first.to_string();
-    for ((&(_, hidden), text), &of) in rest.iter().zip(prose).zip(paragraphs) {
-        if hidden || paragraph.is_none() || of != paragraph {
+    let paragraph = read.walk[item].paragraph;
+    for (walked, text) in read.walk.iter().zip(read.prose).skip(item + 1) {
+        if walked.hidden() || paragraph.is_none() || walked.paragraph != paragraph {
             break;
         }
         statement.push(' ');

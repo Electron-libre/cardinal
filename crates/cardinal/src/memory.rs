@@ -3,6 +3,7 @@
 
 use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::fs;
+use std::ops::Range;
 use std::path::{Component, Path};
 
 /// The hops of imports Claude Code follows from a memory file.
@@ -234,25 +235,57 @@ fn imports(text: &str) -> Vec<String> {
     let mut code_block = false;
     // the lines of the HTML block being read: `marked` makes one token of a block, `pulldown-cmark` one event per line
     let mut html_block = String::new();
-    // the open blocks, innermost last, the source of the text of a list item being read, the end of the last
-    // paragraph outside a list item, and whether the HTML block being read follows a line of it
+    // the open blocks, innermost last; the source of the text of a list item being read; the depth of a list item
+    // and the offset of the tag line that opened an HTML block in its text, for `marked`; the source and the depth of
+    // the last paragraph outside a list item, and that source when the HTML block being read follows a line of it
     let mut blocks: Vec<Block> = Vec::new();
-    let mut item_text: Option<std::ops::Range<usize>> = None;
-    let mut paragraph_end = None;
-    let mut interrupts = false;
+    let mut item_text: Option<Range<usize>> = None;
+    let mut item_html: Option<(usize, usize)> = None;
+    let mut paragraph: Option<(Range<usize>, usize)> = None;
+    let mut interrupts: Option<Range<usize>> = None;
     for (event, range) in Parser::new(text).into_offset_iter() {
         let opens = match &event {
             Event::Start(tag) => Block::opened(tag),
             _ => None,
         };
         let closes = matches!(&event, Event::End(tag) if Block::closed(*tag));
+        // the HTML block of a tag line in a list item runs to its blank line or to the end of the item
+        if let Some((depth, cut)) = item_html {
+            if blocks.len() >= depth && !blank_line(&text[cut..range.start.max(cut)]) {
+                match event {
+                    Event::Start(Tag::CodeBlock(_)) => code_block = true,
+                    Event::End(TagEnd::CodeBlock) => code_block = false,
+                    _ => {}
+                }
+                if let Some(block) = opens {
+                    blocks.push(block);
+                } else if closes {
+                    blocks.pop();
+                }
+                continue;
+            }
+            item_html = None;
+        }
         if opens.is_none()
             && !closes
             && !matches!(event, Event::Rule)
             && Block::in_item_text(&blocks)
         {
-            item_text = Some(item_text.map_or(range.clone(), |r| {
-                r.start.min(range.start)..r.end.max(range.end)
+            let started = item_text.as_ref().map(|r| r.start);
+            if let (Event::InlineHtml(tag), Some(started)) = (&event, started) {
+                if tag_line(text, started, &range, tag) {
+                    if let Some(source) = item_text.take() {
+                        item_imports(&text[source], &mut found);
+                    }
+                    let depth = blocks.iter().rposition(|b| *b == Block::Item).unwrap_or(0) + 1;
+                    item_html = Some((depth, range.start));
+                    continue;
+                }
+            }
+            let start = range.start
+                - usize::from(matches!(event, Event::Text(_)) && escaped(text, range.start));
+            item_text = Some(item_text.map_or(start..range.end, |r| {
+                r.start.min(start)..r.end.max(range.end)
             }));
             continue;
         }
@@ -262,9 +295,8 @@ fn imports(text: &str) -> Vec<String> {
         match event {
             Event::Text(_) if !code_block => {
                 // the range of an escaped character starts after its backslash, which keeps `\@` from importing
-                let escaped = text[..range.start].ends_with('\\')
-                    && text[range.start..].starts_with(|c: char| c.is_ascii_punctuation());
-                run.push_str(&text[range.start - usize::from(escaped)..range.end]);
+                let start = range.start - usize::from(escaped(text, range.start));
+                run.push_str(&text[start..range.end]);
                 continue;
             }
             Event::SoftBreak | Event::HardBreak => {
@@ -274,26 +306,21 @@ fn imports(text: &str) -> Vec<String> {
             Event::Start(Tag::CodeBlock(_)) => code_block = true,
             Event::End(TagEnd::CodeBlock) => code_block = false,
             Event::End(TagEnd::Paragraph) if !matches!(blocks.as_slice(), [.., Block::Item, _]) => {
-                paragraph_end = Some(range.end);
+                paragraph = Some((range.clone(), blocks.len() - 1));
             }
             Event::Start(Tag::HtmlBlock) => {
-                interrupts =
-                    paragraph_end.is_some_and(|end| end > previous_line(text, range.start));
+                // in the container of the paragraph: a block quote or a list item opened on its line interrupts it
+                interrupts = paragraph
+                    .clone()
+                    .filter(|(p, depth)| {
+                        *depth == blocks.len() && p.end > previous_line(text, range.start)
+                    })
+                    .map(|(p, _)| p);
             }
             Event::Html(line) => html_block.push_str(&line),
             Event::End(TagEnd::HtmlBlock) => {
-                let block = std::mem::take(&mut html_block);
-                match marked_markers(&block) {
-                    // `marked` lets none interrupt a paragraph: its lines stay text of the paragraph
-                    Some(_) if interrupts => found.extend(imports(&format!("x{block}"))),
-                    // its block ends right after its closing marker, the rest of the line read again
-                    Some((after, close)) => {
-                        if let Some(i) = block[after..].find(close) {
-                            found.extend(imports(&block[after + i + close.len()..]));
-                        }
-                    }
-                    None => html_imports(&block, &mut found),
-                }
+                let paragraph = interrupts.clone().map(|p| text[p].trim_end());
+                block_imports(&std::mem::take(&mut html_block), paragraph, &mut found);
             }
             _ => {}
         }
@@ -309,6 +336,37 @@ fn imports(text: &str) -> Vec<String> {
     let mut seen = BTreeSet::new();
     found.retain(|path| seen.insert(path.clone()));
     found
+}
+
+/// Whether the character at `offset` is escaped by the backslash before it, the start of its text event.
+fn escaped(text: &str, offset: usize) -> bool {
+    text[..offset].ends_with('\\') && text[offset..].starts_with(|c: char| c.is_ascii_punctuation())
+}
+
+/// Whether `source` holds a line of white space and `>` markers between two others: a blank line.
+fn blank_line(source: &str) -> bool {
+    let lines: Vec<&str> = source.split('\n').collect();
+    lines.len() > 2
+        && lines[1..lines.len() - 1]
+            .iter()
+            .any(|l| l.trim_matches([' ', '\t', '>']).is_empty())
+}
+
+/// Whether the inline HTML `tag` at `range`, in the text of a list item started at `started`, is a line of its own
+/// past the first, indented 3 columns at most past that text: where `marked` opens an HTML block of type 7.
+fn tag_line(text: &str, started: usize, range: &Range<usize>, tag: &str) -> bool {
+    let line = text[..range.start].rfind('\n').map_or(0, |i| i + 1);
+    let first = text[..started].rfind('\n').map_or(0, |i| i + 1);
+    let end = text[range.end..]
+        .find('\n')
+        .map_or(text.len(), |i| range.end + i);
+    line > started
+        && text[line..range.start]
+            .chars()
+            .all(|c| matches!(c, ' ' | '\t' | '>'))
+        && text[range.end..end].trim().is_empty()
+        && range.start - line < started - first + 4
+        && lone_tag(tag)
 }
 
 /// A block of the Markdown source, as far as `imports` tells them apart.
@@ -386,20 +444,13 @@ fn marked_markers(block: &str) -> Option<(usize, &'static str)> {
 }
 
 /// Adds to `found` the imports of the text of a list item as Claude Code reads its `text` token: in its source form,
-/// code spans and HTML included, as well as in its tokens, up to a line that holds only a tag, where `marked` opens an
-/// HTML block.
+/// code spans and HTML included, as well as in its tokens.
 fn item_imports(source: &str, found: &mut Vec<String>) {
-    let end = source
-        .match_indices('\n')
-        .map(|(i, _)| i + 1)
-        .find(|&i| lone_tag(source[i..].lines().next().unwrap_or_default()))
-        .unwrap_or(source.len());
-    let kept = &source[..end];
-    run_imports(kept, found);
-    found.extend(imports(kept));
+    run_imports(source, found);
+    found.extend(imports(source));
 }
 
-/// Whether a line holds only an opening or closing tag other than `script`, `pre`, `style` or `textarea`: an HTML
+/// Whether an HTML tag is an opening or closing tag other than `script`, `pre`, `style` or `textarea`: an HTML
 /// block of type 7 for `marked` (its block names, type 6, interrupt a paragraph for `pulldown-cmark` too).
 fn lone_tag(line: &str) -> bool {
     let Some(tag) = line
@@ -426,6 +477,22 @@ fn lone_tag(line: &str) -> bool {
         rest.trim().is_empty()
     } else {
         (rest.is_empty() || rest.starts_with([' ', '/'])) && !rest.contains(['<', '>'])
+    }
+}
+
+/// Adds to `found` the imports of an HTML block: of types 3 to 5, as `marked` reads it, a line of the paragraph whose
+/// source is given, which it does not interrupt, else ending right after its closing marker, the rest of its line read
+/// again; of another type, as Claude Code reads its `html` token.
+fn block_imports(block: &str, paragraph: Option<&str>, found: &mut Vec<String>) {
+    match (marked_markers(block), paragraph) {
+        // read again with the paragraph, so that a code span over the line break still holds its lines
+        (Some(_), Some(paragraph)) => found.extend(imports(&format!("{paragraph}\nx{block}"))),
+        (Some((after, close)), None) => {
+            if let Some(i) = block[after..].find(close) {
+                found.extend(imports(&block[after + i + close.len()..]));
+            }
+        }
+        (None, _) => html_imports(block, found),
     }
 }
 
@@ -564,7 +631,7 @@ mod tests {
         assert_eq!(imports("- a\n\n  b <!-- @c.md -->\n"), ["c.md"]);
         assert_eq!(imports("- a\n  - b <!-- @k.md -->\n"), ["k.md"]);
         assert_eq!(imports("1. a *b*@g.md\n"), ["g.md"]);
-        assert_eq!(imports("- a \\@l.md\n"), Vec::<String>::new());
+        assert_eq!(imports("- a \\@l.md\n- \\@m.md\n"), Vec::<String>::new());
         // a quote or a heading in a list item is read as at the top
         assert_eq!(
             imports("- a\n  > q <!-- @d.md -->\n- # h <!-- @m.md -->\n"),
@@ -576,6 +643,17 @@ mod tests {
             imports("- item @b.md\n  </span>\n  @a.md\n\n  @c.md\n"),
             ["b.md", "c.md"]
         );
+        // up to the blank line, over a nested list or quote too, the tag indented 3 spaces at most past the text
+        assert_eq!(
+            imports("- a\n  <span>\n  b\n  - c @n.md\n  > q @q.md\n\n  @c.md\n"),
+            ["c.md"]
+        );
+        assert_eq!(
+            imports("> - item\n>   <span>\n>   @bq.md\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(imports("- a\n     <span>\n  @d.md\n"), Vec::<String>::new());
+        assert_eq!(imports("- a\n      <span>\n  @e.md\n"), ["e.md"]);
     }
 
     // spec: REP-2 (internal: the reader of one memory file; fixed_context.rs proves the counts through the binary)
@@ -590,5 +668,13 @@ mod tests {
         assert_eq!(imports("text\n<?x?> @a.md\n"), ["a.md"]);
         assert_eq!(imports("> text\n> <?x @e.md\n"), ["e.md"]);
         assert_eq!(imports("- item\n  <?x?> @f.md\n"), ["f.md"]);
+        // in its own container it interrupts the paragraph, which keeps a code span over the line break
+        assert_eq!(
+            imports("text\n> <?x\n> @e.md\n\ntext\n- <?x\n  @z.md\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(imports("> text\n<?x @a.md\n"), Vec::<String>::new());
+        assert_eq!(imports("`a\n<?x?> @q.md`\n"), Vec::<String>::new());
+        assert_eq!(imports("- a\n  > text\n  > <?x @y.md\n"), ["y.md"]);
     }
 }

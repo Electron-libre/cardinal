@@ -52,6 +52,10 @@ loads in the three cases, plus a fourth found while confirming them: `<?x?> @a.m
    source too and cut at a lone tag line, a block of types 3 to 5 imports what follows its closing marker and, after a
    paragraph line outside a list item, reads as paragraph text; verified by unit tests of `imports` with the outputs of
    `marked` and a scenario of REP-2; makes true REP-2. (autonomous)
+2. [x] Fixes of the `high` review: an escape at the start of a list item, the container of an interrupted paragraph,
+   the tag line of an item in a quote or indented 4 columns, the HTML block of a tag line up to its blank line, a
+   code span over the interruption; verified by the unit tests of `imports` with the outputs of `marked`; makes true
+   REP-2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -79,6 +83,36 @@ to 5 as `marked` does (the rest after its closing marker, or paragraph text afte
 | code review | see below |
 
 red: REP-2: `left: [] right: ["a.md"]` (`a_list_item_is_read_as_marked_does`, `an_instruction_a_declaration_or_cdata_ends_at_its_marker`); `FAIL - the bytes and skills come from the commit the revision came in force with` (`fixed_context`, on the code of the base commit)
+
+Code review: no findings
+
+not verified: none
+decisions needed: none
+
+## High review of the issue
+Code review: 8 findings
+- an escape `\@` at the start of a list item imported: fixed, deliverable 2.
+- an instruction opening a quote or a list item read as a line of the paragraph above: fixed (same container only).
+- a tag line of an item in a block quote not seen: fixed (the `InlineHtml` event read, `>` markers allowed).
+- the HTML block of a tag line cut short of its blank line (nested list, quote): fixed, skipped up to it.
+- a code span over the interruption lost: fixed, the paragraph read again with the block.
+- a tag line indented 4 columns past the text cut the item: fixed.
+- a paragraph of a quote in a list item read as at the top: no change, `marked` imports `y.md` there too (run).
+- design, a lexer following the block rules of `marked` instead of patches on `pulldown-cmark`: not fixed here,
+  proposed to the user as an issue.
+
+## Summary of deliverable 2
+done: the six confirmed findings of the `high` review fixed in `imports`, each case checked against `marked` 14.1.4.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | doc comments of `imports` and its helpers |
+| code review | see below |
+
+red: REP-2: `left: ["m.md"] right: []` (`a_list_item_is_read_as_marked_does`), `left: ["e.md", "z.md"] right: []` (`an_instruction_a_declaration_or_cdata_ends_at_its_marker`)
 
 Code review: no findings
 

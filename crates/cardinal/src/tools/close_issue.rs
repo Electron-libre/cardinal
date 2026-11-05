@@ -177,31 +177,42 @@ fn relink_target(
     (dest != &resolved || old_dir != new_dir).then(|| relative(new_dir, dest) + slash + anchor)
 }
 
-/// The range of the link destination starting at `start` of `text`, after the blanks before it: inside its `<...>`
-/// when it has them, else up to a blank or the `)` that closes the link (balanced parentheses and `\` escapes
-/// inside), as `CommonMark` reads a destination; empty when there is none.
+/// The range of the link destination starting at `start` of `text`, after the blanks before it and the quote
+/// markers of a line it moved to: inside its `<...>` when it has them, else up to an ASCII blank, a control
+/// character or the `)` that closes the link (balanced parentheses inside), `\` escapes read, as `CommonMark` reads a
+/// destination; empty when there is none.
 fn destination(text: &str, start: usize) -> Range<usize> {
-    let start = start + (text.len() - start - text[start..].trim_start().len());
-    let rest = &text[start..];
-    if let Some(inner) = rest.strip_prefix('<') {
-        let len = inner
-            .find(['>', '\n'])
-            .filter(|&i| inner[i..].starts_with('>'));
-        return start + 1..start + 1 + len.unwrap_or(0);
+    let mut start = start;
+    let mut new_line = false;
+    while let Some(c) = text[start..].chars().next() {
+        if !(c.is_ascii_whitespace() || (new_line && c == '>')) {
+            break;
+        }
+        new_line |= c == '\n';
+        start += 1;
     }
+    let rest = &text[start..];
+    let bracketed = rest.starts_with('<');
     let (mut depth, mut escaped) = (0usize, false);
-    for (i, c) in rest.char_indices() {
+    for (i, c) in rest.char_indices().skip(usize::from(bracketed)) {
         match c {
             _ if escaped => escaped = false,
             '\\' => escaped = true,
+            '>' if bracketed => return start + 1..start + i,
+            '\n' | '<' if bracketed => break,
+            _ if bracketed => {}
             '(' => depth += 1,
             ')' if depth == 0 => return start..start + i,
             ')' => depth -= 1,
-            c if c.is_whitespace() || c.is_control() => return start..start + i,
+            c if c == ' ' || c.is_control() => return start..start + i,
             _ => {}
         }
     }
-    start..text.len()
+    if bracketed {
+        start..start
+    } else {
+        start..text.len()
+    }
 }
 
 /// The range of the destination of the reference definition `[label]: target` that `def` spans in `text`, after
@@ -217,14 +228,7 @@ fn definition_target(text: &str, def: Range<usize>) -> Option<Range<usize>> {
     if text[open + 1..].starts_with('^') || !text[close + 1..].starts_with(':') {
         return None;
     }
-    let mut at = close + 2;
-    while let Some(c) = text[at..def.end].chars().next() {
-        if !c.is_whitespace() && c != '>' {
-            break;
-        }
-        at += c.len_utf8();
-    }
-    Some(destination(text, at)).filter(|t| !t.is_empty() && t.end <= def.end)
+    Some(destination(text, close + 2)).filter(|t| !t.is_empty() && t.end <= def.end)
 }
 
 /// Byte ranges of the link targets of a Markdown text as `CommonMark` reads it (`pulldown-cmark`): the destinations
@@ -250,12 +254,7 @@ fn link_targets(text: &str) -> Vec<Range<usize>> {
         }
         match event {
             Event::Start(Tag::Link { link_type, .. } | Tag::Image { link_type, .. }) => {
-                let opener = if text[range.start..].starts_with('!') {
-                    2
-                } else {
-                    1
-                };
-                open.push((link_type == LinkType::Inline, range.start + opener));
+                open.push((link_type == LinkType::Inline, range.start + 1));
             }
             _ => {
                 if let Some((true, text_end)) = closed {
@@ -827,6 +826,11 @@ mod tests {
             ["a.md", "i.png", "j.png", "b(1).md", "c d.md"]
         );
         assert_eq!(targets("> [z]:\n> q.md\n\n[^1]: n.md\n"), ["q.md"]);
+        assert_eq!(targets("> [a](\n> f.md)\n"), ["f.md"]);
+        assert_eq!(
+            targets("[x]: <a\\>b.md>\n\n[y](b\u{a0}c.md)\n"),
+            ["a\\>b.md", "b\u{a0}c.md"]
+        );
     }
 
     // spec: CLS-8 (internal: an `Issues:` list indented as a code block would be)

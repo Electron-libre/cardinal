@@ -45,6 +45,9 @@ reference definitions, with their source offsets, instead of a line scan. Out of
    `pulldown-cmark`, a footnote label (`^`) aside; links in HTML comments and blocks, autolinks and escaped brackets
    are no longer rewritten; verified by `relinks_the_markdown_links` (new cases) and the close-issue unit tests; makes
    true CLS-2, CLS-6 (amended). (autonomous)
+2. [x] Fixes of the `high` review: a destination after a quote marker on the next line, an escaped `>` in `<...>`,
+   only ASCII blanks end a destination, CLS-6 names `CommonMark` as the reader of code blocks; verified by
+   `reads_the_destinations_as_commonmark_does`; makes true CLS-2, CLS-6. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -68,6 +71,32 @@ done: `link_targets` reads the inline links, images and reference definitions of
 | code review | see below |
 
 red: CLS-2, CLS-6: `FAIL - a reference definition in a quote or a list item follows the issue`, `FAIL - a link in HTML, escaped brackets or an autolink is untouched`
+
+Code review: no findings
+
+not verified: nothing.
+decisions needed: none.
+
+## Deliverable 2 summary
+done: the fixes of the `high` review of `7f9f24a..8b14136`.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passes |
+| lint | clean |
+| specs | CLS-6 reworded (its reader of code blocks) |
+| docs | nothing more |
+| code review | see below |
+
+red: CLS-2: the review's probes: `> [a](\n> f.md)` gave `>`, `[x]: <a\>b.md>` gave `a\`, `[a](b\u{a0}c.md)` gave `b`
+
+High review: 9 findings
+- 2, 3, 4 (quote marker, escaped `>`, Unicode blank), 7 (CLS-6 names the old reader), 8, 9 (simplifications): fixed.
+- 1 (duplicate definitions) and 5 (a definition right under a paragraph line): not fixed, as decided in `## Decisions`
+  (both are no definition, or an ignored one, to `CommonMark`).
+- 6 (`listed_issues` dedents the `Issues:` fragment rather than reading the links of the whole document by their
+  range): not fixed; `roadmap::Milestone::issues` hands over the list as text, and changing it reshapes the reader CLS-8
+  and RMP-2 share, beyond this issue.
 
 Code review: no findings
 

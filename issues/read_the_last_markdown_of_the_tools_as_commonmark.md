@@ -29,7 +29,7 @@ CommonMark does, from one shared walk of the parser.
 2. Read the statement of a requirement from the paragraph or item range of the parser instead of `breaks_paragraph`
    (3); drop the hand-written helpers left unused.
 3. Optionally let `prose_words` and `hidden` use the shared walk (4); `memory::imports` follows `marked`, not
-   CommonMark (`issues/read_list_items_and_html_interruptions_as_marked_does.md`), and may stay apart.
+   CommonMark (`issues/done/read_list_items_and_html_interruptions_as_marked_does.md`), and may stay apart.
 
 # Specs
 * `specs/spec-clarity.md` (CLR-5, CLR-8), `specs/close-issue.md` (CLS-6).

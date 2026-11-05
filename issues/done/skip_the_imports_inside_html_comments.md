@@ -47,7 +47,7 @@ does not model.
    comment, else scans its text without comments, and skips inline HTML; verified by the unit tests of `memory.rs`
    (one-line and multi-line comment blocks, a block quote, a `<div>` block, inline comment and tag); makes true REP-2. (autonomous)
 2. [x] Fixes of the `high` review: the binary test `fixed_context.rs` proves the HTML cases of REP-2; the cases where
-   `marked` departs from CommonMark go to `issues/read_list_items_and_html_interruptions_as_marked_does.md`;
+   `marked` departs from CommonMark go to `issues/done/read_list_items_and_html_interruptions_as_marked_does.md`;
    verified by `fixed_context`, failing on the code of the base commit; makes true REP-2. (autonomous)
 
 ## Decisions

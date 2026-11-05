@@ -62,8 +62,8 @@ fn question(after: &str) -> &str {
 }
 
 /// An open question left in the spec: a problem once `accepted`, a warning while `draft`. A marker cited in a code
-/// span or a fenced code block is an example, not a question; one in an HTML comment is still a question. `hidden`
-/// says whether each line is fenced, then whether it is commented.
+/// span or a code block (fenced or indented) is an example, not a question; one in an HTML comment is still a question. `hidden`
+/// says whether each line is code, then whether it is commented.
 fn check_markers(
     file: &str,
     lines: &[&str],
@@ -255,7 +255,7 @@ fn parse(
         }
     }
     // an open fence or comment hides every line after it: the requirements there would pass unread
-    if fence.is_some() {
+    if fence {
         problem(out, file, format_args!("unclosed fenced block"));
     }
     if comment {

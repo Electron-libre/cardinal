@@ -1,6 +1,6 @@
 ---
 id: RMP
-status: draft
+status: accepted
 adrs: []
 ---
 
@@ -28,7 +28,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-1) Given milestone `Next` whose section opens with a line ```` ``<!--`` opens a comment ```` followed by `- State: shaped`, when `roadmap` runs, then the `state` cell of `Next` reads `shaped`: the `<!--` is in a code span.
 - (RMP-1) Given a line `<!--`, then a line ``use `-->` here``, then a heading `## B`, when `roadmap` runs, then the row of `B` is printed: the comment ends at the `-->` of the code-like text.
 - (RMP-1) Given milestone `A` whose `- State: idea` is followed by a line `<!-->`, then the item `- Issues:` listing `issues/a.md`, then a line `<!--->` and a heading `## B`, when `roadmap` runs, then the `issues` cell of `A` reads `1/1 open` and the row of `B` is printed: both are whole comments.
-- (RMP-1) Given milestone `A` whose section holds, after a blank line, the indented line `    ## B`, then the quoted fenced block `> ~~~`, `> ## C`, `> ~~~` and a heading `## D`, when `roadmap` runs, then only the rows of `A` and `D` are printed.
+- (RMP-1) Given milestone `A` whose section holds a paragraph `Example:`, a blank line, the indented line `    - State: done`, a blank line and `- State: idea`, when `roadmap` runs, then the state cell of `A` reads `idea`: the indented line is code.
 - (RMP-1) Given a line `Shape: <!--`, then a heading `## B`, when `roadmap` runs, then the row of `B` is printed: the unclosed `<!--` is text.
 - (RMP-3) Given milestone `Draft` with no `State:` line and milestone `Odd` with `- State: paused`, when `roadmap` runs, then their state cells read `(none)` and `paused (unknown)`.
 - (RMP-3) Given milestone `Later` with `- State: shaped <!-- by a reviewer -->`, when `roadmap` runs, then its state cell reads `shaped`.

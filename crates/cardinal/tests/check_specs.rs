@@ -849,9 +849,35 @@ fn unmatched_run_checks(case: &Case) {
     );
 }
 
+// spec: CLR-5
+/// An indented code block and a fenced block inside a quote are code: a marker in them is an example.
+fn code_block_marker_checks(case: &Case) {
+    case(
+        "a clarification marker in an indented code block of an accepted spec passes",
+        &SPEC.replace(
+            "- None.\n",
+            "- None.\n\nExample:\n\n    [NEEDS CLARIFICATION: x]\n",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+    case(
+        "a clarification marker in a fenced block inside a quote of an accepted spec passes",
+        &SPEC.replace(
+            "- None.\n",
+            "- None.\n\n> ```\n> [NEEDS CLARIFICATION: x]\n> ```\n",
+        ),
+        TESTS,
+        &[],
+        None,
+    );
+}
+
 // spec: CLR-1, CLR-2, CLR-5
 fn marker_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     unmatched_run_checks(case);
+    code_block_marker_checks(case);
     let marked = SPEC.replace("then c.", "then c. [NEEDS CLARIFICATION: which exit code?]");
     case(
         "a clarification marker in an accepted spec is flagged with its line",

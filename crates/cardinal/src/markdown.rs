@@ -1,4 +1,5 @@
-//! The Markdown scanning of the tools: fenced code blocks (QUA-12), HTML comments and code spans.
+//! The Markdown scanning of the tools: fenced code blocks (QUA-12), code spans, and the lines hidden in code blocks or
+//! HTML comments as `CommonMark` reads them (RMP-1).
 
 use std::ops::Range;
 
@@ -42,79 +43,74 @@ pub(crate) fn fenced<'a>(
     })
 }
 
-/// Whether each line of `lines` is part of a fenced block (its fences included) and whether it is part of an HTML
-/// comment (one ends at its first `-->`, code spans aside: see `comment_after`; a line that opens one with `<!--` after its text stays text, and that comment ends at the end of its
-/// paragraph, as in `CommonMark`: see `breaks_paragraph`, or with its line on a heading); then the fence and whether a
-/// comment are still open after the last line. A fence inside a comment opens no block, a comment opener in a fence line opens no comment (RMP-1).
-pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, Option<Fence>, bool) {
-    let mut fence = None;
-    let mut comment = false;
-    // whether the open comment was opened after the text of its line
-    let mut inline = false;
-    let hidden = lines
-        .iter()
-        .map(|line| {
-            let body = line.trim_start_matches(' ');
-            // an indented code block (four spaces) holds no comment
-            let text = line.len() - body.len() <= 3;
-            let marker = fence_marker(line);
-            if comment && inline && breaks_paragraph(line, marker.is_some()) {
-                comment = false;
-            }
-            let in_comment = comment || (fence.is_none() && text && body.starts_with("<!--"));
-            let before = fence;
-            if comment || (fence.is_none() && text && marker.is_none()) {
-                let (open, opener) = comment_after(line, comment);
-                // a comment opened on this line: after text (a code span is text) or at its start
-                if let Some(at) = opener {
-                    inline = !line[..at].trim().is_empty();
-                }
-                // a heading is one line: a comment opened after its text ends with it
-                comment = open && !(inline && text && is_heading(body.trim()));
-            }
-            if !in_comment {
-                fence = next_fence(fence, line);
-            }
-            (
-                !in_comment && (before.is_some() || fence.is_some()),
-                in_comment,
-            )
-        })
-        .collect();
-    // an inline comment open at the end ends with its paragraph
-    (hidden, fence, comment && !inline)
-}
-
-/// Whether a comment is open after `line`, given whether one is open before it, and the byte offset of the `<!--`
-/// that opened it on this line, if any: a comment holds no code span and ends at its first `-->` (`<!-->` and `<!--->`
-/// are whole comments), a `<!--` inside a code span of the line opens none.
-fn comment_after(line: &str, mut open: bool) -> (bool, Option<usize>) {
-    let mut opener = None;
-    let mut at = 0;
-    loop {
-        let rest = &line[at..];
-        if open {
-            let Some(close) = rest.find("-->") else {
-                return (true, opener);
-            };
-            open = false;
-            opener = None;
-            at += close + 3;
-        } else {
-            let spans = code_spans(rest);
-            let start = rest
-                .match_indices("<!--")
-                .map(|(i, _)| i)
-                .find(|i| !spans.iter().any(|span| span.contains(i)));
-            let Some(start) = start else {
-                return (false, None);
-            };
-            open = true;
-            opener = Some(at + start);
-            // the `--` of the opener may begin the closer: `<!-->` is a whole comment
-            at += start + 2;
+/// Whether each line of `lines` lies in a code block and whether it lies in an HTML comment, as `CommonMark` reads them
+/// (RMP-1): a line lies where its first character does, the markers of its quotes and list items aside. A code block
+/// is fenced (its fences included) or indented, in a quote or a list item or not; a comment is an HTML block opening
+/// with `<!--` or an inline `<!--...-->`. Then whether a fenced block and whether a comment block run to the end of the
+/// text with no closing fence or `-->`.
+pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
+    use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
+    let mut text = String::new();
+    let mut starts = Vec::with_capacity(lines.len());
+    for line in lines {
+        starts.push(text.len());
+        text.push_str(line);
+        if !line.ends_with('\n') {
+            text.push('\n');
         }
     }
+    let line_of = |at: usize| starts.partition_point(|&start| start <= at) - 1;
+    let mut hidden = vec![None; lines.len()];
+    let (mut open_fence, mut open_comment) = (false, false);
+    // the range of the fenced block being read and the end of its content so far
+    let mut fence: Option<(Range<usize>, usize)> = None;
+    for (event, range) in Parser::new(&text).into_offset_iter() {
+        let kind = match &event {
+            Event::Start(Tag::CodeBlock(kind)) => {
+                if matches!(kind, CodeBlockKind::Fenced(_)) {
+                    // its content starts after the line of its opening fence
+                    let opened = starts
+                        .get(line_of(range.start) + 1)
+                        .copied()
+                        .unwrap_or(text.len());
+                    fence = Some((range.clone(), opened));
+                }
+                Some((true, false))
+            }
+            Event::Text(_) => {
+                if let Some((_, content)) = &mut fence {
+                    *content = (*content).max(range.end);
+                }
+                Some((false, false))
+            }
+            Event::End(TagEnd::CodeBlock) => {
+                if let Some((block, content)) = fence.take() {
+                    // a closed block ends with the line of its closing fence, after its content
+                    open_fence |= block.end == text.len() && block.end <= content;
+                }
+                None
+            }
+            Event::Start(Tag::HtmlBlock) => {
+                let block = &text[range.clone()];
+                let comment = block.trim_start().starts_with("<!--");
+                // `<!-->` and `<!--->` are whole comments: the `-->` is searched from the `--` of the opener
+                let after = block.find("<!--").map_or(0, |at| at + 2);
+                open_comment |=
+                    comment && range.end == text.len() && !block[after..].contains("-->");
+                Some((false, comment))
+            }
+            Event::InlineHtml(html) => Some((false, html.starts_with("<!--"))),
+            Event::Start(_) | Event::End(_) | Event::SoftBreak | Event::HardBreak => None,
+            _ => Some((false, false)),
+        };
+        if let Some(kind) = kind.filter(|_| !range.is_empty()) {
+            for line in &mut hidden[line_of(range.start)..=line_of(range.end - 1)] {
+                line.get_or_insert(kind);
+            }
+        }
+    }
+    let hidden = hidden.into_iter().map(Option::unwrap_or_default).collect();
+    (hidden, open_fence, open_comment)
 }
 
 /// Whether `line`, a fence or not as `fence` says, ends a paragraph: blank, a list item (at any indentation, nested

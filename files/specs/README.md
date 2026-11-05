@@ -57,7 +57,7 @@ blank reason. A stack that keeps its internal tests elsewhere names those direct
 
 A point the writer cannot settle from the repo or the issue is marked where it belongs, never guessed:
 `[NEEDS CLARIFICATION: <question>]`, on one line. A `draft` spec may hold markers; an `accepted` one may not. A marker
-in a code span or a fenced code block is an example, not a question.
+in a code span or a code block is an example, not a question.
 
 ### Scenarios
 

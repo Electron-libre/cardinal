@@ -1,6 +1,6 @@
 ---
 id: CLS
-status: draft
+status: accepted
 adrs: []
 ---
 

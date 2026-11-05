@@ -1,5 +1,5 @@
 //! The grammar of the `roadmap` documents shared by `release` (REL-9), `close-issue` (CLS-8) and `next-issue`
-//! (NXT-10): a milestone is a `## <name>` heading outside fenced code blocks and HTML comments, its body the lines of
+//! (NXT-10): a milestone is a `## <name>` heading outside code blocks and HTML comments (RMP-1), its body the lines of
 //! its section outside them.
 
 /// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment.
@@ -103,30 +103,42 @@ mod tests {
 
     // spec: CLS-8 (internal: the fence and comment cases of the grammar the three tools share)
     #[test]
-    fn a_comment_opened_after_text_ends_with_its_paragraph() {
+    fn a_comment_after_text_hides_only_the_lines_it_starts() {
         let text = "## A <!-- was Z -->\nShape: <!--\n## B\n    <!-- code\nUse `<!--` for notes\n## C\nX <!--\n- y\n<!--\n\n## D\n-->\n";
         assert_eq!(names(text), ["A", "B", "C"]);
-        // a line indented by four spaces continues the paragraph, and the comment with it
-        let commented = |lines: &[&str]| -> Vec<bool> {
-            crate::markdown::hidden(lines)
-                .0
-                .iter()
-                .map(|h| h.1)
-                .collect()
-        };
+        let hidden = |lines: &[&str]| crate::markdown::hidden(lines).0;
+        let commented =
+            |lines: &[&str]| -> Vec<bool> { hidden(lines).iter().map(|h| h.1).collect() };
+        // a `<!--` that no `-->` closes in its paragraph is text
         assert_eq!(
             commented(&["Z <!--", "    ## x", "y", ""]),
-            [false, true, true, false]
+            [false, false, false, false]
         );
-        // a nested item and a comment block end it; a heading ends it on its own line
-        assert_eq!(commented(&["- a <!--", "    - b"]), [false, false]);
+        // an inline comment hides the lines it starts, not the one it opens on
+        assert_eq!(
+            commented(&["a <!-- b", "c --> d", "e"]),
+            [false, true, false]
+        );
+        // a comment block interrupts a paragraph; a heading holds its own comment
         assert_eq!(
             commented(&["a <!--", "<!-- b", "## c", "-->"]),
             [false, true, true, true]
         );
         assert_eq!(commented(&["## a <!--", "b"]), [false, false]);
-        // an inline comment open at the end is closed by its paragraph
         assert!(!crate::markdown::hidden(&["a <!--"]).2);
+        // an indented block after a paragraph and a fenced block in a quote are code, comment openers included
+        assert_eq!(
+            hidden(&["p", "", "    <!-- x", "    y", "> ```", "> z", "> ```"]),
+            [
+                (false, false),
+                (false, false),
+                (true, false),
+                (true, false),
+                (true, false),
+                (true, false),
+                (true, false)
+            ]
+        );
     }
 
     #[test]

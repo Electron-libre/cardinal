@@ -111,9 +111,9 @@ fn a_link_to_a_missing_closed_issue_stays_open() {
 }
 
 // spec: RMP-1
-/// A comment opened after the text of a line ends with its paragraph: the next item and the next heading are read.
+/// A `<!--` that no `-->` closes in its paragraph is text: the next item and the next heading are read.
 #[test]
-fn a_comment_after_text_ends_with_its_paragraph() {
+fn an_unclosed_comment_after_text_is_text() {
     let root = project(&[(
         "ROADMAP.md",
         "## Next\n- State: shaped <!-- see\n- Issues:\n  - [a](issues/a.md)\n\n## Later\n- State: idea\n",
@@ -121,6 +121,27 @@ fn a_comment_after_text_ends_with_its_paragraph() {
     let (_, out) = roadmap(root.path(), &[]);
     assert_eq!(row(&out, "Next")[3], "1/1 open", "{out}");
     assert_eq!(row(&out, "Later")[1], "idea", "{out}");
+}
+
+// spec: RMP-1
+/// An indented code block is code: its `State:` line is not the milestone's.
+#[test]
+fn an_indented_code_block_holds_no_field() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## A\n\nExample:\n\n    - State: done\n\n- State: idea\n",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "A")[1], "idea", "{out}");
+}
+
+// spec: RMP-1
+/// A `<!--` after the text of a line and closed by no `-->` of its paragraph hides no heading.
+#[test]
+fn an_unclosed_inline_comment_hides_no_heading() {
+    let root = project(&[("ROADMAP.md", "## A\nShape: <!--\n## B\n- State: shaped\n")]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert_eq!(row(&out, "B")[1], "shaped", "{out}");
 }
 
 // spec: RMP-1

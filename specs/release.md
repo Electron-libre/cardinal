@@ -1,6 +1,6 @@
 ---
 id: REL
-status: draft
+status: accepted
 adrs: []
 ---
 

@@ -46,7 +46,7 @@ unclosed inline `<!--` becomes text. Out of scope: `fenced`/`code_spans` of `clo
 
 ## Plan
 1. [x] Prose words as CommonMark: `prose_words` keeps the `Event::Text` outside code blocks (code spans, HTML left out); `code_spans_by_line` and `without_spans` removed if unused; verified by tests of the two new BRE-10 scenarios and the existing ones; makes true BRE-10, LNG-4. (autonomous)
-2. [ ] Hidden lines as CommonMark: `hidden` marks a line code or comment when its first content lies in a code block or an HTML comment (block or inline), reports a fenced block or a comment block reaching the end unclosed; the hand-written comment scan (`comment_after`, the inline rule) removed; verified by the new RMP-1 scenarios through `roadmap`, the amended internal tests of `roadmap.rs` and a CLR-5 test of an indented block; makes true RMP-1, CLR-5, REL-9, CLS-8, NXT-10.
+2. [x] Hidden lines as CommonMark: `hidden` marks a line code or comment when its first content lies in a code block or an HTML comment (block or inline), reports a fenced block or a comment block reaching the end unclosed; the hand-written comment scan (`comment_after`, the inline rule) removed; verified by the new RMP-1 scenarios through `roadmap`, the amended internal tests of `roadmap.rs` and a CLR-5 test of an indented block; makes true RMP-1, CLR-5, REL-9, CLS-8, NXT-10. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -67,6 +67,24 @@ done: `prose_words` reads the prose with `pulldown-cmark` (code blocks, code spa
 | code review | no findings |
 
 red: BRE-10: the indented block of English stop words was a breach (`s.jsonl:10`) and the backtick of the `-->` line paired with the next one, hiding the breach of `s.jsonl:12`.
+
+Code review: no findings (`low`).
+
+not verified: none. decisions needed: none.
+
+## Deliverable 2
+
+done: `markdown::hidden` reads the code blocks and the HTML comments with `pulldown-cmark` (a line lies where its first content does); the hand-written comment scan removed; `check-specs` reports an unclosed fence or comment block from the same parse; the specs of RMP-1, CLR-5, REL-9, CLS-8, NXT-10 accepted again; `files/specs/README.md` says a marker in any code block is an example. `check-specs`, `roadmap` and `next-issue` print the same on this repository before and after.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass (one older wording warning, CLS-9, untouched) |
+| docs | `files/specs/README.md` and its copy, the doc comments of `roadmap.rs` and `check_specs.rs` |
+| code review | no findings |
+
+red: RMP-1, CLR-5: the indented `    - State: done` was the state of `A` (`left: "done"`), and a marker in an indented block or a quoted fence was flagged in an accepted spec.
 
 Code review: no findings (`low`).
 

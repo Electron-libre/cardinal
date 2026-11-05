@@ -48,6 +48,8 @@ unclosed inline `<!--` becomes text. Out of scope: `fenced`/`code_spans` of `clo
 1. [x] Prose words as CommonMark: `prose_words` keeps the `Event::Text` outside code blocks (code spans, HTML left out); `code_spans_by_line` and `without_spans` removed if unused; verified by tests of the two new BRE-10 scenarios and the existing ones; makes true BRE-10, LNG-4. (autonomous)
 2. [x] Hidden lines as CommonMark: `hidden` marks a line code or comment when its first content lies in a code block or an HTML comment (block or inline), reports a fenced block or a comment block reaching the end unclosed; the hand-written comment scan (`comment_after`, the inline rule) removed; verified by the new RMP-1 scenarios through `roadmap`, the amended internal tests of `roadmap.rs` and a CLR-5 test of an indented block; makes true RMP-1, CLR-5, REL-9, CLS-8, NXT-10. (autonomous)
 
+3. [x] Fixes of the `high` review of the issue: a comment inside any HTML block hides the lines it starts, a heading opening with an inline comment stays a heading, the stale doc comments renamed; verified by an internal test and a binary test of `roadmap`; makes true RMP-1. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 27d0c25193de9a876fab967b0d4748a8101c6b52
@@ -85,6 +87,26 @@ done: `markdown::hidden` reads the code blocks and the HTML comments with `pulld
 | code review | no findings |
 
 red: RMP-1, CLR-5: the indented `    - State: done` was the state of `A` (`left: "done"`), and a marker in an indented block or a quoted fence was flagged in an accepted spec.
+
+Code review: no findings (`low`).
+
+not verified: none. decisions needed: none.
+
+## Deliverable 3
+
+`high` review of `27d0c25..ec0d88d`: 8 findings. Fixed: 1 (a comment in a `<details>` block hid nothing), 2 (`## <!-- x --> Later` was hidden), 6 (stale comments). Filed in `issues/read_the_last_markdown_of_the_tools_as_commonmark.md`, outside the validated scope (decision 2): 3 (`check_markers` code spans by line), 4 (`close_issue` fences by line), 5 (CLR-8 paragraph rule), 8 (three walkers of `pulldown-cmark`). Not fixed: 7 (`hidden` copies the lines into one text: the callers hold lines, the copy is cheap).
+
+done: `hidden` reads the comments of every HTML block (`html_comments`) and the `#` of a heading as its first character; RMP-1 and two scenarios amended.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass |
+| docs | doc comments of `markdown.rs`, `roadmap.rs`, `check_specs.rs` |
+| code review | no findings |
+
+red: RMP-1: `names` gave `["A", "B", "C"]` for the `<details>` block, and `roadmap` printed the state of `C` as `shaped`.
 
 Code review: no findings (`low`).
 

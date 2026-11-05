@@ -2,7 +2,7 @@
 //! (NXT-10): a milestone is a `## <name>` heading outside code blocks and HTML comments (RMP-1), its body the lines of
 //! its section outside them.
 
-/// Whether each line of `lines` is text, not part of a fenced block (its fences included) or of an HTML comment.
+/// Whether each line of `lines` is text, not part of a code block (the fences of a fenced one included) or of an HTML comment (RMP-1).
 fn visible(lines: &[&str]) -> Vec<bool> {
     let (hidden, _, _) = crate::markdown::hidden(lines);
     hidden
@@ -126,6 +126,12 @@ mod tests {
         );
         assert_eq!(commented(&["## a <!--", "b"]), [false, false]);
         assert!(!crate::markdown::hidden(&["a <!--"]).2);
+        // a comment inside another HTML block hides the lines it starts; a heading starts with its `#`
+        assert_eq!(
+            names("## A\n<details>\n<!--\n## B\n-->\n</details>\n\n## C\n"),
+            ["A", "C"]
+        );
+        assert_eq!(commented(&["## <!-- renamed --> Later"]), [false]);
         // an indented block after a paragraph and a fenced block in a quote are code, comment openers included
         assert_eq!(
             hidden(&["p", "", "    <!-- x", "    y", "> ```", "> z", "> ```"]),

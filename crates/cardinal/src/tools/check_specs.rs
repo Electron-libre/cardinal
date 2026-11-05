@@ -72,8 +72,8 @@ fn check_markers(
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
-    for (i, (line, &(fenced, _))) in lines.iter().zip(hidden).enumerate() {
-        if fenced {
+    for (i, (line, &(code, _))) in lines.iter().zip(hidden).enumerate() {
+        if code {
             continue;
         }
         let text = crate::markdown::without_code_spans(line);
@@ -244,7 +244,7 @@ fn parse(
     let marked: Vec<_> = lines
         .iter()
         .zip(&hidden)
-        .map(|(&line, &(fenced, commented))| (line, fenced || commented))
+        .map(|(&line, &(code, commented))| (line, code || commented))
         .collect();
     for section in SECTIONS {
         if !marked
@@ -266,8 +266,8 @@ fn parse(
     spec
 }
 
-/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: fenced
-/// or commented) into `spec`.
+/// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: in a code
+/// block or commented) into `spec`.
 fn parse_requirements(
     file: &str,
     marked: &[(&str, bool)],
@@ -346,7 +346,7 @@ fn parse_requirements(
 
 /// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
 /// ends the paragraph (`breaks_paragraph`): blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
-/// with whether it is hidden: fenced or commented.
+/// with whether it is hidden: in a code block or commented.
 fn with_continuation(first: &str, rest: &[(&str, bool)]) -> String {
     let mut statement = first.to_string();
     for &(line, hidden) in rest {

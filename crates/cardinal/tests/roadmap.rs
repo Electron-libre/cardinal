@@ -136,6 +136,19 @@ fn an_indented_code_block_holds_no_field() {
 }
 
 // spec: RMP-1
+/// A comment inside another HTML block hides its lines; a heading that opens with a comment is still a heading.
+#[test]
+fn a_comment_in_an_html_block_hides_and_one_in_a_heading_does_not() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## A\n<details>\n<!--\n## B\n-->\n</details>\n\n## C\n\n## <!-- renamed --> Later\n- State: shaped\n",
+    )]);
+    let (_, out) = roadmap(root.path(), &[]);
+    assert!(!out.contains("| B "), "{out}");
+    assert_eq!(row(&out, "C")[1], "(none)", "{out}");
+}
+
+// spec: RMP-1
 /// A `<!--` after the text of a line and closed by no `-->` of its paragraph hides no heading.
 #[test]
 fn an_unclosed_inline_comment_hides_no_heading() {

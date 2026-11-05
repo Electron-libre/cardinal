@@ -45,8 +45,8 @@ pub(crate) fn fenced<'a>(
 
 /// Whether each line of `lines` lies in a code block and whether it lies in an HTML comment, as `CommonMark` reads them
 /// (RMP-1): a line lies where its first character does, the markers of its quotes and list items aside. A code block
-/// is fenced (its fences included) or indented, in a quote or a list item or not; a comment is an HTML block opening
-/// with `<!--` or an inline `<!--...-->`. Then whether a fenced block and whether a comment block run to the end of the
+/// is fenced (its fences included) or indented, in a quote or a list item or not; a comment is one of an HTML block
+/// (`html_comments`) or an inline `<!--...-->`. Then whether a fenced block and whether a comment block run to the end of the
 /// text with no closing fence or `-->`.
 pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
     use pulldown_cmark::{CodeBlockKind, Event, Parser, Tag, TagEnd};
@@ -64,6 +64,8 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
     let (mut open_fence, mut open_comment) = (false, false);
     // the range of the fenced block being read and the end of its content so far
     let mut fence: Option<(Range<usize>, usize)> = None;
+    // the comments of the HTML block being read
+    let mut comments: Vec<Range<usize>> = Vec::new();
     for (event, range) in Parser::new(&text).into_offset_iter() {
         let kind = match &event {
             Event::Start(Tag::CodeBlock(kind)) => {
@@ -91,13 +93,23 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
                 None
             }
             Event::Start(Tag::HtmlBlock) => {
-                let block = &text[range.clone()];
-                let comment = block.trim_start().starts_with("<!--");
-                // `<!-->` and `<!--->` are whole comments: the `-->` is searched from the `--` of the opener
-                let after = block.find("<!--").map_or(0, |at| at + 2);
-                open_comment |=
-                    comment && range.end == text.len() && !block[after..].contains("-->");
-                Some((false, comment))
+                comments = html_comments(&text, range.clone());
+                open_comment |= range.end == text.len()
+                    && comments
+                        .last()
+                        .is_some_and(|c| c.end == range.end && !text[c.clone()].ends_with("-->"));
+                None
+            }
+            // a line of an HTML block lies where its first character does, blank or not
+            Event::Html(line) => {
+                let first = range.start + line.find(|c: char| !c.is_whitespace()).unwrap_or(0);
+                Some((false, comments.iter().any(|c| c.contains(&first))))
+            }
+            // an ATX heading starts with its `#`, out of any inline comment
+            Event::Start(Tag::Heading { .. })
+                if text[range.clone()].trim_start().starts_with('#') =>
+            {
+                Some((false, false))
             }
             Event::InlineHtml(html) => Some((false, html.starts_with("<!--"))),
             Event::Start(_) | Event::End(_) | Event::SoftBreak | Event::HardBreak => None,
@@ -111,6 +123,21 @@ pub(crate) fn hidden(lines: &[&str]) -> (Vec<(bool, bool)>, bool, bool) {
     }
     let hidden = hidden.into_iter().map(Option::unwrap_or_default).collect();
     (hidden, open_fence, open_comment)
+}
+
+/// The byte ranges of the HTML comments of the HTML block `block` of `text`: from a `<!--` to its first `-->` after the
+/// `<!` (`<!-->` and `<!--->` are whole comments), or to the end of the block.
+fn html_comments(text: &str, block: Range<usize>) -> Vec<Range<usize>> {
+    let mut comments = Vec::new();
+    let mut at = block.start;
+    while let Some(open) = text[at..block.end].find("<!--").map(|i| at + i) {
+        let end = text[open + 2..block.end]
+            .find("-->")
+            .map_or(block.end, |i| open + 2 + i + 3);
+        comments.push(open..end);
+        at = end;
+    }
+    comments
 }
 
 /// Whether `line`, a fence or not as `fence` says, ends a paragraph: blank, a list item (at any indentation, nested

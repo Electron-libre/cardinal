@@ -1,5 +1,6 @@
 //! The Markdown scanning of the tools: the fenced code blocks of QUA-12, read by hand, and one walk of `pulldown-cmark`
-//! that says of each line whether it lies in a code block or an HTML comment and where its code spans are (RMP-1).
+//! that says of each line whether it lies in a code block or an HTML comment, where its code spans are and which
+//! paragraph it belongs to (RMP-1, CLR-8).
 
 use std::ops::Range;
 
@@ -12,7 +13,7 @@ pub(crate) struct Fence {
 
 /// The fence `line` starts with, indented by three spaces at most (four make an indented code block), and whether
 /// nothing but spaces follows it; a backtick fence followed by a backtick is inline code, not a fence (QUA-12).
-pub(crate) fn fence_marker(line: &str) -> Option<(Fence, bool)> {
+fn fence_marker(line: &str) -> Option<(Fence, bool)> {
     let body = line.trim_start_matches(' ');
     let ch = body.chars().next().filter(|c| ['`', '~'].contains(c))?;
     let len = body.len() - body.trim_start_matches(ch).len();
@@ -44,12 +45,14 @@ pub(crate) fn fenced<'a>(
 }
 
 /// What the `CommonMark` reading of a text says of one of its lines (RMP-1): whether it lies in a code block, whether it
-/// lies in an HTML comment, and the byte ranges of the line inside inline code spans.
+/// lies in an HTML comment, the byte ranges of the line inside inline code spans, and the paragraph its first inline
+/// text belongs to: the lines of one paragraph, or of the text of one list item, a heading or a table cell, share it.
 #[derive(Clone, Default)]
 pub(crate) struct Line {
     pub(crate) code: bool,
     pub(crate) comment: bool,
     pub(crate) spans: Vec<Range<usize>>,
+    pub(crate) paragraph: Option<usize>,
 }
 
 /// The lines of a text as `CommonMark` reads them, then whether a fenced block and whether a comment block run to the
@@ -77,13 +80,22 @@ pub(crate) fn walk(lines: &[&str]) -> Walk {
     }
     let line_of = |at: usize| starts.partition_point(|&start| start <= at) - 1;
     let mut hidden = vec![None; lines.len()];
-    let mut spans = vec![Vec::new(); lines.len()];
+    let mut read = vec![Line::default(); lines.len()];
+    // the number of the run of inline text being read: any block that starts or ends ends it
+    let mut paragraph = 0;
     let (mut open_fence, mut open_comment) = (false, false);
     // the range of the fenced block being read and the end of its content so far
     let mut fence: Option<(Range<usize>, usize)> = None;
     // the comments of the HTML block being read
     let mut comments: Vec<Range<usize>> = Vec::new();
     for (event, range) in Parser::new(&text).into_offset_iter() {
+        if !is_inline(&event) {
+            paragraph += 1;
+        } else if !range.is_empty() {
+            for line in &mut read[line_of(range.start)..=line_of(range.end - 1)] {
+                line.paragraph.get_or_insert(paragraph);
+            }
+        }
         let kind = match &event {
             Event::Start(Tag::CodeBlock(kind)) => {
                 if matches!(kind, CodeBlockKind::Fenced(_)) {
@@ -131,12 +143,11 @@ pub(crate) fn walk(lines: &[&str]) -> Walk {
             Event::InlineHtml(html) => Some((false, html.starts_with("<!--"))),
             Event::Code(_) => {
                 for i in line_of(range.start)..=line_of(range.end - 1) {
+                    // the part of the span on line `i`, its line ending aside
                     let content = lines[i].trim_end_matches(['\n', '\r']).len();
                     let span =
                         range.start.saturating_sub(starts[i])..(range.end - starts[i]).min(content);
-                    if !span.is_empty() {
-                        spans[i].push(span);
-                    }
+                    read[i].spans.extend((!span.is_empty()).then_some(span));
                 }
                 Some((false, false))
             }
@@ -149,22 +160,49 @@ pub(crate) fn walk(lines: &[&str]) -> Walk {
             }
         }
     }
-    let lines = hidden
-        .into_iter()
-        .zip(spans)
-        .map(|(kind, spans)| {
-            let (code, comment) = kind.unwrap_or_default();
-            Line {
-                code,
-                comment,
-                spans,
-            }
-        })
-        .collect();
+    for (line, kind) in read.iter_mut().zip(hidden) {
+        (line.code, line.comment) = kind.unwrap_or_default();
+    }
     Walk {
-        lines,
+        lines: read,
         open_fence,
         open_comment,
+    }
+}
+
+/// Whether `event` lies inside a run of inline text rather than starting or ending a block.
+fn is_inline(event: &pulldown_cmark::Event) -> bool {
+    use pulldown_cmark::{Event, Tag, TagEnd};
+    match event {
+        Event::Start(tag) => matches!(
+            tag,
+            Tag::Emphasis
+                | Tag::Strong
+                | Tag::Strikethrough
+                | Tag::Superscript
+                | Tag::Subscript
+                | Tag::Link { .. }
+                | Tag::Image { .. }
+        ),
+        Event::End(tag) => matches!(
+            tag,
+            TagEnd::Emphasis
+                | TagEnd::Strong
+                | TagEnd::Strikethrough
+                | TagEnd::Superscript
+                | TagEnd::Subscript
+                | TagEnd::Link
+                | TagEnd::Image
+        ),
+        Event::Text(_)
+        | Event::Code(_)
+        | Event::InlineMath(_)
+        | Event::InlineHtml(_)
+        | Event::SoftBreak
+        | Event::HardBreak
+        | Event::FootnoteReference(_)
+        | Event::TaskListMarker(_) => true,
+        Event::Html(_) | Event::DisplayMath(_) | Event::Rule => false,
     }
 }
 
@@ -210,35 +248,4 @@ fn html_comments(text: &str, block: Range<usize>) -> Vec<Range<usize>> {
         at = end;
     }
     comments
-}
-
-/// Whether `line`, a fence or not as `fence` says, ends a paragraph: blank, a list item (at any indentation, nested
-/// items included), or a heading, a quote or an HTML comment indented by three spaces at most (indented by four, they
-/// continue it).
-pub(crate) fn breaks_paragraph(line: &str, fence: bool) -> bool {
-    let trimmed = line.trim();
-    let indent = line.len() - line.trim_start_matches(' ').len();
-    fence
-        || trimmed.is_empty()
-        || is_list_item(trimmed)
-        || (indent <= 3
-            && (is_heading(trimmed) || trimmed.starts_with('>') || trimmed.starts_with("<!--")))
-}
-
-/// Whether the trimmed line `trimmed` opens a list item that can break a paragraph: `-`, `*`, `+`, `1.` or `1)` (an
-/// ordered list must start at 1 to break one, as in the `CommonMark` spec), then a space, a tab or nothing.
-fn is_list_item(trimmed: &str) -> bool {
-    let marker = trimmed.strip_prefix(['-', '*', '+']).or_else(|| {
-        trimmed
-            .strip_prefix("1.")
-            .or_else(|| trimmed.strip_prefix("1)"))
-    });
-    marker.is_some_and(|r| r.is_empty() || r.starts_with([' ', '\t']))
-}
-
-/// Whether the trimmed line `trimmed` is an ATX heading: one to six `#`, then a space, a tab or nothing.
-fn is_heading(trimmed: &str) -> bool {
-    let rest = trimmed.trim_start_matches('#');
-    let level = trimmed.len() - rest.len();
-    (1..=6).contains(&level) && (rest.is_empty() || rest.starts_with([' ', '\t']))
 }

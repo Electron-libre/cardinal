@@ -245,6 +245,7 @@ fn parse(
         .map(|(&line, read)| (line, read.code || read.comment))
         .collect();
     let prose = walk.prose(&lines);
+    let paragraphs: Vec<_> = walk.lines.iter().map(|read| read.paragraph).collect();
     for section in SECTIONS {
         if !marked
             .iter()
@@ -260,17 +261,19 @@ fn parse(
     if walk.open_comment {
         problem(out, file, format_args!("unclosed HTML comment"));
     }
-    parse_requirements(file, &marked, &prose, &mut spec, out, warn);
+    parse_requirements(file, &marked, &prose, &paragraphs, &mut spec, out, warn);
     check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
 }
 
 /// Read the requirement lines of the `## Requirements` section of `marked` (each line with whether it is hidden: in a code
-/// block or commented) into `spec`; `prose` holds the lines with their code spans blanked (`check_markers`).
+/// block or commented) into `spec`; `prose` holds the lines with their code spans blanked (`check_markers`), and
+/// `paragraphs` the paragraph of each (`markdown::Line`).
 fn parse_requirements(
     file: &str,
     marked: &[(&str, bool)],
     prose: &[Option<String>],
+    paragraphs: &[Option<usize>],
     spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
@@ -342,7 +345,13 @@ fn parse_requirements(
             check_wording(
                 file,
                 id,
-                &with_continuation(first, &marked[i + 1..], &prose[i + 1..]),
+                &with_continuation(
+                    first,
+                    paragraphs[i],
+                    &marked[i + 1..],
+                    &prose[i + 1..],
+                    &paragraphs[i + 1..],
+                ),
                 warn,
             );
         }
@@ -353,18 +362,20 @@ fn parse_requirements(
     }
 }
 
-/// The statement `first` of a requirement followed by its continuation lines, the start of `rest` up to a line that
-/// ends the paragraph (`breaks_paragraph`): blank, a list item, a heading, a fence, a quote or an HTML comment; each line of `rest` comes
-/// with whether it is hidden: in a code block or commented, and `prose` gives its text with its code spans blanked.
-fn with_continuation(first: &str, rest: &[(&str, bool)], prose: &[Option<String>]) -> String {
+/// The statement `first` of a requirement followed by its continuation lines: the start of `rest` in the paragraph
+/// `paragraph` of its item line, as `CommonMark` reads it (CLR-8), up to a line hidden in a code block or a comment. Each
+/// line of `rest` comes with whether it is hidden, its text with its code spans blanked in `prose`, and its paragraph in
+/// `paragraphs`.
+fn with_continuation(
+    first: &str,
+    paragraph: Option<usize>,
+    rest: &[(&str, bool)],
+    prose: &[Option<String>],
+    paragraphs: &[Option<usize>],
+) -> String {
     let mut statement = first.to_string();
-    for (&(line, hidden), text) in rest.iter().zip(prose) {
-        if hidden
-            || crate::markdown::breaks_paragraph(
-                line,
-                crate::markdown::fence_marker(line).is_some(),
-            )
-        {
+    for ((&(_, hidden), text), &of) in rest.iter().zip(prose).zip(paragraphs) {
+        if hidden || paragraph.is_none() || of != paragraph {
             break;
         }
         statement.push(' ');

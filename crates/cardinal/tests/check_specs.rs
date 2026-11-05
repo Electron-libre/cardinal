@@ -1293,6 +1293,9 @@ fn wording_continuation_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "\n  -\tit may must",
         "\n  > it may must",
         "\n<!-- it may must -->",
+        "\n<div>\nit may must\n</div>",
+        "\n---\nit may must",
+        "\n  ---\n  it may must",
     ];
     for end in ends {
         let ended = draft.replace("A run must resume.", &format!("A run must resume.{end}"));

@@ -56,9 +56,9 @@ hand-written helpers left unused go. Out of scope: `memory::imports` (follows `m
    `check_markers` and `check_wording` drop the code spans it reads, `link_targets` skips its code blocks and spans;
    verified by tests of a code span over two lines (check-specs) and of a link in a quoted fence and in an indented
    block (close-issue); makes true CLR-5, CLS-6. ~250 lines.
-2. [ ] Statement as a paragraph: the walk gives the paragraph line ranges, `with_continuation` reads them;
+2. [x] Statement as a paragraph: the walk gives the paragraph line ranges, `with_continuation` reads them;
    `breaks_paragraph`, `is_list_item`, `is_heading`, `code_spans`, `without_code_spans` dropped; verified by a test of
-   a `<div>` and a `---` after a requirement; makes true CLR-8. ~150 lines.
+   a `<div>` and a `---` after a requirement; makes true CLR-8. ~150 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -78,3 +78,21 @@ done: `markdown::walk` gives code, comment and code spans per line; `check_marke
 | code review | see below |
 
 red: CLR-5, CLS-6: `FAIL - a clarification marker in a code span over two lines of an accepted spec passes`, `FAIL - a link in a code span over two lines, a quoted fence or an indented block is untouched`
+
+## Deliverable 2
+done: `markdown::walk` numbers the paragraph of each line; `with_continuation` reads the paragraph of the item line;
+`breaks_paragraph`, `is_list_item`, `is_heading` dropped; `spec-clarity` back to `accepted`; `specs/README.md` says it.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `files/specs/README.md` (synced), module doc of `markdown.rs` |
+| code review | no findings |
+
+red: CLR-8: `FAIL - the continuation lines end before "\n<div>\nit may must\n</div>"`, `"\n---\nit may must"`, `"\n  ---\n  it may must"`
+
+Code review: no findings
+
+not verified: none. decisions needed: none.

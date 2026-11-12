@@ -59,6 +59,10 @@ specs of 67; an Intent over 600 characters, of 5.
    spec per sub-capability with its own id, the moved requirements `withdrawn: moved to XYZ-n` so every cited id stays
    resolvable, the tests re-cite the new ids); verified by `just check` (skill checks); docs only. (autonomous)
 
+3. [x] Review of the whole issue: the `write-spec` trigger also names the line of the `accepted` specs, the Intent
+   counts the text a code block or a comment hides (CLR-15), the bounds read through `read_config`, the wording of a
+   bound kept in `BOUNDS`, `read_front_matter` takes the file; verified by `test_check_specs.rs`. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 29ed2fa23cbef2cad5f5d4f39addd2a674d52fbd
@@ -100,4 +104,21 @@ done: `skill:write-spec` step 1 asks the user whether to split a spec `check-spe
 red: none
 Code review: no findings
 not verified: the skill read by a model on a real oversized spec
+decisions needed: none
+
+### 3. Review of the whole issue
+done: the fixes of the `high` review of `29ed2fa..2bbab8c` (5 of 6 findings).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | `write-spec` step 1 |
+| code review | no findings (low) |
+
+red: CLR-15: `FAIL - the Intent counts the text a comment hides`
+Code review: 6 findings (high): 5 fixed; a bound written at the top level of `cardinal.toml` stays ignored, as
+`fixed_context_budget` and the `deliverable-size` limits read `[project]` only, CLR-15 says `[project]`.
+not verified: none
 decisions needed: none

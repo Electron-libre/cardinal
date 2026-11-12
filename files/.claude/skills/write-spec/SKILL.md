@@ -15,7 +15,8 @@ mechanical rules. Don't implement anything here: the tests come after the user v
 1. **Find the spec**: `ls specs` and read the one that covers the capability. Amend it rather than create a
    second one for the same capability. Read the ADRs it lists and the `//!` doc of the code it describes
    (the `architecture` document and `docs/`) so the requirements say what is true, not what is hoped.
-   When `cardinal run check-specs` says the spec to amend outgrows its capability, ask the user, before drafting,
+   When `cardinal run check-specs` names the spec to amend as outgrowing its capability (a `draft` one) or a bound of
+   `spec_max_*` (the line of the `accepted` ones), ask the user, before drafting,
    whether to split it: one spec per sub-capability, each with its own id; a moved requirement takes the next number
    of its new spec, its old one stays as `withdrawn: moved to XYZ-n` so every cited id resolves, and the tests cite
    the new id. Keep the Intent the one or two sentences of the capability, never the list of what was added to it.

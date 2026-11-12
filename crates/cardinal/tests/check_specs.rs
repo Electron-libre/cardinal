@@ -1832,6 +1832,21 @@ fn bound_measure_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "a draft over a bound the project lowered is warned of",
         bound_lines(&stderr).len() == 1 && stderr.contains("over 100 (spec_max_bytes)"),
     );
+    let commented = clear_draft().replace(
+        "Reuse.\n",
+        &format!("Reuse.\n\n<!-- {} -->\n", "c".repeat(700)),
+    );
+    let stderr = case(
+        "a draft with a long comment in its Intent passes",
+        &commented,
+        "",
+        &[],
+        None,
+    );
+    report(
+        "the Intent counts the text a comment hides",
+        stderr.contains("an Intent of 717 characters over 600 (spec_max_intent)"),
+    );
     for value in ["0", "\"25 KB\""] {
         case(
             &format!("a bound of {value} fails"),

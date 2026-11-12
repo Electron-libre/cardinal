@@ -45,11 +45,35 @@ pub(super) struct Spec {
     intent: u64,
 }
 
-/// The bounds of the size of a spec (CLR-15): the key of the `[project]` table, its default, the unit of the warning.
-const BOUNDS: [(&str, u64, &str); 3] = [
-    ("spec_max_requirements", 40, "requirements"),
-    ("spec_max_bytes", 25_000, "bytes"),
-    ("spec_max_intent", 600, "characters"),
+/// A bound of the size of a spec (CLR-15).
+struct Bound {
+    /// Its key in the `[project]` table.
+    key: &'static str,
+    default: u64,
+    /// The measure in the warning, around the number: `<before><n> <unit>`.
+    before: &'static str,
+    unit: &'static str,
+}
+
+const BOUNDS: [Bound; 3] = [
+    Bound {
+        key: "spec_max_requirements",
+        default: 40,
+        before: "",
+        unit: "requirements",
+    },
+    Bound {
+        key: "spec_max_bytes",
+        default: 25_000,
+        before: "",
+        unit: "bytes",
+    },
+    Bound {
+        key: "spec_max_intent",
+        default: 600,
+        before: "an Intent of ",
+        unit: "characters",
+    },
 ];
 
 impl Spec {
@@ -63,14 +87,16 @@ impl Spec {
         [live as u64, self.bytes, self.intent]
     }
 
-    /// The `(measure, bound, key, unit)` of each bound of `bounds` the spec is over (CLR-13).
-    fn outgrown(&self, bounds: &[u64; 3]) -> Vec<(u64, u64, &'static str, &'static str)> {
+    /// Each bound of `bounds` the spec is over, said with its measure (CLR-13).
+    fn outgrown(&self, bounds: &[u64; 3]) -> Vec<String> {
         self.measures()
             .into_iter()
             .zip(bounds)
-            .zip(BOUNDS)
+            .zip(&BOUNDS)
             .filter(|((measure, bound), _)| measure > bound)
-            .map(|((measure, &bound), (key, _, unit))| (measure, bound, key, unit))
+            .map(|((measure, bound), b)| {
+                format!("{}{measure} {} over {bound} ({})", b.before, b.unit, b.key)
+            })
             .collect()
     }
 }
@@ -80,44 +106,39 @@ impl Spec {
 /// defaults, its problem being reported with the `skipped_dirs`.
 fn bounds(root: &Path) -> ([u64; 3], Vec<String>) {
     let path = crate::config_of(root);
-    let table: toml::Table = std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|text| text.parse().ok())
-        .unwrap_or_default();
+    let table = crate::read_config(root).unwrap_or_default();
     let mut problems = Vec::new();
-    let values =
-        BOUNDS.map(
-            |(key, default, _)| match table.get("project").and_then(|p| p.get(key)) {
-                None => default,
-                Some(value) => value
-                    .as_integer()
-                    .and_then(|n| u64::try_from(n).ok())
-                    .filter(|&n| n > 0)
-                    .unwrap_or_else(|| {
-                        problems.push(format!(
-                            "{}: `{key}` must be a positive integer",
-                            path.display()
-                        ));
-                        default
-                    }),
-            },
-        );
+    let values = BOUNDS.map(|Bound { key, default, .. }| {
+        match table.get("project").and_then(|p| p.get(key)) {
+            None => default,
+            Some(value) => value
+                .as_integer()
+                .and_then(|n| u64::try_from(n).ok())
+                .filter(|&n| n > 0)
+                .unwrap_or_else(|| {
+                    problems.push(format!(
+                        "{}: `{key}` must be a positive integer",
+                        path.display()
+                    ));
+                    default
+                }),
+        }
+    });
     (values, problems)
 }
 
-/// The characters between the `## Intent` heading of `read` and the next `## ` heading, trimmed (CLR-15).
+/// The characters between the `## Intent` heading of `read` and the next `## ` heading, trimmed, the text a code
+/// block or a comment hides included: it is read all the same (CLR-15).
 fn intent_chars(read: &Read) -> u64 {
-    let visible = || {
-        read.lines
-            .iter()
-            .zip(read.walk)
-            .filter(|(_, w)| !w.hidden())
-            .map(|(l, _)| *l)
-    };
-    let body: Vec<&str> = visible()
-        .skip_while(|l| l.trim() != "## Intent")
+    let heading = |l: &str, w: &crate::markdown::Line| !w.hidden() && l.starts_with("## ");
+    let body: Vec<&str> = read
+        .lines
+        .iter()
+        .zip(read.walk)
+        .skip_while(|(l, w)| !(heading(l, w) && l.trim() == "## Intent"))
         .skip(1)
-        .take_while(|l| !l.starts_with("## "))
+        .take_while(|(l, w)| !heading(l, w))
+        .map(|(l, _)| *l)
         .collect();
     body.join("\n").trim().chars().count() as u64
 }
@@ -261,13 +282,12 @@ fn adr_exists(root: &Path, n: &str) -> bool {
 /// Read the `id`, `status` and `adrs` of the front matter `lines` into `spec`, with their problems and warnings.
 fn read_front_matter(
     root: &Path,
+    file: &str,
     lines: &[&str],
     spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
-    let file = spec.file.clone();
-    let file = file.as_str();
     for line in lines {
         let Some((key, value)) = line.split_once(':') else {
             continue;
@@ -346,7 +366,14 @@ fn parse(
         problem(out, file, "no front matter (`---` ... `---`)");
         return spec;
     }
-    read_front_matter(root, &lines[1..close.unwrap_or(0)], &mut spec, out, warn);
+    read_front_matter(
+        root,
+        file,
+        &lines[1..close.unwrap_or(0)],
+        &mut spec,
+        out,
+        warn,
+    );
     let walk = crate::markdown::walk(&lines);
     let prose = walk.prose(&lines);
     for section in SECTIONS {
@@ -978,17 +1005,7 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
 /// Warn of each `draft` spec over a bound, with its measures (CLR-13), and in one line of the `accepted` ones (CLR-14).
 fn bound_warnings(specs: &[Spec], bounds: &[u64; 3]) {
     for spec in specs.iter().filter(|s| s.status == "draft") {
-        let over: Vec<String> = spec
-            .outgrown(bounds)
-            .into_iter()
-            .map(|(measure, bound, key, unit)| {
-                if unit == "characters" {
-                    format!("an Intent of {measure} {unit} over {bound} ({key})")
-                } else {
-                    format!("{measure} {unit} over {bound} ({key})")
-                }
-            })
-            .collect();
+        let over = spec.outgrown(bounds);
         if !over.is_empty() {
             eprintln!(
                 "warning: {}: outgrows its capability: {}; split it (skill:write-spec)",

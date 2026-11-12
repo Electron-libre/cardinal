@@ -43,9 +43,17 @@ filters of `delivered_quality.rs`.
 ## Plan
 1. [x] Count the happy path ids: amend QUA-11, share `is_cited_id`, use it in the citation and `red:` filters; verified
    by a fixture issue of `tests/delivered_quality.rs` citing `ABC-H1` with a `red: ABC-H1, ...` line; makes true QUA-11. (autonomous)
+2. [x] Settle the `high` review of the issue: one id parser, QUA-11 wording, fixture and doc comments. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: 9e1c6d1e201094121b2a4315e928b0b3dfc7d544
 - Code review: no findings
 - not verified: nothing
+
+## Deliverable 2 (high review of the issue)
+- done: one id parser (`parse_id`) behind `is_req_id`, `is_cited_id` and `happy_path`; QUA-11 names the two id forms;
+  the fixture issue renamed `omicron` and matches its scenario; doc comments rewrapped.
+- red: none
+- Code review (high): 7 findings, all fixed.
+- Code review: no findings

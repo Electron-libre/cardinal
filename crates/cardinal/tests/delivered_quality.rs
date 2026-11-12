@@ -525,7 +525,7 @@ fn unread_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
 }
 
 /// A repository where `eps` adds three citations, one with a reason, and records the red run of two, `zeta` only renames a test and
-/// `eta` extends its citation.
+/// `eta` extends its citation, `theta` cites with the marker of each language and `omicron` cites a happy path.
 fn traced_fixture(tmp: &Path) -> PathBuf {
     let repo = tmp.join("proj");
     std::fs::create_dir_all(&repo).unwrap();
@@ -613,33 +613,33 @@ fn traced_fixture(tmp: &Path) -> PathBuf {
         &[("issues/eta.md", None), ("issues/done/eta.md", Some(eta))],
     );
     theta_commits(&repo);
-    iota_commits(&repo);
+    omicron_commits(&repo);
     repo
 }
 
 /// An issue whose test cites a happy path id and whose red list opens with it (QUA-11).
-fn iota_commits(repo: &Path) {
-    let iota =
-        "# iota\n\n# Tracking\n\n## Plan\n1. [x] one\n- red: ABC-H1, ABC-5: assertion failed\n";
+fn omicron_commits(repo: &Path) {
+    let omicron =
+        "# omicron\n\n# Tracking\n\n## Plan\n1. [x] one\n- red: ABC-H1, ABC-2: assertion failed\n";
     commit_at(
         repo,
         "2026-01-10T00:00:00Z",
-        "feat(files): iota",
+        "feat(files): omicron",
         &[
             (
                 "tests/happy.rs",
-                Some("// spec: ABC-H1, ABC-5\nfn happy() {}\n"),
+                Some("// spec: ABC-H1, ABC-2\nfn happy() {}\n"),
             ),
-            ("issues/iota.md", Some(iota)),
+            ("issues/omicron.md", Some(omicron)),
         ],
     );
     commit_at(
         repo,
         "2026-01-11T00:00:00Z",
-        "docs: close iota",
+        "docs: close omicron",
         &[
-            ("issues/iota.md", None),
-            ("issues/done/iota.md", Some(iota)),
+            ("issues/omicron.md", None),
+            ("issues/done/omicron.md", Some(omicron)),
         ],
     );
 }
@@ -709,7 +709,7 @@ fn traced_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ),
         (
             "a happy path id is traced and read in a red list as check-specs reads it".to_string(),
-            has(&r, "iota", "traced", "2") && has(&r, "iota", "traced_without_red", "0"),
+            has(&r, "omicron", "traced", "2") && has(&r, "omicron", "traced_without_red", "0"),
         ),
     ]
 }

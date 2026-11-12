@@ -152,23 +152,24 @@ fn is_id_prefix(s: &str) -> bool {
     s.len() == 3 && s.chars().all(|c| c.is_ascii_uppercase())
 }
 
-/// Whether `n` is a number.
-fn is_number(n: &str) -> bool {
-    !n.is_empty() && n.chars().all(|c| c.is_ascii_digit())
+/// The prefix of the id `s` and whether it is a happy path: `ABC-3` gives `("ABC", false)`, `ABC-H1` (TRC-17)
+/// `("ABC", true)`; `None` when `s` is neither.
+fn parse_id(s: &str) -> Option<(&str, bool)> {
+    let (prefix, rest) = s.split_once('-')?;
+    let (n, happy) = rest.strip_prefix('H').map_or((rest, false), |n| (n, true));
+    let number = !n.is_empty() && n.chars().all(|c| c.is_ascii_digit());
+    (is_id_prefix(prefix) && number).then_some((prefix, happy))
 }
 
 /// Whether `s` is a requirement id (`ABC-3`).
 fn is_req_id(s: &str) -> bool {
-    s.split_once('-')
-        .is_some_and(|(p, n)| is_id_prefix(p) && is_number(n))
+    parse_id(s).is_some_and(|(_, happy)| !happy)
 }
 
 /// Whether `s` is an id a citation names: a requirement (`ABC-3`) or a happy path (`ABC-H1`, TRC-22);
 /// `delivered-quality` reads the citations with it.
 pub(super) fn is_cited_id(s: &str) -> bool {
-    is_req_id(s)
-        || s.split_once("-H")
-            .is_some_and(|(p, n)| is_id_prefix(p) && is_number(n))
+    parse_id(s).is_some()
 }
 
 const MARKER: &str = "[NEEDS CLARIFICATION:";
@@ -543,12 +544,8 @@ fn parse_requirements(
 /// The id and the requirement ids of a happy path item, `**<ID>-H<n>** (happy; <ids>) ...` with `<ID>` the `prefix`
 /// (TRC-17), or `None` when `item`, the text after `- `, is not of that form.
 fn happy_path<'a>(item: &'a str, prefix: &str) -> Option<(&'a str, Vec<&'a str>)> {
-    if !is_id_prefix(prefix) {
-        return None;
-    }
     let (id, after) = item.strip_prefix("**")?.split_once("**")?;
-    let n = id.strip_prefix(prefix)?.strip_prefix("-H")?;
-    if !is_number(n) {
+    if parse_id(id) != Some((prefix, true)) {
         return None;
     }
     let (inside, _) = after.trim_start().strip_prefix("(happy")?.split_once(')')?;

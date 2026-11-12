@@ -7,7 +7,8 @@
 //! `must`) is a warning, and so are the requirements proven only by tests under a `src` directory whose citations
 //! give no reason, `// spec: ID (internal: <reason>)` (TRC-1, TRC-6). The happy paths that open `## Scenarios`,
 //! `- **ID-H<n>** (happy; <ids>)`, are traced like requirements (TRC-17 to TRC-24); a spec without one is a warning
-//! (CLR-9, CLR-10), and so is one whose `## Requirements` holds no `### Behaviour` (CLR-11, CLR-12, ADR 0029).
+//! (CLR-9, CLR-10), and so is one whose `## Requirements` holds no `### Behaviour` (CLR-11, CLR-12, ADR 0029), or
+//! one over the `spec_max_*` bounds of `.claude/cardinal.toml` (CLR-13 to CLR-16).
 
 use super::repo_files;
 
@@ -27,6 +28,8 @@ pub(super) struct Requirement {
     pub(super) exempt: bool,
     /// A happy path of `## Scenarios` (TRC-17), traced like a requirement.
     pub(super) happy: bool,
+    /// Its statement starts with `withdrawn:`.
+    withdrawn: bool,
 }
 
 pub(super) struct Spec {
@@ -37,6 +40,86 @@ pub(super) struct Spec {
     /// Whether `## Requirements` holds a `### Behaviour` heading (CLR-11); `None` with no `## Requirements`, already a
     /// problem of its own.
     behaviour: Option<bool>,
+    /// The bytes of its file and the characters of its Intent (CLR-15).
+    bytes: u64,
+    intent: u64,
+}
+
+/// The bounds of the size of a spec (CLR-15): the key of the `[project]` table, its default, the unit of the warning.
+const BOUNDS: [(&str, u64, &str); 3] = [
+    ("spec_max_requirements", 40, "requirements"),
+    ("spec_max_bytes", 25_000, "bytes"),
+    ("spec_max_intent", 600, "characters"),
+];
+
+impl Spec {
+    /// The measures of the spec, in the order of `BOUNDS`.
+    fn measures(&self) -> [u64; 3] {
+        let live = self
+            .requirements
+            .iter()
+            .filter(|r| !r.happy && !r.withdrawn)
+            .count();
+        [live as u64, self.bytes, self.intent]
+    }
+
+    /// The `(measure, bound, key, unit)` of each bound of `bounds` the spec is over (CLR-13).
+    fn outgrown(&self, bounds: &[u64; 3]) -> Vec<(u64, u64, &'static str, &'static str)> {
+        self.measures()
+            .into_iter()
+            .zip(bounds)
+            .zip(BOUNDS)
+            .filter(|((measure, bound), _)| measure > bound)
+            .map(|((measure, &bound), (key, _, unit))| (measure, bound, key, unit))
+            .collect()
+    }
+}
+
+/// The bounds of `.claude/cardinal.toml`, each its default when the file, the table or the key is absent, and the
+/// problem of each one that is not a positive integer (CLR-15, CLR-16). A file that does not parse gives the
+/// defaults, its problem being reported with the `skipped_dirs`.
+fn bounds(root: &Path) -> ([u64; 3], Vec<String>) {
+    let path = crate::config_of(root);
+    let table: toml::Table = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| text.parse().ok())
+        .unwrap_or_default();
+    let mut problems = Vec::new();
+    let values =
+        BOUNDS.map(
+            |(key, default, _)| match table.get("project").and_then(|p| p.get(key)) {
+                None => default,
+                Some(value) => value
+                    .as_integer()
+                    .and_then(|n| u64::try_from(n).ok())
+                    .filter(|&n| n > 0)
+                    .unwrap_or_else(|| {
+                        problems.push(format!(
+                            "{}: `{key}` must be a positive integer",
+                            path.display()
+                        ));
+                        default
+                    }),
+            },
+        );
+    (values, problems)
+}
+
+/// The characters between the `## Intent` heading of `read` and the next `## ` heading, trimmed (CLR-15).
+fn intent_chars(read: &Read) -> u64 {
+    let visible = || {
+        read.lines
+            .iter()
+            .zip(read.walk)
+            .filter(|(_, w)| !w.hidden())
+            .map(|(l, _)| *l)
+    };
+    let body: Vec<&str> = visible()
+        .skip_while(|l| l.trim() != "## Intent")
+        .skip(1)
+        .take_while(|l| !l.starts_with("## "))
+        .collect();
+    body.join("\n").trim().chars().count() as u64
 }
 
 fn is_id_prefix(s: &str) -> bool {
@@ -175,32 +258,17 @@ fn adr_exists(root: &Path, n: &str) -> bool {
         })
 }
 
-fn parse(
+/// Read the `id`, `status` and `adrs` of the front matter `lines` into `spec`, with their problems and warnings.
+fn read_front_matter(
     root: &Path,
-    file: &str,
-    text: &str,
+    lines: &[&str],
+    spec: &mut Spec,
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
-) -> Spec {
-    let mut spec = Spec {
-        file: file.to_string(),
-        id: String::new(),
-        status: String::new(),
-        requirements: Vec::new(),
-        behaviour: None,
-    };
-    let lines: Vec<&str> = text.lines().collect();
-    let close = lines
-        .iter()
-        .skip(1)
-        .position(|l| l.trim() == "---")
-        .map(|p| p + 1);
-    if lines.first().map(|l| l.trim()) != Some("---") || close.is_none() {
-        problem(out, file, "no front matter (`---` ... `---`)");
-        return spec;
-    }
-    let close = close.unwrap_or(0);
-    for line in &lines[1..close] {
+) {
+    let file = spec.file.clone();
+    let file = file.as_str();
+    for line in lines {
         let Some((key, value)) = line.split_once(':') else {
             continue;
         };
@@ -250,6 +318,35 @@ fn parse(
             ),
         );
     }
+}
+
+fn parse(
+    root: &Path,
+    file: &str,
+    text: &str,
+    out: &mut Vec<String>,
+    warn: &mut Vec<String>,
+) -> Spec {
+    let mut spec = Spec {
+        file: file.to_string(),
+        id: String::new(),
+        status: String::new(),
+        requirements: Vec::new(),
+        behaviour: None,
+        bytes: text.len() as u64,
+        intent: 0,
+    };
+    let lines: Vec<&str> = text.lines().collect();
+    let close = lines
+        .iter()
+        .skip(1)
+        .position(|l| l.trim() == "---")
+        .map(|p| p + 1);
+    if lines.first().map(|l| l.trim()) != Some("---") || close.is_none() {
+        problem(out, file, "no front matter (`---` ... `---`)");
+        return spec;
+    }
+    read_front_matter(root, &lines[1..close.unwrap_or(0)], &mut spec, out, warn);
     let walk = crate::markdown::walk(&lines);
     let prose = walk.prose(&lines);
     for section in SECTIONS {
@@ -273,6 +370,7 @@ fn parse(
         walk: &walk.lines,
         prose: &prose,
     };
+    spec.intent = intent_chars(&read);
     parse_requirements(file, &read, &mut spec, out, warn);
     if spec.status == "draft" && spec.behaviour == Some(false) {
         warn.push(format!(
@@ -385,6 +483,7 @@ fn parse_requirements(
             id: id.to_string(),
             exempt: withdrawn || kind == "quality",
             happy: false,
+            withdrawn,
         });
     }
 }
@@ -490,6 +589,7 @@ fn parse_happy_paths(
             id: id.to_string(),
             exempt: false,
             happy: true,
+            withdrawn: false,
         });
     }
     if spec.status == "draft" && !spec.requirements.iter().any(|r| r.happy) {
@@ -862,26 +962,64 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     out.extend(internal_problems);
     boundary_warnings(&specs, &cited, &internal);
     // one line for every accepted spec: a nudge the specs written before happy paths existed all get (CLR-10)
-    warn_accepted(&specs, "no happy path", |s| {
+    warn_accepted(&specs, ["holds no happy path", "hold no happy path"], |s| {
         s.requirements.iter().any(|r| r.happy)
     });
     // and before the behaviour was split from the contract (CLR-12)
-    warn_accepted(&specs, "no behaviour", |s| s.behaviour != Some(false));
+    warn_accepted(&specs, ["holds no behaviour", "hold no behaviour"], |s| {
+        s.behaviour != Some(false)
+    });
+    let (bounds, bound_problems) = bounds(root);
+    out.extend(bound_problems);
+    bound_warnings(&specs, &bounds);
     out
 }
 
-/// Print one warning naming the `accepted` specs that lack `what`, `has` telling a spec that has it, if any.
-fn warn_accepted(specs: &[Spec], what: &str, has: impl Fn(&Spec) -> bool) {
+/// Warn of each `draft` spec over a bound, with its measures (CLR-13), and in one line of the `accepted` ones (CLR-14).
+fn bound_warnings(specs: &[Spec], bounds: &[u64; 3]) {
+    for spec in specs.iter().filter(|s| s.status == "draft") {
+        let over: Vec<String> = spec
+            .outgrown(bounds)
+            .into_iter()
+            .map(|(measure, bound, key, unit)| {
+                if unit == "characters" {
+                    format!("an Intent of {measure} {unit} over {bound} ({key})")
+                } else {
+                    format!("{measure} {unit} over {bound} ({key})")
+                }
+            })
+            .collect();
+        if !over.is_empty() {
+            eprintln!(
+                "warning: {}: outgrows its capability: {}; split it (skill:write-spec)",
+                spec.file,
+                over.join(", ")
+            );
+        }
+    }
+    warn_accepted(
+        specs,
+        [
+            "outgrows a bound of spec_max_*",
+            "outgrow a bound of spec_max_*",
+        ],
+        |s| s.outgrown(bounds).is_empty(),
+    );
+}
+
+/// Print one warning naming the `accepted` specs `has` rejects, if any, `what` saying of one or several of them what
+/// they lack.
+fn warn_accepted(specs: &[Spec], [one, several]: [&str; 2], has: impl Fn(&Spec) -> bool) {
     let lacking: Vec<&str> = specs
         .iter()
         .filter(|s| s.status == "accepted" && !has(s))
         .map(|s| s.file.as_str())
         .collect();
     if !lacking.is_empty() {
-        let plural = if lacking.len() == 1 {
-            " holds"
+        let (plural, what) = if lacking.len() == 1 {
+            ("", one)
         } else {
-            "s hold"
+            ("s", several)
         };
         eprintln!(
             "warning: {} accepted spec{plural} {what}: {}",

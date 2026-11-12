@@ -70,6 +70,8 @@ fn check_specs() {
     happy_path_warning_checks(&case, &report);
     behaviour_warning_checks(&case, &report);
     behaviour_edge_checks(&case, &report);
+    bound_warning_checks(&case, &report);
+    bound_measure_checks(&case, &report);
 
     strict.set(true);
     case(
@@ -1705,6 +1707,140 @@ fn behaviour_edge_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "a contract table after a blank line gets no wording warning",
         !stderr.contains("warning"),
     );
+}
+
+/// `clear_draft` with `n` more requirements, each one line, so the spec holds `n + 2` of them.
+fn with_requirements(spec: &str, n: usize) -> String {
+    let more = (3..n + 3)
+        .map(|i| format!("- **RER-{i}** (deterministic) A pass must keep result {i}.\n"))
+        .collect::<Vec<_>>()
+        .concat();
+    spec.replace(
+        "A run must resume.\n",
+        &format!("A run must resume.\n{more}"),
+    )
+}
+
+/// `spec` padded with a non-goal to exactly `bytes` bytes.
+fn padded(spec: &str, bytes: usize) -> String {
+    let pad = bytes - spec.len() - "- \n".len();
+    format!("{spec}- {}\n", "x".repeat(pad))
+}
+
+/// `spec` with an Intent of `chars` characters, `é` included to count characters, not bytes.
+fn with_intent(spec: &str, chars: usize) -> String {
+    spec.replace("Reuse.\n", &format!("{}é\n", "r".repeat(chars - 1)))
+}
+
+/// The bound lines of `stderr`.
+fn bound_lines(stderr: &str) -> Vec<&str> {
+    stderr.lines().filter(|l| l.contains("outgrow")).collect()
+}
+
+const CONFIG: &str = ".claude/cardinal.toml";
+
+// spec: CLR-13, CLR-14, CLR-H2
+/// A spec over a bound is warned of, never failed: a `draft` one by itself, the `accepted` ones in one line.
+fn bound_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    let stderr = case(
+        "a draft of 41 requirements passes",
+        &with_requirements(&clear_draft(), 39),
+        "",
+        &[],
+        None,
+    );
+    report(
+        "a draft of 41 requirements is warned of",
+        bound_lines(&stderr) == ["warning: specs/rerun.md: outgrows its capability: 41 requirements over 40 (spec_max_requirements); split it (skill:write-spec)"],
+    );
+    let stderr = case(
+        "a draft of 41 requirements under a set bound passes",
+        &with_requirements(&clear_draft(), 39),
+        "",
+        &[(CONFIG, "[project]\nspec_max_requirements = 60\n")],
+        None,
+    );
+    report(
+        "a draft under a bound the project raised is not warned of",
+        bound_lines(&stderr).is_empty(),
+    );
+    let at_bounds = padded(
+        &with_intent(&with_requirements(&clear_draft(), 38), 600),
+        25000,
+    );
+    let stderr = case("a draft at its bounds passes", &at_bounds, "", &[], None);
+    report(
+        "a draft at its bounds is not warned of",
+        bound_lines(&stderr).is_empty(),
+    );
+    let over = padded(&with_intent(&clear_draft(), 700), 26000);
+    let stderr = case("a draft over two bounds passes", &over, "", &[], None);
+    report(
+        "a draft over two bounds is warned of both in one line",
+        bound_lines(&stderr) == ["warning: specs/rerun.md: outgrows its capability: 26000 bytes over 25000 (spec_max_bytes), an Intent of 700 characters over 600 (spec_max_intent); split it (skill:write-spec)"],
+    );
+    let stderr = case(
+        "accepted specs over a bound pass",
+        &padded(SPEC, 26000),
+        &format!("{TESTS}// spec: BBB-1, BBB-2, CCC-1, CCC-2\n#[test]\nfn o() {{}}\n"),
+        &[
+            ("specs/b.md", &with_intent(SPEC, 601).replace("RER", "BBB")),
+            ("specs/c.md", &SPEC.replace("RER", "CCC")),
+        ],
+        None,
+    );
+    report(
+        "the accepted specs over a bound are warned of in one line",
+        bound_lines(&stderr) == ["warning: 2 accepted specs outgrow a bound of spec_max_*: specs/b.md, specs/rerun.md"],
+    );
+}
+
+// spec: CLR-15, CLR-16
+/// The measures of a spec and the bounds the project sets.
+fn bound_measure_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    let draft = with_requirements(&clear_draft(), 43)
+        .replace("A pass must keep result 3.", "withdrawn: kept by RER-4.");
+    let draft = (4..8).fold(draft, |d, i| {
+        d.replace(
+            &format!("A pass must keep result {i}."),
+            "withdrawn: kept elsewhere.",
+        )
+    });
+    let draft = draft.replace(
+        "## Scenarios\n\n",
+        "## Scenarios\n\n- **RER-H2** (happy; RER-1) Given a, when b, then c.\n- **RER-H3** (happy; RER-2) Given a, when b, then c.\n",
+    );
+    let stderr = case(
+        "a draft of 40 live requirements, 5 withdrawn and 3 happy paths passes",
+        &draft,
+        "",
+        &[],
+        None,
+    );
+    report(
+        "withdrawn requirements and happy paths are not counted",
+        bound_lines(&stderr).is_empty(),
+    );
+    let stderr = case(
+        "a draft over a lowered bound passes",
+        &clear_draft(),
+        "",
+        &[(CONFIG, "[project]\nspec_max_bytes = 100\n")],
+        None,
+    );
+    report(
+        "a draft over a bound the project lowered is warned of",
+        bound_lines(&stderr).len() == 1 && stderr.contains("over 100 (spec_max_bytes)"),
+    );
+    for value in ["0", "\"25 KB\""] {
+        case(
+            &format!("a bound of {value} fails"),
+            &clear_draft(),
+            "",
+            &[(CONFIG, &format!("[project]\nspec_max_bytes = {value}\n"))],
+            Some("`spec_max_bytes` must be a positive integer"),
+        );
+    }
 }
 
 /// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).

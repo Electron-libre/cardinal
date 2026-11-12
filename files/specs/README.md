@@ -103,7 +103,10 @@ The order is therefore: write the spec (`draft`), get it validated, write the te
 included: its form, the requirements of the spec it names, its place before the other scenarios), an id is
 duplicated, a test cites an unknown id, an `accepted` spec has a requirement or a happy path no test cites, or an
 `accepted` spec still holds a `[NEEDS CLARIFICATION: ...]` marker. It warns of a spec with no happy path, and of one
-with no `### Behaviour` under `## Requirements`: each `draft` one, and the `accepted` ones in one line. On a `draft` it only warns (stderr): each marker with its question, and each
+with no `### Behaviour` under `## Requirements`, or one that outgrows its capability: over 40 live requirements, 25000
+bytes or an Intent of 600 characters (`spec_max_requirements`, `spec_max_bytes`, `spec_max_intent` of
+`.claude/cardinal.toml`; it fails on one that is not a positive integer): each `draft` one, and the `accepted` ones in
+one line. On a `draft` it only warns (stderr): each marker with its question, and each
 requirement with a vague word or not exactly one "must". On any spec it warns of the requirements proven only by tests under `src` with no reason given, and fails on a citation whose reason is blank. `cardinal run check-specs --strict` (for the repository that ships managed tests; consumers stay lenient) also flags the citations of managed tests whose spec the project lacks. The checker is `cardinal run check-specs`, tested by
 the tests of the Cardinal source. `skill:write-spec` writes and validates a spec.
 

@@ -8,11 +8,9 @@ adrs: [0029]
 
 ## Intent
 
-`check_specs.rs` makes the ambiguities of a spec visible before the user validates it: an open question the model
-marks instead of guessing, and the wording of a requirement that leaves its obligation vague. A marker blocks an
-`accepted` spec; the wording checks only warn a `draft`, since a word list has false positives. A spec with no happy
-path leaves its reader to rebuild the main flow from its requirements, and one with no `### Behaviour` leaves them to
-find what the capability does among its formats and codes: the checker warns of both.
+`check_specs.rs` makes visible, before the user validates a spec, what would make it hard to read: an open question,
+a vague obligation, a missing happy path or behaviour, and a spec grown past what one capability holds. It fails
+only on a marker in an `accepted` spec or a bound it cannot read: a word list or a bound has false positives.
 
 ## Requirements
 
@@ -24,6 +22,8 @@ find what the capability does among its formats and codes: the checker warns of 
 - **CLR-10** (deterministic) When `accepted` specs hold no happy path, the checker must print to stderr one warning naming their count and their files, without failing.
 - **CLR-11** (deterministic) For each `draft` spec whose `## Requirements` holds no `### Behaviour` heading (or `### Behavior`, at the start of its line), the checker must print a warning to stderr naming the file, without failing.
 - **CLR-12** (deterministic) When `accepted` specs hold no `### Behaviour` heading under `## Requirements`, the checker must print to stderr one warning naming their count and their files, without failing.
+- **CLR-13** (deterministic) For each `draft` spec over one of the bounds of CLR-15, the checker must print a warning to stderr naming the file and, for each bound passed, its measure and the bound, without failing.
+- **CLR-14** (deterministic) When `accepted` specs are over one of the bounds of CLR-15, the checker must print to stderr one warning naming their count and their files, without failing.
 
 ### Contract
 
@@ -34,11 +34,26 @@ find what the capability does among its formats and codes: the checker warns of 
 - **CLR-7** (deterministic) The checker must not print a wording warning (CLR-3, CLR-4) for an `accepted` spec.
 - **CLR-8** (deterministic) The word checks of CLR-3 and CLR-4 must read the statement of a requirement as the paragraph of its list item, as CommonMark reads it: its item line and the lines that continue it, up to the end of that paragraph (a blank line, a list item, a heading, a fence, a quote, an HTML block, a setext underline or a thematic break ends it).
 
+- **CLR-15** (deterministic) The checker must read the bounds from the `[project]` table of `.claude/cardinal.toml`, each defaulting when the file or the key is absent, and measure a spec against each as the table below gives.
+- **CLR-16** (deterministic) The checker must report a problem, and so exit 1, naming the key and the file, for a bound of CLR-15 that is not a positive integer.
+
+| key | default | measure of a spec |
+|---|---|---|
+| `spec_max_requirements` | `40` | its requirements under `## Requirements`, withdrawn ones excluded, happy paths excluded |
+| `spec_max_bytes` | `25000` | the bytes of its file |
+| `spec_max_intent` | `600` | the characters between its `## Intent` heading and the next `## ` heading, trimmed |
+
+A spec over a bound is one whose measure is greater than it.
+
 ## Scenarios
 
 - **CLR-H1** (happy; CLR-2, CLR-3, CLR-4, CLR-9, CLR-11) Given a `draft` spec whose requirements each hold one `must`
   and no vague word, under a `### Behaviour` heading, with a happy path and no `[NEEDS CLARIFICATION: ...]` marker,
   when the checker runs, then it prints no warning for that spec and exits 0.
+
+- **CLR-H2** (happy; CLR-13, CLR-15) Given a `draft` spec amended to 41 requirements in a project that sets no bound,
+  when the checker runs, then it warns that the spec holds 41 requirements over the bound of 40, and exits 0; given a
+  `spec_max_requirements = 60`, it prints no such warning.
 
 - (CLR-1) Given an `accepted` spec whose Scenarios hold `[NEEDS CLARIFICATION: which exit code?]`, when the checker runs, then it exits 1 with a line naming the spec and that line.
 - (CLR-4) Given a `draft` requirement "The hook must exit 0 and must not print", when the checker runs, then it warns that the requirement holds 2 `must`.
@@ -72,6 +87,16 @@ find what the capability does among its formats and codes: the checker warns of 
 - (CLR-12) Given three `accepted` specs, two of them with no `### Behaviour`, when the checker runs, then it prints one
   warning naming `2` and those two files.
 
+- (CLR-13) Given a `draft` spec of exactly 40 requirements, 25000 bytes and an Intent of 600 characters, when the
+  checker runs, then it prints no bound warning; given one of 26000 bytes and an Intent of 700 characters, it prints
+  one warning naming both measures and both bounds.
+- (CLR-15) Given a `draft` spec of 45 requirements, 5 of them withdrawn, and three happy paths, when the checker runs,
+  then it counts 40 requirements and prints no bound warning.
+- (CLR-14) Given three `accepted` specs, two of them over a bound, when the checker runs, then it prints one warning
+  naming `2` and those two files.
+- (CLR-16) Given `spec_max_bytes = 0` or `spec_max_bytes = "25 KB"`, when the checker runs, then it exits 1 with a
+  line naming `spec_max_bytes`.
+
 ## Non-goals
 
 - The format and traceability checks the checker already runs (front matter, sections, ids, citations): out of this
@@ -84,5 +109,7 @@ find what the capability does among its formats and codes: the checker warns of 
   judges it.
 - Failing a spec with no happy path, or warning of more than three happy paths: a nudge, not a rule, so the specs of
   the consumers keep passing.
+- Failing a spec over a bound, or splitting it: `skill:write-spec` proposes the split, the user decides.
+- Bounds per spec, or a bound on another section than the Intent.
 - Judging whether a requirement is complete or observable: that is the checklist of `skill:write-spec`, read by the
   model, not a check.

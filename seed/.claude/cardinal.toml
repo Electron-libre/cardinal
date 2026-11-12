@@ -14,6 +14,11 @@ skipped_dirs = []
 # spec_files = ["*.rs"]
 # Directories whose tests call the code from inside, for the boundary warning of `check-specs` (default ["src"]).
 # internal_dirs = ["src"]
+# The bounds over which `check-specs` warns that a spec outgrows its capability: its live requirements, its bytes, the
+# characters of its Intent.
+# spec_max_requirements = 40
+# spec_max_bytes = 25000
+# spec_max_intent = 600
 # The project's check (format, lint, tests), quiet on success: `cardinal run project-check` runs it with `sh -c` from
 # the root, then `check-specs` when the feature `specs` is on, and fails while it is unset.
 # check_command = "cargo fmt --all --check && cargo clippy -q --all-targets -- -D warnings && cargo test -q"

@@ -22,7 +22,7 @@ c860f7456cbbff798d3bab5bea6ef834c8c48809d401b97729de1b59b82aa26f  cardinal-issue
 a16a2f85443e06a0864c97c233cd070b715c9e0e7a20417d50c263d820da149d  cardinal-review.just
 3f7aaa0719a25aad500ecca27ca321811e3b342272bb7da7d6bbdaa9fbc169ee  cardinal-specs.just
 e2b7850ed69b1de0461dbd1f9deb55df6acd67961b275e747919c3f7766c52ed  cardinal.just
-45c5edc0e0aa12c921c1523841c8203cdbce64812f0674846af0bd12f78cf43a  specs/README.md
+ce20edbdf93ee2e850d9adbfc785cfa439106f1d12c5ec22b1c9748f5e8ffc56  specs/README.md
 e2d7c5b508e646ec8ef7c2875a62a24f5aca3884c08e6b8af7d30075c528152b  specs/TEMPLATE.md
 entry  {"allow":"Bash(cardinal run *)"}
 entry  {"allow":"Bash(cardinal check)"}

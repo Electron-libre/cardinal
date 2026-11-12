@@ -40,3 +40,48 @@ Specs that read as a product
 # Hints
 * Renumbering an `accepted` spec breaks the citations of the tests and the issues: a split must keep every cited id
   resolvable.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+`check-specs` warns of a spec over a count of requirements, a size in bytes or an Intent length (bounds in
+`[project]`, defaults 40 / 25000 / 600), per `draft` spec and in one line for the `accepted` ones (as CLR-10, CLR-12);
+`skill:write-spec` proposes a split when the amended spec is over a bound. Out of scope: failing on a bound, splitting
+any existing spec. Measured locally on three repositories (the fourth is not on this machine): 40 / 25 KB warn of 2 and 3
+specs of 67; an Intent over 600 characters, of 5.
+
+## Plan
+1. [x] Bound warnings: CLR-13 to CLR-16 and CLR-H2 in `check_specs.rs`, the keys in the seeded `cardinal.toml` and
+   `files/specs/README.md`; verified by tests in `test_check_specs.rs`; makes true CLR-13, CLR-14, CLR-15, CLR-16, CLR-H2. (autonomous)
+2. [ ] Split procedure: `skill:write-spec` step 1 proposes, as a question, to split an amended spec over a bound (one
+   spec per sub-capability with its own id, the moved requirements `withdrawn: moved to XYZ-n` so every cited id stays
+   resolvable, the tests re-cite the new ids); verified by `just check` (skill checks); docs only.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 29ed2fa23cbef2cad5f5d4f39addd2a674d52fbd
+- Bounds: 40 requirements, 25000 bytes, 600 characters of Intent (1 a).
+- Split: new ids in the new spec, the old ones `withdrawn: moved to XYZ-n`, the tests re-cite the new ids (2 a).
+
+## Summaries
+
+### 1. Bound warnings
+done: `check-specs` warns of a spec over `spec_max_requirements` / `spec_max_bytes` / `spec_max_intent`, fails on a
+bound that is not a positive integer; the front matter reading moved out of `parse` (clippy `too_many_lines`).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass, `spec-clarity.md` accepted |
+| docs | `files/specs/README.md`, `docs/architecture.md`, `seed/.claude/cardinal.toml`, module doc |
+| code review | no findings |
+
+red: CLR-13, CLR-14, CLR-15, CLR-16, CLR-H2: `FAIL - a draft of 41 requirements is warned of` (no bound warning printed)
+Code review: no findings
+not verified: none
+decisions needed: none
+Here, 5 accepted specs of this repository now warn (`read-hint`, `rule-breaches`, `spec-tracing`, `sync`,
+`workspace-lock`): splitting them is out of scope.

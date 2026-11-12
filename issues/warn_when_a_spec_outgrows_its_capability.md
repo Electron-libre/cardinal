@@ -55,9 +55,9 @@ specs of 67; an Intent over 600 characters, of 5.
 ## Plan
 1. [x] Bound warnings: CLR-13 to CLR-16 and CLR-H2 in `check_specs.rs`, the keys in the seeded `cardinal.toml` and
    `files/specs/README.md`; verified by tests in `test_check_specs.rs`; makes true CLR-13, CLR-14, CLR-15, CLR-16, CLR-H2. (autonomous)
-2. [ ] Split procedure: `skill:write-spec` step 1 proposes, as a question, to split an amended spec over a bound (one
+2. [x] Split procedure: `skill:write-spec` step 1 proposes, as a question, to split an amended spec over a bound (one
    spec per sub-capability with its own id, the moved requirements `withdrawn: moved to XYZ-n` so every cited id stays
-   resolvable, the tests re-cite the new ids); verified by `just check` (skill checks); docs only.
+   resolvable, the tests re-cite the new ids); verified by `just check` (skill checks); docs only. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -85,3 +85,19 @@ not verified: none
 decisions needed: none
 Here, 5 accepted specs of this repository now warn (`read-hint`, `rule-breaches`, `spec-tracing`, `sync`,
 `workspace-lock`): splitting them is out of scope.
+
+### 2. Split procedure
+done: `skill:write-spec` step 1 asks the user whether to split a spec `check-specs` says outgrows its capability.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | n/a (no requirement) |
+| docs | the skill is the doc |
+| code review | no findings |
+
+red: none
+Code review: no findings
+not verified: the skill read by a model on a real oversized spec
+decisions needed: none

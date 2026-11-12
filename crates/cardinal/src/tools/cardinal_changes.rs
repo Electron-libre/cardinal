@@ -15,7 +15,7 @@ pub(super) const HEADER: &str = "change\tmetric\tdirection\trevisions";
 const USAGE: &str = "usage: cardinal run cardinal-changes [repo] --sessions <file>";
 const PREFIX: &str = "Expected-effect:";
 /// The metrics an expectation can name: columns of the `cardinal-report` tables (the metrics of a rule apart).
-pub(super) const METRICS: [&str; 17] = [
+pub(super) const METRICS: [&str; 21] = [
     "turns",
     "tool_calls",
     "output_tokens",
@@ -32,6 +32,10 @@ pub(super) const METRICS: [&str; 17] = [
     "doc_lines_per_spec_line",
     "input_tokens_per_issue",
     "output_tokens_per_issue",
+    "bytes_per_spec",
+    "intent_chars_per_spec",
+    "requirements_per_spec",
+    "happy_paths_per_spec",
     "total_bytes",
 ];
 pub(super) const RULE_METRIC: &str = "breached_share:";

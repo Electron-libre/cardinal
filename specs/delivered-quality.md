@@ -1,6 +1,6 @@
 ---
 id: QUA
-status: draft
+status: accepted
 adrs: [0003, 0006, 0010]
 ---
 

@@ -471,7 +471,7 @@ struct QualityRatio {
     floored: &'static [&'static str],
 }
 
-const QUALITY_RATIOS: [QualityRatio; 5] = [
+const QUALITY_RATIOS: [QualityRatio; 9] = [
     QualityRatio {
         metric: "fixes_after_per_issue",
         numerator: "fixes_after",
@@ -507,6 +507,35 @@ const QUALITY_RATIOS: [QualityRatio; 5] = [
         divide: per_unit,
         floored: &["token_issues"],
     },
+    // the shape of the specs the issues changed (REP-19, VRD-14)
+    QualityRatio {
+        metric: "bytes_per_spec",
+        numerator: "spec_bytes",
+        divisor: "specs",
+        divide: per_unit,
+        floored: &["specs"],
+    },
+    QualityRatio {
+        metric: "intent_chars_per_spec",
+        numerator: "spec_intent_chars",
+        divisor: "specs",
+        divide: per_unit,
+        floored: &["specs"],
+    },
+    QualityRatio {
+        metric: "requirements_per_spec",
+        numerator: "spec_requirements",
+        divisor: "specs",
+        divide: ratio,
+        floored: &["specs"],
+    },
+    QualityRatio {
+        metric: "happy_paths_per_spec",
+        numerator: "spec_happy_paths",
+        divisor: "specs",
+        divide: ratio,
+        floored: &["specs"],
+    },
 ];
 
 fn quality_ratio(metric: &str) -> Option<&'static QualityRatio> {
@@ -528,6 +557,11 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         "traced_without_red",
         "spec_lines",
         "doc_lines",
+        "specs",
+        "spec_bytes",
+        "spec_requirements",
+        "spec_intent_chars",
+        "spec_happy_paths",
         "sessions",
         "failed_checks",
         "validations",

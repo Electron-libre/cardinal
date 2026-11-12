@@ -69,7 +69,8 @@ flowchart TD
   `specs` on), `skill:write-spec` writes its requirements at step 1 and the tests of step 3.2 carry their
   `// spec: ID` ([specs/README.md](../specs/README.md)). A capability older than its spec gets one read back from its
   code and tests (`skill:write-spec`, "Bootstrap the spec of an existing capability"), picked from
-  `cardinal run spec-coverage`.
+  `cardinal run spec-coverage`. The ratios per spec of `cardinal-report` (`bytes_per_spec`, `happy_paths_per_spec`…)
+  measure the shape of the specs the issues wrote.
 - **Advisor**: when an advisor is configured, the agent consults it at the few moments the skill names (section
   "Advisor"); it never replaces a review or a stop. `advisor_calls` in `cardinal-report` measures the effect.
 - **Docs over the issue**: after the last deliverable, `update-docs` reads the user pages and the `architecture`

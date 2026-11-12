@@ -553,6 +553,62 @@ fn token_quality_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     )]
 }
 
+/// A row of the quality summary of `revision` with `issues` issues and the spec shape `shape` (QUA-18: `specs`,
+/// `spec_bytes`, `spec_requirements`, `spec_intent_chars`, `spec_happy_paths`), every other count 0.
+fn shape_row(revision: &str, issues: u64, shape: [u64; 5]) -> String {
+    let shape: Vec<String> = shape.iter().map(u64::to_string).collect();
+    format!(
+        "{revision}\t\t{issues}{}\t{}{}",
+        "\t0".repeat(12),
+        shape.join("\t"),
+        "\t0".repeat(8)
+    )
+}
+
+// spec: REP-19
+fn shape_quality_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let (sessions, ..) = axes_inputs(tmp);
+    let report = |name: &str, shape: [u64; 5]| {
+        let quality = write(&tmp.join(name), QUALITY, &[shape_row(SELF, 2, shape)]);
+        let arg = |s: &'static str| std::ffi::OsStr::new(s);
+        let (_, out, _) = run(
+            dir,
+            &[
+                arg("--sessions"),
+                sessions.as_os_str(),
+                arg("--quality"),
+                quality.as_os_str(),
+            ],
+        );
+        tables(&out)
+    };
+    let shaped = report("shape-quality.tsv", [4, 30_002, 50, 1_402, 7]);
+    let none = report("shape-none.tsv", [0; 5]);
+    let first = "self:1111111..r-b";
+    let ratios = [
+        "bytes_per_spec",
+        "intent_chars_per_spec",
+        "requirements_per_spec",
+        "happy_paths_per_spec",
+    ];
+    vec![
+        (
+            "the spec shape is summed and divided by the specs of the group",
+            cell(shaped.get("Quality"), first, "specs") == "4"
+                && ratios
+                    .iter()
+                    .map(|c| cell(shaped.get("Quality"), first, c))
+                    .eq(["7501", "351", "12.50", "1.75"]),
+        ),
+        (
+            "no ratio per spec when the group changed no spec",
+            ratios
+                .iter()
+                .all(|c| cell(none.get("Quality"), first, c).is_empty()),
+        ),
+    ]
+}
+
 // spec: REP-13
 fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (sessions, breaches, ..) = axes_inputs(tmp);
@@ -1333,6 +1389,43 @@ fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: VRD-1, VRD-14
+fn shape_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    // `ra` measures 3 specs with 3 happy paths, `rb` 8 specs with 16: expected down, the happy paths per spec go up
+    // from 1.00 to 2.00 and the bytes per spec down from 1000 to 500
+    let quality = write(
+        &tmp.join("s-quality.tsv"),
+        QUALITY,
+        &[
+            shape_row("ra", 6, [3, 3_000, 30, 300, 3]),
+            shape_row("rb", 6, [8, 4_000, 40, 400, 16]),
+        ],
+    );
+    let quality = quality.to_str().unwrap();
+    let one = |extra: &[&str]| {
+        verdict(&verdicts(
+            dir,
+            tmp,
+            &pair(two("p1", "ra", 1, 10), two("p1", "rb", 2, 5)),
+            &[
+                change('a', "happy_paths_per_spec", "rb"),
+                change('a', "bytes_per_spec", "rb"),
+            ],
+            &[&["--quality", quality], extra].concat(),
+        ))
+    };
+    vec![
+        (
+            "a group with fewer specs than --min-issues confounds a per-spec verdict",
+            one(&[]) == ["confounded", "confounded"],
+        ),
+        (
+            "enough specs in both groups gives a per-spec verdict",
+            one(&["--min-issues", "3"]) == ["hurt", "helped"],
+        ),
+    ]
+}
+
 // spec: VRD-10
 fn advisor_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let one = |sessions: Vec<S<'static>>, changes: &[String]| {
@@ -1487,6 +1580,8 @@ fn cardinal_report() {
         .chain(advisor_verdict_checks(&dir, temp.path()))
         .chain(issue_floor_checks(&dir, temp.path()))
         .chain(ratio_floor_checks(&dir, temp.path()))
+        .chain(shape_quality_checks(&dir, temp.path()))
+        .chain(shape_floor_checks(&dir, temp.path()))
         .chain(setup_checks(&dir, temp.path()))
         .chain(last_checks(&dir, temp.path()))
         .chain(project_checks(&dir, temp.path()))

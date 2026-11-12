@@ -206,6 +206,11 @@ fn commit_check_refuses_an_expected_effect_it_cannot_read() {
             "",
         ),
         (
+            "spec shape",
+            message("Expected-effect: bytes_per_spec down\nExpected-effect: intent_chars_per_spec down\nExpected-effect: requirements_per_spec down\nExpected-effect: happy_paths_per_spec up"),
+            "",
+        ),
+        (
             "tokens per issue",
             message("Expected-effect: input_tokens_per_issue down\nExpected-effect: output_tokens_per_issue down"),
             "",

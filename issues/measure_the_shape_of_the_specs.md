@@ -45,9 +45,9 @@ read. Out: the keyword-based measures (contract share, refusal share), the specs
 1. [x] Spec shape columns of `delivered-quality`: `specs`, `spec_bytes`, `spec_requirements`, `spec_intent_chars`,
    `spec_happy_paths` per issue and summed per revision, measured by the parser of `check-specs`; verified by a test
    over a temporary repository; makes true QUA-18, QUA-H3 (and QUA-1's new columns). (autonomous)
-2. [ ] Per-spec ratios in `cardinal-report` and their verdicts: `bytes_per_spec`, `intent_chars_per_spec`,
+2. [x] Per-spec ratios in `cardinal-report` and their verdicts: `bytes_per_spec`, `intent_chars_per_spec`,
    `requirements_per_spec`, `happy_paths_per_spec`, accepted as `Expected-effect` metrics, floored on `specs`;
-   verified by report and verdict tests; makes true REP-19, VRD-14 (and VRD-1's new metrics).
+   verified by report and verdict tests; makes true REP-19, VRD-14 (and VRD-1's new metrics). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -70,5 +70,23 @@ read. Out: the keyword-based measures (contract share, refusal share), the specs
 
 - red: QUA-18, QUA-H3: lambda.specs: expected "1", got Some("")
 - Code review: no findings (the summary sums, outside the diff, are proved by `summary_checks`).
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+- done: `cardinal-report` sums the five spec shape columns and gives `bytes_per_spec`, `intent_chars_per_spec`,
+  `requirements_per_spec`, `happy_paths_per_spec`; `Expected-effect` accepts them, a verdict floored on `specs`;
+  `skill:evaluate-harness` and `docs/evaluation.md` name the floor; the three specs back to `accepted`.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | pass, `accepted` |
+| docs | `docs/evaluation.md`, `docs/workflow.md`, `files/.claude/skills/evaluate-harness/SKILL.md` (synced) |
+| code review | low, clean |
+
+- red: REP-19, VRD-14: FAIL - the spec shape is summed and divided by the specs of the group
+- Code review: no findings
 - not verified: none
 - decisions needed: none

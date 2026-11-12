@@ -21,6 +21,15 @@ the diff in parts it can hold, and `bytes_per_session` of `oversized-result-revi
   The `.txt` files are the results Claude Code saves under `tool-results/` when an output is too large.
 * `read-hint` sends a whole read of a large file back once, then lets the same call through (RDH-3): a reviewer that
   needs the whole diff repeats it, so the hint delays the read and does not shrink it.
+* Measured 2026-11-12 over the reviewers' transcripts of every project of the machine (2,569 reviewers, 631
+  sessions): the saved `tool-results/*.txt` files the reviewers read are diffs in 239 reads out of 270; their sizes
+  range 30 KB to 101 KB (median 40 KB), none over the 262,144 bytes Claude Code reads whole. `read-hint` already
+  fires in the reviewers (103 denies): a `PreToolUse` hook runs in the sub-agents, and the repeat goes through.
+* What the saved diffs hold: code 72% (the Rust tests included, inline), Markdown 18%, test and fixture files 10%,
+  lock files 0%. Leaving more out of the target (approach 2) would save little.
+* The commits of this repository, through the exclusions of `review-target`: median 7 KB of diff, 8 of 80 over
+  25,000 bytes. The oversized diffs are those of the larger deliverables and of the `high` review of a whole issue;
+  lowering the size limit (approach 4) would cut a diff into more reviews, each with its own reviewers reading it.
 * `review-target` already leaves the issue files, the lock and the managed copies out of the diff (RVT-3).
 
 # Approach
@@ -49,3 +58,31 @@ Measures
 * Count the refusals of `read-hint` once
   [close_the_gaps_of_the_harness_measures](done/close_the_gaps_of_the_harness_measures.md) names them: today they
   show as `unknown`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+`read-hint` sends back every read too large of a saved `tool-results/*.txt` (not only the first), naming the parts
+(`offset`, `limit`, at most 20,000 bytes each, cut at a file's `diff --git`) to read instead. Out of scope: the
+target (approaches 1, 2) and the size limit (approach 4), see the Findings; a `git diff` returned whole.
+
+## Plan
+1. [x] Read a saved result in parts: `read-hint` denies each oversized read of a saved result with its parts;
+   verified by tests of the hook on saved results, plain files and ranged reads; makes true RDH-8, RDH-9. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: ec703726ee909f1022b7093a363cb75673d30718
+- Part budget: 20,000 bytes of estimate (a margin under the 25,000 of BRE-19, RDH-7 being an estimate).
+- A ranged read of a saved result over the threshold is sent back too (RDH-8).
+- The commit carries `Expected-effect: oversized-result-review down`.
+
+## Summary of deliverable 1
+- done: `read-hint` denies each read over the threshold of a saved `tool-results/*.txt`, whole or ranged, naming its
+  parts; other files keep the once-per-session hint.
+- red: RDH-8, RDH-9: the reason named no part (`[(1, 188), ...]` expected, `[]` found) and the repeat went through.
+- Code review: no findings.
+- checks: `project-check` passed (fmt, clippy, tests, specs); `deliverable-size` 305 lines, within.
+- not verified: the effect on `oversized-result-review`, to read in `cardinal-report` once consumers synced.

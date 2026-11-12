@@ -192,3 +192,112 @@ fn another_event_or_an_unrecordable_one_passes() {
     let run = hook(&blocked, &read("s1", &json!({"file_path": path})));
     assert!(silent_pass(&run), "{run:?}");
 }
+
+/// The parts a reason names, as `(offset, limit)` pairs in order.
+fn parts(reason: &str) -> Vec<(usize, usize)> {
+    reason
+        .split("`offset` ")
+        .skip(1)
+        .filter_map(|part| {
+            let (offset, rest) = part.split_once(" `limit` ")?;
+            let limit: String = rest.chars().take_while(char::is_ascii_digit).collect();
+            Some((offset.parse().ok()?, limit.parse().ok()?))
+        })
+        .collect()
+}
+
+/// A directory `tool-results` in `dir`, where Claude Code saves an output too large to return.
+fn saved_dir(dir: &Path) -> PathBuf {
+    let saved = dir.join("tool-results");
+    fs::create_dir_all(&saved).unwrap();
+    saved
+}
+
+// spec: RDH-8, RDH-9
+#[test]
+fn a_saved_result_is_sent_back_every_time_with_its_parts() {
+    let dir = tempdir().unwrap();
+    let tmp = tempdir().unwrap();
+    // 600 lines of 99 bytes, 106 bytes each with the line number: 63,600, parts of 188 lines
+    let path = file(&saved_dir(dir.path()), "b1.txt", 600, 99);
+    let whole = read("s1", &json!({"file_path": path}));
+    for _ in 0..2 {
+        let reason = denied(&hook(tmp.path(), &whole));
+        assert!(reason.contains("63600 bytes"), "{reason}");
+        assert_eq!(
+            parts(&reason),
+            [(1, 188), (189, 188), (377, 188), (565, 36)],
+            "{reason}"
+        );
+    }
+    let part = read(
+        "s1",
+        &json!({"file_path": path, "offset": 189, "limit": 188}),
+    );
+    assert!(silent_pass(&hook(tmp.path(), &part)));
+    let open_ended = read("s1", &json!({"file_path": path, "offset": 189}));
+    let reason = denied(&hook(tmp.path(), &open_ended));
+    // lines 189 to 600: 412 lines of 106 bytes
+    assert!(reason.contains("43672 bytes"), "{reason}");
+    assert!(
+        !tmp.path().join(RECORDS).join("s1").exists(),
+        "nothing recorded"
+    );
+}
+
+// spec: RDH-9
+#[test]
+fn the_parts_of_a_saved_diff_keep_whole_file_diffs_where_they_fit() {
+    let dir = tempdir().unwrap();
+    let tmp = tempdir().unwrap();
+    // file diffs of a header and lines of 92 characters, 100 bytes with the line number: 8,000, 9,000 and 10,000
+    let diff = |name: &str, lines: usize| {
+        let header = format!("diff --git a/{name} b/{name}");
+        let header = format!("{header}{}\n", " ".repeat(92 - header.len()));
+        header + &format!("+{}\n", "x".repeat(91)).repeat(lines - 1)
+    };
+    let text = diff("a.rs", 80) + &diff("b.rs", 90) + &diff("c.rs", 100);
+    let saved = saved_dir(dir.path());
+    put(&saved, "d1.txt", &text);
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": saved.join("d1.txt")})),
+    ));
+    assert_eq!(parts(&reason), [(1, 170), (171, 100)], "{reason}");
+    // one file diff of 300 lines of 100 bytes: cut where its lines reach 20,000 bytes
+    put(&saved, "d2.txt", &diff("big.rs", 300));
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": saved.join("d2.txt")})),
+    ));
+    assert_eq!(parts(&reason), [(1, 200), (201, 100)], "{reason}");
+    // lines of 3,000 characters cut at 2,000, 2,008 bytes with the line number: 9 lines a part
+    let long = format!("{}\n", "y".repeat(3_000));
+    put(&saved, "d3.txt", &long.repeat(30));
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": saved.join("d3.txt")})),
+    ));
+    assert_eq!(
+        parts(&reason),
+        [(1, 9), (10, 9), (19, 9), (28, 3)],
+        "{reason}"
+    );
+}
+
+// spec: RDH-8
+#[test]
+fn a_text_file_outside_a_saved_result_directory_is_sent_back_once() {
+    let dir = tempdir().unwrap();
+    let tmp = tempdir().unwrap();
+    let path = file(dir.path(), "notes.txt", 300, 100);
+    let not_txt = file(&saved_dir(dir.path()), "b2.json", 300, 100);
+    for path in [path, not_txt] {
+        let event = read("s1", &json!({"file_path": path}));
+        let reason = denied(&hook(tmp.path(), &event));
+        assert!(parts(&reason).is_empty(), "{reason}");
+        assert!(silent_pass(&hook(tmp.path(), &event)), "the repeat");
+        let ranged = read("s1", &json!({"file_path": path, "offset": 1}));
+        assert!(silent_pass(&hook(tmp.path(), &ranged)));
+    }
+}

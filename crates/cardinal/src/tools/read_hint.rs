@@ -1,7 +1,9 @@
 //! `read-hint`, a `PreToolUse` hook on `Read`: before a whole read whose result would be over the threshold of rule
 //! `oversized-result` (BRE-19), it denies the call once per file and session with a reason naming the size and the
-//! range options, so the agent reads a range; the same call repeated goes through, the file being needed whole. It
-//! lets go whenever it cannot judge or record, so it never blocks for its own failure. Spec: `specs/read-hint.md`.
+//! range options, so the agent reads a range; the same call repeated goes through, the file being needed whole. An
+//! output Claude Code saved under `tool-results/` (most often a reviewer's diff) is denied on every read too large,
+//! with the parts to read instead. It lets go whenever it cannot judge or record, so it never blocks for its own
+//! failure. Spec: `specs/read-hint.md`.
 
 use super::rule_breaches::OVERSIZED;
 use serde_json::{json, Value};
@@ -25,27 +27,38 @@ const NUMBER_BYTES: usize = 7;
 /// The extensions Claude Code renders rather than reads as text (RDH-2).
 const RENDERED: [&str; 7] = ["png", "jpg", "jpeg", "gif", "webp", "pdf", "ipynb"];
 
-/// The bytes a whole read of `text` returns (RDH-7).
-fn estimate(text: &str) -> usize {
-    text.lines()
-        .take(READ_LINES)
-        .map(|line| {
-            let kept = line
-                .char_indices()
-                .nth(LINE_CHARS)
-                .map_or(line.len(), |(at, _)| at);
-            kept + 1 + NUMBER_BYTES
-        })
-        .sum()
+/// The estimate of a part of a saved result (RDH-9), a margin under the threshold since RDH-7 is an estimate.
+const PART_BYTES: usize = 20_000;
+
+/// The line by which a part of a saved diff would rather start (RDH-9).
+const FILE_DIFF: &str = "diff --git ";
+
+/// The bytes a read returns of `line` (RDH-7).
+fn line_bytes(line: &str) -> usize {
+    let kept = line
+        .char_indices()
+        .nth(LINE_CHARS)
+        .map_or(line.len(), |(at, _)| at);
+    kept + 1 + NUMBER_BYTES
 }
 
-/// The estimate of the result of a whole read of `input`, when it is over the threshold (RDH-1, RDH-2).
-fn oversized(input: &Value) -> Option<(&str, usize)> {
-    if !input["offset"].is_null() || !input["limit"].is_null() {
-        return None;
-    }
-    let path = input["file_path"].as_str()?;
-    let rendered = Path::new(path)
+/// The bytes a read of `lines` returns (RDH-7).
+fn estimate<'a>(lines: impl Iterator<Item = &'a str>) -> usize {
+    lines.take(READ_LINES).map(line_bytes).sum()
+}
+
+/// Whether `path` is an output Claude Code saved because it was too large (RDH-8).
+fn saved(path: &Path) -> bool {
+    path.extension().is_some_and(|e| e == "txt")
+        && path
+            .parent()
+            .and_then(Path::file_name)
+            .is_some_and(|d| d == "tool-results")
+}
+
+/// The text of `path` when it is a regular file Claude Code reads as text and whole (RDH-1, RDH-2).
+fn text_of(path: &Path) -> Option<String> {
+    let rendered = path
         .extension()
         .and_then(|e| e.to_str())
         .is_some_and(|e| RENDERED.contains(&e.to_ascii_lowercase().as_str()));
@@ -56,8 +69,75 @@ fn oversized(input: &Value) -> Option<(&str, usize)> {
     }
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).ok()?;
-    let bytes = estimate(&String::from_utf8_lossy(&bytes));
-    (bytes > OVERSIZED).then_some((path, bytes))
+    Some(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/// The parts of `lines` as 1-based `(offset, limit)`: runs of at most `PART_BYTES`, ended before the last file diff
+/// of the run when the run stops before the end (RDH-9).
+fn parts(lines: &[&str]) -> Vec<(usize, usize)> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+    while start < lines.len() {
+        let (mut end, mut bytes, mut last_diff) = (start, 0, None);
+        while end < lines.len() {
+            let more = line_bytes(lines[end]);
+            if end > start && bytes + more > PART_BYTES {
+                break;
+            }
+            if end > start && lines[end].starts_with(FILE_DIFF) {
+                last_diff = Some(end);
+            }
+            bytes += more;
+            end += 1;
+        }
+        if end < lines.len() {
+            end = last_diff.unwrap_or(end);
+        }
+        parts.push((start + 1, end - start));
+        start = end;
+    }
+    parts
+}
+
+/// The reason of a deny of a read of a saved result over the threshold, `None` when the read is not (RDH-8).
+fn saved_reason(input: &Value, text: &str) -> Option<String> {
+    let lines: Vec<&str> = text.lines().collect();
+    let number = |key: &str, absent: usize| {
+        input[key]
+            .as_u64()
+            .map_or(absent, |n| usize::try_from(n).unwrap_or(usize::MAX))
+    };
+    let from = number("offset", 1).saturating_sub(1);
+    let range = lines
+        .iter()
+        .copied()
+        .skip(from)
+        .take(number("limit", READ_LINES));
+    let bytes = estimate(range);
+    if bytes <= OVERSIZED {
+        return None;
+    }
+    let whole = estimate(lines.iter().copied());
+    let this = if input["offset"].is_null() && input["limit"].is_null() {
+        String::new()
+    } else {
+        format!(", this read about {bytes} bytes")
+    };
+    let parts: Vec<String> = parts(&lines)
+        .iter()
+        .map(|(offset, limit)| format!("`offset` {offset} `limit` {limit}"))
+        .collect();
+    Some(format!(
+        "{REASON_START} {whole} bytes{this}: it is an output saved because it was too large; read it in these parts, \
+         each under the threshold, the ones you need or all of them in turn: {}.",
+        parts.join("; ")
+    ))
+}
+
+/// The estimate of the result of a whole read of `text`, when it is over the threshold (RDH-1, RDH-2).
+fn oversized(text: &str) -> Option<usize> {
+    let bytes = estimate(text.lines());
+    (bytes > OVERSIZED).then_some(bytes)
 }
 
 /// The directory of the records: `cardinal-read-hint` of `XDG_RUNTIME_DIR`, else `cardinal-read-hint-<USER>` of the
@@ -121,19 +201,43 @@ pub(super) fn main(_args: &[String]) -> u8 {
     let Some(session) = event["session_id"].as_str().filter(|s| !s.is_empty()) else {
         return 0;
     };
-    let Some((path, bytes)) = oversized(&event["tool_input"]) else {
+    let input = &event["tool_input"];
+    let Some(path) = input["file_path"].as_str() else {
         return 0;
     };
-    let Some(dir) = records() else {
-        return 0;
-    };
-    if !first_time(&record_of(&dir, session), path) {
+    let saved = saved(Path::new(path));
+    let ranged = !input["offset"].is_null() || !input["limit"].is_null();
+    if ranged && !saved {
         return 0;
     }
-    let reason = format!(
-        "{REASON_START} {bytes} bytes: read the range you need (`offset` and `limit`) or search it with `Grep`; \
-         if you need it whole, repeat the same call, which then goes through."
-    );
+    let Some(text) = text_of(Path::new(path)) else {
+        return 0;
+    };
+    let reason = if saved {
+        let Some(reason) = saved_reason(input, &text) else {
+            return 0;
+        };
+        reason
+    } else {
+        let Some(bytes) = oversized(&text) else {
+            return 0;
+        };
+        let Some(dir) = records() else {
+            return 0;
+        };
+        if !first_time(&record_of(&dir, session), path) {
+            return 0;
+        }
+        format!(
+            "{REASON_START} {bytes} bytes: read the range you need (`offset` and `limit`) or search it with `Grep`; \
+             if you need it whole, repeat the same call, which then goes through."
+        )
+    };
+    deny(&reason)
+}
+
+/// Print the deny of RDH-1 with `reason`.
+fn deny(reason: &str) -> u8 {
     let output = json!({"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
         "permissionDecision": "deny",

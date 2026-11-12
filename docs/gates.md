@@ -87,6 +87,12 @@ the temporary directory, mode 0700), so the same call repeated goes through: a f
 and notebooks, which Claude Code renders, and files over 256 KB, which it refuses whole itself, pass (RDH-1 to RDH-7). A hint by `additionalContext` alone would
 not spare the read it fires on: the tool runs anyway.
 
+An output Claude Code saved because it was too large (a `.txt` of a `tool-results` directory, most often the diff a
+reviewer of `/code-review` ran) is the exception: every read of it over the threshold, whole or ranged, is denied,
+recording nothing, with the parts to read instead, `offset` and `limit` runs of at most 20,000 bytes that end before
+a `diff --git` line where they can, so a reviewer reads the diff in parts it can hold (RDH-8, RDH-9). The hook runs
+in the sub-agents too, so in the reviewers.
+
 The hooks that run cargo do not trust `CLAUDE_PROJECT_DIR`: a session that entered another worktree keeps it on the
 main one, where another agent may work. `lint-gate` checks the work tree of the event's `cwd` (CLG-6) and
 `format-code` runs `cargo fmt` from the directory of the edited file. For the same reason the seeded `justfile` asks

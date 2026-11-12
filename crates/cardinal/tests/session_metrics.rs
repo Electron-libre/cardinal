@@ -1089,9 +1089,12 @@ fn a_session_is_tied_to_the_issues_it_claims_or_closes() {
         "just close-issue issues/h.md",
         "git commit -m 'then cardinal run close-issue issues/i.md'",
         "git commit -F - <<EOF\nfix: x\n\nthen cardinal run close-issue issues/j.md moves it\nEOF",
+        "target/release/cardinal run issue-claim issues/k.md",
+        "echo target/cardinal run issue-claim issues/l.md",
+        "notcardinal run issue-claim issues/m.md",
     ];
     let on_main = [running("main", "m1", &claims)];
-    assert_eq!(cell_of(&on_main, "issues"), "a,b,d,h");
+    assert_eq!(cell_of(&on_main, "issues"), "a,b,d,h,k");
     // a claim names the issue, whatever the branch is called; with none, the branch does
     let on_branch = [running("z", "m1", &claims[..1])];
     assert_eq!(cell_of(&on_branch, "issues"), "a");

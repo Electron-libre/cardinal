@@ -35,7 +35,7 @@ measures; it does not judge.
 - **EVA-18** (deterministic) `advisor_models` must list the distinct top-level `advisorModel` values of the assistant lines of the session, sub-agents included, joined by `,` in order of first appearance; empty when no line carries one.
 - **EVA-19** (deterministic) `advisor_calls` must count the `server_tool_use` blocks named `advisor` of all the assistant lines of the session, sub-agents included (counted as `tool_calls` counts the `tool_use` blocks, EVA-2, and not in `tool_calls`); `advisor_input_tokens` the sum, over the entries of type `advisor_message` of the `message.usage.iterations` of each assistant message counted once per `message.id` (EVA-2), of their `input_tokens`, `cache_read_input_tokens` and `cache_creation_input_tokens`, and `advisor_output_tokens` that of their `output_tokens`; the three cells are empty when `advisor_models` is (no advisor was set, which is not 0 calls), 0 when an advisor was set and not called.
 - **EVA-20** (deterministic) With `--archive`, an archive whose header is the one of EVA-1 without the four advisor columns (written before them), or the one of EVA-17, must be merged as if it had the current header, each of its rows given empty cells for the columns its header lacks.
-- **EVA-21** (deterministic) A session must count as claiming or closing an issue `<stem>` when the `command` of a `Bash` `tool_use` block of its own transcript holds, at the start of a line or right after a `;`, `&` or `|` (blanks skipped), the words `cardinal run issue-claim`, `cardinal run close-issue` or `just close-issue` in a row followed, before the end of the line or the next `;`, `&` or `|`, by an argument whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md` (ADR 0022: the issue of a session run on the default branch); a call whose result is an error counts too, since the session worked on that issue.
+- **EVA-21** (deterministic) A session must count as claiming or closing an issue `<stem>` when the `command` of a `Bash` `tool_use` block of its own transcript holds, at the start of a line or right after a `;`, `&` or `|` (blanks skipped), the words `cardinal run issue-claim`, `cardinal run close-issue` or `just close-issue` in a row, the program `cardinal` named bare or by a path ending with `/cardinal` (as QUA-8 reads it), followed, before the end of the line or the next `;`, `&` or `|`, by an argument whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md` (ADR 0022: the issue of a session run on the default branch); a call whose result is an error counts too, since the session worked on that issue.
 
 ## Scenarios
 
@@ -53,6 +53,7 @@ measures; it does not judge.
   when the row is printed, then `hook_refusals` is `read_hint=1`.
 - (EVA-21) Given a session on `main` whose `Bash` calls run `cardinal run issue-claim issues/a.md` then `cardinal run
   close-issue issues/a.md && git status`, when the row is printed, then `issues` is `a`; on a branch `b`, it is `a` too, and `b` with no such call.
+- (EVA-21) Given a session on `main` whose `Bash` call runs `target/release/cardinal run issue-claim issues/a.md`, when the row is printed, then `issues` is `a`; with `echo cardinal run issue-claim issues/a.md`, it is empty.
 
 ## Non-goals
 

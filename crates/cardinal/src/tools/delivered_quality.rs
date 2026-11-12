@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use transcripts::{
     default_branch, for_each_line, git, is_validation, projects, projects_root, push_distinct,
-    repository, revision, sessions, sorted_entries, subagents, typed_text, Place,
+    repository, revision, session_of, sessions, sorted_entries, subagents, typed_text, Place, Span,
 };
 
 pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
@@ -692,12 +692,8 @@ fn timestamp(line: &Value) -> Option<DateTime<FixedOffset>> {
 /// A session of the repository: its span, sub-agents included, its branches other than the default ones, its setup, and
 /// the events of its own transcript.
 struct Session {
-    branches: Vec<String>,
-    /// The issues its own transcript claims or closes (EVA-21).
-    claimed: Vec<String>,
+    span: Span,
     setup: Option<String>,
-    start: DateTime<FixedOffset>,
-    end: DateTime<FixedOffset>,
     events: Vec<(DateTime<FixedOffset>, Event)>,
 }
 
@@ -838,11 +834,13 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
             .or_insert_with(|| repository(&cwd, &place.issues));
         if repo.is_some() && *resolved == repo {
             found.push(Session {
-                branches: place.issues,
-                claimed,
+                span: Span {
+                    start,
+                    end,
+                    claimed,
+                    branches: place.issues,
+                },
                 setup: models.setup(),
-                start,
-                end,
                 events,
             });
         }
@@ -859,25 +857,13 @@ fn session_cells(
     stem: &str,
     sessions: &[Session],
 ) -> ([u64; 7], Option<String>) {
-    let on_branch = |s: &Session| s.branches.iter().any(|b| b == stem);
-    let claiming = |s: &Session| s.claimed.iter().any(|c| c == stem);
+    let on_branch = |s: &Session| s.span.branches.iter().any(|b| b == stem);
     let mut by_session: BTreeMap<usize, Vec<DateTime<FixedOffset>>> = BTreeMap::new();
     for &i in own {
         let at = log[i].date;
-        let holding: Vec<(usize, &Session)> = sessions
-            .iter()
-            .enumerate()
-            .filter(|(_, s)| s.start <= at && at <= s.end)
-            .collect();
         // the latest session that claimed or closed the issue, else on its branch, else of all (QUA-7)
-        let rank = |s: &Session| match (claiming(s), on_branch(s)) {
-            (true, _) => 2,
-            (false, true) => 1,
-            (false, false) => 0,
-        };
-        let preferred = holding.iter().max_by_key(|(_, s)| (rank(s), s.start));
-        if let Some((k, _)) = preferred {
-            by_session.entry(*k).or_default().push(at);
+        if let Some(k) = session_of(at, &[stem], sessions.iter().map(|s| &s.span)) {
+            by_session.entry(k).or_default().push(at);
         }
     }
     let setups: BTreeSet<&str> = by_session
@@ -900,12 +886,12 @@ fn session_cells(
         let other_work = log
             .iter()
             .enumerate()
-            .filter(|(i, c)| !own.contains(i) && c.date >= session.start && c.date < first)
+            .filter(|(i, c)| !own.contains(i) && c.date >= session.span.start && c.date < first)
             .map(|(_, c)| c.date)
             .max();
         let after = other_work.filter(|_| !on_branch(session));
         let inside = |at: &DateTime<FixedOffset>| {
-            after.map_or(*at >= session.start, |a| *at > a) && *at <= last
+            after.map_or(*at >= session.span.start, |a| *at > a) && *at <= last
         };
         for (_, event) in session.events.iter().filter(|(at, _)| inside(at)) {
             match event {
@@ -1148,11 +1134,13 @@ mod tests {
 
     fn session(start: &str, end: &str, events: &[(&str, &str, u64)]) -> Session {
         Session {
-            branches: vec!["x".to_string()],
-            claimed: Vec::new(),
+            span: Span {
+                start: at(start),
+                end: at(end),
+                claimed: Vec::new(),
+                branches: vec!["x".to_string()],
+            },
             setup: None,
-            start: at(start),
-            end: at(end),
             events: events
                 .iter()
                 .map(|&(ts, id, n)| (at(ts), Event::Tokens(id.to_string(), [n, 0, n])))
@@ -1184,7 +1172,10 @@ mod tests {
         // the copy starts the resumed session as early as the first: the first starting a second later holds the
         // first commit, the resumed one the second
         let first = Session {
-            start: at("2026-01-01T00:00:01Z"),
+            span: Span {
+                start: at("2026-01-01T00:00:01Z"),
+                ..first.span
+            },
             ..first
         };
         let (cells, _) = session_cells(&log, &[0, 1], "x", &[first, resumed]);

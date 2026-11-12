@@ -4,8 +4,8 @@
 //! `/code-review`, another sub-agent). With `--summary`, count them per rule and
 //! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
 //! from one that rarely applies, and sum the bytes of the waste rules. The commit messages are read from the git
-//! history of each project, a commit counting with the session whose span holds its date. No text of a message is
-//! printed.
+//! history of each project, a commit counting with the session whose span holds its date, the one that claimed its
+//! issue first (`transcripts::session_of`, as `delivered-quality`). No text of a message is printed.
 //! With `--project <name>`, only the sessions of that project count (BRE-23).
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
@@ -16,14 +16,14 @@ use super::shell;
 use super::transcripts;
 use crate::features;
 
-use chrono::{DateTime, FixedOffset};
+use chrono::DateTime;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 use transcripts::{
     commit_config, committed_config, committed_file, for_each_numbered_line, git, project_name,
     projects, projects_root, repository, result_text, revision, sessions, subagents, user_command,
-    user_turn, Place, LOCKS,
+    user_turn, Place, Span, LOCKS,
 };
 
 const HEADER: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
@@ -727,14 +727,43 @@ struct Record {
     project: String,
     revision: String,
     repo: PathBuf,
-    start: DateTime<FixedOffset>,
-    end: DateTime<FixedOffset>,
+    span: Span,
     verdict: Verdict,
 }
 
-/// Checks the non-merge commits of the local branches of `repo` against the messages rules, each against the
-/// latest-starting session of `records` (all of that repository) whose span holds its author date: a commit the
-/// agent rebased keeps the date the user wrote it, and stashes and notes are on no branch.
+/// The stems of the issues whose file (`issues/<stem>.md`, `issues/done/<stem>.md`) each commit of the local branches
+/// of `repo` touches, by full hash.
+fn commit_issues(repo: &Path) -> HashMap<String, Vec<String>> {
+    let mut issues: HashMap<String, Vec<String>> = HashMap::new();
+    let log = git(
+        repo,
+        &[
+            "log",
+            "--branches",
+            "--no-merges",
+            "--format=%x1e%H",
+            "--name-only",
+            "--",
+            "issues",
+        ],
+    )
+    .unwrap_or_default();
+    for entry in log.split('\x1e') {
+        let mut lines = entry.lines().filter(|l| !l.is_empty());
+        let Some(hash) = lines.next() else {
+            continue;
+        };
+        let stems = issues.entry(hash.to_string()).or_default();
+        for path in lines {
+            transcripts::push_distinct(stems, transcripts::issue_stem(path));
+        }
+    }
+    issues
+}
+
+/// Checks the non-merge commits of the local branches of `repo` against the messages rules, each against the session
+/// of `records` (all of that repository) `session_of` ties it to (BRE-9): a commit the agent rebased keeps the date
+/// the user wrote it, and stashes and notes are on no branch.
 fn check_commits(repo: &Path, records: &mut [&mut Record]) {
     let Some(log) = git(
         repo,
@@ -747,6 +776,7 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
     ) else {
         return;
     };
+    let issues = commit_issues(repo);
     for entry in log.split('\x1e') {
         let mut fields = entry.trim_start_matches('\n').splitn(4, '\x1f');
         let (Some(hash), Some(full), Some(date), Some(message)) =
@@ -757,13 +787,14 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
         let Ok(at) = DateTime::parse_from_rfc3339(date) else {
             continue;
         };
-        let Some(record) = records
-            .iter_mut()
-            .filter(|r| r.start <= at && at <= r.end)
-            .max_by_key(|r| r.start)
-        else {
+        let stems: Vec<&str> = issues
+            .get(full)
+            .map(|s| s.iter().map(String::as_str).collect())
+            .unwrap_or_default();
+        let Some(k) = transcripts::session_of(at, &stems, records.iter().map(|r| &r.span)) else {
             continue;
         };
+        let record = &mut *records[k];
         let verdict = &mut record.verdict;
         let config = commit_config(repo, full);
         // a project that turned the ban off at that commit has no attribution rule to breach (FEA-11)
@@ -857,13 +888,30 @@ fn record(path: &Path, only: Option<&str>) -> Option<Record> {
     for (t, main, waste) in &transcripts {
         verdict.check(t, &context, *main, waste);
     }
+    // the issues its own transcript claims or closes tie the commits of these issues to it (EVA-21, BRE-9)
+    let mut claimed = Vec::new();
+    for call in transcripts
+        .iter()
+        .filter(|(_, main, _)| *main)
+        .flat_map(|(t, _, _)| &t.calls)
+        .filter(|c| c.name == "Bash")
+    {
+        for stem in transcripts::claimed_issues(call.input["command"].as_str().unwrap_or_default())
+        {
+            transcripts::push_distinct(&mut claimed, Some(&stem));
+        }
+    }
     Some(Record {
         id,
         project,
         revision,
         repo,
-        start,
-        end,
+        span: Span {
+            start,
+            end,
+            claimed,
+            branches: place.issues,
+        },
         verdict,
     })
 }

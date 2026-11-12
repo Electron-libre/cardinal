@@ -194,8 +194,8 @@ pub fn push_distinct(list: &mut Vec<String>, value: Option<&str>) {
 
 /// The stems of the issues a shell command claims or closes (EVA-21): the arguments of each `cardinal run issue-claim`,
 /// `cardinal run close-issue` or `just close-issue` that starts a line or follows a `;`, `&` or `|`, up to the end of
-/// its line or the next of these, whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md`; a call quoted in
-/// a message or an `echo` is no claim.
+/// its line or the next of these, whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md`, the program
+/// `cardinal` named bare or by its path; a call quoted in a message or an `echo` is no claim.
 pub fn claimed_issues(command: &str) -> Vec<String> {
     const CALLS: [&[&str]; 3] = [
         &["cardinal", "run", "issue-claim"],
@@ -204,7 +204,10 @@ pub fn claimed_issues(command: &str) -> Vec<String> {
     ];
     let mut stems = Vec::new();
     for segment in command.split(['\n', ';', '&', '|']) {
-        let words: Vec<&str> = segment.split_whitespace().collect();
+        let mut words: Vec<&str> = segment.split_whitespace().collect();
+        if let Some(program) = words.first_mut() {
+            *program = program.rsplit('/').next().unwrap_or(program);
+        }
         let Some(call) = CALLS.iter().find(|call| words.starts_with(call)) else {
             continue;
         };
@@ -216,12 +219,44 @@ pub fn claimed_issues(command: &str) -> Vec<String> {
 }
 
 /// The stem of a path ending with `issues/<stem>.md` or `issues/done/<stem>.md`.
-fn issue_stem(path: &str) -> Option<&str> {
+pub fn issue_stem(path: &str) -> Option<&str> {
     let (dir, file) = path.rsplit_once('/')?;
     let stem = file.strip_suffix(".md")?;
     let dir = dir.strip_suffix("/done").unwrap_or(dir);
     let in_issues = dir == "issues" || dir.ends_with("/issues");
     in_issues.then_some(stem)
+}
+
+/// What ties a commit to a session (QUA-7, BRE-9): its span, the issues it claims or closes (EVA-21) and its branches
+/// other than the default ones (EVA-6).
+pub struct Span {
+    pub start: DateTime<FixedOffset>,
+    pub end: DateTime<FixedOffset>,
+    pub claimed: Vec<String>,
+    pub branches: Vec<String>,
+}
+
+impl Span {
+    fn holds(&self, at: DateTime<FixedOffset>) -> bool {
+        self.start <= at && at <= self.end
+    }
+}
+
+/// The index in `spans` of the session a commit dated `at` of the issues `stems` is tied to (QUA-7, BRE-9): the
+/// latest-starting session whose span holds `at`, taken among those that claim or close one of `stems` when one does,
+/// else among those whose branches hold one of them when one does; `None` when no span holds it.
+pub fn session_of<'a>(
+    at: DateTime<FixedOffset>,
+    stems: &[&str],
+    spans: impl IntoIterator<Item = &'a Span>,
+) -> Option<usize> {
+    let names = |list: &[String]| list.iter().any(|n| stems.contains(&n.as_str()));
+    spans
+        .into_iter()
+        .enumerate()
+        .filter(|(_, s)| s.holds(at))
+        .max_by_key(|(_, s)| (names(&s.claimed), names(&s.branches), s.start))
+        .map(|(k, _)| k)
 }
 
 /// What places a session: its first `cwd` (own transcript), the branches other than the default ones, and its

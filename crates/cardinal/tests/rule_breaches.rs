@@ -654,6 +654,62 @@ fn commit_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: BRE-9
+fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("claims");
+    let repo = new_repo(&tmp.join("cl"));
+    let toml = "[cardinal]\nsource = \"x\"\nrev = \"r1\"\n";
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(".claude/cardinal.toml", toml)],
+    );
+    let trailer = "\n\nCo-Authored-By: Claude <noreply@anthropic.com>";
+    let claimed = commit_at(
+        &repo,
+        "2026-02-01T11:00:00Z",
+        &format!("fix: alpha{trailer}"),
+        &[("issues/alpha.md", "# Alpha\n")],
+    );
+    let other = commit_at(
+        &repo,
+        "2026-02-01T11:10:00Z",
+        &format!("fix: other{trailer}"),
+        &[("a", "1")],
+    );
+    let projects = tmp.join("projects");
+    for (id, start, claim) in [
+        ("s1", "2026-02-01T10:00:00.000Z", true),
+        ("s2", "2026-02-01T10:30:00.000Z", false),
+    ] {
+        let mut t = Transcript::new(&repo, start);
+        t.typed("SECRET start");
+        if claim {
+            t.run(
+                "c1",
+                "Bash",
+                &bash("cardinal run issue-claim issues/alpha.md"),
+                None,
+            );
+        }
+        t.ts = "2026-02-01T12:00:00.000Z".to_string();
+        t.typed("ok");
+        t.write(&projects.join("-cl").join(format!("{id}.jsonl")));
+    }
+    let (ok, out) = run(dir, &projects, false);
+    let row = |s: &str, hash: &str| format!("{s}\tcl\tr1\tcommit-attribution\tbreach\t\t{hash}");
+    let rows: Vec<String> = out.lines().skip(1).map(str::to_string).collect();
+    let expected = vec![row("s1", &claimed), row("s2", &other)];
+    if sorted(rows.clone()) != sorted(expected.clone()) {
+        println!("{out}");
+    }
+    vec![(
+        "a commit of a claimed issue is checked against the session that claimed it, the others against the latest-starting session".to_string(),
+        ok && sorted(rows) == sorted(expected),
+    )]
+}
+
 // spec: FEA-11
 fn attribution_off_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("attribution-off");
@@ -1375,6 +1431,7 @@ fn rule_breaches() {
         .into_iter()
         .chain(summary_checks(&dir, &tmp))
         .chain(commit_checks(&dir, &tmp))
+        .chain(claim_checks(&dir, &tmp))
         .chain(attribution_off_checks(&dir, &tmp))
         .chain(convention_off_checks(&dir, &tmp))
         .chain(language_checks(&dir, &tmp))

@@ -41,3 +41,52 @@ Measures
 # Resources
 * `crates/cardinal/src/tools/delivered_quality.rs`, `crates/cardinal/src/tools/transcripts.rs`,
   `crates/cardinal/src/tools/rule_breaches.rs`, `crates/cardinal/src/tools/session_metrics.rs`, ADR 0022.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Tie a commit to its session the same way in `delivered-quality` and `rule-breaches`, through one helper of
+`transcripts.rs`, and read a `cardinal` named by its path; the measure shows the timing cases too rare to change the
+rules for them (below). Out of scope: timing the claims, dropping refused claims, moving the QUA-8 span to the claim.
+
+## Measure
+Over the 649 session transcripts of this machine (5 repositories, 2,983 commits), with an issue's commits taken as
+those touching its file (an approximation of QUA-2):
+
+| case | occurrences |
+| --- | --- |
+| `issue-claim` calls / with an error result | 312 / 6 |
+| of these errors, a real refusal (worktree lock hook, user rejection) | 2 (the 4 others claimed, then a chained command failed) |
+| claim or close call naming `cardinal` by a path | 0 |
+| commit of an issue held by a session that ran `issue-claim` for it | 10 |
+| of these: held by two claiming sessions / its claimer claimed only after it | 0 / 1 |
+| same, counting `close-issue` as a claim: claimer's only call after the commit | 1,012 of 1,352 (a close follows the deliverables by design) |
+| BRE-9 session differs from the QUA-7 one (claims and closes) | 21 commit-issue pairs |
+| QUA-8: claiming session on the trunk with other work before its first commit / claim before that work | 28 / 1 |
+
+Conclusions: a time-based choice would break the closes (a close comes after the commits it covers); the `is_error`
+of a claim marks more succeeded claims than refusals; only the BRE-9 divergence occurs often enough to fix.
+
+## Plan
+1. [x] One attribution: `transcripts::session_of` picks, for a commit and the issue stems it touches, the
+   latest-starting holding session, claimers first, then those on the issue's branch; `delivered-quality` and
+   `rule-breaches` both use it, `claimed_issues` reads `<dir>/cardinal`; verified by a test of BRE-9's new scenario
+   and one of EVA-21's path scenario; makes true BRE-9, EVA-21. (autonomous)
+
+## Deliverable 1
+- done: `transcripts::session_of` and `Span` tie a commit to its session for `delivered-quality` and
+  `rule-breaches` (claimers, then the issue's branch, then the latest-starting); `rule-breaches` reads the issues a
+  commit touches and the claims of each session; `claimed_issues` reads `<dir>/cardinal`.
+- red: BRE-9, EVA-21: the claimed commit's breach went to the later-starting `s2`; `issues` was `a,b,d,h`, not `a,b,d,h,k`.
+- docs: none describes the attribution (`docs/evaluation.md` lists the columns only); the module doc of
+  `rule_breaches.rs` updated.
+- checks: project-check ok (clippy `mut_mut` fixed), 248 changed lines.
+- Code review: no findings
+- not verified: the rows of `rule-breaches` over this machine's transcripts were not compared before and after.
+
+## Decisions
+- Mode: autonomous
+- Base commit: ca6ead961d50a88eef2586d488bd5de238c430f7
+- QUA-8 span unchanged (1 case measured); the timing and refusal cases are dropped, not tracked in a new issue.

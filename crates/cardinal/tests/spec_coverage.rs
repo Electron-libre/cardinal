@@ -37,7 +37,7 @@ fn report(root: &Path) -> (Option<i32>, String) {
     )
 }
 
-// spec: COV-1, COV-4
+// spec: COV-1, COV-4, COV-H1
 #[test]
 fn lists_each_test_file_with_its_line_count() {
     let dir = root(&[

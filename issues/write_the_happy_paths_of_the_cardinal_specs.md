@@ -51,8 +51,8 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
    `commit-check`, `rule-breaches`; verified the same way. (autonomous)
 3. [x] Issue queue and deliverable tools: `check-issue`, `close-issue`, `issue-claim`, `next-issue`,
    `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way. (autonomous)
-4. [ ] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
-   `spec-coverage`; verified by `just check` with no CLR-10 warning left.
+4. [x] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
+   `spec-coverage`; verified by `just check` with no CLR-10 warning left. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -82,4 +82,12 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
 - red: CKI-H1, CLS-H1, CLM-H1, NXT-H1, PAR-H1, PAR-H2, SIZ-H1, RVT-H1, PCK-H1: `check-specs` fails each uncited happy
   path of an `accepted` spec (TRC-23) until the citations are added.
 - checks: project-check, check-specs (CLR-10: 14 -> 6 specs), docs n/a (scenarios only).
+- Code review: no findings
+
+## Deliverable 4
+- done: REP-H1..H2, VRD-H1..H2, QUA-H1..H2, EVA-H1, AUD-H1..H2, COV-H1, each cited by the existing end-to-end test
+  of its flow; no new test.
+- red: REP-H1, REP-H2, VRD-H1, VRD-H2, QUA-H1, QUA-H2, EVA-H1, AUD-H1, AUD-H2, COV-H1: `check-specs` fails each uncited
+  happy path of an `accepted` spec (TRC-23) until the citations are added.
+- checks: project-check, check-specs (CLR-10 warning gone), docs n/a (scenarios only).
 - Code review: no findings

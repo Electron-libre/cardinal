@@ -29,6 +29,9 @@ worth a spec read back from their code and tests (`skill:write-spec`).
 
 ## Scenarios
 
+- **COV-H1** (happy; COV-1, COV-4) Given a repository whose test files cite no accepted requirement, when the user
+  runs `spec-coverage`, then it lists each of them with its line count, the capabilities worth a spec.
+
 - (COV-1) Given `crates/a/src/lib.rs` holding `fn helper() {}` and no `#[test]`, when the report runs, then it does not
   list it.
 - (COV-2) Given `crates/a/tests/cli.rs` with two tests, one cited `// spec: RER-1` of an accepted spec and one not

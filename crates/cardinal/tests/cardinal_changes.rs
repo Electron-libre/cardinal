@@ -86,7 +86,7 @@ fn run(cwd: &Path, args: &[&str]) -> (i32, String, String) {
     )
 }
 
-// spec: VRD-3, VRD-4, VRD-7, VRD-13
+// spec: VRD-3, VRD-4, VRD-7, VRD-13, VRD-H1
 #[test]
 fn lists_the_expectations_of_the_changes_with_the_revisions_that_hold_them() {
     let tmp = tempfile::tempdir().unwrap();

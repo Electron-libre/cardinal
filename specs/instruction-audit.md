@@ -19,6 +19,12 @@ hooks and rules that do not exist yet.
 
 ## Scenarios
 
+- **AUD-H1** (happy; AUD-1) Given the sessions of a project whose repository holds instruction files, rules and the
+  files they import, when the user runs `audit-sources`, then it lists under the project each instruction file
+  Claude Code loads there, once.
+- **AUD-H2** (happy; AUD-2) Given user-level instruction files, when the user runs `audit-sources`, then it lists
+  them once, before the projects.
+
 - (AUD-1) Given a directory with `CLAUDE.md`, `AGENTS.md`, a rule `.claude/rules/a.md` and a rule `.claude/rules/b.md` scoped by `paths`, when the summary is printed, then it lists the four files.
 - (AUD-1) Given a `CLAUDE.md` that imports `@docs/x.md` and `@~/notes.md`, when the summary is printed, then it lists `docs/x.md` and not `~/notes.md`.
 - (AUD-1) Given a `CLAUDE.local.md` that imports `@notes.md`, when the summary is printed, then it lists both: a session loads them at launch, though git does not track them.

@@ -114,7 +114,7 @@ fn audit_sources() {
     assert!(!failed, "a check failed: see the FAIL lines");
 }
 
-// spec: AUD-1
+// spec: AUD-1, AUD-H1
 #[test]
 fn audit_sources_lists_every_instruction_file_once() {
     let tmp = tempfile::tempdir().unwrap();
@@ -250,7 +250,7 @@ fn audit_sources_lists_the_ancestors_up_to_the_repository_root() {
     );
 }
 
-// spec: AUD-2
+// spec: AUD-2, AUD-H2
 #[test]
 fn audit_sources_lists_the_user_level_files_before_the_projects() {
     let tmp = tempfile::tempdir().unwrap();

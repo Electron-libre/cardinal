@@ -201,7 +201,7 @@ fn cell(table: Option<&Vec<Vec<String>>>, group: &str, column: &str) -> String {
         .unwrap_or_default()
 }
 
-// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11, REP-12
+// spec: REP-3, REP-4, REP-5, REP-8, REP-9, REP-10, REP-11, REP-12, REP-H1
 fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let rows: Vec<String> = sessions()
         .iter()
@@ -416,7 +416,7 @@ fn axes_inputs(tmp: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
     (sessions, breaches, quality_a, quality_b, context)
 }
 
-// spec: REP-6, REP-7
+// spec: REP-6, REP-7, REP-H2
 fn axes_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (sessions, breaches, quality_a, quality_b, context) = axes_inputs(tmp);
     let arg = |s: &'static str| std::ffi::OsStr::new(s);
@@ -955,7 +955,7 @@ fn verdict(rows: &[Vec<String>]) -> Vec<String> {
     rows.iter().map(|r| r[7].clone()).collect()
 }
 
-// spec: VRD-5, VRD-6, VRD-7, VRD-9
+// spec: VRD-5, VRD-6, VRD-7, VRD-9, VRD-H2
 fn verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     // Groups `ra` (turns 10), `rb` (5), `rc` (8), `rd` (one session: too few).
     let plain: Vec<S> = [

@@ -39,6 +39,10 @@ measures; it does not judge.
 
 ## Scenarios
 
+- **EVA-H1** (happy; EVA-1, EVA-2, EVA-3, EVA-6, EVA-7, EVA-10) Given the transcripts of several projects, when the
+  user runs `session-metrics`, then it prints one row of numbers per session (turns, tokens, interventions, project,
+  models, versions, issues), sub-agents included, and no text of a conversation.
+
 - (EVA-19) Given a Sonnet session whose `advisorModel` is Opus and whose one assistant message, split over three lines, holds a `server_tool_use` block named `advisor`, an `advisor_tool_result` block and usage iterations `message`, `advisor_message` (21,110 input and 479 output tokens), `message`, when the row is printed, then `advisor_calls` is 1, `advisor_input_tokens` 21110, `advisor_output_tokens` 479, `tool_calls` 0 and `input_tokens` holds none of the advisor's tokens.
 - (EVA-19) Given a session with no `advisorModel`, when the row is printed, then the four advisor cells are empty.
 - (EVA-2) Given an assistant message split over three lines with the same `message.id`, each carrying the same usage and one `tool_use`, when the row is printed, then `turns` is 1, the tokens are those of one usage and `tool_calls` is 3.

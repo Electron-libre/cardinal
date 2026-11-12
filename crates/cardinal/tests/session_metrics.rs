@@ -304,7 +304,7 @@ fn fixture(tmp: &Path) -> (PathBuf, PathBuf) {
     (projects, repo)
 }
 
-// spec: EVA-1, EVA-2, EVA-3, EVA-4, EVA-5, EVA-6, EVA-7, EVA-9, EVA-10, EVA-16
+// spec: EVA-1, EVA-2, EVA-3, EVA-4, EVA-5, EVA-6, EVA-7, EVA-9, EVA-10, EVA-16, EVA-H1
 fn row_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (projects, _) = fixture(tmp);
     let out = tool_command(dir.join("session_metrics.rs"))

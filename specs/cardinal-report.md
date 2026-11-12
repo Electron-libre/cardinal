@@ -37,6 +37,12 @@ it. It reports trends, never a pass or a fail.
 
 ## Scenarios
 
+- **REP-H1** (happy; REP-3, REP-4, REP-5, REP-8) Given the session rows of `session-metrics`, when the user runs
+  `cardinal-report --sessions`, then it prints the efficiency table, one row per group of Cardinal revisions in the
+  order they were used, with the sample size and the confounders next to the numbers and no text of a conversation.
+- **REP-H2** (happy; REP-6, REP-7) Given the rows of `delivered-quality` and `rule-breaches` too, when the user runs
+  `cardinal-report` with them, then it also prints the quality, rules and skills tables for the same groups.
+
 - (REP-4) Given revisions `a` (6 sessions), `b` (5) and `c` (3) used in that order with the default threshold, when the report is printed, then the groups are `a..b` (11 sessions) and `c`, marked `too few` with 3 sessions.
 - (REP-4) Given a consumer pinned to an old revision used after newer `self:` revisions, when the report is printed, then the old revision takes its place by first use and the project mix of its group shows it.
 - (REP-2) Given a `CLAUDE.md` of 100 bytes that names `AGENTS.md` in backticks and imports `@docs/rules.md` (50 bytes), when the row is printed, then `claude_md_bytes` is 150 and `agents_md_bytes` 0: Claude Code reads `AGENTS.md` only when imported or when there is no `CLAUDE.md`.

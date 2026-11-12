@@ -250,7 +250,7 @@ fn has(
     got == Some(value)
 }
 
-// spec: QUA-1, QUA-2, QUA-3, QUA-4, QUA-5, QUA-10
+// spec: QUA-1, QUA-2, QUA-3, QUA-4, QUA-5, QUA-10, QUA-H1
 fn git_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let repo = fixture(tmp);
     let (ok, out) = run(dir, &repo, &[]);
@@ -1158,7 +1158,7 @@ fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
-// spec: QUA-9
+// spec: QUA-9, QUA-H2
 fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("summary");
     let repo = fixture(&tmp);

@@ -32,6 +32,12 @@ the change that should have caused it, or says it cannot.
 
 ## Scenarios
 
+- **VRD-H1** (happy; VRD-1, VRD-3, VRD-4) Given commits of the source that declare an `Expected-effect:`, when the
+  user runs `cardinal-changes` with the session rows, then it lists each expectation with the revisions in use that
+  hold its change.
+- **VRD-H2** (happy; VRD-5, VRD-6) Given those expectations, when the user runs `cardinal-report --changes`, then the
+  `## Verdicts` table says of each whether its metric moved the expected way, or why it cannot tell.
+
 - (VRD-3) Given a commit that changes only `docs/` with an `Expected-effect: turns down` line, when the rows are printed, then it has none.
 - (VRD-3) Given a commit with an expectation on a branch merged into the default branch by a merge commit, when the rows are printed, then it has its row.
 - (VRD-4) Given a session whose revision is `main`, when the rows are printed, then `main` is never listed.

@@ -35,6 +35,12 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 
 ## Scenarios
 
+- **QUA-H1** (happy; QUA-1, QUA-2, QUA-3, QUA-4, QUA-5) Given a repository of done issues, when the user runs
+  `delivered-quality`, then it prints one row per done issue with its revision, its deliverables and the fixes and
+  reverts its files got after it was delivered.
+- **QUA-H2** (happy; QUA-9) Given the same repository, when the user runs `delivered-quality --summary`, then it
+  prints one row per revision summing the numbers of its issues.
+
 - (QUA-2) Given an issue opened in a `docs` commit, then three commits of its deliverables, then another issue closed by a commit that rewrites a citation in its file, then its own close commit, when the row is printed, then `commits` is 4.
 - (QUA-4) Given an issue closed on day 0 that wrote a line of `src/a.rs`, when a `fix` commit changes that line on day 10 and another fix changes it again on day 40, then `fixes_after` is 1 with the default window.
 - (QUA-4) Given an issue `alpha` that wrote the first line of `src/a.rs` and a later issue `beta` that wrote its last line, when a `fix` commit changes only the first line, then it counts in `fixes_after` of `alpha` and not of `beta`.

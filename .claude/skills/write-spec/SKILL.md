@@ -33,7 +33,7 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    * Status `draft` while it is being written. English only, no confidential test repository named.
 3. **Check the content** before showing it:
    * each requirement is observable from outside (an exit code, an output, a file), not a property of the code;
-   * a reader who reads only `### Behaviour` knows what the user gets, with no code span needed to follow it;
+   * a reader who reads only `### Behaviour` knows what the user gets, before any format, code or limit;
    * a reader who reads only the happy paths knows what the capability does for its user;
    * each boundary a requirement draws (a limit, an empty input, an error) has a scenario;
    * the non-goals cover what a reader would assume the capability does.

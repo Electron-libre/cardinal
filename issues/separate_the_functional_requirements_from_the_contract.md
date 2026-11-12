@@ -57,6 +57,9 @@ Decide the shape of a spec in ADR 0029: `## Requirements` split into `### Behavi
 2. [x] Format: `files/specs/README.md` (Requirements: the two subsections, the contract table), `files/specs/TEMPLATE.md`,
    `skill:write-spec` (draft, content checklist, bootstrap), `just sync`, ADR 0029 `Accepted`; verified by
    `just check-cardinal` and `check-specs` on the template. (autonomous)
+3. [x] Settle the `high` review of the issue: the heading read at the start of its line, `Behavior` too, no warning
+   without `## Requirements`, a warning that prescribes no order, a contract table tested, `spec-clarity` resorted;
+   verified by tests of `check_specs`; makes true CLR-11. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -97,6 +100,37 @@ them, `skill:write-spec` drafts, checks and bootstraps to them; ADR 0029 `Accept
 | code review | see below |
 
 red: none (docs only)
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 3
+done: the `high` review of `677c569..4b8b4d3` settled; `spec-clarity` puts its warnings under `### Behaviour`, its
+word lists under `### Contract`; `skill:write-spec` asks for a behaviour read before any format, code or limit.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | spec and skill amended |
+| drift | `just check-cardinal` pass |
+
+red: CLR-11: no test was red before the fix (the cases added pin the fixed behaviour)
+
+`high` review: 7 findings
+1. heading matched exactly: fixed, `### Behavior` and a closed heading accepted (CLR-11).
+2. indented heading counted: fixed, read only at the start of its line.
+3. `spec-clarity` behaviour full of code spans, split inconsistent: fixed, resorted; the checklist of `write-spec` now
+   asks for a behaviour read before any format, code or limit, not one with no code span.
+4. warning prescribes an order not checked: fixed, it says "add `### Behaviour` under `## Requirements`".
+5. warning on top of a missing `## Requirements`: fixed.
+6. contract table untested: fixed, a test pins a table after a blank line.
+7. two nudge lines naming the same files: not fixed, each nudge has its own fix and leaves on its own; merging them
+   would hide which part a spec lacks.
 
 Code review: no findings
 

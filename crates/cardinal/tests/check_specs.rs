@@ -69,6 +69,7 @@ fn check_specs() {
     happy_path_form_checks(&case);
     happy_path_warning_checks(&case, &report);
     behaviour_warning_checks(&case, &report);
+    behaviour_edge_checks(&case, &report);
 
     strict.set(true);
     case(
@@ -1591,7 +1592,7 @@ fn happy_path_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
 /// The specs without a `### Behaviour` under `## Requirements` are warned of, never failed.
 fn behaviour_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     let warned =
-        "warning: specs/rerun.md: no behaviour (open `## Requirements` with `### Behaviour`)";
+        "warning: specs/rerun.md: no behaviour (add `### Behaviour` under `## Requirements`)";
     let draft = clear_draft();
     let flat = draft.replace("### Behaviour\n\n", "");
     for (name, spec, expect) in [
@@ -1607,6 +1608,24 @@ fn behaviour_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
             flat.replace(
                 "## Requirements\n\n",
                 "## Requirements\n\n```\n### Behaviour\n```\n\n",
+            ),
+            true,
+        ),
+        (
+            "a draft with the US spelling",
+            draft.replace("### Behaviour", "### Behavior"),
+            false,
+        ),
+        (
+            "a draft with a closed heading",
+            draft.replace("### Behaviour", "### Behaviour ###"),
+            false,
+        ),
+        (
+            "a draft with a behaviour indented in a requirement",
+            flat.replace(
+                "A pass must reuse a saved result.\n",
+                "A pass must reuse a saved result.\n  ### Behaviour\n",
             ),
             true,
         ),
@@ -1650,6 +1669,41 @@ fn behaviour_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     report(
         "an accepted spec with a behaviour is not warned of",
         !stderr.contains("no behaviour"),
+    );
+}
+
+// spec: CLR-11
+/// A spec with no `## Requirements` gets no behaviour warning on top of its problem; a contract table is not read as
+/// the statement of the requirement it follows.
+fn behaviour_edge_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    let draft = clear_draft();
+    let flat = draft.replace("### Behaviour\n\n", "");
+    let missing = flat.replace("## Requirements\n", "## Needs\n");
+    let stderr = case(
+        "a draft with no requirements section fails",
+        &missing,
+        "",
+        &[],
+        Some("missing section `## Requirements`"),
+    );
+    report(
+        "a draft with no requirements section is not warned of a behaviour",
+        !stderr.contains("no behaviour"),
+    );
+    let table = draft.replace(
+        "A run must resume.\n",
+        "A run must resume with each code of the table.\n\n| code | means |\n|---|---|\n| E1 | may retry, must wait |\n",
+    );
+    let stderr = case(
+        "a draft with a contract table passes",
+        &table,
+        "",
+        &[],
+        None,
+    );
+    report(
+        "a contract table after a blank line gets no wording warning",
+        !stderr.contains("warning"),
     );
 }
 

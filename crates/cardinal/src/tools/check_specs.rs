@@ -34,8 +34,9 @@ pub(super) struct Spec {
     id: String,
     pub(super) status: String,
     pub(super) requirements: Vec<Requirement>,
-    /// Whether `## Requirements` holds a `### Behaviour` heading (CLR-11).
-    behaviour: bool,
+    /// Whether `## Requirements` holds a `### Behaviour` heading (CLR-11); `None` with no `## Requirements`, already a
+    /// problem of its own.
+    behaviour: Option<bool>,
 }
 
 fn is_id_prefix(s: &str) -> bool {
@@ -186,7 +187,7 @@ fn parse(
         id: String::new(),
         status: String::new(),
         requirements: Vec::new(),
-        behaviour: false,
+        behaviour: None,
     };
     let lines: Vec<&str> = text.lines().collect();
     let close = lines
@@ -273,9 +274,9 @@ fn parse(
         prose: &prose,
     };
     parse_requirements(file, &read, &mut spec, out, warn);
-    if spec.status == "draft" && !spec.behaviour {
+    if spec.status == "draft" && spec.behaviour == Some(false) {
         warn.push(format!(
-            "warning: {file}: no behaviour (open `## Requirements` with `### Behaviour`)"
+            "warning: {file}: no behaviour (add `### Behaviour` under `## Requirements`)"
         ));
     }
     parse_happy_paths(file, &read, &mut spec, out, warn);
@@ -288,6 +289,14 @@ struct Read<'a> {
     lines: &'a [&'a str],
     walk: &'a [crate::markdown::Line],
     prose: &'a [Option<String>],
+}
+
+/// Whether `line` is the `### Behaviour` heading (or `### Behavior`), at the start of the line: an indented one is in a
+/// list item or continues a paragraph (CLR-11).
+fn is_behaviour_heading(line: &str) -> bool {
+    line.strip_prefix("### ")
+        .map(|t| t.trim().trim_end_matches('#').trim())
+        .is_some_and(|t| t == "Behaviour" || t == "Behavior")
 }
 
 /// Read the requirement lines of the `## Requirements` section of `read`, the lines hidden in a code block or a comment
@@ -307,9 +316,12 @@ fn parse_requirements(
         }
         if line.starts_with("## ") {
             in_requirements = line.trim() == "## Requirements";
+            if in_requirements {
+                spec.behaviour.get_or_insert(false);
+            }
         }
-        if in_requirements && line.trim() == "### Behaviour" {
-            spec.behaviour = true;
+        if in_requirements && is_behaviour_heading(line) {
+            spec.behaviour = Some(true);
         }
         if !in_requirements || !line.starts_with("- ") {
             continue;
@@ -854,7 +866,7 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
         s.requirements.iter().any(|r| r.happy)
     });
     // and before the behaviour was split from the contract (CLR-12)
-    warn_accepted(&specs, "no behaviour", |s| s.behaviour);
+    warn_accepted(&specs, "no behaviour", |s| s.behaviour != Some(false));
     out
 }
 

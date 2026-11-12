@@ -32,6 +32,9 @@ mislabelled `fix`, fix of a later issue's code on the same lines.
 # Specs
 * `specs/delivered-quality.md` (QUA-4) if the count changes.
 
+# Milestone
+Measures
+
 # Resources
 * `crates/cardinal/src/tools/delivered_quality.rs`, `files/.claude/skills/issue-workflow/SKILL.md`,
   `.claude/skills/evaluate-harness/SKILL.md`.

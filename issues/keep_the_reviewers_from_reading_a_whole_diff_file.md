@@ -36,6 +36,9 @@ saved `.txt` files are diffs.
 # Specs
 * `specs/review-target.md`, `specs/read-hint.md`, maybe `specs/deliverable-size.md`.
 
+# Milestone
+Measures
+
 # Resources
 * `specs/rule-breaches.md` (BRE-19, BRE-22), `crates/cardinal/src/tools/review_target.rs`,
   `crates/cardinal/src/tools/read_hint.rs`, `files/.claude/skills/issue-workflow/SKILL.md` (step 5),

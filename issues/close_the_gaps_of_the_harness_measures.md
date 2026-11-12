@@ -49,6 +49,9 @@ Each step is a deliverable of its own.
   `specs/delivered-quality.md` (QUA-6, QUA-12), `specs/cardinal-report.md` (REP-4, REP-14),
   `specs/cardinal-verdicts.md` (the pairs a verdict compares).
 
+# Milestone
+Measures
+
 # Resources
 * `.claude/skills/evaluate-harness/SKILL.md`, `crates/cardinal/src/tools/session_metrics.rs`,
   `crates/cardinal/src/tools/transcripts.rs`, `crates/cardinal/src/tools/delivered_quality.rs`,

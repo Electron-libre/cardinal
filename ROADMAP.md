@@ -18,6 +18,19 @@ The work done before this file existed is in `issues/done/`.
   - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
   - [ask_the_user_through_the_question_tool](issues/done/ask_the_user_through_the_question_tool.md)
 
+## Measures
+
+- Goal: let the evaluation of the harness give verdicts: every hook refusal named, the review findings and the
+  issues of each session counted, the projects told apart, and the waste and the breaches it shows acted on.
+- Why: the evaluation of 2026-11-12 over the consumer projects came out with every verdict confounded, blank or
+  misnamed inputs, and a waste and two rules it could only describe.
+- State: in issues
+- Issues:
+  - [close_the_gaps_of_the_harness_measures](issues/close_the_gaps_of_the_harness_measures.md)
+  - [keep_the_reviewers_from_reading_a_whole_diff_file](issues/keep_the_reviewers_from_reading_a_whole_diff_file.md)
+  - [find_why_specs_and_replies_escape_their_rules](issues/find_why_specs_and_replies_escape_their_rules.md)
+  - [classify_the_fixes_after_an_issue_is_closed](issues/classify_the_fixes_after_an_issue_is_closed.md)
+
 ## Specs that read as a product
 
 - Goal: let a reader learn from a spec what the capability does for its user: a happy path first, the behaviour

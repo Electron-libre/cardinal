@@ -143,6 +143,11 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
+        "**invoke `skill:write-spec` with the Skill tool**",
+        "a spec written from the step alone skips the skill: the routing names the tool, as the review's does",
+    ),
+    (
+        "issue-workflow",
         "## Autonomous mode",
         "section defining the autonomous mode",
     ),

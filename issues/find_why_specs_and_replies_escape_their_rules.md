@@ -42,3 +42,55 @@ Measures
   `files/.claude/skills/write-spec/SKILL.md`, `files/.claude/skills/issue-workflow/SKILL.md`,
   `files/.claude/rules/user-language.md`,
   [measure_the_effect_of_the_language_hint](done/measure_the_effect_of_the_language_hint.md).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Find from the transcripts why the two rules are breached, then change the routing or the wording so the next
+evaluation can tell (`Expected-effect`). Out of scope: changing what BRE-10 or BRE-18 count, which the measure
+found right.
+
+## Measure (2026-11-12)
+`cardinal run rule-breaches` (detail), every transcript kept on the machine.
+
+* `skill-routing-write-spec`: 58 breaches, 58 sessions, 5 projects. In all 58 the spec was written inside
+  `issue-workflow` (loaded before the `Write`), and `write-spec` was loaded neither before nor after; none read
+  `specs/README.md` or another spec before the `Write`. BRE-18 counts right: the skill was never in context.
+  The cause: step 1 restates what the agent needs of the skill (ids, `deterministic`, `draft`, the marker) and says
+  "run" where step 3.5 says "**invoke ... with the Skill tool**", the one routing followed in every session.
+* `user-language`: 138 breaches; 119 `intermediate`, 17 `hinted`, 2 `final`. The final reports hold; the notes
+  between two tool calls slip (96 after a `Bash` result, 19 right after a `Skill` load). The last skill loaded
+  before the breach: `code-review` 77, `issue-workflow` 24, `commit-message` 8, others 10, so the notes of the
+  review loop and of the fixes that follow it, in an English context, with the rule read once at the start. The
+  hook cannot judge them (LNG-7 to LNG-10 withdrawn).
+
+## Plan
+1. [x] Route the spec: step 1 of `issue-workflow` says to invoke `skill:write-spec` with the Skill tool before the
+   first `Write` under `specs/`, and stops restating its format; `Expected-effect: skill-routing-write-spec down`;
+   verified by `just check` (managed skill tests) and `cardinal check`. (autonomous)
+2. [ ] Word the language rule for the notes: `files/.claude/rules/user-language.md` names every text the user sees,
+   the short notes between tool calls included, and step 3.5 of `issue-workflow` recalls it for the review loop
+   (wording checked with `skill:audit-instructions`); `Expected-effect: user-language down`; verified by `just check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: c0310a79d4b99e2e01a3ed942304929e72e63754
+- Routing of the spec: wording of step 1 (1 a); a hook only if the next evaluation shows no effect.
+- Language: reword the rule and recall it at step 3.5 (2 a); BRE-10 unchanged.
+- No recall of the language at step 3.5: FEA-29 keeps the language said once, in the rule; deliverable 2 rewords
+  the rule only.
+
+## Deliverable 1
+- done: step 1 of `issue-workflow` invokes `skill:write-spec` with the Skill tool before the first write under
+  `specs/`, and no longer restates its format.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| docs (`update-docs`) | n/a: `docs/workflow.md` still true |
+| code review | clean |
+
+red: none (a required passage of `tests/skills.rs`: `missing '**invoke `skill:write-spec` with the Skill tool**'`)
+Code review: no findings

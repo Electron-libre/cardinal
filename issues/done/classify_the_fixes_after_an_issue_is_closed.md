@@ -13,7 +13,7 @@ and the step of `issue-workflow` that would have caught the main class is change
 
 # Findings
 * Measured 2026-11-12 (`delivered-quality --summary`, line-level count of
-  [count_only_the_fixes_of_the_lines_an_issue_changed](done/count_only_the_fixes_of_the_lines_an_issue_changed.md)):
+  [count_only_the_fixes_of_the_lines_an_issue_changed](count_only_the_fixes_of_the_lines_an_issue_changed.md)):
   `fixes_after_per_issue` 0.53 → 1.24 → 2.11 over the last three groups of consumer projects; checks failed per
   issue 0.16 → 0.23 → 0.29. Confounder: a new consumer makes most of the last group.
 * Per repository, every closed issue: 2.7, 2.2, 2.25 and 3.3 fixes per issue: not one project's trait.
@@ -28,6 +28,8 @@ and the step of `issue-workflow` that would have caught the main class is change
 * Counting only the fix that starts a later issue (its first deliverable) and the fixes outside any issue would give
   1.03, 0.63, 2.31 and 0.45 per issue in the four large repositories, instead of 2.96, 2.66, 3.99 and 2.47 (an
   estimate of a script outside the repository).
+* Measured with the narrowed count (f6b5323): 0.93, 0.51, 1.99, 0.42 and 0 fixes per issue in the five repositories,
+  instead of 2.68, 2.16, 3.30, 2.25 and 0.5.
 
 # Approach
 Measure first: draw a sample of 30 to 50 fixes across the repositories and classify each by reading the fix, the

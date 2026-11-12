@@ -10,6 +10,10 @@ use std::io::{Read, Write};
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
+/// The start of the reason of a deny (RDH-1), by which `session-metrics` names its refusals (EVA-5): Claude Code
+/// writes a deny of the JSON output without the command of the hook.
+pub(super) const REASON_START: &str = "A whole read of this file returns about";
+
 /// The size above which Claude Code refuses a whole read itself (RDH-1).
 const READ_CAP: u64 = 262_144;
 
@@ -127,7 +131,7 @@ pub(super) fn main(_args: &[String]) -> u8 {
         return 0;
     }
     let reason = format!(
-        "A whole read of this file returns about {bytes} bytes: read the range you need (`offset` and `limit`) or search it with `Grep`; \
+        "{REASON_START} {bytes} bytes: read the range you need (`offset` and `limit`) or search it with `Grep`; \
          if you need it whole, repeat the same call, which then goes through."
     );
     let output = json!({"hookSpecificOutput": {

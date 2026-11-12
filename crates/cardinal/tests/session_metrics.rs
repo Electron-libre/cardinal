@@ -1004,3 +1004,62 @@ fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     cmd.arg("tool").arg(stem);
     cmd
 }
+
+/// The `hook_refusals` of the one session of a project whose transcript is `lines`.
+fn refusals_of(lines: &[serde_json::Value]) -> String {
+    let tmp = tempfile::tempdir().unwrap();
+    let proj = tmp.path().join("projects/-p");
+    std::fs::create_dir_all(&proj).unwrap();
+    let text: String = lines.iter().map(|l| l.to_string() + "\n").collect();
+    std::fs::write(proj.join("s.jsonl"), text).unwrap();
+    let out = tool_command("session_metrics.rs")
+        .arg(tmp.path().join("projects"))
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+    let rows = rows(&stdout).unwrap_or_else(|| panic!("{stdout}"));
+    rows["s"]["hook_refusals"].clone()
+}
+
+/// A tool result refused by a hook with `text`, as Claude Code writes it.
+fn refused(text: &str) -> serde_json::Value {
+    serde_json::json!({"type": "user", "cwd": "/nonexistent/p", "timestamp": "2026-11-12T10:00:00.000Z",
+        "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t", "is_error": true,
+        "content": text}]}})
+}
+
+// spec: EVA-5
+#[test]
+fn a_refusal_of_read_hint_is_named_after_it() {
+    let files = tempfile::tempdir().unwrap();
+    let big = files.path().join("big.rs");
+    std::fs::write(&big, format!("{}\n", "x".repeat(99)).repeat(300)).unwrap();
+    let event = serde_json::json!({"hook_event_name": "PreToolUse", "session_id": "s", "tool_name": "Read",
+        "tool_input": {"file_path": big}});
+    let mut hook = std::process::Command::new(env!("CARGO_BIN_EXE_cardinal"));
+    hook.args(["tool", "read-hint"])
+        .env("TMPDIR", files.path())
+        .env("USER", "tester")
+        .env_remove("XDG_RUNTIME_DIR")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped());
+    let mut child = hook.spawn().unwrap();
+    std::io::Write::write_all(
+        &mut child.stdin.take().unwrap(),
+        event.to_string().as_bytes(),
+    )
+    .unwrap();
+    let out = child.wait_with_output().unwrap();
+    let output: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let reason = output["hookSpecificOutput"]["permissionDecisionReason"]
+        .as_str()
+        .unwrap();
+    let current = refused(&format!("PreToolUse:Read hook error: {reason}"));
+    // the text of the revisions before this requirement, whose reason was the same
+    let older = refused("PreToolUse:Read hook error: A whole read of this file returns about 30000 bytes: read the range you need");
+    let other = refused("PreToolUse:Read hook error: some other denial");
+    assert_eq!(
+        refusals_of(&[current, older, other]),
+        "read_hint=2;unknown=1"
+    );
+}

@@ -6,6 +6,7 @@
 //! Usage: `cardinal run session-metrics [projects_dir] [--archive <file>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 
+use super::read_hint;
 use super::transcripts;
 
 use serde_json::Value;
@@ -94,7 +95,8 @@ fn is_refusal(text: &str) -> bool {
 /// The hook a refusal names: the tool of the first `cardinal run <tool>` (`harness run <tool>` before the rename) its
 /// text cites, under the name of the script
 /// it was (`-` written `_`, `review-gate` named `require_code_review`) so the counts compare across revisions; else
-/// the stem of the first `.rs` file name it cites; `unknown` when none.
+/// the stem of the first `.rs` file name it cites; else `read_hint` for the reason of that hook, which Claude Code writes
+/// without its command; `unknown` when none.
 fn hook_name(text: &str) -> String {
     let name_char = |c: char| c.is_ascii_alphanumeric() || c == '_' || c == '-';
     let cited = ["cardinal run ", "harness run "]
@@ -120,6 +122,12 @@ fn hook_name(text: &str) -> String {
         if ends_name && !stem.is_empty() {
             return stem.chars().rev().collect();
         }
+    }
+    let reason = text
+        .split_once(" hook error:")
+        .map_or(text, |(_, rest)| rest.trim_start());
+    if reason.starts_with(read_hint::REASON_START) {
+        return "read_hint".into();
     }
     "unknown".into()
 }

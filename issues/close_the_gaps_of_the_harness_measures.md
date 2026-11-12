@@ -61,3 +61,38 @@ Measures
 * The transcripts outlive no rotation: test with synthetic transcripts in `tempfile::tempdir()`.
 * A rename of a hook name in the counts breaks the comparison across revisions: map the old text to the new name as
   `hook_name` already maps `review-gate`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Name the `read-hint` refusals, count the review findings per review line instead of per issue, tie a session to the
+issues it claims or closes, and let the report be read within one project. Out of scope: rewriting the free-text
+review lines of the done issues, enforcing the form of the review line. Means of step 1: `hook_name` recognises the
+text (old transcripts included) rather than a longer refusal message.
+
+## Plan
+1. [x] Name `read-hint` refusals: `hook_name` maps the reason of `read-hint` to `read_hint`, the reason built by one
+   function both use; verified by a test on that reason and on an old transcript line; makes true EVA-5 (autonomous)
+2. [ ] Count the findings per review line: `counted_reviews` in `delivered-quality` (rows and summary),
+   `findings_per_review` and VRD-12 read it; verified by tests of a free-text line beside counted ones; makes true
+   QUA-1, QUA-6, QUA-12, REP-6, VRD-12.
+3. [ ] Tie a session to its issues: the stems of `cardinal run issue-claim` / `close-issue` calls join `issues`;
+   verified by a synthetic transcript on `main` and on a branch; makes true EVA-6, EVA-21.
+4. [ ] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
+   `skill:evaluate-harness` runs the report per project; verified by a report of two projects; makes true REP-18,
+   BRE-23.
+5. [ ] Docs of the whole issue and fixes of its `high` review.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 9bdfe48794dd3c16c2f666ebd1f8cbe2bcbcc766
+- Projects: one report per project with `--project`, run by `skill:evaluate-harness` (1 a).
+- Review line: not enforced; counted per line (2 a).
+
+## Deliverable 1
+- done: `hook_name` names `read_hint` a refusal whose reason starts as the one of `read-hint` (`REASON_START`, shared).
+- red: EVA-5: `left: "unknown=3"`, `right: "read_hint=2;unknown=1"`.
+- Code review: no findings
+- not verified: the counts of the archived sessions, regenerated at the next `session-metrics`.

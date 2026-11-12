@@ -1,6 +1,6 @@
 ---
 id: BRE
-status: accepted
+status: draft
 adrs: [0003, 0005, 0006, 0010, 0018]
 ---
 
@@ -39,6 +39,7 @@ tool gets a verdict on the waste it removes.
 - **BRE-20** (deterministic) The summary of BRE-3 must end with a column `bytes`: for a waste rule (a rule whose `detail` is a number of bytes, `oversized-result` of BRE-19 and the two rules of BRE-22), the sum of the `detail` of its findings in the row's sessions (0 when none); for any other rule, empty. A rule is a waste rule or not whatever its findings, so a summary tells the measures from the instructions by this column alone.
 - **BRE-21** (deterministic) Rule `stage-everything`: a `Bash` call whose command stages every file as the `review-gate check` hook reads it (REV-21 of `specs/review-gate.md`, the shared module `shell.rs`) must be a finding (`blocked` when its result is an error). It applies to the sessions with a `Bash` call holding `git` and `add` (not when the session turns off the feature `review-gate`, FEA-26).
 - **BRE-22** (deterministic) Rules `oversized-result-review` and `oversized-result-subagent`: a tool result of a sub-agent's transcript over the threshold of BRE-19 must be a `breach` of `oversized-result-review` when the `<name>.meta.json` next to the transcript is a JSON object whose `agentType` is `general-purpose` and that has no `description` or an empty one (a reviewer of the built-in `/code-review`: an `Agent` call always gives a description), else of `oversized-result-subagent` (a missing or unreadable `.meta.json` included), located and detailed as BRE-19. Each applies to the sessions with at least one tool result in a transcript of its kind.
+- **BRE-23** (deterministic) `rule-breaches` must accept `--project <name>` and refuse it with no value with an error and a non-zero exit; with it, its rows and its summary (BRE-3) count only the sessions whose `project` (BRE-2) is `<name>`, and the findings read from git (BRE-9) only those of that project.
 
 ## Scenarios
 

@@ -26,7 +26,7 @@ The work done before this file existed is in `issues/done/`.
   misnamed inputs, and a waste and two rules it could only describe.
 - State: in issues
 - Issues:
-  - [close_the_gaps_of_the_harness_measures](issues/close_the_gaps_of_the_harness_measures.md)
+  - [close_the_gaps_of_the_harness_measures](issues/done/close_the_gaps_of_the_harness_measures.md)
   - [keep_the_reviewers_from_reading_a_whole_diff_file](issues/keep_the_reviewers_from_reading_a_whole_diff_file.md)
   - [find_why_specs_and_replies_escape_their_rules](issues/find_why_specs_and_replies_escape_their_rules.md)
   - [classify_the_fixes_after_an_issue_is_closed](issues/classify_the_fixes_after_an_issue_is_closed.md)

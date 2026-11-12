@@ -16,7 +16,7 @@ session that claimed or closed the issue is preferred, as `session-metrics` alre
   reads its branches only.
 * `transcripts::claimed_issues` (EVA-21) reads the `issue-claim` and `close-issue` calls of a session; it is used by
   `session-metrics` only.
-* Found by the `high` review of [close_the_gaps_of_the_harness_measures](close_the_gaps_of_the_harness_measures.md);
+* Found by the `high` review of [close_the_gaps_of_the_harness_measures](done/close_the_gaps_of_the_harness_measures.md);
   not measured on the consumer transcripts yet: how often two sessions overlap on the trunk is unknown.
 
 # Approach

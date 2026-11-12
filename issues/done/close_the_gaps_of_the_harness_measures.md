@@ -31,7 +31,7 @@ lands in.
   the same period: from 63 to 108 turns and from 97k to 162k of context peak per session.
 * The advisor columns are not a gap: `advisor_models` holds the main model when the advisor is the model itself, and
   REP-15 names those sessions `solo` (`advisor_calls` at 0 is the subject of
-  [find_why_the_advisor_is_never_consulted](done/find_why_the_advisor_is_never_consulted.md)).
+  [find_why_the_advisor_is_never_consulted](find_why_the_advisor_is_never_consulted.md)).
 
 # Approach
 Each step is a deliverable of its own.
@@ -129,7 +129,7 @@ text (old transcripts included) rather than a longer refusal message.
   the caller give the summaries of the project, which the skill does: they carry no project column), 8 (the test of
   EVA-5 runs the real reason of `read-hint` through `session-metrics`, so a rewording fails it). Outside the
   requirements: 1 (`delivered-quality` prefers a session by its branch only), now
-  [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).
+  [tie_an_issue_to_the_session_that_claimed_it](../tie_an_issue_to_the_session_that_claimed_it.md).
 - Code review: no findings
 
-Done: every deliverable committed; left: [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).
+Done: every deliverable committed; left: [tie_an_issue_to_the_session_that_claimed_it](../tie_an_issue_to_the_session_that_claimed_it.md).

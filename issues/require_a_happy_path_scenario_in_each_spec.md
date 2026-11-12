@@ -56,9 +56,9 @@ on an existing spec. Out of scope: writing the happy paths of this repository's 
 1. [x] check-specs reads happy paths: parse them in `## Scenarios`, check their form, order and ids, trace them,
    count them in the boundary warning, warn of the specs without one; verified by `crates/cardinal/tests/check_specs.rs`;
    makes true TRC-17 to TRC-24, TRC-H1, TRC-H2, CLR-9, CLR-10, CLR-H1 (~550 lines). (autonomous)
-2. [ ] The format and its writer: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md`,
+2. [x] The format and its writer: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md`,
    `skill:write-spec` (steps 2 and 3, bootstrap), `just sync`; verified by `cardinal run project-check` and
-   `just check-cardinal` (~80 lines).
+   `just check-cardinal` (~80 lines). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -66,6 +66,26 @@ on an existing spec. Out of scope: writing the happy paths of this repository's 
 - Accepted specs without a happy path: one warning line with their count and files (CLR-10).
 - The happy paths of this repository's own specs: a follow-up issue.
 - Happy path id: `ABC-H<n>`, bold like a requirement id.
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+done: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md` and `skill:write-spec` (steps 2, 3,
+6, bootstrap) state the happy paths; follow-up issue `write_the_happy_paths_of_the_cardinal_specs` on the milestone.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/`, `README.md`: nothing to change |
+| code review | no findings |
+
+red: none
 
 Code review: no findings
 

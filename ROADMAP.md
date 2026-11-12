@@ -45,3 +45,4 @@ The work done before this file existed is in `issues/done/`.
   - [warn_when_a_spec_outgrows_its_capability](issues/warn_when_a_spec_outgrows_its_capability.md)
   - [separate_the_functional_requirements_from_the_contract](issues/separate_the_functional_requirements_from_the_contract.md)
   - [measure_the_shape_of_the_specs](issues/measure_the_shape_of_the_specs.md)
+  - [write_the_happy_paths_of_the_cardinal_specs](issues/write_the_happy_paths_of_the_cardinal_specs.md)

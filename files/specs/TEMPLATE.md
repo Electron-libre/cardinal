@@ -16,6 +16,7 @@ adrs: []
 
 ## Scenarios
 
+- **XXX-H1** (happy; XXX-1) Given <state>, when <the user's main action>, then <what they get>.
 - (XXX-1) Given <state>, when <event>, then <outcome>.
 
 ## Non-goals

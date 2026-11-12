@@ -19,8 +19,9 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    * Intent in one or two sentences.
    * One requirement per testable obligation, "must" / "must not", each `(deterministic)`: a test that needs
      no network or external service proves it.
-   * Scenarios only for the edge cases a statement leaves open; non-goals for what the spec refuses to
-     require. Link ADRs by number in the front matter, never repeat their reasoning.
+   * Scenarios: first one to three happy paths, the main flows when all goes well, in the terms of the user of
+     the capability, each naming the requirements it walks through; then the edge cases a statement leaves open.
+     Non-goals for what the spec refuses to require. Link ADRs by number in the front matter, never repeat their reasoning.
    * Amending: a new requirement takes the next number; a dropped one keeps its number and its statement
      starts with `withdrawn:`; never renumber an `accepted` spec, tests and issues cite the ids. The spec goes
      back to `draft` while it is amended, and to `accepted` once its new requirements are traced.
@@ -29,6 +30,7 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    * Status `draft` while it is being written. English only, no confidential test repository named.
 3. **Check the content** before showing it:
    * each requirement is observable from outside (an exit code, an output, a file), not a property of the code;
+   * a reader who reads only the happy paths knows what the capability does for its user;
    * each boundary a requirement draws (a limit, an empty input, an error) has a scenario;
    * the non-goals cover what a reader would assume the capability does.
 4. **Validate the format**: run `cardinal run check-specs` and read the lines that name the spec you edited (other specs
@@ -41,8 +43,8 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    spec stays `draft`. Called from step 1 of `issue-workflow`, end after step 4: its own stop validates
    the spec with the plan.
 6. **Trace**: write the tests from the requirements; each carries `// spec: ID` placed as `specs/README.md`
-   says. Prove a requirement through the binary when that test is cheap and stable; otherwise an internal test is
-   the proof, its citation giving the reason (`// spec: ID (internal: <reason>)`): never write a long or fragile
+   says, and each happy path is cited by the test that drives its whole flow. Prove a requirement through the binary
+   when that test is cheap and stable; otherwise an internal test is the proof, its citation giving the reason (`// spec: ID (internal: <reason>)`): never write a long or fragile
    end-to-end test only to silence the boundary warning. When every requirement is traced, set `accepted`; `cardinal run check-specs` then enforces it.
 
 ## Bootstrap the spec of an existing capability
@@ -54,7 +56,8 @@ from an intended change; it runs the procedure above with these differences:
    the user picks the capability (or names one).
 2. **Read** the code of the capability and every test that drives it.
 3. **State only what a test already proves**: one requirement per obligation a test checks, worded from the
-   behaviour the test asserts. A spec read back from the code states what the code does, bugs included: say so in
+   behaviour the test asserts; a happy path per main flow an existing test drives end to end (none drives one: say
+   so and file it with the follow-ups of step 4). A spec read back from the code states what the code does, bugs included: say so in
    step 5, the user validates it like any spec and decides whether a bug becomes a requirement or an issue.
 4. **Untested behaviour is not a requirement**: list it, then file it as a follow-up issue (`skill:create-issue`)
    whose tests will add the requirements.

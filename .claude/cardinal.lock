@@ -13,7 +13,7 @@ cb98daadd3b84140f9835e2b90a45f39b4d7bd2f67883d2e01ca49df2c44d64c  .claude/skills
 ff6b31883e9a4a710e4d053fd6df24c13c8264bef4903949aea32617a713fd82  .claude/skills/issue-workflow/details.md
 80b23bc8bf0d9b162341aa0de211e68f4d288f5bce61ca6d2aeaa5405588f566  .claude/skills/prioritize-issues/SKILL.md
 16d6037f8b5f9c91261361d8fff6c7f88301a2e0c1adfa2f2c823e55edfa0349  .claude/skills/update-docs/SKILL.md
-b474de58d99109b8072d137aace68f65055faafcbbe3eef9d749cf313648557c  .claude/skills/write-spec/SKILL.md
+8df7b76b55e1bbd4a293637fabc1cc95b209b02fd566b01c08bb2da461bca0b6  .claude/skills/write-spec/SKILL.md
 61bdad10b1c0449722ce4b9d3a409580d991222fafb87e2c78a68e4048d4e1dc+x  .github/install_cardinal.sh
 1426fae905534a38a0dda30bff7d0a4823ef109bb351e40e87772751c2052e28  .github/workflows/cardinal.yml
 97e321441160f45fbdb5cc4025cd9b9c074bc185444d606ab0464ba1211b737d  AGENTS.md
@@ -22,8 +22,8 @@ c860f7456cbbff798d3bab5bea6ef834c8c48809d401b97729de1b59b82aa26f  cardinal-issue
 a16a2f85443e06a0864c97c233cd070b715c9e0e7a20417d50c263d820da149d  cardinal-review.just
 3f7aaa0719a25aad500ecca27ca321811e3b342272bb7da7d6bbdaa9fbc169ee  cardinal-specs.just
 e2b7850ed69b1de0461dbd1f9deb55df6acd67961b275e747919c3f7766c52ed  cardinal.just
-5f18af15d3a647d6f7777ed80f60868c6286de045b89f09a4389b6161f215249  specs/README.md
-66c02d6a40b353ab64053572558e258ee2a65c4272abf394d2375356958e21f5  specs/TEMPLATE.md
+508988f7a61d6189f42b46962fc74f569f39604c86fac90c1559b63d70107a80  specs/README.md
+6af11edffdb802b0c7d63c5888d481bf855a69992f25efe8e7f794b1790d52dd  specs/TEMPLATE.md
 entry  {"allow":"Bash(cardinal run *)"}
 entry  {"allow":"Bash(cardinal check)"}
 entry  {"ask":"Bash(cardinal run release *.*)"}

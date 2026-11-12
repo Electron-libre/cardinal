@@ -1332,6 +1332,82 @@ fn blame_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+/// An issue `alpha` that wrote `src/a.rs`, then the fixes of two later issues on its lines: the review fix of `beta`,
+/// started by a `feat`, and the fix that starts `gamma`.
+fn later_issue_fixture(tmp: &Path) -> PathBuf {
+    let repo = tmp.join("later");
+    std::fs::create_dir_all(&repo).unwrap();
+    sh(&repo, &["init", "-q", "-b", "main"]);
+    let tracked = |name: &str, note: &str| format!("# {name}\n\n# Tracking\n{note}");
+    let alpha = tracked("alpha", "");
+    let steps = [
+        (
+            "2026-03-01T00:00:00Z",
+            "feat: alpha",
+            vec![
+                ("src/a.rs", Some("x1\nx2\nx3\n".to_string())),
+                ("issues/alpha.md", Some(alpha.clone())),
+            ],
+        ),
+        (
+            "2026-03-02T00:00:00Z",
+            "docs: close alpha",
+            vec![
+                ("issues/alpha.md", None),
+                ("issues/done/alpha.md", Some(alpha)),
+            ],
+        ),
+        (
+            "2026-03-03T00:00:00Z",
+            "docs: open beta and gamma",
+            vec![
+                ("issues/beta.md", Some("# beta\n".to_string())),
+                ("issues/gamma.md", Some("# gamma\n".to_string())),
+            ],
+        ),
+        (
+            "2026-03-04T00:00:00Z",
+            "feat: beta",
+            vec![
+                ("src/b.rs", Some("b1\n".to_string())),
+                ("issues/beta.md", Some(tracked("beta", "1. [x] b\n"))),
+            ],
+        ),
+        (
+            "2026-03-05T00:00:00Z",
+            "fix: the review of beta",
+            vec![
+                ("src/a.rs", Some("w1\nx2\nx3\n".to_string())),
+                ("issues/beta.md", Some(tracked("beta", "2. [x] review\n"))),
+            ],
+        ),
+        (
+            "2026-03-06T00:00:00Z",
+            "fix: gamma",
+            vec![
+                ("src/a.rs", Some("w1\nw2\nx3\n".to_string())),
+                ("issues/gamma.md", Some(tracked("gamma", "1. [x] g\n"))),
+            ],
+        ),
+    ];
+    for (date, message, files) in steps {
+        let files: Vec<(&str, Option<&str>)> =
+            files.iter().map(|(p, b)| (*p, b.as_deref())).collect();
+        commit_at(&repo, date, message, &files);
+    }
+    repo
+}
+
+// spec: QUA-4
+fn later_issue_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let repo = later_issue_fixture(tmp);
+    let (_, out) = run(dir, &repo, &[]);
+    vec![(
+        "a fix of a later issue counts only when it starts that issue".to_string(),
+        has(&rows(&out), "alpha", "fixes_after", "1"),
+    )]
+}
+
 #[test]
 fn delivered_quality() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1340,6 +1416,7 @@ fn delivered_quality() {
     let checks: Vec<_> = git_checks(&dir, &tmp)
         .into_iter()
         .chain(blame_checks(&dir, &tmp))
+        .chain(later_issue_checks(&dir, &tmp))
         .chain(review_checks(&dir, &tmp))
         .chain(fence_checks(&dir, &tmp))
         .chain(start_checks(&dir, &tmp))

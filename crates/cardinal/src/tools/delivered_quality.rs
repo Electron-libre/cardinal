@@ -1,6 +1,6 @@
 //! Measure what happened to the work of each done issue of a repository (`specs/delivered-quality.md`): one
 //! tab-separated row per file of `issues/done/`, with the commits of the issue, the fixes inside it, and the fixes
-//! of the lines it wrote and the reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
+//! of the lines it wrote (of a later issue, only the fix that starts it) and the reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
 //! span, the tokens of its messages, and the lines it changed in the specs and in the docs. With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
 //! is printed.
@@ -128,17 +128,10 @@ fn issue_commits(repo: &Path, log: &[Commit], stem: &str) -> Vec<usize> {
     let candidates: Vec<usize> = (0..=close)
         .filter(|&i| log[i].touches(&open) || log[i].touches(&done))
         .collect();
-    // The oldest version of the file holding the heading outside a fence (QUA-12) started the work: the version the
-    // commit wrote, under `issues/done/` once it moved there.
-    let tracked = |c: &Commit| {
-        let path = if c.touches(&done) { &done } else { &open };
-        git(repo, &["cat-file", "blob", &format!("{}:{path}", c.hash)])
-            .is_some_and(|text| matches!(section(&text, "# Tracking", |_| true), Section::Read(_)))
-    };
     let start = candidates
         .iter()
         .copied()
-        .find(|&i| tracked(&log[i]))
+        .find(|&i| starts_work(repo, &log[i], stem))
         .unwrap_or(close);
     let closes_another = |c: &Commit| {
         c.added
@@ -149,6 +142,83 @@ fn issue_commits(repo: &Path, log: &[Commit], stem: &str) -> Vec<usize> {
         .into_iter()
         .filter(|&i| i >= start && (i == close || !closes_another(&log[i])))
         .collect()
+}
+
+/// Whether the version of the file of the issue `stem` that `commit` wrote holds the `# Tracking` heading outside a
+/// fence (QUA-12): the oldest such commit starts the work of the issue (QUA-2), the version under `issues/done/` once
+/// it moved there.
+fn starts_work(repo: &Path, commit: &Commit, stem: &str) -> bool {
+    let done = format!("issues/done/{stem}.md");
+    let path = if commit.touches(&done) {
+        done
+    } else {
+        format!("issues/{stem}.md")
+    };
+    git(
+        repo,
+        &["cat-file", "blob", &format!("{}:{path}", commit.hash)],
+    )
+    .is_some_and(|text| matches!(section(&text, "# Tracking", |_| true), Section::Read(_)))
+}
+
+/// The stem of the issue whose file `path` is (`issues/<stem>.md` or `issues/done/<stem>.md`).
+fn issue_stem(path: &str) -> Option<&str> {
+    let name = path
+        .strip_prefix("issues/done/")
+        .or_else(|| path.strip_prefix("issues/"))?
+        .strip_suffix(".md")?;
+    (!name.is_empty() && !name.contains('/')).then_some(name)
+}
+
+/// What the rows share about the later commits (QUA-4): the writers `blamed` finds for each fix, and the commit that
+/// starts the work of each issue.
+#[derive(Default)]
+struct Later {
+    blames: HashMap<String, HashSet<String>>,
+    starts: HashMap<String, Option<usize>>,
+}
+
+impl Later {
+    /// Whether the fix `log[at]` counts against the issue `stem` whose commits are `mine` (QUA-4): it changes a line
+    /// they wrote and, when it changes the file of another issue whose work started by then, it starts that work: a
+    /// fix that only files a new issue still counts.
+    fn counts(
+        &mut self,
+        repo: &Path,
+        log: &[Commit],
+        at: usize,
+        stem: &str,
+        mine: &[&Commit],
+    ) -> bool {
+        let fix = &log[at];
+        let others: BTreeSet<&str> = fix
+            .paths
+            .iter()
+            .filter_map(|p| issue_stem(p))
+            .filter(|s| *s != stem)
+            .collect();
+        // the index of the commit that starts the work of each other issue, when it started by this fix at the latest
+        let started: Vec<usize> = others
+            .iter()
+            .filter_map(|other| {
+                *self.starts.entry(other.to_string()).or_insert_with(|| {
+                    log.iter().position(|c| {
+                        c.paths.iter().any(|p| issue_stem(p) == Some(other))
+                            && starts_work(repo, c, other)
+                    })
+                })
+            })
+            .filter(|&start| start <= at)
+            .collect();
+        let starts = started.is_empty() || started.contains(&at);
+        starts && {
+            let writers = self
+                .blames
+                .entry(fix.hash.clone())
+                .or_insert_with(|| blamed(repo, &fix.hash));
+            mine.iter().any(|m| writers.contains(&m.hash))
+        }
+    }
 }
 
 /// A section of an issue file as QUA-12 reads it.
@@ -852,7 +922,7 @@ fn issue_row(
     path: &Path,
     window: Duration,
     docs: &DocFiles,
-    blames: &mut HashMap<String, HashSet<String>>,
+    later: &mut Later,
 ) -> Option<Row> {
     let stem = path.file_stem()?.to_string_lossy().into_owned();
     let own = issue_commits(repo, log, &stem);
@@ -865,18 +935,13 @@ fn issue_row(
         .filter(|p| !unrelated(p))
         .collect();
     let end = log[close].date + window;
-    let later: Vec<&Commit> = log[close + 1..].iter().filter(|c| c.date <= end).collect();
-    let fixes_after = later
-        .iter()
-        .filter(|c| c.kind() == "fix" && c.paths.iter().any(|p| !unrelated(p)))
-        .filter(|c| {
-            let writers = blames
-                .entry(c.hash.clone())
-                .or_insert_with(|| blamed(repo, &c.hash));
-            mine.iter().any(|m| writers.contains(&m.hash))
-        })
+    let after: Vec<&Commit> = log[close + 1..].iter().filter(|c| c.date <= end).collect();
+    let fixes_after = (close + 1..log.len())
+        .filter(|&i| log[i].date <= end)
+        .filter(|&i| log[i].kind() == "fix" && log[i].paths.iter().any(|p| !unrelated(p)))
+        .filter(|&i| later.counts(repo, log, i, &stem, &mine))
         .count();
-    let reverts_after = later.iter().filter(|c| reverts(c, &files, &mine)).count();
+    let reverts_after = after.iter().filter(|c| reverts(c, &files, &mine)).count();
     let fixes_in = mine
         .iter()
         .filter(|c| matches!(c.kind(), "fix" | "revert"))
@@ -1003,7 +1068,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         .ok()
         .and_then(|root| read_sessions(&root, &repo));
     let docs = DocFiles::read(&repo);
-    let mut blames = HashMap::new();
+    let mut later = Later::default();
     let mut rows: Vec<Row> = sorted_entries(&repo.join("issues/done"))
         .iter()
         .filter(|p| p.extension().is_some_and(|e| e == "md"))
@@ -1015,7 +1080,7 @@ pub(super) fn main(args: &[String]) -> u8 {
                 p,
                 Duration::days(window_days),
                 &docs,
-                &mut blames,
+                &mut later,
             )
         })
         .collect();

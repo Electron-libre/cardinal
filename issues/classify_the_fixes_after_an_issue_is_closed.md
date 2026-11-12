@@ -18,6 +18,16 @@ and the step of `issue-workflow` that would have caught the main class is change
   issue 0.16 → 0.23 → 0.29. Confounder: a new consumer makes most of the last group.
 * Per repository, every closed issue: 2.7, 2.2, 2.25 and 3.3 fixes per issue: not one project's trait.
 * `reverts_after` is 0 in every group.
+* Classified 2026-11-12 on 40 fixes drawn at random across the five consumer repositories (the sample stays outside
+  the repository): 30 are the fixes the `high` review of a later issue made to that issue's own work, counted because
+  they change lines an earlier issue also wrote; 10 fix a case the earlier issue missed (a later bug issue); 0
+  regressions, 0 mislabelled refactors; 1 of the 10 came from the user's use after the close.
+* Over every counted pair, 98 % of the fixes are commits of a later issue (they change its issue file) and one fix
+  counts for 3.2 earlier issues on average. The `high` review of each issue, whose fixes form a `fix` deliverable,
+  arrived on 2026-10-26, in the groups where the count rose.
+* Counting only the fix that starts a later issue (its first deliverable) and the fixes outside any issue would give
+  1.03, 0.63, 2.31 and 0.45 per issue in the four large repositories, instead of 2.96, 2.66, 3.99 and 2.47 (an
+  estimate of a script outside the repository).
 
 # Approach
 Measure first: draw a sample of 30 to 50 fixes across the repositories and classify each by reading the fix, the
@@ -42,3 +52,32 @@ Measures
 # Hints
 * The sample names private projects: keep it out of the repository and of the issue (the `confidential` note of
   `.claude/cardinal.toml`); write only the counts per class here.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Three quarters of the counted fixes are the `high` review fixes of a later issue, not defects of the issue counted:
+narrow `fixes_after` (QUA-4) to the fixes outside any issue and the fix that starts a later issue. No change of
+`issue-workflow`: no class of defect it would have caught dominates (missed cases are a quarter, regressions none).
+
+## Plan
+1. [x] Narrow `fixes_after`: a `fix` commit that changes another issue's file counts only when it starts that issue's
+   work (the QUA-2 start of that issue); verified by a test of `crates/cardinal/tests/delivered_quality.rs`; makes
+   true QUA-4 as amended. (autonomous)
+2. [ ] Docs of the whole issue and fixes of its `high` review.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 459c7cbe14459eb174af1dc2a79ab336289dc68e
+- A fix that changes the file of an issue whose work has not started yet (a fix filing a new issue) still counts.
+- Answers: 1 a (the other fixes of a later issue are left out, no new column), 2 a (no change of `issue-workflow`: measure again first).
+
+## Deliverable 1
+- done: `fixes_after` leaves out the fixes of a later issue other than the one that starts its work (`Later::counts`).
+- checks: `just check` green; QUA-4 amended; `docs/usage.md` and the module doc updated.
+- red: QUA-4: alpha.fixes_after: expected "1", got Some("2")
+- Code review: no findings
+- not verified: the counts on the consumer repositories with the built tool (estimated by a script only).
+

@@ -1005,8 +1005,8 @@ fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     cmd
 }
 
-/// The `hook_refusals` of the one session of a project whose transcript is `lines`.
-fn refusals_of(lines: &[serde_json::Value]) -> String {
+/// The cell `column` of the one session of a project whose transcript is `lines`.
+fn cell_of(lines: &[serde_json::Value], column: &str) -> String {
     let tmp = tempfile::tempdir().unwrap();
     let proj = tmp.path().join("projects/-p");
     std::fs::create_dir_all(&proj).unwrap();
@@ -1018,7 +1018,7 @@ fn refusals_of(lines: &[serde_json::Value]) -> String {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
     let rows = rows(&stdout).unwrap_or_else(|| panic!("{stdout}"));
-    rows["s"]["hook_refusals"].clone()
+    rows["s"][column].clone()
 }
 
 /// A tool result refused by a hook with `text`, as Claude Code writes it.
@@ -1059,7 +1059,40 @@ fn a_refusal_of_read_hint_is_named_after_it() {
     let older = refused("PreToolUse:Read hook error: A whole read of this file returns about 30000 bytes: read the range you need");
     let other = refused("PreToolUse:Read hook error: some other denial");
     assert_eq!(
-        refusals_of(&[current, older, other]),
+        cell_of(&[current, older, other], "hook_refusals"),
         "read_hint=2;unknown=1"
     );
+}
+
+/// An assistant line on `branch` running the shell `commands`, as one message of `Bash` calls.
+fn running(branch: &str, id: &str, commands: &[&str]) -> serde_json::Value {
+    let blocks: Vec<serde_json::Value> = commands
+        .iter()
+        .map(|c| serde_json::json!({"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": c}}))
+        .collect();
+    serde_json::json!({"type": "assistant", "cwd": "/nonexistent/p", "timestamp": "2026-11-12T10:00:00.000Z",
+        "gitBranch": branch, "message": {"id": id, "model": "m", "content": blocks,
+        "usage": {"input_tokens": 1, "output_tokens": 1}}})
+}
+
+// spec: EVA-6, EVA-21
+#[test]
+fn a_session_is_tied_to_the_issues_it_claims_or_closes() {
+    let claims = [
+        "cardinal run issue-claim issues/a.md",
+        "cd /x && cardinal run close-issue /x/issues/done/b.md && git status",
+        "cardinal run close-issue issues/a.md; cat issues/c.md",
+        "cardinal run issue-claim 'issues/d.md' | tee log",
+        "echo cardinal run issue-claim; grep x issues/e.md",
+        "cardinal run next-issue issues/f.md",
+        "cardinal run issue-claim docs/g.md",
+    ];
+    let on_main = [running("main", "m1", &claims)];
+    assert_eq!(cell_of(&on_main, "issues"), "a,b,d");
+    let on_branch = [running("z", "m1", &claims[..1])];
+    assert_eq!(cell_of(&on_branch, "issues"), "z,a");
+    // a sidechain line is the work of a sub-agent, not of the session
+    let mut sidechain = running("main", "m2", &claims[..1]);
+    sidechain["isSidechain"] = serde_json::json!(true);
+    assert_eq!(cell_of(&[sidechain], "issues"), "");
 }

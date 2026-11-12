@@ -192,6 +192,34 @@ pub fn push_distinct(list: &mut Vec<String>, value: Option<&str>) {
     }
 }
 
+/// The stems of the issues a shell command claims or closes (EVA-21): the arguments of each `cardinal run issue-claim`
+/// or `cardinal run close-issue` up to the end of its line or the next `;`, `&` or `|`, whose path ends with
+/// `issues/<stem>.md` or `issues/done/<stem>.md`.
+pub fn claimed_issues(command: &str) -> Vec<String> {
+    let mut stems = Vec::new();
+    for segment in command.split(['\n', ';', '&', '|']) {
+        let words: Vec<&str> = segment.split_whitespace().collect();
+        let Some(at) = words.windows(3).position(|w| {
+            w[0] == "cardinal" && w[1] == "run" && matches!(w[2], "issue-claim" | "close-issue")
+        }) else {
+            continue;
+        };
+        for word in &words[at + 3..] {
+            push_distinct(&mut stems, issue_stem(word.trim_matches(['\'', '"'])));
+        }
+    }
+    stems
+}
+
+/// The stem of a path ending with `issues/<stem>.md` or `issues/done/<stem>.md`.
+fn issue_stem(path: &str) -> Option<&str> {
+    let (dir, file) = path.rsplit_once('/')?;
+    let stem = file.strip_suffix(".md")?;
+    let dir = dir.strip_suffix("/done").unwrap_or(dir);
+    let in_issues = dir == "issues" || dir.ends_with("/issues");
+    in_issues.then_some(stem)
+}
+
 /// What places a session: its first `cwd` (own transcript), the branches other than the default ones, and its
 /// earliest and latest timestamps, sub-agents included.
 #[derive(Default)]

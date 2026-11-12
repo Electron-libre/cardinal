@@ -78,8 +78,8 @@ text (old transcripts included) rather than a longer refusal message.
 2. [x] Count the findings per review line: `counted_reviews` in `delivered-quality` (rows and summary),
    `findings_per_review` and VRD-12 read it; verified by tests of a free-text line beside counted ones; makes true
    QUA-1, QUA-6, QUA-12, REP-6, VRD-12. (autonomous)
-3. [ ] Tie a session to its issues: the stems of `cardinal run issue-claim` / `close-issue` calls join `issues`;
-   verified by a synthetic transcript on `main` and on a branch; makes true EVA-6, EVA-21.
+3. [x] Tie a session to its issues: the stems of `cardinal run issue-claim` / `close-issue` calls join `issues`;
+   verified by a synthetic transcript on `main` and on a branch; makes true EVA-6, EVA-21. (autonomous)
 4. [ ] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
    `skill:evaluate-harness` runs the report per project; verified by a report of two projects; makes true REP-18,
    BRE-23.
@@ -103,3 +103,10 @@ text (old transcripts included) rather than a longer refusal message.
 - red: QUA-1, QUA-6, QUA-12, REP-6, VRD-12: the header of `delivered-quality` lacked `counted_reviews` (every check
   of the summaries refused), and `beta` gave an empty `review_findings` instead of 2.
 - Code review: no findings (the summary row of the new column, outside the diff, is proven by the QUA-9 test).
+
+## Deliverable 3
+- done: `issues` of `session-metrics` adds to the branches the stems of the `cardinal run issue-claim` and
+  `close-issue` calls of the session's own transcript (`claimed_issues` of `transcripts.rs`).
+- red: EVA-6, EVA-21: `left: ""`, `right: "a,b,d"`.
+- Code review: no findings
+- not verified: the `issues` of the archived sessions whose transcripts are gone stay as archived.

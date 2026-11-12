@@ -61,6 +61,8 @@ const CONVERSATION_TYPES: &[&str] = &["user", "assistant", "attachment", "system
 #[derive(Default)]
 struct Session {
     place: Place,
+    /// The issues the session's own transcript claims or closes (EVA-21).
+    claimed: Vec<String>,
     models: Vec<String>,
     advisors: Vec<String>,
     advisor_calls: u64,
@@ -173,6 +175,12 @@ impl Session {
             .count() as u64;
         for block in blocks.iter().filter(|b| b["type"] == "tool_use") {
             self.tool_calls += 1;
+            if main && block["name"] == "Bash" {
+                let command = block["input"]["command"].as_str().unwrap_or_default();
+                for stem in transcripts::claimed_issues(command) {
+                    push_distinct(&mut self.claimed, Some(&stem));
+                }
+            }
             if block["name"] == "Skill" {
                 *self
                     .skills
@@ -245,6 +253,15 @@ impl Session {
         }
     }
 
+    /// The branches of the session other than the default ones, then the issues it claims or closes (EVA-6).
+    fn issues(&self) -> Vec<String> {
+        let mut issues = self.place.issues.clone();
+        for stem in &self.claimed {
+            push_distinct(&mut issues, Some(stem));
+        }
+        issues
+    }
+
     fn row(&self, id: &str, project: &str, revision: &str) -> String {
         let pairs = |map: &BTreeMap<String, u64>| {
             map.iter()
@@ -267,7 +284,7 @@ impl Session {
         [
             id.to_string(),
             project.to_string(),
-            self.place.issues.join(","),
+            self.issues().join(","),
             revision.to_string(),
             self.models.join(","),
             self.versions.join(","),

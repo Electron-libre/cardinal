@@ -66,7 +66,7 @@ narrow `fixes_after` (QUA-4) to the fixes outside any issue and the fix that sta
 1. [x] Narrow `fixes_after`: a `fix` commit that changes another issue's file counts only when it starts that issue's
    work (the QUA-2 start of that issue); verified by a test of `crates/cardinal/tests/delivered_quality.rs`; makes
    true QUA-4 as amended. (autonomous)
-2. [ ] Docs of the whole issue and fixes of its `high` review.
+2. [x] Docs of the whole issue and fixes of its `high` review. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -80,4 +80,13 @@ narrow `fixes_after` (QUA-4) to the fixes outside any issue and the fix that sta
 - red: QUA-4: alpha.fixes_after: expected "1", got Some("2")
 - Code review: no findings
 - not verified: the counts on the consumer repositories with the built tool (estimated by a script only).
+
+## Deliverable 2
+- done: fixes of the `high` review: a fix counts only when it starts every other issue in progress at it (closed
+  issues and issues not started left aside), the start of an issue without `# Tracking` is its close as in QUA-2, one
+  `Issues` map gives the spans to `issue_commits` and to the count, one window for fixes and reverts.
+- checks: `just check` green; QUA-4 and its scenario amended.
+- red: none (the review fixes extend the test of deliverable 1, which passed the old filing case already).
+- Code review: no findings (`low` of the fixes). Code review: 7 findings (`high`), all fixed: closed issue, any instead of every, no `# Tracking`, filing case
+  untested, duplicated start, duplicated window, a scan of the log per stem.
 

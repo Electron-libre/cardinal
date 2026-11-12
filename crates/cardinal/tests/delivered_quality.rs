@@ -1342,10 +1342,15 @@ fn later_issue_fixture(tmp: &Path) -> PathBuf {
     let alpha = tracked("alpha", "");
     let steps = [
         (
+            "2026-02-28T00:00:00Z",
+            "docs: close zeta",
+            vec![("issues/done/zeta.md", Some(tracked("zeta", "")))],
+        ),
+        (
             "2026-03-01T00:00:00Z",
             "feat: alpha",
             vec![
-                ("src/a.rs", Some("x1\nx2\nx3\n".to_string())),
+                ("src/a.rs", Some("x1\nx2\nx3\nx4\n".to_string())),
                 ("issues/alpha.md", Some(alpha.clone())),
             ],
         ),
@@ -1377,7 +1382,7 @@ fn later_issue_fixture(tmp: &Path) -> PathBuf {
             "2026-03-05T00:00:00Z",
             "fix: the review of beta",
             vec![
-                ("src/a.rs", Some("w1\nx2\nx3\n".to_string())),
+                ("src/a.rs", Some("w1\nx2\nx3\nx4\n".to_string())),
                 ("issues/beta.md", Some(tracked("beta", "2. [x] review\n"))),
             ],
         ),
@@ -1385,8 +1390,24 @@ fn later_issue_fixture(tmp: &Path) -> PathBuf {
             "2026-03-06T00:00:00Z",
             "fix: gamma",
             vec![
-                ("src/a.rs", Some("w1\nw2\nx3\n".to_string())),
+                ("src/a.rs", Some("w1\nw2\nx3\nx4\n".to_string())),
                 ("issues/gamma.md", Some(tracked("gamma", "1. [x] g\n"))),
+            ],
+        ),
+        (
+            "2026-03-07T00:00:00Z",
+            "fix: alpha, filing delta",
+            vec![
+                ("src/a.rs", Some("w1\nw2\nw3\nx4\n".to_string())),
+                ("issues/delta.md", Some("# delta\n".to_string())),
+            ],
+        ),
+        (
+            "2026-03-08T00:00:00Z",
+            "fix: alpha, citing the closed zeta",
+            vec![
+                ("src/a.rs", Some("w1\nw2\nw3\nw4\n".to_string())),
+                ("issues/done/zeta.md", Some(tracked("zeta", "see w4\n"))),
             ],
         ),
     ];
@@ -1403,8 +1424,9 @@ fn later_issue_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let repo = later_issue_fixture(tmp);
     let (_, out) = run(dir, &repo, &[]);
     vec![(
-        "a fix of a later issue counts only when it starts that issue".to_string(),
-        has(&rows(&out), "alpha", "fixes_after", "1"),
+        "a fix of a later issue counts only when it starts that issue; one filing or citing an issue not in progress counts"
+            .to_string(),
+        has(&rows(&out), "alpha", "fixes_after", "3"),
     )]
 }
 

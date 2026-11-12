@@ -4,8 +4,8 @@
 //! `/code-review`, another sub-agent). With `--summary`, count them per rule and
 //! Cardinal revision over the sessions where the rule applied, so a rule broken often (a hook candidate) stands out
 //! from one that rarely applies, and sum the bytes of the waste rules. The commit messages are read from the git
-//! history of each project, a commit counting with the session whose span holds its date, the one that claimed its
-//! issue first (`transcripts::session_of`, as `delivered-quality`). No text of a message is printed.
+//! history of each project, a commit counting with the latest-starting session whose span holds its date, one that
+//! claimed its issue first (`transcripts::session_of`, as `delivered-quality`). No text of a message is printed.
 //! With `--project <name>`, only the sessions of that project count (BRE-23).
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
@@ -731,36 +731,6 @@ struct Record {
     verdict: Verdict,
 }
 
-/// The stems of the issues whose file (`issues/<stem>.md`, `issues/done/<stem>.md`) each commit of the local branches
-/// of `repo` touches, by full hash.
-fn commit_issues(repo: &Path) -> HashMap<String, Vec<String>> {
-    let mut issues: HashMap<String, Vec<String>> = HashMap::new();
-    let log = git(
-        repo,
-        &[
-            "log",
-            "--branches",
-            "--no-merges",
-            "--format=%x1e%H",
-            "--name-only",
-            "--",
-            "issues",
-        ],
-    )
-    .unwrap_or_default();
-    for entry in log.split('\x1e') {
-        let mut lines = entry.lines().filter(|l| !l.is_empty());
-        let Some(hash) = lines.next() else {
-            continue;
-        };
-        let stems = issues.entry(hash.to_string()).or_default();
-        for path in lines {
-            transcripts::push_distinct(stems, transcripts::issue_stem(path));
-        }
-    }
-    issues
-}
-
 /// Checks the non-merge commits of the local branches of `repo` against the messages rules, each against the session
 /// of `records` (all of that repository) `session_of` ties it to (BRE-9): a commit the agent rebased keeps the date
 /// the user wrote it, and stashes and notes are on no branch.
@@ -768,29 +738,36 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
     let Some(log) = git(
         repo,
         &[
+            "-c",
+            "core.quotePath=false",
             "log",
             "--branches",
             "--no-merges",
-            "--format=%h%x1f%H%x1f%aI%x1f%B%x1e",
+            "--name-only",
+            "--format=%x1e%h%x1f%H%x1f%aI%x1f%B%x1f",
         ],
     ) else {
         return;
     };
-    let issues = commit_issues(repo);
     for entry in log.split('\x1e') {
-        let mut fields = entry.trim_start_matches('\n').splitn(4, '\x1f');
-        let (Some(hash), Some(full), Some(date), Some(message)) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
-        else {
+        let mut fields = entry.splitn(5, '\x1f');
+        let (Some(hash), Some(full), Some(date), Some(message), Some(paths)) = (
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+        ) else {
             continue;
         };
         let Ok(at) = DateTime::parse_from_rfc3339(date) else {
             continue;
         };
-        let stems: Vec<&str> = issues
-            .get(full)
-            .map(|s| s.iter().map(String::as_str).collect())
-            .unwrap_or_default();
+        // the issues whose file it touches tie it to the session that claimed them (BRE-9)
+        let stems: Vec<&str> = paths
+            .lines()
+            .filter_map(transcripts::issue_file_stem)
+            .collect();
         let Some(k) = transcripts::session_of(at, &stems, records.iter().map(|r| &r.span)) else {
             continue;
         };
@@ -896,10 +873,10 @@ fn record(path: &Path, only: Option<&str>) -> Option<Record> {
         .flat_map(|(t, _, _)| &t.calls)
         .filter(|c| c.name == "Bash")
     {
-        for stem in transcripts::claimed_issues(call.input["command"].as_str().unwrap_or_default())
-        {
-            transcripts::push_distinct(&mut claimed, Some(&stem));
-        }
+        transcripts::add_claims(
+            &mut claimed,
+            call.input["command"].as_str().unwrap_or_default(),
+        );
     }
     Some(Record {
         id,

@@ -195,36 +195,44 @@ pub fn push_distinct(list: &mut Vec<String>, value: Option<&str>) {
 /// The stems of the issues a shell command claims or closes (EVA-21): the arguments of each `cardinal run issue-claim`,
 /// `cardinal run close-issue` or `just close-issue` that starts a line or follows a `;`, `&` or `|`, up to the end of
 /// its line or the next of these, whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md`, the program
-/// `cardinal` named bare or by its path; a call quoted in a message or an `echo` is no claim.
-pub fn claimed_issues(command: &str) -> Vec<String> {
+/// `cardinal` named bare or by its path; a call quoted in a message or an `echo` is no claim. Adds them to `claimed`
+/// once each.
+pub fn add_claims(claimed: &mut Vec<String>, command: &str) {
     const CALLS: [&[&str]; 3] = [
         &["cardinal", "run", "issue-claim"],
         &["cardinal", "run", "close-issue"],
         &["just", "close-issue"],
     ];
-    let mut stems = Vec::new();
     for segment in command.split(['\n', ';', '&', '|']) {
         let mut words: Vec<&str> = segment.split_whitespace().collect();
-        if let Some(program) = words.first_mut() {
-            *program = program.rsplit('/').next().unwrap_or(program);
+        if let Some(program) = words.first_mut().filter(|p| p.ends_with("/cardinal")) {
+            *program = "cardinal";
         }
         let Some(call) = CALLS.iter().find(|call| words.starts_with(call)) else {
             continue;
         };
         for word in &words[call.len()..] {
-            push_distinct(&mut stems, issue_stem(word.trim_matches(['\'', '"'])));
+            push_distinct(claimed, issue_stem(word.trim_matches(['\'', '"'])));
         }
     }
-    stems
 }
 
 /// The stem of a path ending with `issues/<stem>.md` or `issues/done/<stem>.md`.
-pub fn issue_stem(path: &str) -> Option<&str> {
+fn issue_stem(path: &str) -> Option<&str> {
     let (dir, file) = path.rsplit_once('/')?;
     let stem = file.strip_suffix(".md")?;
     let dir = dir.strip_suffix("/done").unwrap_or(dir);
     let in_issues = dir == "issues" || dir.ends_with("/issues");
     in_issues.then_some(stem)
+}
+
+/// The stem of the issue whose file the repository path `path` is (`issues/<stem>.md` or `issues/done/<stem>.md`).
+pub fn issue_file_stem(path: &str) -> Option<&str> {
+    let name = path
+        .strip_prefix("issues/done/")
+        .or_else(|| path.strip_prefix("issues/"))?
+        .strip_suffix(".md")?;
+    (!name.is_empty() && !name.contains('/')).then_some(name)
 }
 
 /// What ties a commit to a session (QUA-7, BRE-9): its span, the issues it claims or closes (EVA-21) and its branches
@@ -251,11 +259,17 @@ pub fn session_of<'a>(
     spans: impl IntoIterator<Item = &'a Span>,
 ) -> Option<usize> {
     let names = |list: &[String]| list.iter().any(|n| stems.contains(&n.as_str()));
+    // one tier per session: a claimer on the issue's branch ranks with the other claimers
+    let tier = |s: &Span| match (names(&s.claimed), names(&s.branches)) {
+        (true, _) => 2,
+        (false, true) => 1,
+        (false, false) => 0,
+    };
     spans
         .into_iter()
         .enumerate()
         .filter(|(_, s)| s.holds(at))
-        .max_by_key(|(_, s)| (names(&s.claimed), names(&s.branches), s.start))
+        .max_by_key(|(_, s)| (tier(s), s.start))
         .map(|(k, _)| k)
 }
 
@@ -478,6 +492,33 @@ pub fn revision(repo: &Path, start: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn span(start: &str, claimed: &[&str], branches: &[&str]) -> Span {
+        let names = |l: &[&str]| l.iter().map(ToString::to_string).collect();
+        Span {
+            start: DateTime::parse_from_rfc3339(start).unwrap(),
+            end: DateTime::parse_from_rfc3339("2026-01-01T12:00:00Z").unwrap(),
+            claimed: names(claimed),
+            branches: names(branches),
+        }
+    }
+
+    // spec: QUA-7, BRE-9 (internal: the order of the tiers needs four overlapping sessions, built from their structs)
+    #[test]
+    fn a_commit_goes_to_the_latest_claimer_then_to_the_latest_on_its_branch() {
+        let at = DateTime::parse_from_rfc3339("2026-01-01T11:00:00Z").unwrap();
+        let on_branch = span("2026-01-01T09:00:00Z", &["a"], &["a"]);
+        let claimer = span("2026-01-01T10:00:00Z", &["a"], &[]);
+        let branch_only = span("2026-01-01T10:30:00Z", &[], &["a"]);
+        let latest = span("2026-01-01T10:45:00Z", &["b"], &["b"]);
+        let spans = [on_branch, claimer, branch_only, latest];
+        assert_eq!(session_of(at, &["a"], &spans), Some(1));
+        assert_eq!(session_of(at, &["a"], &spans[2..]), Some(0));
+        assert_eq!(session_of(at, &["c"], &spans), Some(3));
+        assert_eq!(session_of(at, &[], &spans[..1]), Some(0));
+        let later = DateTime::parse_from_rfc3339("2026-01-01T13:00:00Z").unwrap();
+        assert_eq!(session_of(later, &["a"], &spans), None);
+    }
 
     fn sh(repo: &Path, args: &[&str], date: &str) {
         let out = std::process::Command::new("git")

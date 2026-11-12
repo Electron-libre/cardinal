@@ -74,6 +74,10 @@ of a claim marks more succeeded claims than refusals; only the BRE-9 divergence 
    latest-starting holding session, claimers first, then those on the issue's branch; `delivered-quality` and
    `rule-breaches` both use it, `claimed_issues` reads `<dir>/cardinal`; verified by a test of BRE-9's new scenario
    and one of EVA-21's path scenario; makes true BRE-9, EVA-21. (autonomous)
+2. [x] Fixes of the `high` review: one tier per session in `session_of` (a claimer on the issue's branch no longer
+   beats a later claimer), the paths of a commit read in the same `git log` with `core.quotePath=false`, only
+   `cardinal` read by its path, `add_claims` and `issue_file_stem` shared in `transcripts.rs`; verified by a unit test
+   of the tiers and the non-ASCII issue of the BRE-9 test; makes true QUA-7, BRE-9, EVA-21. (autonomous)
 
 ## Deliverable 1
 - done: `transcripts::session_of` and `Span` tie a commit to its session for `delivered-quality` and
@@ -90,3 +94,11 @@ of a claim marks more succeeded claims than refusals; only the BRE-9 divergence 
 - Mode: autonomous
 - Base commit: ca6ead961d50a88eef2586d488bd5de238c430f7
 - QUA-8 span unchanged (1 case measured); the timing and refusal cases are dropped, not tracked in a new issue.
+
+## Deliverable 2
+- done: the 10 findings of the `high` review fixed (the two efficiency ones by reading the paths in the main log).
+- red: QUA-7, BRE-9: `session_of` gave `Some(0)` (the earlier claimer on the branch), not `Some(1)`; the commit of
+  `issues/élan.md` went to the later-starting session (quoted path). EVA-21's `./bin/just` case was not run red.
+- checks: project-check ok.
+- Code review: 1 findings: a `just` named by its path no longer counts as a close; kept, EVA-21 names only
+  `cardinal` by its path and the `./bin/just` case of its test pins it.

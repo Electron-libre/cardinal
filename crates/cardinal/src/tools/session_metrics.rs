@@ -177,9 +177,7 @@ impl Session {
             self.tool_calls += 1;
             if main && block["name"] == "Bash" {
                 let command = block["input"]["command"].as_str().unwrap_or_default();
-                for stem in transcripts::claimed_issues(command) {
-                    push_distinct(&mut self.claimed, Some(&stem));
-                }
+                transcripts::add_claims(&mut self.claimed, command);
             }
             if block["name"] == "Skill" {
                 *self

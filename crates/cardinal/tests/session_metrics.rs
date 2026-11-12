@@ -1092,6 +1092,7 @@ fn a_session_is_tied_to_the_issues_it_claims_or_closes() {
         "target/release/cardinal run issue-claim issues/k.md",
         "echo target/cardinal run issue-claim issues/l.md",
         "notcardinal run issue-claim issues/m.md",
+        "./bin/just close-issue issues/n.md",
     ];
     let on_main = [running("main", "m1", &claims)];
     assert_eq!(cell_of(&on_main, "issues"), "a,b,d,h,k");

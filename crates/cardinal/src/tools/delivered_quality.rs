@@ -18,7 +18,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use transcripts::{
-    default_branch, for_each_line, git, is_validation, projects, projects_root, push_distinct,
+    default_branch, for_each_line, git, is_validation, issue_file_stem, projects, projects_root,
     repository, revision, session_of, sessions, sorted_entries, subagents, typed_text, Place, Span,
 };
 
@@ -153,15 +153,6 @@ fn starts_work(repo: &Path, commit: &Commit, stem: &str) -> bool {
     .is_some_and(|text| matches!(section(&text, "# Tracking", |_| true), Section::Read(_)))
 }
 
-/// The stem of the issue whose file `path` is (`issues/<stem>.md` or `issues/done/<stem>.md`).
-fn issue_stem(path: &str) -> Option<&str> {
-    let name = path
-        .strip_prefix("issues/done/")
-        .or_else(|| path.strip_prefix("issues/"))?
-        .strip_suffix(".md")?;
-    (!name.is_empty() && !name.contains('/')).then_some(name)
-}
-
 /// The issues of the history and what the rows share about the later commits (QUA-2, QUA-4).
 struct Issues {
     repo: PathBuf,
@@ -177,7 +168,11 @@ impl Issues {
     fn new(repo: &Path, log: &[Commit]) -> Self {
         let mut files: HashMap<String, Vec<usize>> = HashMap::new();
         for (i, commit) in log.iter().enumerate() {
-            let stems: BTreeSet<&str> = commit.paths.iter().filter_map(|p| issue_stem(p)).collect();
+            let stems: BTreeSet<&str> = commit
+                .paths
+                .iter()
+                .filter_map(|p| issue_file_stem(p))
+                .collect();
             for stem in stems {
                 files.entry(stem.to_string()).or_default().push(i);
             }
@@ -223,7 +218,7 @@ impl Issues {
         let others: BTreeSet<&str> = fix
             .paths
             .iter()
-            .filter_map(|p| issue_stem(p))
+            .filter_map(|p| issue_file_stem(p))
             .filter(|s| *s != stem)
             .collect();
         let in_progress = |span: Option<(usize, Option<usize>)>| {
@@ -796,9 +791,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
                     .to_string();
                 if block["type"] == "tool_use" && block["name"] == "Bash" {
                     let command = block["input"]["command"].as_str().unwrap_or_default();
-                    for stem in transcripts::claimed_issues(command) {
-                        push_distinct(&mut claimed, Some(&stem));
-                    }
+                    transcripts::add_claims(&mut claimed, command);
                     checks.insert(id, is_check(command));
                 } else if block["type"] == "tool_result"
                     && block["is_error"] == Value::Bool(true)

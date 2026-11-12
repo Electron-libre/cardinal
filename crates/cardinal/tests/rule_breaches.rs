@@ -670,7 +670,7 @@ fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         &repo,
         "2026-02-01T11:00:00Z",
         &format!("fix: alpha{trailer}"),
-        &[("issues/alpha.md", "# Alpha\n")],
+        &[("issues/élan.md", "# Élan\n")],
     );
     let other = commit_at(
         &repo,
@@ -689,7 +689,7 @@ fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             t.run(
                 "c1",
                 "Bash",
-                &bash("cardinal run issue-claim issues/alpha.md"),
+                &bash("cardinal run issue-claim issues/élan.md"),
                 None,
             );
         }

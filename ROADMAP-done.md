@@ -110,3 +110,35 @@ The released milestones, moved out of the roadmap by `release`, oldest first.
   - [know_the_new_line_types_of_the_transcripts](issues/done/know_the_new_line_types_of_the_transcripts.md)
   - [leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review](issues/done/leave_the_issue_file_and_the_synced_copies_out_of_the_issue_review.md)
   - [hint_before_a_whole_read_of_a_large_file](issues/done/hint_before_a_whole_read_of_a_large_file.md)
+
+## Measures
+
+- Goal: let the evaluation of the harness give verdicts: every hook refusal named, the review findings and the
+  issues of each session counted, the projects told apart, and the waste and the breaches it shows acted on.
+- Why: the evaluation of 2026-11-12 over the consumer projects came out with every verdict confounded, blank or
+  misnamed inputs, and a waste and two rules it could only describe.
+- State: done
+- Released: v5.0.0
+- Issues:
+  - [close_the_gaps_of_the_harness_measures](issues/done/close_the_gaps_of_the_harness_measures.md)
+  - [keep_the_reviewers_from_reading_a_whole_diff_file](issues/done/keep_the_reviewers_from_reading_a_whole_diff_file.md)
+  - [find_why_specs_and_replies_escape_their_rules](issues/done/find_why_specs_and_replies_escape_their_rules.md)
+  - [classify_the_fixes_after_an_issue_is_closed](issues/done/classify_the_fixes_after_an_issue_is_closed.md)
+  - [tie_an_issue_to_the_session_that_claimed_it](issues/done/tie_an_issue_to_the_session_that_claimed_it.md)
+  - [time_the_claims_that_tie_a_session_to_an_issue](issues/done/time_the_claims_that_tie_a_session_to_an_issue.md)
+
+## Specs that read as a product
+
+- Goal: let a reader learn from a spec what the capability does for its user: a happy path first, the behaviour
+  apart from the contract details, and a size a reader can hold.
+- Why: the specs of the consumers grow by tens of kilobytes per milestone, list formats, codes and limits one by
+  one, and rarely state the main flow, which the format reserves to no scenario.
+- State: done
+- Released: v5.0.0
+- Issues:
+  - [require_a_happy_path_scenario_in_each_spec](issues/done/require_a_happy_path_scenario_in_each_spec.md)
+  - [warn_when_a_spec_outgrows_its_capability](issues/done/warn_when_a_spec_outgrows_its_capability.md)
+  - [separate_the_functional_requirements_from_the_contract](issues/done/separate_the_functional_requirements_from_the_contract.md)
+  - [measure_the_shape_of_the_specs](issues/done/measure_the_shape_of_the_specs.md)
+  - [write_the_happy_paths_of_the_cardinal_specs](issues/done/write_the_happy_paths_of_the_cardinal_specs.md)
+  - [count_the_happy_paths_in_delivered_quality](issues/done/count_the_happy_paths_in_delivered_quality.md)

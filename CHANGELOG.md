@@ -4,6 +4,39 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [5.0.0] - 2026-11-12
+
+### Milestones
+
+- Measures
+- Specs that read as a product
+
+### Breaking
+
+- the format 10: a cited happy path needs a cardinal that reads it
+
+### Added
+
+- read the report within one project
+- read a saved output in parts
+- trace the happy paths that open the scenarios of a spec
+- warn of a spec that states no behaviour
+- warn of a spec that outgrows its capability
+- measure the shape of the specs each done issue changed
+- give the report the shape of the specs per spec
+- count the happy path ids in delivered-quality
+
+### Fixed
+
+- name the refusals of read-hint
+- count the review findings per review line
+- tie a session to the issues it claims or closes
+- give the commits of an issue to the session claiming it
+- count of a later issue only the fix that starts it
+- route a spec of an issue through the write-spec skill
+- name the notes between tool calls in the language rule
+- tie rule-breaches commits to the session of their claim
+
 ## [4.1.1] - 2026-11-05
 
 ### Fixed

@@ -59,6 +59,9 @@ on an existing spec. Out of scope: writing the happy paths of this repository's 
 2. [x] The format and its writer: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md`,
    `skill:write-spec` (steps 2 and 3, bootstrap), `just sync`; verified by `cardinal run project-check` and
    `just check-cardinal` (~80 lines). (autonomous)
+3. [x] Settle the `high` review: TRC-19 reads only the `(happy` openings, TRC-18 refuses a withdrawn requirement, a
+   duplicate happy path is reported once, a spec with no id reads no happy path, the format goes to 10;
+   verified by `crates/cardinal/tests/check_specs.rs` and `format_cli.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -66,6 +69,8 @@ on an existing spec. Out of scope: writing the happy paths of this repository's 
 - Accepted specs without a happy path: one warning line with their count and files (CLR-10).
 - The happy paths of this repository's own specs: a follow-up issue.
 - Happy path id: `ABC-H<n>`, bold like a requirement id.
+- Format raised to 10 (review finding): the managed README asks consumers to cite `ABC-H<n>`, which an older
+  `cardinal` reports as an unknown id; this reverses "No format raise" of the Understanding.
 
 Code review: no findings
 
@@ -86,6 +91,40 @@ done: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md` 
 | code review | no findings |
 
 red: none
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 3
+done: the fixes of the `high` review of the issue; follow-up issue `count_the_happy_paths_in_delivered_quality`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | nothing more to change |
+| code review | no findings |
+
+red: TRC-18, TRC-19: `a happy path naming a withdrawn requirement fails` and `a scenario titled happy path, written
+before the form, passes` FAIL before the fix
+
+High review of the issue, 10 findings:
+1. `Happy path (ABC-2):` scenarios of the consumers would fail: fixed, TRC-19 amended.
+2. `delivered-quality` drops the happy path ids: outside the requirements of the issue, filed as
+   `count_the_happy_paths_in_delivered_quality`.
+3. Format not raised: fixed, format 10.
+4. `* ` items are not read: kept, the format of a spec item is `- `, as for the requirements.
+5. A happy path may name a withdrawn requirement: fixed, TRC-18 amended.
+6. The boundary warning counts a happy path as a requirement: kept, TRC-24 lists it as such.
+7. A duplicate happy path is reported twice as uncited: fixed.
+8. The section walk is repeated and happy paths count in `spec-coverage`: kept, a test citing a happy path does
+   trace the spec.
+9. An empty spec id reads `**-H1**` as a happy path: fixed.
+10. CLR-10 prints from `problems`: kept, the boundary warnings print from there too.
 
 Code review: no findings
 

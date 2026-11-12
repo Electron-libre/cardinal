@@ -35,8 +35,8 @@ scenarios with its happy paths, the main flows of the capability, each with an i
 - **TRC-15** (deterministic) The checker must report as a problem a pattern of `spec_files` or an entry of `internal_dirs` that holds a `/` or a `\`, naming it.
 - **TRC-16** (deterministic) The checker must report as a problem a `spec_files` or an `internal_dirs` of `.claude/cardinal.toml` that is not a list of strings, naming the key.
 - **TRC-17** (deterministic) The checker must read as a happy path each list item of the `## Scenarios` section that opens with `- **<ID>-H<n>** (happy; <ids>)`, `<ID>` the id of the spec, `<n>` a number and `<ids>` the requirement ids the path walks through, separated by commas.
-- **TRC-18** (deterministic) The checker must report as a problem, naming the file and the happy path, a happy path whose list names no id or an id that is not a requirement of the same spec.
-- **TRC-19** (deterministic) The checker must report as a problem, naming the file and line, a list item of `## Scenarios` whose text up to its first `)` holds the word `happy` and that TRC-17 does not read as a happy path.
+- **TRC-18** (deterministic) The checker must report as a problem, naming the file and the happy path, a happy path whose list names no id, an id that is not a requirement of the same spec, or a withdrawn requirement.
+- **TRC-19** (deterministic) The checker must report as a problem, naming the file and line, a list item of `## Scenarios` that opens with `- (happy` or with `- **<text>** (happy` and that TRC-17 does not read as a happy path.
 - **TRC-20** (deterministic) The checker must report as a problem, naming the file and the happy path, a happy path that follows another list item of `## Scenarios` that is not a happy path.
 - **TRC-21** (deterministic) The checker must report as a problem, naming the file, a happy path id defined twice.
 - **TRC-22** (deterministic) The checker must read a citation of a happy path id as citing that happy path, not as an unknown id.
@@ -96,9 +96,11 @@ scenarios with its happy paths, the main flows of the capability, each with an i
 - (TRC-17) Given `- **SYN-H1** (happy; SYN-1, SYN-4) Given …` first in the Scenarios of `specs/sync.md`, when the
   checker runs, then it reads the happy path `SYN-H1` walking through `SYN-1` and `SYN-4`.
 - (TRC-18) Given `- **SYN-H1** (happy; SYN-99) Given …` or `- **SYN-H1** (happy; TRC-1) Given …` in `specs/sync.md`,
-  when the checker runs, then it fails naming `SYN-H1`; given `- **SYN-H1** (happy) Given …`, it fails too.
+  when the checker runs, then it fails naming `SYN-H1`; given `- **SYN-H1** (happy) Given …`, or a happy path naming
+  a withdrawn requirement, it fails too.
 - (TRC-19) Given `- (happy; SYN-1) Given …` or `- **TRC-H1** (happy; SYN-1) Given …` in `specs/sync.md`, when the
-  checker runs, then it fails naming the file and the line; given `- (SYN-1) Given an unhappy user …`, it does not.
+  checker runs, then it fails naming the file and the line; given `- (SYN-1) Given an unhappy user …` or
+  `- Happy path (SYN-1): Given …`, a scenario written before happy paths had a form, it does not.
 - (TRC-20) Given `- (SYN-2) Given …` then `- **SYN-H1** (happy; SYN-1) Given …`, when the checker runs, then it fails
   naming `SYN-H1`.
 - (TRC-23) Given an `accepted` spec whose every requirement is cited and whose happy path `SYN-H1` is not, when the

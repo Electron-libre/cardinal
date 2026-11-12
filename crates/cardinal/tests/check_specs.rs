@@ -1338,7 +1338,10 @@ fn wording_scope_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         "a requirement with no kind gets no wording warning",
         !stderr.contains("`must`, expected 1"),
     );
-    let withdrawn = draft.replace("A run must resume.", "withdrawn: A run may resume.");
+    // the happy path walks through RER-1 alone: it names no withdrawn requirement
+    let withdrawn = draft
+        .replace("A run must resume.", "withdrawn: A run may resume.")
+        .replace("(happy; RER-1, RER-2)", "(happy; RER-1)");
     let stderr = case(
         "a withdrawn vague requirement passes",
         &withdrawn,
@@ -1453,12 +1456,12 @@ fn happy_path_form_checks(case: &Case) {
         (
             "a happy path naming an unknown id fails",
             "- **RER-H1** (happy; RER-9) Given a.\n",
-            "happy path RER-H1 names RER-9, which is not a requirement of this spec",
+            "happy path RER-H1 names RER-9, which is not a live requirement of this spec",
         ),
         (
             "a happy path naming a requirement of another spec fails",
             "- **RER-H1** (happy; TRC-1) Given a.\n",
-            "happy path RER-H1 names TRC-1, which is not a requirement of this spec",
+            "happy path RER-H1 names TRC-1, which is not a live requirement of this spec",
         ),
         (
             "a happy path naming no requirement fails",
@@ -1483,6 +1486,20 @@ fn happy_path_form_checks(case: &Case) {
     ] {
         case(name, &draft.replace(edge, line), "", &[], Some(expect));
     }
+    case(
+        "a happy path naming a withdrawn requirement fails",
+        &draft.replace("A run must resume.", "withdrawn: merged into RER-1."),
+        "",
+        &[],
+        Some("happy path RER-H1 names RER-2, which is not a live requirement of this spec"),
+    );
+    case(
+        "a scenario titled happy path, written before the form, passes",
+        &draft.replace(edge, "- Happy path (RER-1): Given a, then c.\n"),
+        "",
+        &[],
+        None,
+    );
     case(
         "an edge case about an unhappy user passes",
         &draft.replace(edge, "- (RER-1) Given an unhappy user, then c.\n"),

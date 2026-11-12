@@ -369,6 +369,9 @@ fn parse_requirements(
 /// The id and the requirement ids of a happy path item, `**<ID>-H<n>** (happy; <ids>) ...` with `<ID>` the `prefix`
 /// (TRC-17), or `None` when `item`, the text after `- `, is not of that form.
 fn happy_path<'a>(item: &'a str, prefix: &str) -> Option<(&'a str, Vec<&'a str>)> {
+    if !is_id_prefix(prefix) {
+        return None;
+    }
     let (id, after) = item.strip_prefix("**")?.split_once("**")?;
     let n = id.strip_prefix(prefix)?.strip_prefix("-H")?;
     if n.is_empty() || !n.chars().all(|c| c.is_ascii_digit()) {
@@ -397,7 +400,13 @@ fn parse_happy_paths(
     out: &mut Vec<String>,
     warn: &mut Vec<String>,
 ) {
-    let requirements: BTreeSet<String> = spec.requirements.iter().map(|r| r.id.clone()).collect();
+    // the live requirements: a happy path walks through no withdrawn one
+    let requirements: BTreeSet<String> = spec
+        .requirements
+        .iter()
+        .filter(|r| !r.exempt)
+        .map(|r| r.id.clone())
+        .collect();
     let mut in_scenarios = false;
     let mut edge_case = false;
     for (i, (&line, walked)) in read.lines.iter().zip(read.walk).enumerate() {
@@ -411,11 +420,12 @@ fn parse_happy_paths(
             continue;
         };
         let Some((id, ids)) = happy_path(item, &spec.id) else {
-            let head = item.split(')').next().unwrap_or("");
-            if head
-                .split(|c: char| !c.is_alphanumeric())
-                .any(|w| w.eq_ignore_ascii_case("happy"))
-            {
+            // only the opening TRC-17 asks for: a scenario a consumer titled `Happy path (ABC-2):` keeps passing
+            let after_id = item
+                .strip_prefix("**")
+                .and_then(|r| r.split_once("**"))
+                .map_or(item, |(_, after)| after.trim_start());
+            if after_id.starts_with("(happy") {
                 out.push(format!(
                     "{file}:{}: a happy path must start with `- **{}-H<n>** (happy; <ids>)`",
                     i + 1,
@@ -445,12 +455,13 @@ fn parse_happy_paths(
                 out,
                 file,
                 format_args!(
-                    "happy path {id} names {unknown}, which is not a requirement of this spec"
+                    "happy path {id} names {unknown}, which is not a live requirement of this spec"
                 ),
             );
         }
         if spec.requirements.iter().any(|r| r.id == id) {
             problem(out, file, format_args!("duplicate happy path {id}"));
+            continue;
         }
         spec.requirements.push(Requirement {
             id: id.to_string(),

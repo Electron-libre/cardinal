@@ -46,3 +46,4 @@ The work done before this file existed is in `issues/done/`.
   - [separate_the_functional_requirements_from_the_contract](issues/separate_the_functional_requirements_from_the_contract.md)
   - [measure_the_shape_of_the_specs](issues/measure_the_shape_of_the_specs.md)
   - [write_the_happy_paths_of_the_cardinal_specs](issues/write_the_happy_paths_of_the_cardinal_specs.md)
+  - [count_the_happy_paths_in_delivered_quality](issues/count_the_happy_paths_in_delivered_quality.md)

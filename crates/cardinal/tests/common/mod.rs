@@ -20,7 +20,7 @@ pub const LOCK: &str = ".claude/cardinal.lock";
 /// The file of a source that declares its format, and the format the fixtures declare: the one this `cardinal` reads,
 /// with the names above.
 pub const SOURCE_FORMAT: &str = "cardinal-format";
-pub const FORMAT: &str = "9\n";
+pub const FORMAT: &str = "10\n";
 
 /// A new empty source of the format `FORMAT`.
 pub fn source() -> TempDir {

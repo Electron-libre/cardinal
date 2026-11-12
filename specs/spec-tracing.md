@@ -13,7 +13,8 @@ that drives the program from its boundary (command line, files, exit code, outpu
 from an internal one by where it sits: a test under a `src` directory calls the code from inside; a test elsewhere
 (`tests/`, the managed tests under `.claude/`) drives the boundary. A boundary proof is preferred when it is cheap and
 stable, not required: an internal test is the proof when its citation gives the reason, `// spec: ABC-1 (internal:
-<reason>)`. The checker reports the requirements whose internal proofs give no reason, as a warning.
+<reason>)`. The checker reports the requirements whose internal proofs give no reason, as a warning. A spec opens its
+scenarios with its happy paths, the main flows of the capability, each with an id a test cites like a requirement's.
 
 ## Requirements
 
@@ -33,9 +34,22 @@ stable, not required: an internal test is the proof when its citation gives the 
 - **TRC-14** (deterministic) When `.claude/cardinal.toml` sets `internal_dirs`, the checker must count as calling the code from inside (TRC-1 to TRC-6) the tests under a directory named like one of its entries, instead of those under a `src` directory.
 - **TRC-15** (deterministic) The checker must report as a problem a pattern of `spec_files` or an entry of `internal_dirs` that holds a `/` or a `\`, naming it.
 - **TRC-16** (deterministic) The checker must report as a problem a `spec_files` or an `internal_dirs` of `.claude/cardinal.toml` that is not a list of strings, naming the key.
+- **TRC-17** (deterministic) The checker must read as a happy path each list item of the `## Scenarios` section that opens with `- **<ID>-H<n>** (happy; <ids>)`, `<ID>` the id of the spec, `<n>` a number and `<ids>` the requirement ids the path walks through, separated by commas.
+- **TRC-18** (deterministic) The checker must report as a problem, naming the file and the happy path, a happy path whose list names no id or an id that is not a requirement of the same spec.
+- **TRC-19** (deterministic) The checker must report as a problem, naming the file and line, a list item of `## Scenarios` whose text up to its first `)` holds the word `happy` and that TRC-17 does not read as a happy path.
+- **TRC-20** (deterministic) The checker must report as a problem, naming the file and the happy path, a happy path that follows another list item of `## Scenarios` that is not a happy path.
+- **TRC-21** (deterministic) The checker must report as a problem, naming the file, a happy path id defined twice.
+- **TRC-22** (deterministic) The checker must read a citation of a happy path id as citing that happy path, not as an unknown id.
+- **TRC-23** (deterministic) The checker must report as a problem, naming the file and the id, a happy path of an `accepted` spec that no test cites.
+- **TRC-24** (deterministic) The checker must list in the warning of TRC-1 a happy path cited only by tests under a `src` directory, one of those citations at least giving no reason, as it lists such a requirement.
 
 ## Scenarios
 
+- **TRC-H1** (happy; TRC-9, TRC-17, TRC-22) Given a spec whose requirements and happy path are each cited by a test
+  under `tests/`, when the checker runs, then it exits 0 and prints no warning for that spec.
+- **TRC-H2** (happy; TRC-6, TRC-8) Given a requirement cited only in `src/a.rs` by
+  `// spec: SYN-2 (internal: needs a fake clock)`, when the checker runs, then the requirement is traced and the
+  boundary warning does not name it.
 - (TRC-1) Given `SYN-2` cited only in `crates/cardinal/src/tests.rs`, when the checker runs, then stderr holds one line
   naming `specs/sync.md`, `1` and `SYN-2`, and the exit code is the one the other checks give.
 - (TRC-2) Given `SYN-1` cited in `crates/cardinal/src/tests.rs` and in `crates/cardinal/tests/sync_cli.rs`, when the
@@ -79,6 +93,21 @@ stable, not required: an internal test is the proof when its citation gives the 
 - (TRC-12) Given `;; spec: SYN-1` above `(deftest a ...)` in a `.clj` test file, when the checker runs, then `SYN-1` is
   cited.
 
+- (TRC-17) Given `- **SYN-H1** (happy; SYN-1, SYN-4) Given …` first in the Scenarios of `specs/sync.md`, when the
+  checker runs, then it reads the happy path `SYN-H1` walking through `SYN-1` and `SYN-4`.
+- (TRC-18) Given `- **SYN-H1** (happy; SYN-99) Given …` or `- **SYN-H1** (happy; TRC-1) Given …` in `specs/sync.md`,
+  when the checker runs, then it fails naming `SYN-H1`; given `- **SYN-H1** (happy) Given …`, it fails too.
+- (TRC-19) Given `- (happy; SYN-1) Given …` or `- **TRC-H1** (happy; SYN-1) Given …` in `specs/sync.md`, when the
+  checker runs, then it fails naming the file and the line; given `- (SYN-1) Given an unhappy user …`, it does not.
+- (TRC-20) Given `- (SYN-2) Given …` then `- **SYN-H1** (happy; SYN-1) Given …`, when the checker runs, then it fails
+  naming `SYN-H1`.
+- (TRC-23) Given an `accepted` spec whose every requirement is cited and whose happy path `SYN-H1` is not, when the
+  checker runs, then it fails naming `SYN-H1`; in a `draft` spec, it does not.
+- (TRC-22) Given `// spec: SYN-H7` in a test and no happy path `SYN-H7`, when the checker runs, then it fails naming
+  `SYN-H7` as an unknown id.
+- (TRC-24) Given `SYN-H1` cited only in `crates/cardinal/src/tests.rs` with `// spec: SYN-H1`, when the checker runs,
+  then the boundary warning of `specs/sync.md` names `SYN-H1`.
+
 ## Non-goals
 
 - Checking that a test outside `src` really runs the program: the place of the test is the convention.
@@ -92,3 +121,6 @@ stable, not required: an internal test is the proof when its citation gives the 
 - Telling a test declaration from other code in a file other than a `.rs` one: the line after the citation only has
   to be there.
 - Block comments (`/* */`, `"""`) as citations: the citation is one line comment.
+- Checking that the test citing a happy path drives the whole flow, or that the path is written in the terms of the
+  user: the README and `skill:write-spec` ask for it, a reader judges it.
+- Withdrawing a happy path: one that no longer holds is rewritten or deleted, its tests with it.

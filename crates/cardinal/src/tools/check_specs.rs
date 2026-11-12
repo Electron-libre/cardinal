@@ -5,7 +5,9 @@
 //! Prints one line per problem, exit 1 if any; a `[NEEDS CLARIFICATION: ...]` marker is a problem in an `accepted`
 //! spec and a warning on stderr in a `draft` one; the vague wording of a `draft` requirement (`VAGUE`, not exactly one
 //! `must`) is a warning, and so are the requirements proven only by tests under a `src` directory whose citations
-//! give no reason, `// spec: ID (internal: <reason>)` (TRC-1, TRC-6).
+//! give no reason, `// spec: ID (internal: <reason>)` (TRC-1, TRC-6). The happy paths that open `## Scenarios`,
+//! `- **ID-H<n>** (happy; <ids>)`, are traced like requirements (TRC-17 to TRC-24); a spec without one is a warning
+//! (CLR-9, CLR-10).
 
 use super::repo_files;
 
@@ -23,6 +25,8 @@ pub(super) struct Requirement {
     pub(super) id: String,
     /// Needs no test: withdrawn, or of the former `quality` kind.
     pub(super) exempt: bool,
+    /// A happy path of `## Scenarios` (TRC-17), traced like a requirement.
+    pub(super) happy: bool,
 }
 
 pub(super) struct Spec {
@@ -155,6 +159,19 @@ fn problem(out: &mut Vec<String>, file: &str, m: impl std::fmt::Display) {
     out.push(format!("{file}: {m}"));
 }
 
+/// Whether `docs/adr` of `root` holds the ADR numbered `n`.
+fn adr_exists(root: &Path, n: &str) -> bool {
+    std::fs::read_dir(root.join("docs/adr"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|e| {
+            e.file_name()
+                .to_string_lossy()
+                .starts_with(&format!("{n}-"))
+        })
+}
+
 fn parse(
     root: &Path,
     file: &str,
@@ -194,16 +211,7 @@ fn parse(
                     .map(str::trim)
                     .filter(|n| !n.is_empty())
                 {
-                    let found = std::fs::read_dir(root.join("docs/adr"))
-                        .into_iter()
-                        .flatten()
-                        .flatten()
-                        .any(|e| {
-                            e.file_name()
-                                .to_string_lossy()
-                                .starts_with(&format!("{n}-"))
-                        });
-                    if !found {
+                    if !adr_exists(root, n) {
                         problem(out, file, format_args!("adr {n} not found in docs/adr"));
                     }
                 }
@@ -262,6 +270,7 @@ fn parse(
         prose: &prose,
     };
     parse_requirements(file, &read, &mut spec, out, warn);
+    parse_happy_paths(file, &read, &mut spec, out, warn);
     check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
 }
@@ -352,7 +361,108 @@ fn parse_requirements(
         spec.requirements.push(Requirement {
             id: id.to_string(),
             exempt: withdrawn || kind == "quality",
+            happy: false,
         });
+    }
+}
+
+/// The id and the requirement ids of a happy path item, `**<ID>-H<n>** (happy; <ids>) ...` with `<ID>` the `prefix`
+/// (TRC-17), or `None` when `item`, the text after `- `, is not of that form.
+fn happy_path<'a>(item: &'a str, prefix: &str) -> Option<(&'a str, Vec<&'a str>)> {
+    let (id, after) = item.strip_prefix("**")?.split_once("**")?;
+    let n = id.strip_prefix(prefix)?.strip_prefix("-H")?;
+    if n.is_empty() || !n.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let (inside, _) = after.trim_start().strip_prefix("(happy")?.split_once(')')?;
+    let ids = match inside.strip_prefix(';') {
+        Some(list) => list
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect(),
+        None if inside.trim().is_empty() => Vec::new(),
+        None => return None,
+    };
+    Some((id, ids))
+}
+
+/// Read the happy paths of the `## Scenarios` section of `read` into `spec`, after its requirements: their form
+/// (TRC-17, TRC-19), the ids they name (TRC-18), their place before the other scenarios (TRC-20) and their ids (TRC-21);
+/// a `draft` with none is warned of (CLR-9).
+fn parse_happy_paths(
+    file: &str,
+    read: &Read,
+    spec: &mut Spec,
+    out: &mut Vec<String>,
+    warn: &mut Vec<String>,
+) {
+    let requirements: BTreeSet<String> = spec.requirements.iter().map(|r| r.id.clone()).collect();
+    let mut in_scenarios = false;
+    let mut edge_case = false;
+    for (i, (&line, walked)) in read.lines.iter().zip(read.walk).enumerate() {
+        if walked.hidden() {
+            continue;
+        }
+        if line.starts_with("## ") {
+            in_scenarios = line.trim() == "## Scenarios";
+        }
+        let Some(item) = line.strip_prefix("- ").filter(|_| in_scenarios) else {
+            continue;
+        };
+        let Some((id, ids)) = happy_path(item, &spec.id) else {
+            let head = item.split(')').next().unwrap_or("");
+            if head
+                .split(|c: char| !c.is_alphanumeric())
+                .any(|w| w.eq_ignore_ascii_case("happy"))
+            {
+                out.push(format!(
+                    "{file}:{}: a happy path must start with `- **{}-H<n>** (happy; <ids>)`",
+                    i + 1,
+                    spec.id
+                ));
+            } else {
+                edge_case = true;
+            }
+            continue;
+        };
+        if edge_case {
+            problem(
+                out,
+                file,
+                format_args!("happy path {id} must come before the other scenarios"),
+            );
+        }
+        if ids.is_empty() {
+            problem(
+                out,
+                file,
+                format_args!("happy path {id} names no requirement"),
+            );
+        }
+        for unknown in ids.iter().filter(|r| !requirements.contains(**r)) {
+            problem(
+                out,
+                file,
+                format_args!(
+                    "happy path {id} names {unknown}, which is not a requirement of this spec"
+                ),
+            );
+        }
+        if spec.requirements.iter().any(|r| r.id == id) {
+            problem(out, file, format_args!("duplicate happy path {id}"));
+        }
+        spec.requirements.push(Requirement {
+            id: id.to_string(),
+            exempt: false,
+            happy: true,
+        });
+    }
+    if spec.status == "draft" && !spec.requirements.iter().any(|r| r.happy) {
+        warn.push(format!(
+            "warning: {file}: no happy path (open `## Scenarios` with `- **{}-H1** (happy; <ids>)`)",
+            spec.id
+        ));
     }
 }
 
@@ -700,10 +810,15 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     for spec in specs.iter().filter(|s| s.status == "accepted") {
         for req in spec.requirements.iter().filter(|r| !r.exempt) {
             if !cited.contains_key(&req.id) {
+                let what = if req.happy {
+                    "happy path"
+                } else {
+                    "requirement"
+                };
                 problem(
                     &mut out,
                     &spec.file,
-                    format_args!("requirement {}: no test cites `spec: {}`", req.id, req.id),
+                    format_args!("{what} {}: no test cites `spec: {}`", req.id, req.id),
                 );
             }
         }
@@ -712,6 +827,24 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     out.extend(spec_patterns(root).1);
     out.extend(internal_problems);
     boundary_warnings(&specs, &cited, &internal);
+    // one line for every accepted spec: a nudge the specs written before happy paths existed all get (CLR-10)
+    let unhappy: Vec<&str> = specs
+        .iter()
+        .filter(|s| s.status == "accepted" && !s.requirements.iter().any(|r| r.happy))
+        .map(|s| s.file.as_str())
+        .collect();
+    if !unhappy.is_empty() {
+        let plural = if unhappy.len() == 1 {
+            " holds"
+        } else {
+            "s hold"
+        };
+        eprintln!(
+            "warning: {} accepted spec{plural} no happy path: {}",
+            unhappy.len(),
+            unhappy.join(", ")
+        );
+    }
     out
 }
 

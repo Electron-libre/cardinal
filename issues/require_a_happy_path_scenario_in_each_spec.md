@@ -41,3 +41,34 @@ Specs that read as a product
 
 # Hints
 * Failing every consumer's accepted specs at the next `sync` blocks their `just check`: start with a warning.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+A spec opens `## Scenarios` with one to three happy paths, `- **ABC-H1** (happy; ABC-2, ABC-9) Given …`, each cited by
+a test like a requirement; `check-specs` checks their form, traces them in `accepted` specs and only warns of a spec
+without one (TRC-17 to TRC-24, CLR-9, CLR-10). No format raise: no managed file uses the new form and nothing fails
+on an existing spec. Out of scope: writing the happy paths of this repository's own specs (follow-up issue).
+
+## Plan
+1. [x] check-specs reads happy paths: parse them in `## Scenarios`, check their form, order and ids, trace them,
+   count them in the boundary warning, warn of the specs without one; verified by `crates/cardinal/tests/check_specs.rs`;
+   makes true TRC-17 to TRC-24, TRC-H1, TRC-H2, CLR-9, CLR-10, CLR-H1 (~550 lines). (autonomous)
+2. [ ] The format and its writer: `files/specs/README.md` ("Scenarios", "Check"), `files/specs/TEMPLATE.md`,
+   `skill:write-spec` (steps 2 and 3, bootstrap), `just sync`; verified by `cardinal run project-check` and
+   `just check-cardinal` (~80 lines).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 4a59741a735ff3a5a3139827a8c4252884eeff4a
+- Accepted specs without a happy path: one warning line with their count and files (CLR-10).
+- The happy paths of this repository's own specs: a follow-up issue.
+- Happy path id: `ABC-H<n>`, bold like a requirement id.
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none

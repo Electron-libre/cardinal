@@ -776,16 +776,13 @@ fn session_cells(
             .enumerate()
             .filter(|(_, s)| s.start <= at && at <= s.end)
             .collect();
-        // the session that claimed or closed the issue, then one on its branch, then the latest (QUA-7)
-        let latest = |keep: &dyn Fn(&Session) -> bool| {
-            holding
-                .iter()
-                .filter(|(_, s)| keep(s))
-                .max_by_key(|(_, s)| s.start)
+        // the latest session that claimed or closed the issue, else on its branch, else of all (QUA-7)
+        let rank = |s: &Session| match (claiming(s), on_branch(s)) {
+            (true, _) => 2,
+            (false, true) => 1,
+            (false, false) => 0,
         };
-        let preferred = latest(&claiming)
-            .or_else(|| latest(&on_branch))
-            .or_else(|| latest(&|_| true));
+        let preferred = holding.iter().max_by_key(|(_, s)| (rank(s), s.start));
         if let Some((k, _)) = preferred {
             by_session.entry(*k).or_default().push(at);
         }

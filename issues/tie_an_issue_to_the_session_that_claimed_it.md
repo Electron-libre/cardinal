@@ -47,6 +47,9 @@ session on the trunk still counts from after the other work it did, not from its
    (`transcripts::claimed_issues`, main transcript), `session_cells` prefers them; measured on the consumer
    transcripts by comparing the rows of the installed `delivered-quality` with the new one; verified by a case of
    `session_checks` (two trunk sessions, the earlier claiming); makes true QUA-7. (autonomous)
+2. [x] Settle the `high` review of the issue: the preference as one `max_by_key` over a tuple; the test also proves
+   that the claim outranks a session on the issue's branch and that a claim of another issue does not count;
+   verified by `claim_checks`; makes true QUA-7. (autonomous)
 
 ## Deliverable 1
 - done: `session_cells` prefers a session that claimed or closed the issue, then one on its branch, then the latest.
@@ -55,6 +58,18 @@ session on the trunk still counts from after the other work it did, not from its
 - red: QUA-7: `zeta.output_tokens: expected "3", got Some("9")` (the later, non-claiming session took the commit).
 - Code review: no findings
 - not verified: the transcripts of other machines.
+
+## Deliverable 2
+- done: the `high` review of `base..HEAD` gave 7 findings; 2 fixed here, 5 moved to
+  [time_the_claims_that_tie_a_session_to_an_issue](time_the_claims_that_tie_a_session_to_an_issue.md).
+- red: none (the widened test fails when the order puts the branch before the claim, checked by swapping it).
+- Code review (high, issue): 7 findings: the simplification and the missing test cases fixed; the QUA-8 span of a
+  claiming session (out of scope in the plan), a refused claim counted (EVA-21 counts it), the time of the claims,
+  the program named by its path (EVA-21 reads the bare word) and BRE-9 left on the latest session moved to the
+  follow-up issue.
+- Code review: 1 findings: the tuple ranked the claiming sessions by branch before their start, against QUA-7;
+  fixed with an explicit rank.
+- not verified: the transcripts of other machines; no test of two claiming sessions on different branches.
 
 ## Decisions
 - Mode: autonomous

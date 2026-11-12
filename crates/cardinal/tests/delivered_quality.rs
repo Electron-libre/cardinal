@@ -984,7 +984,7 @@ fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         &[("issues/done/zeta.md", Some("# zeta\n\n# Tracking\n"))],
     );
     let projects = tmp.join("projects");
-    // both sessions run on the default branch and hold the close of zeta: the earlier one claimed it, the later did not
+    // both sessions hold the close of zeta: the earlier one, on the default branch, claimed it
     write(
         &projects.join("-proj/claimer.jsonl"),
         &[
@@ -999,17 +999,26 @@ fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             typed(&repo, "2026-02-01T13:00:00Z", "SECRET end"),
         ],
     );
+    // the later one runs on the branch of zeta and claims another issue: the claim of zeta outranks both
+    let other = [
+        bash(
+            &repo,
+            "2026-02-01T10:00",
+            "c2",
+            "cardinal run issue-claim issues/alpha.md",
+            false,
+        ),
+        usage(&repo, "2026-02-01T10:30:00Z", "z2", [1, 0, 0, 9]),
+        typed(&repo, "2026-02-01T13:00:00Z", "SECRET end"),
+    ];
     write(
         &projects.join("-proj/other.jsonl"),
-        &[
-            usage(&repo, "2026-02-01T10:00:00Z", "z2", [1, 0, 0, 9]),
-            typed(&repo, "2026-02-01T13:00:00Z", "SECRET end"),
-        ],
+        &other.map(|l| l.replace("\"gitBranch\":\"main\"", "\"gitBranch\":\"zeta\"")),
     );
     let (_, out) = run(dir, &repo, &["--projects", projects.to_str().unwrap()]);
     let r = rows(&out);
     vec![(
-        "a commit held by two sessions on the default branch counts with the one that claimed its issue".to_string(),
+        "a commit counts with the session that claimed its issue, before one on its branch or one that claimed another".to_string(),
         has(&r, "zeta", "sessions", "1") && has(&r, "zeta", "output_tokens", "3"),
     )]
 }

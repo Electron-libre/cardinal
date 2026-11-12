@@ -36,7 +36,7 @@ Specs that read as a product
 
 # Resources
 * `files/specs/README.md` (sections "Requirements", "Scenarios"), `files/.claude/skills/write-spec/SKILL.md`,
-  `docs/adr/` (the next number), [require_a_happy_path_scenario_in_each_spec](require_a_happy_path_scenario_in_each_spec.md).
+  `docs/adr/` (the next number), [require_a_happy_path_scenario_in_each_spec](done/require_a_happy_path_scenario_in_each_spec.md).
 
 # Hints
 * The boundary proof stays a preference, not a rule: an internal test with its reason is a valid proof

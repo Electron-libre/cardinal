@@ -41,7 +41,7 @@ The work done before this file existed is in `issues/done/`.
   one, and rarely state the main flow, which the format reserves to no scenario.
 - State: in issues
 - Issues:
-  - [require_a_happy_path_scenario_in_each_spec](issues/require_a_happy_path_scenario_in_each_spec.md)
+  - [require_a_happy_path_scenario_in_each_spec](issues/done/require_a_happy_path_scenario_in_each_spec.md)
   - [warn_when_a_spec_outgrows_its_capability](issues/warn_when_a_spec_outgrows_its_capability.md)
   - [separate_the_functional_requirements_from_the_contract](issues/separate_the_functional_requirements_from_the_contract.md)
   - [measure_the_shape_of_the_specs](issues/measure_the_shape_of_the_specs.md)

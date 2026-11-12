@@ -551,6 +551,18 @@ fn the_user_language_is_said_once_in_the_always_on_rule() {
     );
 }
 
+/// The language rule names the notes between two tool calls: they are most of its breaches, in the English context
+/// of a review or a long run of tools, and the Stop hook never sees them.
+#[test]
+fn the_language_rule_covers_the_notes_between_tool_calls() {
+    let rule =
+        fs::read_to_string(repo_root().join("files/.claude/rules/user-language.md")).unwrap();
+    assert!(
+        rule.contains("between two tool calls"),
+        "the rule does not name the notes between two tool calls"
+    );
+}
+
 /// Passages a skill must not hold, as (skill, passage, why): a rule said elsewhere, or one Claude Code's own prompt holds.
 const DROPPED_PASSAGES: &[(&str, &str, &str)] = &[
     (

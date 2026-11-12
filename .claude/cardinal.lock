@@ -3,7 +3,7 @@ format 9
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
 2e9ec9b1abf20e48f491ced1b6fbccd741232b87a38d7455e22cd43a5ad499fe  .claude/rules/no-ai-attribution.md
 ae32a54ad3e59066328e1a2f7f5afff0ca4b13bf194272c376e23280e4a7ce4e  .claude/rules/reports-to-the-user.md
-1bf2227fff5e6ce7dc6d95c3cf6dd75b41b9610390e79fb54d677dcde6503a7a  .claude/rules/user-language.md
+90dd91f148f860270d0148a6a7f5d333d459a63398dc1eb747a1bc826b54b85e  .claude/rules/user-language.md
 c99d044e7f4a777bb6cdb1ca8f84e559cfec3b669cac5d7c6eb9f4062f8e8bb3  .claude/skills/audit-instructions/SKILL.md
 fdb77fd8baac0adda0d3b6a13d158abafa43211569b45e82b4f1882096ae2aa4  .claude/skills/commit-message/SKILL.md
 7e5a9d5d2e3e6358230170d04068c50868901a9ff36571fe0c8883c428d3459f  .claude/skills/commit-message/conventional-commits.md

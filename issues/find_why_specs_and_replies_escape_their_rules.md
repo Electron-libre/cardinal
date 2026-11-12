@@ -68,11 +68,11 @@ found right.
 
 ## Plan
 1. [x] Route the spec: step 1 of `issue-workflow` says to invoke `skill:write-spec` with the Skill tool before the
-   first `Write` under `specs/`, and stops restating its format; `Expected-effect: skill-routing-write-spec down`;
+   first `Write` under `specs/`, and stops restating its format; `Expected-effect: breached_share:skill-routing-write-spec down`;
    verified by `just check` (managed skill tests) and `cardinal check`. (autonomous)
-2. [ ] Word the language rule for the notes: `files/.claude/rules/user-language.md` names every text the user sees,
+2. [x] Word the language rule for the notes: `files/.claude/rules/user-language.md` names every text the user sees,
    the short notes between tool calls included, and step 3.5 of `issue-workflow` recalls it for the review loop
-   (wording checked with `skill:audit-instructions`); `Expected-effect: user-language down`; verified by `just check`.
+   (wording checked with `skill:audit-instructions`); `Expected-effect: breached_share:user-language down`; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -93,4 +93,18 @@ found right.
 | code review | clean |
 
 red: none (a required passage of `tests/skills.rs`: `missing '**invoke `skill:write-spec` with the Skill tool**'`)
+Code review: no findings
+
+## Deliverable 2
+- done: the rule names every text the user sees, the notes between two tool calls included, whatever the language
+  of the skill, review or tool output around them. `skill:audit-instructions` classes a breached rule a hook cannot
+  see as a rewording.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| docs (`update-docs`) | n/a: `docs/` cites the rule, not its wording |
+| code review | clean |
+
+red: none (`tests/skills.rs`: `the rule does not name the notes between two tool calls`)
 Code review: no findings

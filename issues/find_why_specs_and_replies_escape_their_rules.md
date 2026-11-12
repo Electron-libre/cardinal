@@ -73,6 +73,7 @@ found right.
 2. [x] Word the language rule for the notes: `files/.claude/rules/user-language.md` names every text the user sees,
    the short notes between tool calls included, and step 3.5 of `issue-workflow` recalls it for the review loop
    (wording checked with `skill:audit-instructions`); `Expected-effect: breached_share:user-language down`; verified by `just check`. (autonomous)
+3. [x] Settle the `high` review of the issue; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -107,4 +108,20 @@ Code review: no findings
 | code review | clean |
 
 red: none (`tests/skills.rs`: `the rule does not name the notes between two tool calls`)
+Code review: no findings
+
+## Deliverable 3
+- done: the findings of the `high` review settled: `write-spec` ends after its step 4 when `issue-workflow` calls
+  it; step 1 names that step; the rule keeps repository text in the project's language when shown; the language
+  test merged into FEA-29's; the required passage no longer pins the bold.
+- not fixed: BRE-18 counts a new spec only, so the effect on amendments goes unmeasured; by design of the rule,
+  the outcome named in the issue is the new specs.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| docs (`update-docs`, whole issue) | n/a: `docs/workflow.md`, `README.md`, `AGENTS.md` still true |
+| code review | clean |
+
+red: none (review fixes)
 Code review: no findings

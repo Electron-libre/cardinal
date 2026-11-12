@@ -143,7 +143,7 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "issue-workflow",
-        "**invoke `skill:write-spec` with the Skill tool**",
+        "invoke `skill:write-spec` with the Skill tool",
         "a spec written from the step alone skips the skill: the routing names the tool, as the review's does",
     ),
     (
@@ -525,6 +525,11 @@ fn the_user_language_is_said_once_in_the_always_on_rule() {
         rule.contains("`user_language`"),
         "the rule names no `user_language`"
     );
+    // Most breaches are the notes between two tool calls, which the Stop hook never sees.
+    assert!(
+        rule.contains("between two tool calls"),
+        "the rule does not name the notes between two tool calls"
+    );
     let style =
         fs::read_to_string(root.join("files/.claude/rules/reports-to-the-user.md")).unwrap();
     assert!(
@@ -548,18 +553,6 @@ fn the_user_language_is_said_once_in_the_always_on_rule() {
     assert!(
         copies.is_empty(),
         "skills restating the language: {copies:?}"
-    );
-}
-
-/// The language rule names the notes between two tool calls: they are most of its breaches, in the English context
-/// of a review or a long run of tools, and the Stop hook never sees them.
-#[test]
-fn the_language_rule_covers_the_notes_between_tool_calls() {
-    let rule =
-        fs::read_to_string(repo_root().join("files/.claude/rules/user-language.md")).unwrap();
-    assert!(
-        rule.contains("between two tool calls"),
-        "the rule does not name the notes between two tool calls"
     );
 }
 

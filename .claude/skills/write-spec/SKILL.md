@@ -38,7 +38,8 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    step. A `draft` spec is not asked for tests yet.
 5. **Validate with the user (STOP)**: show the requirements and ask what is missing or too strong, with one
    question per `[NEEDS CLARIFICATION: ...]` marker; replace each marker by the settled text once answered. The
-   spec stays `draft`.
+   spec stays `draft`. Called from step 1 of `issue-workflow`, end after step 4: its own stop validates
+   the spec with the plan.
 6. **Trace**: write the tests from the requirements; each carries `// spec: ID` placed as `specs/README.md`
    says. Prove a requirement through the binary when that test is cheap and stable; otherwise an internal test is
    the proof, its citation giving the reason (`// spec: ID (internal: <reason>)`): never write a long or fragile

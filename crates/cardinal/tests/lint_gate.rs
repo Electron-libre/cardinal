@@ -179,7 +179,9 @@ fn a_passing_lint_is_stamped_until_the_files_or_the_command_change() {
     let dir = root.path();
     fs::write(dir.join("a.ts"), "let a = 2;\n").unwrap();
     fs::write(dir.join("code.txt"), "1").unwrap();
-    assert_eq!(gate(dir, "{}").code, 2);
+    let out = gate(dir, "{}");
+    assert_eq!(out.code, 2);
+    assert!(out.stderr.contains("`sh lint.sh`"), "{}", out.stderr);
     // a failing run records no stamp
     assert_eq!(gate(dir, "{}").code, 2);
     assert_eq!(runs(dir), 2);

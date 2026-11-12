@@ -320,7 +320,8 @@ fn a_busy_worktree_refuses_another_session_until_its_holder_ends() {
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(2), "{err}");
     assert!(err.contains("(a)"), "{err}");
-    hook("release", &r.main, "a", &other.pid());
+    let (code, out, err) = hook("release", &r.main, "a", &other.pid());
+    assert_eq!((code, out.as_str(), err.as_str()), (Some(0), "", ""));
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(0), "{err}");
     assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));

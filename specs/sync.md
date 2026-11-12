@@ -84,7 +84,7 @@ without merging by hand, and learns at once when a managed file drifted from it.
 - **SYN-H2** (happy; SYN-8, SYN-2, SYN-3) Given a synced project whose user edited a managed file, when `check` runs,
   then it names that file; when the source then changes and `sync` runs, then it updates the untouched files, keeps
   the edited one as a conflict and fails.
-- **SYN-H3** (happy; SYN-11, SYN-12, SYN-16) Given a project on a git source, when the user runs `update`, then its
+- **SYN-H3** (happy; SYN-11, SYN-16) Given a project on a git source, when the user runs `update`, then its
   `rev` moves to the head of the source, the project is synced to it, and the report names the previous revision,
   the new one and the files changed.
 

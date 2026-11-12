@@ -86,7 +86,9 @@ fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
     let (_, mid) = run(&repo);
     out.push((
         "a worktree path is named",
-        mid.contains("Taken: b (worktree ") && mid.contains("repo-b)"),
+        mid.contains("Next: issues/c.md")
+            && mid.contains("Taken: b (worktree ")
+            && mid.contains("repo-b)"),
     ));
     branch_with_commit(&repo, "c");
     branch_with_commit(&repo, "d");

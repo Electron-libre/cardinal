@@ -53,6 +53,8 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
    `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way. (autonomous)
 4. [x] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
    `spec-coverage`; verified by `just check` with no CLR-10 warning left. (autonomous)
+5. [x] Settle the `high` review of the issue: each happy path claims no more than the test citing it proves;
+   verified by the tests named below. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -91,3 +93,13 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
   happy path of an `accepted` spec (TRC-23) until the citations are added.
 - checks: project-check, check-specs (CLR-10 warning gone), docs n/a (scenarios only).
 - Code review: no findings
+
+## Deliverable 5
+- done: the `high` review of `ed5b222..HEAD` gave 6 findings, all fixed: REV-H1 now asserts the refusal names
+  `/code-review low`; CLG-H1 asserts the lint report names the command; PAR-H1 reworded to the flow its test runs and
+  asserts the free issue offered; WSL-H1 asserts the release exits 0 silently; SYN-H1 adds an executable file and a
+  seeded configuration (SYN-1, SYN-9); SYN-H3 no longer names SYN-12, which its test does not check whole.
+- red: none (assertions added to passing tests; the behaviour they check already held).
+- checks: project-check, check-specs, docs n/a.
+- Code review: no findings
+- update-docs over the issue: n/a, no page describes the scenarios of the specs.

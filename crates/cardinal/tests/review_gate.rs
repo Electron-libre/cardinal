@@ -450,7 +450,21 @@ fn native_hook_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     let before = commits();
     let reviewed = commit(&["commit", "-qam", "x"]) && commits() == before + 1;
     fs::write(current.join("a.txt"), "three\n").unwrap();
-    let refused = !commit(&["commit", "-qam", "y"]);
+    let refusal = Command::new("git")
+        .args([
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "-qam",
+            "y",
+        ])
+        .current_dir(&current)
+        .output()
+        .unwrap();
+    let refused = !refusal.status.success()
+        && String::from_utf8_lossy(&refusal.stderr).contains("Run /code-review low");
     // the commit records the issues only: the unreviewed change of `a.txt` stays out of it
     fs::create_dir_all(current.join("issues")).unwrap();
     fs::write(current.join("issues/i.md"), "one\n").unwrap();
@@ -471,7 +485,7 @@ fn native_hook_checks(hook: &Path) -> Vec<(&'static str, bool)> {
             reviewed,
         ),
         (
-            "git refuses through the native hook a commit nobody reviewed",
+            "git refuses through the native hook a commit nobody reviewed, telling to run /code-review low",
             refused,
         ),
         (

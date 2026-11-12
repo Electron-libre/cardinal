@@ -37,8 +37,8 @@ deliberate step run from the main branch.
 
 ## Scenarios
 
-- **PAR-H1** (happy; PAR-3, PAR-4) Given an issue whose branch is checked out in a worktree, when an agent of another
-  worktree asks `next-issue`, then it is offered the next free issue and sees the first one taken in that worktree.
+- **PAR-H1** (happy; PAR-3, PAR-4) Given an issue whose branch is checked out in a worktree, when an agent asks
+  `next-issue`, then it is offered the next free issue and sees the first one taken in that worktree.
 - **PAR-H2** (happy; PAR-6) Given a worktree whose branch was merged into the main branch, when the user runs
   `close-worktree`, then the worktree and its branch are removed; before the merge, both are kept.
 

@@ -27,11 +27,21 @@ fn init_then_sync_brings_the_harness_and_a_second_sync_changes_nothing() {
     let home = Home::new();
     let source = source();
     put(source.path(), "files/a.txt", "a1");
+    put(source.path(), "files/run.sh", "#!/bin/sh\n");
+    common::set_mode(&source.path().join("files/run.sh"), 0o755);
     put(source.path(), "seed/s.txt", "seed1");
+    put(
+        source.path(),
+        "seed/.claude/cardinal.toml",
+        "[project]\nname = \"x\"\n",
+    );
     let root = tempdir().unwrap();
     home.ok(root.path(), &["init", source.path().to_str().unwrap()]);
+    let config = get(root.path(), CONFIG).unwrap();
+    assert!(config.contains("[project]\nname = \"x\""), "{config}");
     let run = home.ok(root.path(), &["sync"]);
     assert_eq!(run.outcome("a.txt"), Some("added"), "{run:?}");
+    assert!(common::executable(&root.path().join("run.sh")));
     assert_eq!(run.outcome("s.txt"), Some("seeded"), "{run:?}");
     assert_eq!(get(root.path(), "a.txt").as_deref(), Some("a1"));
     assert_eq!(get(root.path(), "s.txt").as_deref(), Some("seed1"));

@@ -58,3 +58,4 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0026. A queue of issues is chained by the main loop](0026-a-queue-of-issues-is-chained-by-the-main-loop.md) | Accepted |
 | [0027. Any uncommitted change keeps the worktree lock](0027-any-uncommitted-change-keeps-the-worktree-lock.md) | Accepted |
 | [0028. A consumer needs only `cardinal`](0028-a-consumer-needs-only-cardinal.md) | Accepted |
+| [0029. A spec states its behaviour before its contract](0029-a-spec-states-its-behaviour-before-its-contract.md) | Proposed |

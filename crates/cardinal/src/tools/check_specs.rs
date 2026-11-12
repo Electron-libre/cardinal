@@ -7,7 +7,7 @@
 //! `must`) is a warning, and so are the requirements proven only by tests under a `src` directory whose citations
 //! give no reason, `// spec: ID (internal: <reason>)` (TRC-1, TRC-6). The happy paths that open `## Scenarios`,
 //! `- **ID-H<n>** (happy; <ids>)`, are traced like requirements (TRC-17 to TRC-24); a spec without one is a warning
-//! (CLR-9, CLR-10).
+//! (CLR-9, CLR-10), and so is one whose `## Requirements` holds no `### Behaviour` (CLR-11, CLR-12, ADR 0029).
 
 use super::repo_files;
 
@@ -34,6 +34,8 @@ pub(super) struct Spec {
     id: String,
     pub(super) status: String,
     pub(super) requirements: Vec<Requirement>,
+    /// Whether `## Requirements` holds a `### Behaviour` heading (CLR-11).
+    behaviour: bool,
 }
 
 fn is_id_prefix(s: &str) -> bool {
@@ -184,6 +186,7 @@ fn parse(
         id: String::new(),
         status: String::new(),
         requirements: Vec::new(),
+        behaviour: false,
     };
     let lines: Vec<&str> = text.lines().collect();
     let close = lines
@@ -270,6 +273,11 @@ fn parse(
         prose: &prose,
     };
     parse_requirements(file, &read, &mut spec, out, warn);
+    if spec.status == "draft" && !spec.behaviour {
+        warn.push(format!(
+            "warning: {file}: no behaviour (open `## Requirements` with `### Behaviour`)"
+        ));
+    }
     parse_happy_paths(file, &read, &mut spec, out, warn);
     check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
@@ -299,6 +307,9 @@ fn parse_requirements(
         }
         if line.starts_with("## ") {
             in_requirements = line.trim() == "## Requirements";
+        }
+        if in_requirements && line.trim() == "### Behaviour" {
+            spec.behaviour = true;
         }
         if !in_requirements || !line.starts_with("- ") {
             continue;
@@ -839,24 +850,33 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     out.extend(internal_problems);
     boundary_warnings(&specs, &cited, &internal);
     // one line for every accepted spec: a nudge the specs written before happy paths existed all get (CLR-10)
-    let unhappy: Vec<&str> = specs
+    warn_accepted(&specs, "no happy path", |s| {
+        s.requirements.iter().any(|r| r.happy)
+    });
+    // and before the behaviour was split from the contract (CLR-12)
+    warn_accepted(&specs, "no behaviour", |s| s.behaviour);
+    out
+}
+
+/// Print one warning naming the `accepted` specs that lack `what`, `has` telling a spec that has it, if any.
+fn warn_accepted(specs: &[Spec], what: &str, has: impl Fn(&Spec) -> bool) {
+    let lacking: Vec<&str> = specs
         .iter()
-        .filter(|s| s.status == "accepted" && !s.requirements.iter().any(|r| r.happy))
+        .filter(|s| s.status == "accepted" && !has(s))
         .map(|s| s.file.as_str())
         .collect();
-    if !unhappy.is_empty() {
-        let plural = if unhappy.len() == 1 {
+    if !lacking.is_empty() {
+        let plural = if lacking.len() == 1 {
             " holds"
         } else {
             "s hold"
         };
         eprintln!(
-            "warning: {} accepted spec{plural} no happy path: {}",
-            unhappy.len(),
-            unhappy.join(", ")
+            "warning: {} accepted spec{plural} {what}: {}",
+            lacking.len(),
+            lacking.join(", ")
         );
     }
-    out
 }
 
 /// Whether a test file is a managed one, under `.claude/`.

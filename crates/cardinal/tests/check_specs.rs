@@ -68,6 +68,7 @@ fn check_specs() {
     happy_path_checks(&case, &report);
     happy_path_form_checks(&case);
     happy_path_warning_checks(&case, &report);
+    behaviour_warning_checks(&case, &report);
 
     strict.set(true);
     case(
@@ -1366,6 +1367,7 @@ fn wording_scope_checks(case: &Case, report: &dyn Fn(&str, bool)) {
         !stderr.lines().any(|l| {
             l.contains("warning")
                 && !l.contains("no happy path")
+                && !l.contains("no behaviour")
                 && !boundary_lines(&stderr).contains(&l)
         }),
     );
@@ -1379,15 +1381,25 @@ fn with_happy(spec: &str) -> String {
     spec.replace("## Scenarios\n\n", &format!("## Scenarios\n\n{HAPPY}"))
 }
 
-/// The fixture spec as a `draft` with a happy path: no warning of its own.
+/// `spec` with its requirements under a `### Behaviour` heading.
+fn with_behaviour(spec: &str) -> String {
+    spec.replace(
+        "## Requirements\n\n",
+        "## Requirements\n\n### Behaviour\n\n",
+    )
+}
+
+/// The fixture spec as a `draft` with a happy path and a behaviour: no warning of its own.
 fn clear_draft() -> String {
-    with_happy(&SPEC.replace("status: accepted", "status: draft"))
+    with_behaviour(&with_happy(
+        &SPEC.replace("status: accepted", "status: draft"),
+    ))
 }
 
 // spec: TRC-17, TRC-22, TRC-23, TRC-24, TRC-H1, TRC-H2
 /// A happy path is traced like a requirement.
 fn happy_path_checks(case: &Case, report: &dyn Fn(&str, bool)) {
-    let happy = with_happy(SPEC);
+    let happy = with_behaviour(&with_happy(SPEC));
     let stderr = case(
         "a happy path cited from tests/ passes",
         &happy,
@@ -1471,12 +1483,12 @@ fn happy_path_form_checks(case: &Case) {
         (
             "a happy path with no id fails",
             "- (happy; RER-1) Given a.\n",
-            "specs/rerun.md:21: a happy path must start with `- **RER-H<n>** (happy; <ids>)`",
+            "specs/rerun.md:23: a happy path must start with `- **RER-H<n>** (happy; <ids>)`",
         ),
         (
             "a happy path with the id of another spec fails",
             "- **TRC-H1** (happy; RER-1) Given a.\n",
-            "specs/rerun.md:21: a happy path must start with `- **RER-H<n>** (happy; <ids>)`",
+            "specs/rerun.md:23: a happy path must start with `- **RER-H<n>** (happy; <ids>)`",
         ),
         (
             "a happy path defined twice fails",
@@ -1572,6 +1584,72 @@ fn happy_path_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
     report(
         "accepted specs with a happy path are not warned of",
         !stderr.contains("no happy path"),
+    );
+}
+
+// spec: CLR-11, CLR-12, CLR-H1
+/// The specs without a `### Behaviour` under `## Requirements` are warned of, never failed.
+fn behaviour_warning_checks(case: &Case, report: &dyn Fn(&str, bool)) {
+    let warned =
+        "warning: specs/rerun.md: no behaviour (open `## Requirements` with `### Behaviour`)";
+    let draft = clear_draft();
+    let flat = draft.replace("### Behaviour\n\n", "");
+    for (name, spec, expect) in [
+        ("a draft with a behaviour", draft.clone(), false),
+        ("a draft with its requirements flat", flat.clone(), true),
+        (
+            "a draft with a behaviour under Scenarios",
+            flat.replace("## Scenarios\n\n", "## Scenarios\n\n### Behaviour\n\n"),
+            true,
+        ),
+        (
+            "a draft with a behaviour in a code block",
+            flat.replace(
+                "## Requirements\n\n",
+                "## Requirements\n\n```\n### Behaviour\n```\n\n",
+            ),
+            true,
+        ),
+        (
+            "a draft with its contract before its behaviour",
+            draft.replace("### Behaviour\n\n", "### Contract\n\n### Behaviour\n\n"),
+            false,
+        ),
+    ] {
+        let stderr = case(&format!("{name} passes"), &spec, "", &[], None);
+        report(
+            &format!("{name} is {}warned of", if expect { "" } else { "not " }),
+            stderr.contains(warned) == expect,
+        );
+    }
+    let other = |id: &str| SPEC.replace("RER", id);
+    let stderr = case(
+        "accepted specs with no behaviour pass",
+        SPEC,
+        &format!("{TESTS}// spec: BBB-1, BBB-2, CCC-1, CCC-2\n#[test]\nfn o() {{}}\n"),
+        &[
+            ("specs/b.md", &other("BBB")),
+            ("specs/c.md", &with_behaviour(SPEC).replace("RER", "CCC")),
+        ],
+        None,
+    );
+    report(
+        "the accepted specs with no behaviour are warned of in one line",
+        stderr
+            .lines()
+            .filter(|l| l.contains("no behaviour"))
+            .eq(["warning: 2 accepted specs hold no behaviour: specs/b.md, specs/rerun.md"]),
+    );
+    let stderr = case(
+        "an accepted spec with a behaviour passes",
+        &with_behaviour(SPEC),
+        TESTS,
+        &[],
+        None,
+    );
+    report(
+        "an accepted spec with a behaviour is not warned of",
+        !stderr.contains("no behaviour"),
     );
 }
 

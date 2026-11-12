@@ -41,3 +41,44 @@ Specs that read as a product
 # Hints
 * The boundary proof stays a preference, not a rule: an internal test with its reason is a valid proof
   (`files/specs/README.md`).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Decide the shape of a spec in ADR 0029: `## Requirements` split into `### Behaviour` (product terms, first) then
+`### Contract` (formats, codes, limits, optionally as a table one requirement cites), both traced, one numbering.
+`check-specs` nudges (warns, never fails) a spec with no `### Behaviour`; existing specs take the shape at their next amendment.
+
+## Plan
+1. [x] Behaviour warning: ADR 0029 draft, `specs/spec-clarity.md` reshaped and amended, `check-specs` warns of a spec
+   with no `### Behaviour`; verified by tests of `check_specs`; makes true CLR-11, CLR-12 (spec `accepted`). (autonomous)
+2. [ ] Format: `files/specs/README.md` (Requirements: the two subsections, the contract table), `files/specs/TEMPLATE.md`,
+   `skill:write-spec` (draft, content checklist, bootstrap), `just sync`, ADR 0029 `Accepted`; verified by
+   `just check-cardinal` and `check-specs` on the template.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 677c569078866134b4ef1475e594d9a15740f3b3
+- Shape: behaviour then contract, a table allowed in the contract (1 a); existing specs take it at their next amendment (2 a); a missing `### Behaviour` warns, never fails (3 a).
+
+## Deliverable 1
+done: `check-specs` warns of a `draft` spec with no `### Behaviour` under `## Requirements`, and of the `accepted`
+ones in one line; `specs/spec-clarity.md` takes the shape (CLR-11, CLR-12, `accepted`); ADR 0029 drafted.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | module doc; the format docs are deliverable 2 |
+| code review | see below |
+
+red: CLR-11, CLR-12, CLR-H1: `FAIL - a draft with its requirements flat is warned of`, `FAIL - the accepted specs with no behaviour are warned of in one line`
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none

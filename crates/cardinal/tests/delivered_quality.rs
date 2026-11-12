@@ -973,6 +973,47 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+// spec: QUA-7
+fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let tmp = tmp.join("claims");
+    let repo = fixture(&tmp);
+    commit_at(
+        &repo,
+        "2026-02-01T12:00:00Z",
+        "docs: close zeta",
+        &[("issues/done/zeta.md", Some("# zeta\n\n# Tracking\n"))],
+    );
+    let projects = tmp.join("projects");
+    // both sessions run on the default branch and hold the close of zeta: the earlier one claimed it, the later did not
+    write(
+        &projects.join("-proj/claimer.jsonl"),
+        &[
+            bash(
+                &repo,
+                "2026-02-01T08:00",
+                "c1",
+                "cardinal run issue-claim issues/zeta.md",
+                false,
+            ),
+            usage(&repo, "2026-02-01T09:00:00Z", "z1", [1, 0, 0, 3]),
+            typed(&repo, "2026-02-01T13:00:00Z", "SECRET end"),
+        ],
+    );
+    write(
+        &projects.join("-proj/other.jsonl"),
+        &[
+            usage(&repo, "2026-02-01T10:00:00Z", "z2", [1, 0, 0, 9]),
+            typed(&repo, "2026-02-01T13:00:00Z", "SECRET end"),
+        ],
+    );
+    let (_, out) = run(dir, &repo, &["--projects", projects.to_str().unwrap()]);
+    let r = rows(&out);
+    vec![(
+        "a commit held by two sessions on the default branch counts with the one that claimed its issue".to_string(),
+        has(&r, "zeta", "sessions", "1") && has(&r, "zeta", "output_tokens", "3"),
+    )]
+}
+
 /// An assistant message `id` at `ts` of `model`, with `advisor` set as its advisor model when not empty.
 fn modeled(cwd: &Path, ts: &str, id: &str, model: &str, advisor: &str) -> String {
     let mut fields = serde_json::json!({"message": {"id": id, "model": model, "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}});
@@ -1298,6 +1339,7 @@ fn delivered_quality() {
         .chain(traced_marker_checks(&dir, &tmp))
         .chain(lines_checks(&dir, &tmp))
         .chain(session_checks(&dir, &tmp))
+        .chain(claim_checks(&dir, &tmp))
         .chain(summary_checks(&dir, &tmp))
         .chain(setup_checks(&dir, &tmp))
         .collect();

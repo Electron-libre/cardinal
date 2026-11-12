@@ -18,8 +18,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use transcripts::{
-    default_branch, for_each_line, git, is_validation, projects, projects_root, repository,
-    revision, sessions, sorted_entries, subagents, typed_text, Place,
+    default_branch, for_each_line, git, is_validation, projects, projects_root, push_distinct,
+    repository, revision, sessions, sorted_entries, subagents, typed_text, Place,
 };
 
 pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
@@ -600,6 +600,8 @@ fn timestamp(line: &Value) -> Option<DateTime<FixedOffset>> {
 /// the events of its own transcript.
 struct Session {
     branches: Vec<String>,
+    /// The issues its own transcript claims or closes (EVA-21).
+    claimed: Vec<String>,
     setup: Option<String>,
     start: DateTime<FixedOffset>,
     end: DateTime<FixedOffset>,
@@ -675,6 +677,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         let mut checks: HashMap<String, bool> = HashMap::new();
         let mut messages = HashSet::new();
         let mut models = Models::default();
+        let mut claimed = Vec::new();
         let read = for_each_line(&path, |line| {
             place.observe(line, true);
             models.observe(line);
@@ -703,10 +706,11 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
                     .unwrap_or_default()
                     .to_string();
                 if block["type"] == "tool_use" && block["name"] == "Bash" {
-                    checks.insert(
-                        id,
-                        is_check(block["input"]["command"].as_str().unwrap_or_default()),
-                    );
+                    let command = block["input"]["command"].as_str().unwrap_or_default();
+                    for stem in transcripts::claimed_issues(command) {
+                        push_distinct(&mut claimed, Some(&stem));
+                    }
+                    checks.insert(id, is_check(command));
                 } else if block["type"] == "tool_result"
                     && block["is_error"] == Value::Bool(true)
                     && checks.get(&id) == Some(&true)
@@ -742,6 +746,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
         if repo.is_some() && *resolved == repo {
             found.push(Session {
                 branches: place.issues,
+                claimed,
                 setup: models.setup(),
                 start,
                 end,
@@ -762,6 +767,7 @@ fn session_cells(
     sessions: &[Session],
 ) -> ([u64; 7], Option<String>) {
     let on_branch = |s: &Session| s.branches.iter().any(|b| b == stem);
+    let claiming = |s: &Session| s.claimed.iter().any(|c| c == stem);
     let mut by_session: BTreeMap<usize, Vec<DateTime<FixedOffset>>> = BTreeMap::new();
     for &i in own {
         let at = log[i].date;
@@ -770,11 +776,17 @@ fn session_cells(
             .enumerate()
             .filter(|(_, s)| s.start <= at && at <= s.end)
             .collect();
-        let preferred = holding
-            .iter()
-            .filter(|(_, s)| on_branch(s))
-            .max_by_key(|(_, s)| s.start);
-        if let Some((k, _)) = preferred.or_else(|| holding.iter().max_by_key(|(_, s)| s.start)) {
+        // the session that claimed or closed the issue, then one on its branch, then the latest (QUA-7)
+        let latest = |keep: &dyn Fn(&Session) -> bool| {
+            holding
+                .iter()
+                .filter(|(_, s)| keep(s))
+                .max_by_key(|(_, s)| s.start)
+        };
+        let preferred = latest(&claiming)
+            .or_else(|| latest(&on_branch))
+            .or_else(|| latest(&|_| true));
+        if let Some((k, _)) = preferred {
             by_session.entry(*k).or_default().push(at);
         }
     }
@@ -1047,6 +1059,7 @@ mod tests {
     fn session(start: &str, end: &str, events: &[(&str, &str, u64)]) -> Session {
         Session {
             branches: vec!["x".to_string()],
+            claimed: Vec::new(),
             setup: None,
             start: at(start),
             end: at(end),

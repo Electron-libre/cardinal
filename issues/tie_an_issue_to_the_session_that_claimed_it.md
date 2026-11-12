@@ -32,3 +32,30 @@ Measures
 # Resources
 * `crates/cardinal/src/tools/delivered_quality.rs`, `crates/cardinal/src/tools/transcripts.rs`, ADR 0022,
   `specs/evaluation.md` (EVA-21).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+`delivered-quality` gives a commit of an issue first to a session holding it that claimed or closed the issue
+(EVA-21), then to one on its branch, then to the latest-starting. Out of scope: the span of QUA-8 (a claiming
+session on the trunk still counts from after the other work it did, not from its start).
+
+## Plan
+1. [x] Prefer the claiming session: `read_sessions` keeps the issues each session claims or closes
+   (`transcripts::claimed_issues`, main transcript), `session_cells` prefers them; measured on the consumer
+   transcripts by comparing the rows of the installed `delivered-quality` with the new one; verified by a case of
+   `session_checks` (two trunk sessions, the earlier claiming); makes true QUA-7. (autonomous)
+
+## Deliverable 1
+- done: `session_cells` prefers a session that claimed or closed the issue, then one on its branch, then the latest.
+- Measure (rows of `delivered-quality` before and after, transcripts of this machine): 5 of 379 done issues change,
+  their transcript columns only: 3 of 199 in cardinal, 2 of 180 in a consumer project.
+- red: QUA-7: `zeta.output_tokens: expected "3", got Some("9")` (the later, non-claiming session took the commit).
+- Code review: no findings
+- not verified: the transcripts of other machines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 487f97025e319c67dc9772bfe6b76ce89d360bdb

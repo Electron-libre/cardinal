@@ -39,11 +39,11 @@ The work done before this file existed is in `issues/done/`.
   apart from the contract details, and a size a reader can hold.
 - Why: the specs of the consumers grow by tens of kilobytes per milestone, list formats, codes and limits one by
   one, and rarely state the main flow, which the format reserves to no scenario.
-- State: in issues
+- State: done
 - Issues:
   - [require_a_happy_path_scenario_in_each_spec](issues/done/require_a_happy_path_scenario_in_each_spec.md)
   - [warn_when_a_spec_outgrows_its_capability](issues/done/warn_when_a_spec_outgrows_its_capability.md)
   - [separate_the_functional_requirements_from_the_contract](issues/done/separate_the_functional_requirements_from_the_contract.md)
   - [measure_the_shape_of_the_specs](issues/done/measure_the_shape_of_the_specs.md)
   - [write_the_happy_paths_of_the_cardinal_specs](issues/done/write_the_happy_paths_of_the_cardinal_specs.md)
-  - [count_the_happy_paths_in_delivered_quality](issues/count_the_happy_paths_in_delivered_quality.md)
+  - [count_the_happy_paths_in_delivered_quality](issues/done/count_the_happy_paths_in_delivered_quality.md)

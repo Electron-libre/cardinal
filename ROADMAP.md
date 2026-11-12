@@ -30,7 +30,7 @@ The work done before this file existed is in `issues/done/`.
   - [keep_the_reviewers_from_reading_a_whole_diff_file](issues/done/keep_the_reviewers_from_reading_a_whole_diff_file.md)
   - [find_why_specs_and_replies_escape_their_rules](issues/find_why_specs_and_replies_escape_their_rules.md)
   - [classify_the_fixes_after_an_issue_is_closed](issues/classify_the_fixes_after_an_issue_is_closed.md)
-  - [tie_an_issue_to_the_session_that_claimed_it](issues/tie_an_issue_to_the_session_that_claimed_it.md)
+  - [tie_an_issue_to_the_session_that_claimed_it](issues/done/tie_an_issue_to_the_session_that_claimed_it.md)
   - [time_the_claims_that_tie_a_session_to_an_issue](issues/time_the_claims_that_tie_a_session_to_an_issue.md)
 
 ## Specs that read as a product

@@ -129,7 +129,7 @@ text (old transcripts included) rather than a longer refusal message.
   the caller give the summaries of the project, which the skill does: they carry no project column), 8 (the test of
   EVA-5 runs the real reason of `read-hint` through `session-metrics`, so a rewording fails it). Outside the
   requirements: 1 (`delivered-quality` prefers a session by its branch only), now
-  [tie_an_issue_to_the_session_that_claimed_it](../tie_an_issue_to_the_session_that_claimed_it.md).
+  [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).
 - Code review: no findings
 
-Done: every deliverable committed; left: [tie_an_issue_to_the_session_that_claimed_it](../tie_an_issue_to_the_session_that_claimed_it.md).
+Done: every deliverable committed; left: [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).

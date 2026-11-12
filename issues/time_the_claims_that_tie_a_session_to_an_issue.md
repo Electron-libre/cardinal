@@ -12,7 +12,7 @@ QUA-8 and the commits of `rule-breaches` ignore it. The outcome: the session of 
 the issue was the last before it, everywhere a commit is tied to a session, and its events count from that claim.
 
 # Findings
-* Found by the `high` review of [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).
+* Found by the `high` review of [tie_an_issue_to_the_session_that_claimed_it](done/tie_an_issue_to_the_session_that_claimed_it.md).
 * QUA-8: a claiming session on the trunk counts its events from after the latest commit of another session in its
   span (`other_work` of `session_cells`), so its events between its claim and that commit are lost.
 * EVA-21 counts a refused `issue-claim` (an error result, another session's claim) as a claim: the refused session

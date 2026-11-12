@@ -16,7 +16,7 @@ session that claimed or closed the issue is preferred, as `session-metrics` alre
   reads its branches only.
 * `transcripts::claimed_issues` (EVA-21) reads the `issue-claim` and `close-issue` calls of a session; it is used by
   `session-metrics` only.
-* Found by the `high` review of [close_the_gaps_of_the_harness_measures](done/close_the_gaps_of_the_harness_measures.md);
+* Found by the `high` review of [close_the_gaps_of_the_harness_measures](close_the_gaps_of_the_harness_measures.md);
   not measured on the consumer transcripts yet: how often two sessions overlap on the trunk is unknown.
 
 # Approach
@@ -61,7 +61,7 @@ session on the trunk still counts from after the other work it did, not from its
 
 ## Deliverable 2
 - done: the `high` review of `base..HEAD` gave 7 findings; 2 fixed here, 5 moved to
-  [time_the_claims_that_tie_a_session_to_an_issue](time_the_claims_that_tie_a_session_to_an_issue.md).
+  [time_the_claims_that_tie_a_session_to_an_issue](../time_the_claims_that_tie_a_session_to_an_issue.md).
 - red: none (the widened test fails when the order puts the branch before the claim, checked by swapping it).
 - Code review (high, issue): 7 findings: the simplification and the missing test cases fixed; the QUA-8 span of a
   claiming session (out of scope in the plan), a refused claim counted (EVA-21 counts it), the time of the claims,

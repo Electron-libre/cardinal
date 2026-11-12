@@ -613,7 +613,35 @@ fn traced_fixture(tmp: &Path) -> PathBuf {
         &[("issues/eta.md", None), ("issues/done/eta.md", Some(eta))],
     );
     theta_commits(&repo);
+    iota_commits(&repo);
     repo
+}
+
+/// An issue whose test cites a happy path id and whose red list opens with it (QUA-11).
+fn iota_commits(repo: &Path) {
+    let iota =
+        "# iota\n\n# Tracking\n\n## Plan\n1. [x] one\n- red: ABC-H1, ABC-5: assertion failed\n";
+    commit_at(
+        repo,
+        "2026-01-10T00:00:00Z",
+        "feat(files): iota",
+        &[
+            (
+                "tests/happy.rs",
+                Some("// spec: ABC-H1, ABC-5\nfn happy() {}\n"),
+            ),
+            ("issues/iota.md", Some(iota)),
+        ],
+    );
+    commit_at(
+        repo,
+        "2026-01-11T00:00:00Z",
+        "docs: close iota",
+        &[
+            ("issues/iota.md", None),
+            ("issues/done/iota.md", Some(iota)),
+        ],
+    );
 }
 
 /// An issue whose tests cite with the marker of their language (QUA-13).
@@ -678,6 +706,10 @@ fn traced_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             "an extended citation traces its new id, kept when a later commit rewrites it; a red none or a not covered line names none"
                 .to_string(),
             has(&r, "eta", "traced", "1") && has(&r, "eta", "traced_without_red", "1"),
+        ),
+        (
+            "a happy path id is traced and read in a red list as check-specs reads it".to_string(),
+            has(&r, "iota", "traced", "2") && has(&r, "iota", "traced_without_red", "0"),
         ),
     ]
 }

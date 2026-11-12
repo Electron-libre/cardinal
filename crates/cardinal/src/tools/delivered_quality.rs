@@ -8,7 +8,7 @@
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
 
 use super::check_specs::{
-    citation, citation_list, config_names, is_req_id, markers, name_matches, shape, spec_patterns,
+    citation, citation_list, config_names, is_cited_id, markers, name_matches, shape, spec_patterns,
 };
 use super::transcripts;
 
@@ -336,15 +336,15 @@ fn reviews(text: &str) -> Option<(usize, usize, usize)> {
     Some((lines.len(), counted.len(), counted.iter().sum()))
 }
 
-/// The requirement ids of a `// spec: A-1, B-2` list, read as `check-specs` reads them.
+/// The requirement and happy path ids of a `// spec: A-1, B-H2` list, read as `check-specs` reads them.
 fn cited(list: &str) -> impl Iterator<Item = String> + '_ {
     citation(list)
         .0
-        .filter(|w| is_req_id(w))
+        .filter(|w| is_cited_id(w))
         .map(str::to_string)
 }
 
-/// The requirement ids the commits `own` cite on the citation lines (a `spec:` citation of `check-specs` for the
+/// The requirement and happy path ids the commits `own` cite on the citation lines (a `spec:` citation of `check-specs` for the
 /// file's extension, QUA-13) they add to the files of the issue, less, in each commit, those cited on the citation
 /// lines it removes, renames detected (QUA-11): a moved or extended citation traces only its new ids. `None` when git
 /// cannot show the diffs.
@@ -536,7 +536,7 @@ fn doc_spec_lines(
     Some((spec_lines, doc_lines, specs))
 }
 
-/// The requirement ids recorded as seen failing in an issue file (QUA-11): the list that opens each `red:` item of
+/// The requirement and happy path ids recorded as seen failing in an issue file (QUA-11): the list that opens each `red:` item of
 /// its `# Tracking` section, an item running over its indented continuation lines, the list ending at the first
 /// word that is not an id (`red: ABC-3, ABC-4: <failure>` names ABC-3 and ABC-4, `red: none (ABC-3)` none); `None`
 /// when the section is unread (QUA-12).
@@ -569,7 +569,7 @@ fn red_ids(text: &str) -> Option<BTreeSet<String>> {
             .filter(|w| !w.is_empty())
         {
             let id = word.strip_suffix(':').unwrap_or(word);
-            if !is_req_id(id) {
+            if !is_cited_id(id) {
                 break;
             }
             ids.insert(id.to_string());

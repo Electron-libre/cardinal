@@ -106,7 +106,7 @@ fn prints_the_working_tree_against_head_with_no_argument() {
     assert_eq!(stdout, format!("'HEAD' -- ':/' {}\n", ex("issues")));
 }
 
-// spec: RVT-1, RVT-3
+// spec: RVT-1, RVT-3, RVT-H1
 #[test]
 fn the_line_of_a_base_diffs_the_commits_and_the_working_tree_without_the_excluded_paths() {
     let dir = repo(&[(".claude/cardinal.lock", LOCK)]);

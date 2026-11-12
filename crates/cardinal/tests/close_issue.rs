@@ -609,7 +609,7 @@ fn stages_the_close(script: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
-// spec: CLS-1
+// spec: CLS-1, CLS-H1
 #[test]
 fn close_issue() {
     let script = std::path::PathBuf::from("/tools/close_issue.rs");

@@ -143,7 +143,7 @@ fn a_wrong_dependency_is_flagged() {
     assert!(!ok && out.contains("not a list"), "{out}");
 }
 
-// spec: CKI-3
+// spec: CKI-3, CKI-H1
 /// A priority with no dependency, an empty list, or dependencies on open and closed issues pass.
 #[test]
 fn valid_keys_pass() {

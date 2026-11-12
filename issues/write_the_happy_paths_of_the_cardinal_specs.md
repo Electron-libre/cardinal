@@ -49,8 +49,8 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
    (autonomous)
 2. [x] Hooks: `format-hook`, `lint-gate`, `read-hint`, `language-hint`, `workspace-lock`, `review-gate`,
    `commit-check`, `rule-breaches`; verified the same way. (autonomous)
-3. [ ] Issue queue and deliverable tools: `check-issue`, `close-issue`, `issue-claim`, `next-issue`,
-   `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way.
+3. [x] Issue queue and deliverable tools: `check-issue`, `close-issue`, `issue-claim`, `next-issue`,
+   `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way. (autonomous)
 4. [ ] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
    `spec-coverage`; verified by `just check` with no CLR-10 warning left.
 
@@ -73,4 +73,13 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
 - red: FMT-H1, CLG-H1, RDH-H1, RDH-H2, LNG-H1, LNG-H2, WSL-H1, REV-H1, CMC-H1, BRE-H1, BRE-H2: `check-specs` fails each
   uncited happy path of an `accepted` spec (TRC-23) until the citations are added.
 - checks: project-check, check-specs (CLR-10: 22 -> 14 specs), docs n/a (scenarios only).
+- Code review: no findings
+
+## Deliverable 3
+- done: CKI-H1, CLS-H1, CLM-H1, NXT-H1, PAR-H1..H2, SIZ-H1, RVT-H1, PCK-H1; one new test in `issue_claim.rs`
+  (CLM-H1: claim, `next-issue` skips it, the close frees it), `deliverable_size.rs` also asserts the per-file lines and
+  the verdict line; the others cite the existing end-to-end tests.
+- red: CKI-H1, CLS-H1, CLM-H1, NXT-H1, PAR-H1, PAR-H2, SIZ-H1, RVT-H1, PCK-H1: `check-specs` fails each uncited happy
+  path of an `accepted` spec (TRC-23) until the citations are added.
+- checks: project-check, check-specs (CLR-10: 14 -> 6 specs), docs n/a (scenarios only).
 - Code review: no findings

@@ -21,6 +21,9 @@ it (ADR 0021), so that a new issue reaches `next-issue` with a priority and depe
 
 ## Scenarios
 
+- **CKI-H1** (happy; CKI-3) Given a new issue whose front matter sets a `priority` and depends on no issue, an empty
+  list or open and closed issues, when the agent runs `check-issue` before committing it, then it passes.
+
 - (CKI-1) Given `issues/a.md` with no front matter, when `check-issue issues/a.md` runs, then it reports the missing priority and exits 1.
 - (CKI-2) Given `issues/a.md` with `depends_on: [b, gone]`, `issues/b.md` open and no `gone.md` in `issues/` nor `issues/done/`, when `check-issue` runs, then it reports `gone` and not `b`, and exits 1.
 - (CKI-2) Given `issues/a.md` with `depends_on: [a]`, when `check-issue` runs, then it reports the self-dependency and exits 1.

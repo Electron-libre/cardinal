@@ -26,6 +26,9 @@ rely on it at every close, and `--relink` repairs the references to issues close
 
 ## Scenarios
 
+- **CLS-H1** (happy; CLS-1, CLS-9) Given a finished issue that other documents cite, when the agent runs
+  `close-issue`, then the issue moves to `issues/done/` with `git mv` and every citation points at its new path.
+
 - (CLS-2) Given `docs/a.md` holding `[a](../issues/foo.md)` and `docs/adr/b.md` holding `[b](../../issues/foo.md)`, when `close-issue issues/foo.md` runs, then they read `[a](../issues/done/foo.md)` and `[b](../../issues/done/foo.md)`.
 - (CLS-2) Given `issues/bar.md` holding `[foo](foo.md)`, when `close-issue issues/foo.md` runs, then it reads `[foo](done/foo.md)`.
 - (CLS-3) Given `README.md` at the root holding `[x](../issues/foo.md)` (outside the repository) and `[y](docs/issues/foo.md)`, when `close-issue issues/foo.md` runs, then both are unchanged.

@@ -23,6 +23,10 @@ tests, specs and docs once, and not the 18 KB per session of `oversized-result-r
 
 ## Scenarios
 
+- **RVT-H1** (happy; RVT-1, RVT-3) Given an issue whose deliverables were committed since its base and a last one in
+  progress, when the agent runs `review-target <base>`, then the line it prints, given to `git diff`, shows the code
+  of every deliverable and none of the tracking of the issues nor of the managed copies.
+
 - (RVT-1) Given a lock listing `.claude/rules/a.md` and `AGENTS.md`, when `review-target abc123` runs in a repository where `abc123` resolves, then it prints `'abc123' -- ':/' ':(top,exclude,literal)issues' ':(top,exclude,literal).claude/cardinal.lock' ':(top,exclude,literal).claude/rules/a.md' ':(top,exclude,literal)AGENTS.md'`.
 - (RVT-2) Given no lock, when `review-target` runs with no argument, then it prints `'HEAD' -- ':/' ':(top,exclude,literal)issues'`.
 - (RVT-4) Given `review-target --stat`, then it exits 3 and prints nothing on stdout.

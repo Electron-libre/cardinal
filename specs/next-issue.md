@@ -35,6 +35,10 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 
 ## Scenarios
 
+- **NXT-H1** (happy; NXT-1, NXT-7, NXT-11) Given open issues of several priorities, one depending on another still
+  open, when the agent asks `next-issue`, then it offers the first ready issue by priority and lists the dependent one
+  as blocked by the other; once that one is closed, the dependent issue is offered.
+
 - (NXT-1) Given `b.md` of priority `high` and `a.md` of priority `low`, both with no milestone, when `next-issue` runs, then it prints `b` as next.
 - (NXT-1) Given `a.md` and `b.md` of priority `medium`, committed in that order, when `next-issue` runs, then it prints `a` as next.
 - (NXT-2) Given `a.md` of priority `low` and `c.md` with no front matter, when `next-issue` runs, then it prints `a` as next, lists `c` after it, reports `issue without a priority: c` and exits 1.

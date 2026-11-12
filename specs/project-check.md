@@ -22,6 +22,10 @@ says nothing when the check passes, and it never passes when no test ran.
 
 ## Scenarios
 
+- **PCK-H1** (happy; PCK-1, PCK-3) Given a project that declares its check command, when the agent runs
+  `cardinal run project-check`, then a passing check prints nothing, and a failing one prints its whole output and
+  stops there, the specs left unchecked.
+
 - (PCK-2) Given a project whose `.claude/cardinal.toml` declares no `check_command`, when the agent runs `cardinal run project-check`, then it fails and names the key to set.
 - (PCK-3) Given `check_command = "cargo test -q"` and a failing test, when the tool runs, then it prints the test output and exits 1, and the specs are not checked.
 - (PCK-4) Given a passing check command and a spec requirement cited by no test, when the tool runs, then it prints the problem of `check-specs` and exits 1.

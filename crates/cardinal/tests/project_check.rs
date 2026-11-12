@@ -103,7 +103,7 @@ fn fails_when_no_check_command_is_declared() {
     assert!(out.stderr.contains("check_command"), "{}", out.stderr);
 }
 
-// spec: PCK-3
+// spec: PCK-3, PCK-H1
 #[test]
 fn is_quiet_on_success_and_prints_the_whole_output_of_a_failure() {
     let root = project("[project]\ncheck_command = \"echo all good; echo warn >&2\"\n");

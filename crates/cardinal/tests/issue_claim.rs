@@ -252,6 +252,20 @@ fn next_issue_skips_a_working_claim_and_says_when_its_session_ended() {
     assert!(out.contains("Every open issue is taken."), "{out}");
 }
 
+// spec: CLM-H1
+#[test]
+fn a_claimed_issue_is_skipped_until_its_close_frees_it() {
+    let r = repo();
+    let (code, out) = claim(&r.main, "s1", &live(), "a");
+    assert_eq!(code, Some(0), "{out}");
+    let out = next(&r.ws);
+    assert!(out.contains("Next: issues/b.md"), "{out}");
+    assert!(out.contains("Taken: a (claimed in"), "{out}");
+    let (code, out) = tool(&r.main, "", "", &["close-issue", "issues/a.md"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert_eq!(claim_text(&r.main, "a"), "", "the close freed the claim");
+}
+
 // spec: CLM-6
 #[test]
 fn a_merge_pending_claim_is_listed_until_the_trunk_holds_the_closed_issue() {

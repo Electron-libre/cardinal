@@ -27,6 +27,9 @@ size limit of `skill:issue-workflow`, so the review step stops on a number the a
 
 ## Scenarios
 
+- **SIZ-H1** (happy; SIZ-1, SIZ-9) Given a deliverable of edited and new files not yet committed, when the agent runs
+  `deliverable-size`, then it prints the lines each file changed and their total against the limit.
+
 - (SIZ-1) Given a repository with no commit and an untracked file of 3 lines, when `deliverable-size` runs, then the total is 3.
 - (SIZ-1) Given a commit, then a tracked file with 2 lines changed and an untracked file of 3 lines, when `deliverable-size` runs, then the total is 7 (2 added, 2 removed, 3 added).
 - (SIZ-2) Given commits `A` then `B` adding 4 lines, and 1 untracked line, when `deliverable-size A` runs, then the total is 5.

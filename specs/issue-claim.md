@@ -27,6 +27,10 @@ from every worktree of the clone, created by compare-and-swap, and it lives unti
 
 ## Scenarios
 
+- **CLM-H1** (happy; CLM-1, CLM-5, CLM-7) Given a session that claims an issue on the trunk, when another session
+  asks `next-issue`, then it is offered the next free issue and sees the claimed one taken; once the issue is closed,
+  the claim is gone.
+
 - (CLM-2) Given a claim of `foo` by session `a` whose process no longer runs, in worktree `w`, when session `b` runs `issue-claim issues/foo.md` in `w`, then the claim names `b`; when `b` runs it in another worktree, then it fails and the claim still names `a`.
 - (CLM-2) Given a claim of `foo` by session `a` of process `p` in worktree `w`, when a session `c` of the same process `p` (after `/clear`) runs `issue-claim` in `w`, then the claim names `c`.
 - (CLM-5) Given `a` and `b` in that order, `a` claimed in worktree `w` by a process that no longer runs, when `next-issue` runs, then it prints `b` as next and lists `a` as taken in `w`, `session ended`.

@@ -31,7 +31,7 @@ fn branch_with_commit(repo: &Path, name: &str) {
     git(repo, &["checkout", "-q", "trunk"]);
 }
 
-// spec: PAR-3, PAR-4, PAR-5
+// spec: PAR-3, PAR-4, PAR-5, PAR-H1
 /// An issue is taken when a worktree has its branch checked out or the branch holds commits that are not on the main
 /// branch; `next_issue.rs` skips it, names it, and behaves as before when nothing is taken.
 fn taken_checks(script: &Path) -> Vec<(&'static str, bool)> {
@@ -415,7 +415,7 @@ fn the_front_matter_is_read_as_a_block() {
     assert!(out.contains("  Title A\n  why: later\n"), "{out}");
 }
 
-// spec: NXT-7, NXT-11
+// spec: NXT-7, NXT-11, NXT-H1
 /// An issue whose dependencies are not all done is never offered: it is listed after the ready ones with what blocks
 /// it, and offered once they are done.
 #[test]

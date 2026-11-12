@@ -208,7 +208,7 @@ fn open_refuses_and_changes_nothing(c: &Ctx) -> Checks {
     ]
 }
 
-// spec: PAR-6
+// spec: PAR-6, PAR-H2
 fn close_needs_a_merged_branch(c: &Ctx) -> Checks {
     std::fs::write(c.wt("x").join("work.txt"), "work\n").unwrap();
     git_ok(&c.wt("x"), &["add", "-A"]);

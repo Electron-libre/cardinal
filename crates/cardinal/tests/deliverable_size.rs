@@ -72,7 +72,7 @@ fn lines(n: usize) -> String {
         .collect()
 }
 
-// spec: SIZ-1
+// spec: SIZ-1, SIZ-H1
 #[test]
 fn counts_the_working_tree_and_the_untracked_files_against_head() {
     let dir = repo(&[("a.rs", &lines(4))]);
@@ -82,6 +82,12 @@ fn counts_the_working_tree_and_the_untracked_files_against_head() {
     let (code, stdout) = size(dir.path(), &[]);
     assert_eq!(code, Some(0), "{stdout}");
     assert_eq!(total(&stdout), 7, "{stdout}");
+    assert!(
+        stdout.contains("4\ta.rs\n")
+            && stdout.contains("3\tnew.rs\n")
+            && stdout.ends_with(": within\n"),
+        "{stdout}"
+    );
 }
 
 // spec: SIZ-1

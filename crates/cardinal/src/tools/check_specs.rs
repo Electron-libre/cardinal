@@ -87,6 +87,11 @@ impl Spec {
         [live as u64, self.bytes, self.intent]
     }
 
+    /// Its happy paths (TRC-17).
+    fn happy_paths(&self) -> u64 {
+        self.requirements.iter().filter(|r| r.happy).count() as u64
+    }
+
     /// Each bound of `bounds` the spec is over, said with its measure (CLR-13).
     fn outgrown(&self, bounds: &[u64; 3]) -> Vec<String> {
         self.measures()
@@ -407,6 +412,14 @@ fn parse(
     parse_happy_paths(file, &read, &mut spec, out, warn);
     check_markers(file, &prose, spec.status == "accepted", out, warn);
     spec
+}
+
+/// The shape of the spec `file` of `root` whose text is `text` (QUA-18): its bytes, its live requirements, the
+/// characters of its Intent (CLR-15) and its happy paths (TRC-17); its problems are not reported.
+pub(super) fn shape(root: &Path, file: &str, text: &str) -> [u64; 4] {
+    let spec = parse(root, file, text, &mut Vec::new(), &mut Vec::new());
+    let [requirements, bytes, intent] = spec.measures();
+    [bytes, requirements, intent, spec.happy_paths()]
 }
 
 /// The lines of a spec as `markdown::walk` read them, each with its text with its code spans blanked (`check_markers`).

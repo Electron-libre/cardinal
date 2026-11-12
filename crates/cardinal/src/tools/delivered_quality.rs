@@ -2,13 +2,13 @@
 //! tab-separated row per file of `issues/done/`, with the commits of the issue, the fixes inside it, and the fixes
 //! of the lines it wrote (of a later issue, only the fix that starts it) and the reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
-//! span, the tokens of its messages, and the lines it changed in the specs and in the docs. With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
+//! span, the tokens of its messages, and the lines it changed in the specs and in the docs, and the shape of the specs it changed as of its close (QUA-18). With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
 //! is printed.
 //! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` (default the
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
 
 use super::check_specs::{
-    citation, citation_list, config_names, is_req_id, markers, name_matches, spec_patterns,
+    citation, citation_list, config_names, is_req_id, markers, name_matches, shape, spec_patterns,
 };
 use super::transcripts;
 
@@ -22,8 +22,8 @@ use transcripts::{
     repository, revision, session_of, sessions, sorted_entries, subagents, typed_text, Place, Span,
 };
 
-pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
-const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
+const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
 const UNRELATED_PREFIXES: &[&str] = &["issues/", "docs/"];
@@ -463,14 +463,37 @@ impl DocFiles {
     }
 }
 
+/// The count of the specs `paths` the commit `close` holds and the sums of their shapes (QUA-18), each read at
+/// `close`; `None` when git cannot list its files.
+fn spec_shape(repo: &Path, close: &str, paths: &BTreeSet<String>) -> Option<[u64; 5]> {
+    let held = git(
+        repo,
+        &["ls-tree", "-r", "-z", "--name-only", close, "specs/"],
+    )?;
+    let mut sums = [0; 5];
+    for path in held.split('\0').filter(|p| paths.contains(*p)) {
+        let bytes = transcripts::git_bytes(repo, &["show", &format!("{close}:{path}")])?;
+        let text = String::from_utf8_lossy(&bytes);
+        sums[0] += 1;
+        for (sum, measure) in sums[1..].iter_mut().zip(shape(repo, path, &text)) {
+            *sum += measure;
+        }
+    }
+    Some(sums)
+}
+
 /// The added and removed lines the commits `own` change in the specs and in the docs (QUA-14): the `.md` files of
 /// `specs/` but its README and template; the doc files of `docs`. Renames are detected, a binary file counts 0.
 /// `None` when git cannot show the diffs.
-fn doc_spec_lines(repo: &Path, own: &[&Commit], docs: &DocFiles) -> Option<(usize, usize)> {
+fn doc_spec_lines(
+    repo: &Path,
+    own: &[&Commit],
+    docs: &DocFiles,
+) -> Option<(usize, usize, BTreeSet<String>)> {
     let mut args = vec!["show", "-M", "--numstat", "-z", "--format=%x1e"];
     args.extend(own.iter().map(|c| c.hash.as_str()));
     let stats = git(repo, &args)?;
-    let (mut spec_lines, mut doc_lines) = (0, 0);
+    let (mut spec_lines, mut doc_lines, mut specs) = (0, 0, BTreeSet::new());
     // `-z`: `<added>\t<removed>\t<path>\0`, or for a rename `<added>\t<removed>\t\0<old>\0<new>\0`
     let mut fields = stats.split('\0');
     while let Some(field) = fields.next() {
@@ -491,11 +514,12 @@ fn doc_spec_lines(repo: &Path, own: &[&Commit], docs: &DocFiles) -> Option<(usiz
             && !matches!(path, "specs/README.md" | "specs/TEMPLATE.md");
         if spec {
             spec_lines += count;
+            specs.insert(path.to_string());
         } else if docs.is_doc(path) {
             doc_lines += count;
         }
     }
-    Some((spec_lines, doc_lines))
+    Some((spec_lines, doc_lines, specs))
 }
 
 /// The requirement ids recorded as seen failing in an issue file (QUA-11): the list that opens each `red:` item of
@@ -960,6 +984,9 @@ fn issue_row(
         .zip(red_ids(&text))
         .map(|(t, red)| t.difference(&red).count());
     let lines = doc_spec_lines(repo, &mine, docs);
+    let shapes = lines
+        .as_ref()
+        .and_then(|l| spec_shape(repo, &log[close].hash, &l.2));
     let (transcript, setup) = sessions.map(|s| session_cells(log, &own, &stem, s)).unzip();
     let mut cells = vec![
         revision(repo, &(log[first].date - Duration::seconds(1)).to_rfc3339()),
@@ -975,9 +1002,10 @@ fn issue_row(
         cell(reviews.map(|r| r.2)),
         cell(traced.map(|t| t.len())),
         cell(without_red),
-        cell(lines.map(|l| l.0)),
-        cell(lines.map(|l| l.1)),
+        cell(lines.as_ref().map(|l| l.0)),
+        cell(lines.as_ref().map(|l| l.1)),
     ];
+    cells.extend((0..5).map(|k| cell(shapes.map(|s| s[k]))));
     // the tokens of an issue no session holds are unknown, not 0 (QUA-15)
     let known = |k: usize| k < TOKENS || transcript.is_some_and(|t| t[0] > 0);
     cells.extend((0..7).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));

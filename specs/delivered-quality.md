@@ -1,6 +1,6 @@
 ---
 id: QUA
-status: accepted
+status: draft
 adrs: [0003, 0006, 0010]
 ---
 
@@ -15,7 +15,12 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 
 ## Requirements
 
-- **QUA-1** (deterministic) `delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` must print a header line then one tab-separated row per file of `issues/done/` in the work tree of `repo` (default the current directory), sorted by `closed`, with the columns `issue`, `revision`, `closed`, `deliverables`, `commits`, `fixes_in_issue`, `fixes_after`, `reverts_after`, `reviews`, `counted_reviews`, `review_findings`, `traced`, `traced_without_red`, `spec_lines`, `doc_lines`, `sessions`, `failed_checks`, `validations`, `other_messages`, `input_tokens`, `cache_read_tokens`, `output_tokens`; `issue` is the file stem. A `--window-days` that is not a whole number from 0 to 3650, or a `--projects` with no value, must be refused with an error and a non-zero exit.
+### Behaviour
+
+- **QUA-1** (deterministic) `delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` must print a header line then one tab-separated row per file of `issues/done/` in the work tree of `repo` (default the current directory), sorted by `closed`, with the columns `issue`, `revision`, `closed`, `deliverables`, `commits`, `fixes_in_issue`, `fixes_after`, `reverts_after`, `reviews`, `counted_reviews`, `review_findings`, `traced`, `traced_without_red`, `spec_lines`, `doc_lines`, `specs`, `spec_bytes`, `spec_requirements`, `spec_intent_chars`, `spec_happy_paths`, `sessions`, `failed_checks`, `validations`, `other_messages`, `input_tokens`, `cache_read_tokens`, `output_tokens`; `issue` is the file stem. A `--window-days` that is not a whole number from 0 to 3650, or a `--projects` with no value, must be refused with an error and a non-zero exit.
+
+### Contract
+
 - **QUA-2** (deterministic) The commits of an issue must be the non-merge commits of the default branch (as EVA-8 picks it) that touch `issues/<stem>.md` or `issues/done/<stem>.md`, from the oldest one whose version of that file holds a `# Tracking` heading outside a fenced code block (QUA-12) to the one that adds `issues/done/<stem>.md` (the close commit), both included, except the commits that add another `issues/done/*.md` file and not this one (they close another issue and only rewrite its citations); `commits` is their count and `closed` the author date of the close commit. An issue with no close commit on the default branch has no row.
 - **QUA-3** (deterministic) `deliverables` must count the lines of the `## Plan` section of the done issue file (when it has none, of the `# Tracking` section before its first sub-heading, the layout of the older issues) that start with a number, `.`, a space and `[x]` or `[ ]`, a section ending at the next line starting with `#` outside a fenced code block (QUA-12); `fixes_in_issue` the commits of the issue whose subject has the type `fix` or `revert` (the convention of the feature `conventional-commits`, FEA-20).
 - **QUA-4** (deterministic) The files of an issue must be the paths changed by its commits, except those under `issues/` or `docs/` and the lock (`.claude/cardinal.lock`, `.claude/harness.lock`); `fixes_after` must count the non-merge commits of the default branch that come after its close commit in the history and are authored at most `--window-days` days (default 30) after it, have the subject type `fix` and change a line a commit of the issue wrote: a line the fix removes or changes, or, for a hunk that only adds lines, the line right above it, outside `issues/`, `docs/` and the lock, that `git blame` of the fix's first parent attributes to a commit of the issue (renames followed, lines moved or copied from another file of the same commit included), a `fix` commit that changes the file of another issue (`issues/<stem>.md` or `issues/done/<stem>.md`) whose work is in progress at it (started at it or before, as QUA-2 starts it, and not closed before it) counting only when it starts the work of every such issue, so that a fix filing a new issue or citing a closed one counts and the fixes the review of a later issue makes to its own work are left out; `reverts_after` counts the commits after the close in the same window whose subject has the type `revert` or starts with `Revert "` and that change one of its files, or whose message cites `This reverts commit <hash>` of a commit of the issue.
@@ -32,6 +37,7 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - **QUA-15** (deterministic) An assistant message of a session of the issue, sub-agents included (EVA-3), counted once per `message.id` over the sessions of the issue (EVA-2; a resumed session repeats the messages of the one it resumes) at the timestamp of its first line, is an event of QUA-8; `input_tokens` must sum over these messages the `input_tokens`, `cache_read_input_tokens` and `cache_creation_input_tokens` of their `message.usage` (the input sum of REP-5), `cache_read_tokens` their `cache_read_input_tokens` and `output_tokens` their `output_tokens`, the top-level usage only: that of an advised message already adds up its executor iterations and holds none of the advisor's tokens (EVA-19); the three cells are empty, not 0, when the issue has no session (`sessions` 0: its transcripts are gone or its commits were made outside a session).
 - **QUA-16** (deterministic) The rows must give, right after `revision`, `setup`: the setup (REP-15) of each session of the issue (QUA-7), read from its transcript (the first `message.model` other than `<synthetic>` of its assistant messages, a line with a `message.id` and a `message.usage` as EVA-2 counts them, and the first `advisorModel` of its assistant lines, sub-agents included, in order of first appearance as EVA-6 and EVA-18 read them), when they are all the same, `mixed` when they differ, and empty when the issue has no session with a model or the projects directory cannot be read.
 - **QUA-17** (deterministic) With `--summary`, the rows must be one per `revision` and `setup` (QUA-16) of the issues, the column `setup` right after `revision`, sorted as QUA-9 sorts the revisions, then by setup name (the empty one first); each row sums the issues of its pair only.
+- **QUA-18** (deterministic) `specs` must count the specs of an issue, the `.md` files under `specs/` other than `specs/README.md` and `specs/TEMPLATE.md` that its commits change (renames detected, the new path counting) and that its close commit holds, and `spec_bytes`, `spec_requirements`, `spec_intent_chars` and `spec_happy_paths` the sums over them, each read from its version at the close commit, of the measures `check-specs` takes: its bytes, its requirements that are neither withdrawn nor happy paths (CLR-15), the characters of its Intent (CLR-15) and its happy paths (TRC-17); the five are empty when the diffs or the files of the issue cannot be read.
 
 ## Scenarios
 
@@ -40,6 +46,9 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
   reverts its files got after it was delivered.
 - **QUA-H2** (happy; QUA-9) Given the same repository, when the user runs `delivered-quality --summary`, then it
   prints one row per revision summing the numbers of its issues.
+- **QUA-H3** (happy; QUA-18) Given an issue that wrote a spec and amended another, when the user runs
+  `delivered-quality`, then its row gives the size, the requirements, the Intent length and the happy paths of these
+  two specs as they stood when the issue closed.
 
 - (QUA-2) Given an issue opened in a `docs` commit, then three commits of its deliverables, then another issue closed by a commit that rewrites a citation in its file, then its own close commit, when the row is printed, then `commits` is 4.
 - (QUA-4) Given an issue closed on day 0 that wrote a line of `src/a.rs`, when a `fix` commit changes that line on day 10 and another fix changes it again on day 40, then `fixes_after` is 1 with the default window.
@@ -75,6 +84,11 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - (QUA-15) Given an issue whose one session holds an assistant message split over two lines with the same `message.id` and a usage of 10 input, 1,000 cache read, 200 cache creation and 50 output tokens, a sub-agent message of 5 input and 7 output tokens, and a message after the issue's last commit, when the row is printed, then `input_tokens` is 1215, `cache_read_tokens` 1000 and `output_tokens` 57.
 - (QUA-9) Given a revision of two issues, one whose session spent 1,000 input tokens and one closed outside any session, when the summary is printed, then its `input_tokens` is 1000 and its `token_issues` 1.
 - (QUA-16) Given an issue made in two sessions of `claude-sonnet-5-5` with an Opus advisor set, then a third of `claude-opus-5-5` with none, when the row is printed, then its `setup` is `mixed`.
+- (QUA-18) Given an issue whose commits change `specs/a.md` (3 requirements, one of them withdrawn, a happy path, an
+  Intent of 120 characters, 2,000 bytes at the close), `specs/README.md`, and add then delete `specs/b.md`, when the
+  row is printed, then `specs` is 1, `spec_requirements` 2, `spec_happy_paths` 1, `spec_intent_chars` 120 and
+  `spec_bytes` 2000; a later commit growing `specs/a.md` changes none of them.
+- (QUA-18) Given an issue that changes no spec, when the row is printed, then `specs` and the four measures are 0.
 
 ## Non-goals
 
@@ -83,4 +97,6 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - The commits not yet on the default branch (as EVA-8 picks it, `origin/HEAD` first): an issue closed locally and not pushed has no row yet.
 - Archiving the rows: the git columns can be recomputed at any time; the transcript columns follow the retention of the transcripts.
 - The tokens of an issue that never reaches `issues/done/` (abandoned, or not closed yet), and those of a session that made no commit of the issue (a plan stopped before its first deliverable, a session that only answered questions): QUA-7 finds the sessions through the commits.
+- The share of contract details in a spec, or of the scenarios that end in a refusal: they need keywords, not a
+  parser; the specs an issue left unchanged: the shape measures what the issue wrote.
 - The advisor's tokens: `cardinal-report` gives them per session (REP-11).

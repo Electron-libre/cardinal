@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -818,6 +818,106 @@ fn lines_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
+/// The spec `ABC` with `intent` as its Intent, three requirements (the third withdrawn) and one happy path.
+fn shaped_spec(intent: &str) -> String {
+    format!(
+        "---\nid: ABC\nstatus: draft\nadrs: []\n---\n\n# Abc\n\n## Intent\n\n{intent}\n\n## Requirements\n\n### Behaviour\n\n- **ABC-1** (deterministic) The tool must print a row.\n\n### Contract\n\n- **ABC-2** (deterministic) The tool must exit 2 on an unknown option.\n- **ABC-3** (deterministic) withdrawn: moved to XYZ-1.\n\n## Scenarios\n\n- **ABC-H1** (happy; ABC-1) Given a repository, when the user runs the tool, then it prints a row.\n- (ABC-2) Given `--x`, when the tool runs, then it exits 2.\n\n## Non-goals\n\n- Anything else.\n"
+    )
+}
+
+/// A repository where `lambda` writes `specs/a.md`, touches `specs/README.md` and adds then deletes `specs/b.md`,
+/// `mu` changes no spec, and a commit after both closed grows `specs/a.md`; returns it and the bytes of `specs/a.md`
+/// at the close of `lambda`.
+fn shape_fixture(tmp: &Path) -> (PathBuf, usize) {
+    let repo = tmp.join("proj");
+    std::fs::create_dir_all(&repo).unwrap();
+    sh(&repo, &["init", "-q", "-b", "main"]);
+    commit_at(
+        &repo,
+        "2026-01-01T00:00:00Z",
+        "chore: sync",
+        &[(".claude/harness.toml", Some(&toml("r1")))],
+    );
+    let lambda = "# lambda\n\n# Tracking\n\n## Plan\n1. [x] one\n";
+    let draft = shaped_spec("A first Intent.");
+    let spec = shaped_spec(&"x".repeat(120));
+    commit_at(
+        &repo,
+        "2026-01-02T00:00:00Z",
+        "docs: draft the spec",
+        &[
+            ("issues/lambda.md", Some(lambda)),
+            ("specs/a.md", Some(&draft)),
+            ("specs/README.md", Some("# Specs\n")),
+            ("specs/b.md", Some(&shaped_spec("Gone."))),
+        ],
+    );
+    commit_at(
+        &repo,
+        "2026-01-03T00:00:00Z",
+        "feat(files): lambda",
+        &[
+            ("issues/lambda.md", Some(lambda)),
+            ("specs/a.md", Some(&spec)),
+            ("specs/b.md", None),
+            ("src/l.rs", Some("l")),
+        ],
+    );
+    commit_at(
+        &repo,
+        "2026-01-04T00:00:00Z",
+        "docs: close lambda",
+        &[
+            ("issues/lambda.md", None),
+            ("issues/done/lambda.md", Some(lambda)),
+        ],
+    );
+    let mu = "# mu\n\n# Tracking\n\n## Plan\n1. [x] one\n";
+    commit_at(
+        &repo,
+        "2026-01-05T00:00:00Z",
+        "feat(files): mu",
+        &[("issues/mu.md", Some(mu)), ("src/m.rs", Some("m"))],
+    );
+    commit_at(
+        &repo,
+        "2026-01-06T00:00:00Z",
+        "docs: close mu",
+        &[("issues/mu.md", None), ("issues/done/mu.md", Some(mu))],
+    );
+    commit_at(
+        &repo,
+        "2026-01-07T00:00:00Z",
+        "docs: grow the spec",
+        &[("specs/a.md", Some(&format!("{spec}\nMore.\n")))],
+    );
+    (repo, spec.len())
+}
+
+// spec: QUA-18, QUA-H3
+fn shape_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let (repo, bytes) = shape_fixture(&tmp.join("shape"));
+    let (ok, out) = run(dir, &repo, &[]);
+    let r = rows(&out);
+    let bytes = bytes.to_string();
+    vec![
+        (
+            "the specs an issue changes and its close holds are measured as they stood at its close".to_string(),
+            ok && has(&r, "lambda", "specs", "1")
+                && has(&r, "lambda", "spec_bytes", &bytes)
+                && has(&r, "lambda", "spec_requirements", "2")
+                && has(&r, "lambda", "spec_intent_chars", "120")
+                && has(&r, "lambda", "spec_happy_paths", "1"),
+        ),
+        (
+            "an issue that changes no spec measures 0".to_string(),
+            ["specs", "spec_bytes", "spec_requirements", "spec_intent_chars", "spec_happy_paths"]
+                .iter()
+                .all(|c| has(&r, "mu", c, "0")),
+        ),
+    ]
+}
+
 /// A transcript line of `kind` in `cwd` at `ts`, with `fields` merged in.
 fn line(kind: &str, cwd: &Path, ts: &str, fields: &serde_json::Value) -> String {
     let mut line = serde_json::json!({"type": kind, "cwd": cwd, "timestamp": ts, "sessionId": "x", "gitBranch": "main"});
@@ -1200,10 +1300,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
-        "r1\t\t1\t2\t3\t1\t2\t3\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
-        "r2\t\t2\t3\t2\t0\t0\t0\t3\t2\t4\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
-        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
+        "r1\t\t1\t2\t3\t1\t2\t3\t3\t3\t7\t0\t0\t0\t1\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "r2\t\t2\t3\t2\t0\t0\t0\t3\t2\t4\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {
@@ -1446,6 +1546,7 @@ fn delivered_quality() {
         .chain(traced_checks(&dir, &tmp))
         .chain(traced_marker_checks(&dir, &tmp))
         .chain(lines_checks(&dir, &tmp))
+        .chain(shape_checks(&dir, &tmp))
         .chain(session_checks(&dir, &tmp))
         .chain(claim_checks(&dir, &tmp))
         .chain(summary_checks(&dir, &tmp))

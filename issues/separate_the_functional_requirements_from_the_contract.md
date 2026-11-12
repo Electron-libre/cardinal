@@ -54,9 +54,9 @@ Decide the shape of a spec in ADR 0029: `## Requirements` split into `### Behavi
 ## Plan
 1. [x] Behaviour warning: ADR 0029 draft, `specs/spec-clarity.md` reshaped and amended, `check-specs` warns of a spec
    with no `### Behaviour`; verified by tests of `check_specs`; makes true CLR-11, CLR-12 (spec `accepted`). (autonomous)
-2. [ ] Format: `files/specs/README.md` (Requirements: the two subsections, the contract table), `files/specs/TEMPLATE.md`,
+2. [x] Format: `files/specs/README.md` (Requirements: the two subsections, the contract table), `files/specs/TEMPLATE.md`,
    `skill:write-spec` (draft, content checklist, bootstrap), `just sync`, ADR 0029 `Accepted`; verified by
-   `just check-cardinal` and `check-specs` on the template.
+   `just check-cardinal` and `check-specs` on the template. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -76,6 +76,27 @@ ones in one line; `specs/spec-clarity.md` takes the shape (CLR-11, CLR-12, `acce
 | code review | see below |
 
 red: CLR-11, CLR-12, CLR-H1: `FAIL - a draft with its requirements flat is warned of`, `FAIL - the accepted specs with no behaviour are warned of in one line`
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+done: `specs/README.md` states the two subsections of `## Requirements` and the contract table, `TEMPLATE.md` has
+them, `skill:write-spec` drafts, checks and bootstraps to them; ADR 0029 `Accepted`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `update-docs` over `677c569..`: no other page describes the spec format |
+| drift | `just check-cardinal` pass |
+| code review | see below |
+
+red: none (docs only)
 
 Code review: no findings
 

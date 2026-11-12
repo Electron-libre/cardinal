@@ -18,10 +18,13 @@ mechanical rules. Don't implement anything here: the tests come after the user v
 2. **Draft** (new spec: copy `specs/TEMPLATE.md`; pick a free three-letter id with `grep -h '^id:' specs/*.md`):
    * Intent in one or two sentences.
    * One requirement per testable obligation, "must" / "must not", each `(deterministic)`: a test that needs
-     no network or external service proves it.
+     no network or external service proves it. Under `### Behaviour` first, the few that say what the user can do
+     and see, in the terms of the product; under `### Contract`, the formats, codes, limits and refusals, a table
+     after a requirement when a list of fields or codes would take one requirement each.
    * Scenarios: first one to three happy paths, the main flows when all goes well, in the terms of the user of
      the capability, each naming the requirements it walks through; then the edge cases a statement leaves open.
      Non-goals for what the spec refuses to require. Link ADRs by number in the front matter, never repeat their reasoning.
+   * Amending a spec written before the two subsections: move its requirements under them, ids unchanged.
    * Amending: a new requirement takes the next number; a dropped one keeps its number and its statement
      starts with `withdrawn:`; never renumber an `accepted` spec, tests and issues cite the ids. The spec goes
      back to `draft` while it is amended, and to `accepted` once its new requirements are traced.
@@ -30,6 +33,7 @@ mechanical rules. Don't implement anything here: the tests come after the user v
    * Status `draft` while it is being written. English only, no confidential test repository named.
 3. **Check the content** before showing it:
    * each requirement is observable from outside (an exit code, an output, a file), not a property of the code;
+   * a reader who reads only `### Behaviour` knows what the user gets, with no code span needed to follow it;
    * a reader who reads only the happy paths knows what the capability does for its user;
    * each boundary a requirement draws (a limit, an empty input, an error) has a scenario;
    * the non-goals cover what a reader would assume the capability does.
@@ -56,7 +60,7 @@ from an intended change; it runs the procedure above with these differences:
    the user picks the capability (or names one).
 2. **Read** the code of the capability and every test that drives it.
 3. **State only what a test already proves**: one requirement per obligation a test checks, worded from the
-   behaviour the test asserts; a happy path per main flow an existing test drives end to end (none drives one: say
+   behaviour the test asserts, sorted into `### Behaviour` and `### Contract`; a happy path per main flow an existing test drives end to end (none drives one: say
    so and file it with the follow-ups of step 4). A spec read back from the code states what the code does, bugs included: say so in
    step 5, the user validates it like any spec and decides whether a bug becomes a requirement or an issue.
 4. **Untested behaviour is not a requirement**: list it, then file it as a follow-up issue (`skill:create-issue`)

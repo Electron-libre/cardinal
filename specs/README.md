@@ -22,11 +22,24 @@ adrs: [0005]       # ADR numbers that justify the spec
 
 ## Intent
 ## Requirements
+### Behaviour
+### Contract
 ## Scenarios
 ## Non-goals
 ```
 
 ### Requirements
+
+`## Requirements` holds two subsections, in this order:
+
+* `### Behaviour`: a few requirements in the terms of the product, what the user can do and see, so a reader knows what
+  the capability does before any format or code.
+* `### Contract`: the formats, the codes, the limits and the refusals. A contract requirement may cite a table that
+  follows it after a blank line (one row per field, limit or code); the tests of its rows each cite that requirement.
+
+Both are traced and share one numbering. A spec written before this shape takes it at its next amendment: its
+requirements move under the two headings, their ids unchanged. `check-specs` warns of a spec with no `### Behaviour`,
+never fails on it.
 
 One list item per requirement (every top-level item under `## Requirements`, outside a fenced block or an HTML comment, is one), `- **<ID>-<n>** (deterministic) <statement>`. The statement holds exactly one "must" or "must
 not" (two obligations are two requirements) and none of the vague words `should`, `may`, `etc.`, `appropriate`, `fast`; text in a code span or in double quotes is not checked. A statement may wrap onto the lines that follow its item, up to the end of its paragraph as CommonMark reads it (a blank line, an item, a heading, a fenced block, a quote, an HTML block or a thematic break ends it). The ids are stable once the spec is `accepted`: tests and issues cite them; a dropped requirement keeps
@@ -89,8 +102,8 @@ The order is therefore: write the spec (`draft`), get it validated, write the te
 `cardinal run check-specs` (part of `cardinal run project-check`) fails when: the format is wrong (a happy path
 included: its form, the requirements of the spec it names, its place before the other scenarios), an id is
 duplicated, a test cites an unknown id, an `accepted` spec has a requirement or a happy path no test cites, or an
-`accepted` spec still holds a `[NEEDS CLARIFICATION: ...]` marker. It warns of a spec with no happy path: each
-`draft` one, and the `accepted` ones in one line. On a `draft` it only warns (stderr): each marker with its question, and each
+`accepted` spec still holds a `[NEEDS CLARIFICATION: ...]` marker. It warns of a spec with no happy path, and of one
+with no `### Behaviour` under `## Requirements`: each `draft` one, and the `accepted` ones in one line. On a `draft` it only warns (stderr): each marker with its question, and each
 requirement with a vague word or not exactly one "must". On any spec it warns of the requirements proven only by tests under `src` with no reason given, and fails on a citation whose reason is blank. `cardinal run check-specs --strict` (for the repository that ships managed tests; consumers stay lenient) also flags the citations of managed tests whose spec the project lacks. The checker is `cardinal run check-specs`, tested by
 the tests of the Cardinal source. `skill:write-spec` writes and validates a spec.
 

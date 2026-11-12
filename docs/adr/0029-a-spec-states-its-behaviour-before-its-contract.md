@@ -1,6 +1,6 @@
 # 0029. A spec states its behaviour before its contract
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-12
 
 ## Context

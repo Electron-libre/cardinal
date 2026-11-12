@@ -75,9 +75,9 @@ text (old transcripts included) rather than a longer refusal message.
 ## Plan
 1. [x] Name `read-hint` refusals: `hook_name` maps the reason of `read-hint` to `read_hint`, the reason built by one
    function both use; verified by a test on that reason and on an old transcript line; makes true EVA-5 (autonomous)
-2. [ ] Count the findings per review line: `counted_reviews` in `delivered-quality` (rows and summary),
+2. [x] Count the findings per review line: `counted_reviews` in `delivered-quality` (rows and summary),
    `findings_per_review` and VRD-12 read it; verified by tests of a free-text line beside counted ones; makes true
-   QUA-1, QUA-6, QUA-12, REP-6, VRD-12.
+   QUA-1, QUA-6, QUA-12, REP-6, VRD-12. (autonomous)
 3. [ ] Tie a session to its issues: the stems of `cardinal run issue-claim` / `close-issue` calls join `issues`;
    verified by a synthetic transcript on `main` and on a branch; makes true EVA-6, EVA-21.
 4. [ ] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
@@ -96,3 +96,10 @@ text (old transcripts included) rather than a longer refusal message.
 - red: EVA-5: `left: "unknown=3"`, `right: "read_hint=2;unknown=1"`.
 - Code review: no findings
 - not verified: the counts of the archived sessions, regenerated at the next `session-metrics`.
+
+## Deliverable 2
+- done: `delivered-quality` gives `counted_reviews` after `reviews`; a review line with no count no longer blanks
+  `review_findings`; `findings_per_review` and its floor (VRD-12) read `counted_reviews`.
+- red: QUA-1, QUA-6, QUA-12, REP-6, VRD-12: the header of `delivered-quality` lacked `counted_reviews` (every check
+  of the summaries refused), and `beta` gave an empty `review_findings` instead of 2.
+- Code review: no findings (the summary row of the new column, outside the diff, is proven by the QUA-9 test).

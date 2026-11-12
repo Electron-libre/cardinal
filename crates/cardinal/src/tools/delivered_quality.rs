@@ -22,8 +22,8 @@ use transcripts::{
     revision, sessions, sorted_entries, subagents, typed_text, Place,
 };
 
-pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
-const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
+const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
 const UNRELATED_PREFIXES: &[&str] = &["issues/", "docs/"];
@@ -215,14 +215,13 @@ fn deliverables(text: &str) -> Option<usize> {
     Some(plan.into_iter().filter(is_item).count())
 }
 
-/// The reviews recorded in the `# Tracking` section of an issue file and the sum of their findings (QUA-6): a line
-/// holding `Code review` is one review, unless it is a row of the `check | result` table, its findings the `<n>` of its first `<n> finding(s)` (0 for `no findings`),
-/// since what follows may count the fixed ones; `None` for the sum when a line gives no count, and for both when the
-/// section is unread (QUA-12).
-fn reviews(text: &str) -> (Option<usize>, Option<usize>) {
-    let Some(tracking) = readable(text, "# Tracking", |l| l.starts_with("# ")) else {
-        return (None, None);
-    };
+/// The reviews recorded in the `# Tracking` section of an issue file, those that give their findings and the sum of
+/// these (QUA-6): a line holding `Code review` is one review, unless it is a row of the `check | result` table, its
+/// findings the `<n>` of its first `<n> finding(s)` (0 for `no findings`), since what follows may count the fixed
+/// ones; a line that gives no count is a review of unknown findings, left out of the sum; `None` for the three when
+/// the section is unread (QUA-12).
+fn reviews(text: &str) -> Option<(usize, usize, usize)> {
+    let tracking = readable(text, "# Tracking", |l| l.starts_with("# "))?;
     let lines: Vec<String> = tracking
         .iter()
         .filter(|l| !l.trim_start().starts_with('|'))
@@ -245,10 +244,8 @@ fn reviews(text: &str) -> (Option<usize>, Option<usize>) {
                 }
             })
     });
-    let sum = counts
-        .collect::<Option<Vec<usize>>>()
-        .map(|c| c.iter().sum());
-    (Some(lines.len()), sum)
+    let counted: Vec<usize> = counts.flatten().collect();
+    Some((lines.len(), counted.len(), counted.iter().sum()))
 }
 
 /// The requirement ids of a `// spec: A-1, B-2` list, read as `check-specs` reads them.
@@ -875,7 +872,7 @@ fn issue_row(
         .iter()
         .filter(|c| matches!(c.kind(), "fix" | "revert"))
         .count();
-    let (review_count, findings) = reviews(&text);
+    let reviews = reviews(&text);
     let traced = traced(repo, &mine);
     let without_red = traced
         .as_ref()
@@ -892,8 +889,9 @@ fn issue_row(
         fixes_in.to_string(),
         fixes_after.to_string(),
         reverts_after.to_string(),
-        cell(review_count),
-        cell(findings),
+        cell(reviews.map(|r| r.0)),
+        cell(reviews.map(|r| r.1)),
+        cell(reviews.map(|r| r.2)),
         cell(traced.map(|t| t.len())),
         cell(without_red),
         cell(lines.map(|l| l.0)),

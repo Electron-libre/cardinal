@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -334,11 +334,12 @@ fn review_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ),
         (
             "the findings of the reviews are summed".to_string(),
-            has(&r, "alpha", "review_findings", "7"),
+            has(&r, "alpha", "counted_reviews", "3") && has(&r, "alpha", "review_findings", "7"),
         ),
         (
-            "a review whose findings are not counted leaves the sum empty".to_string(),
-            has(&r, "beta", "review_findings", ""),
+            "a review whose findings are not counted is left out of the sum, not blanking it"
+                .to_string(),
+            has(&r, "beta", "counted_reviews", "1") && has(&r, "beta", "review_findings", "2"),
         ),
     ]
 }
@@ -385,6 +386,7 @@ fn fence_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
                 .to_string(),
             has(&r, "delta", "deliverables", "2")
                 && has(&r, "delta", "reviews", "1")
+                && has(&r, "delta", "counted_reviews", "1")
                 && has(&r, "delta", "review_findings", "2"),
         ),
         (
@@ -494,6 +496,7 @@ fn unread_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             [
                 "deliverables",
                 "reviews",
+                "counted_reviews",
                 "review_findings",
                 "traced_without_red",
             ]
@@ -506,6 +509,7 @@ fn unread_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
             [
                 "deliverables",
                 "reviews",
+                "counted_reviews",
                 "review_findings",
                 "traced_without_red",
             ]
@@ -1146,10 +1150,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
-        "r1\t\t1\t2\t3\t1\t2\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
-        "r2\t\t2\t3\t2\t0\t0\t0\t3\t\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
-        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
+        "r1\t\t1\t2\t3\t1\t2\t3\t3\t3\t7\t0\t0\t0\t1\t\t\t\t\t0\t0\t0\t0",
+        "r2\t\t2\t3\t2\t0\t0\t0\t3\t2\t4\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {

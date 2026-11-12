@@ -481,9 +481,9 @@ const QUALITY_RATIOS: [QualityRatio; 5] = [
     QualityRatio {
         metric: "findings_per_review",
         numerator: "review_findings",
-        divisor: "reviews",
+        divisor: "counted_reviews",
         divide: ratio,
-        floored: &["issues", "reviews"],
+        floored: &["issues", "counted_reviews"],
     },
     QualityRatio {
         metric: "doc_lines_per_spec_line",
@@ -521,6 +521,7 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         "fixes_after",
         "reverts_after",
         "reviews",
+        "counted_reviews",
         "review_findings",
         "traced",
         "traced_without_red",
@@ -715,7 +716,7 @@ struct Floors {
 }
 
 /// Whether group `g` holds fewer values of `metric` than its floor: sessions with a value (VRD-9, VRD-10), as only
-/// `main_context_peak` and the advisor columns can be missing from a session row, or issues (and reviews) in the
+/// `main_context_peak` and the advisor columns can be missing from a session row, or issues (and counted reviews) in the
 /// quality table for one of its ratios (VRD-11, VRD-12).
 fn too_few_values(
     tables: &[Table],

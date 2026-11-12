@@ -35,7 +35,8 @@ rules brought.
    - A `too few` group supports no conclusion; say how many sessions it lacks. The same holds for a
      `main_context_peak` whose `peak_sessions` is under the threshold, and for the advisor calls and tokens whose
      `advisor_sessions` is, and for a ratio of the quality table whose `issues` (`token_issues` for the tokens; and
-     `reviews` too for `findings_per_review`) is under `--min-issues`.
+     `counted_reviews`, the reviews whose findings are known, too for `findings_per_review`) is under
+     `--min-issues`.
    - Read `input_tokens` with `cache_read_share`: a cache read costs about a tenth of an uncached input, so input
      that grows while the share rises may cost less, and a share that falls points to a prompt prefix that changes.
    - A skill `unused` over the last groups may be dropped or described better; a hook whose refusals grow, or a

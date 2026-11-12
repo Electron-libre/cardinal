@@ -410,7 +410,7 @@ fn native_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     out
 }
 
-// spec: REV-9, REV-10
+// spec: REV-9, REV-10, REV-H1
 /// The hook as git runs it: installed as `pre-commit`, it refuses a real commit nobody reviewed and lets the reviewed one through.
 fn native_hook_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     use std::os::unix::fs::PermissionsExt;

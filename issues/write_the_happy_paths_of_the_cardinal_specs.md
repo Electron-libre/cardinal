@@ -47,8 +47,8 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
 1. [x] Sync and its tools: happy paths of `sync`, `features`, `tool-binaries`, `release`, `roadmap`; verified by
    `cardinal run check-specs` (cited, CLR-10 no longer names them); makes true TRC-17, TRC-23 for these specs.
    (autonomous)
-2. [ ] Hooks: `format-hook`, `lint-gate`, `read-hint`, `language-hint`, `workspace-lock`, `review-gate`,
-   `commit-check`, `rule-breaches`; verified the same way.
+2. [x] Hooks: `format-hook`, `lint-gate`, `read-hint`, `language-hint`, `workspace-lock`, `review-gate`,
+   `commit-check`, `rule-breaches`; verified the same way. (autonomous)
 3. [ ] Issue queue and deliverable tools: `check-issue`, `close-issue`, `issue-claim`, `next-issue`,
    `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way.
 4. [ ] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
@@ -65,4 +65,12 @@ only when none does. No requirement changes; the "no behaviour" and "outgrows" w
 - red: SYN-H1, SYN-H2, SYN-H3, FEA-H1, FEA-H2, BIN-H1, BIN-H2, REL-H1, RMP-H1: `check-specs` fails each happy path of
   an `accepted` spec that no test cites (TRC-23) until the citations are added.
 - checks: project-check, check-specs (CLR-10: 27 -> 22 specs), docs n/a (scenarios only).
+- Code review: no findings
+
+## Deliverable 2
+- done: FMT-H1, CLG-H1, RDH-H1..H2, LNG-H1..H2, WSL-H1, REV-H1, CMC-H1, BRE-H1..H2; one new test in
+  `workspace_lock.rs` (WSL-H1: start, refusal, release, take over), the others cite the existing end-to-end tests.
+- red: FMT-H1, CLG-H1, RDH-H1, RDH-H2, LNG-H1, LNG-H2, WSL-H1, REV-H1, CMC-H1, BRE-H1, BRE-H2: `check-specs` fails each
+  uncited happy path of an `accepted` spec (TRC-23) until the citations are added.
+- checks: project-check, check-specs (CLR-10: 22 -> 14 specs), docs n/a (scenarios only).
 - Code review: no findings

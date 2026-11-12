@@ -20,6 +20,10 @@ that the agent and the user check a message with `cardinal` alone, with no recip
 
 ## Scenarios
 
+- **CMC-H1** (happy; CMC-1, CMC-2) Given a message the agent is about to commit, when it pipes it to
+  `cardinal run commit-check`, then the tool checks it; given a commit already made, when it runs
+  `cardinal run commit-check HEAD`, then the tool checks the message of that commit.
+
 - (CMC-2) Given a commit whose subject is `Added the parser.`, when the agent runs `cardinal run commit-check HEAD`,
   then the tool reports the subject and exits 1.
 - (CMC-3) Given `cardinal run commit-check nosuchrev`, then it exits 2 and names the revision.

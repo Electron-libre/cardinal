@@ -40,6 +40,10 @@ mistakes of a cooperative agent, not deliberate bypasses (ADR 0005).
 
 ## Scenarios
 
+- **REV-H1** (happy; REV-9, REV-10) Given a change the agent ran `/code-review` on, when it commits, then git runs the
+  native hook and the commit goes through; given a change made after that review, the commit is refused with the
+  instruction to run `/code-review low` on the diff.
+
 - (REV-9) Given a commit whose repository the command text does not name readably, when that repository holds an unreviewed change, then the native hook refuses it, since git resolved the repository.
 - (REV-9) Given a modified file nobody reviewed, when only an issue file is staged and committed (`git add issues/x.md` then `git commit`, or `git commit -- issues/x.md`), then the native hook lets it through; `git commit -a` is still refused.
 - (REV-20) Given `issues/foo.md` moved to `issues/done/foo.md` by `close-issue` and `ROADMAP.md` rewritten by it, when both are staged and committed with no review, then the native hook lets the commit through; with `ROADMAP.md` also setting `done` the milestone whose last open issue was `foo` (CLS-8), it passes too; with `ROADMAP.md` setting `done` a milestone that still lists an open issue or that does not list `foo`, or one rewritten link next to an edited word, it is refused.

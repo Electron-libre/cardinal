@@ -309,6 +309,23 @@ fn a_holder_with_a_working_claim_keeps_the_lock_in_a_clean_worktree() {
     assert!(lock(&r.main).contains("session b\n"));
 }
 
+// spec: WSL-H1
+#[test]
+fn a_busy_worktree_refuses_another_session_until_its_holder_ends() {
+    let r = repo();
+    let other = Other::new();
+    let (code, _, _) = hook("start", &r.main, "a", &other.pid());
+    assert_eq!(code, Some(0));
+    dirty(&r.main);
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(2), "{err}");
+    assert!(err.contains("(a)"), "{err}");
+    hook("release", &r.main, "a", &other.pid());
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
+}
+
 // spec: WSL-6
 #[test]
 fn release_deletes_only_its_own_lock() {

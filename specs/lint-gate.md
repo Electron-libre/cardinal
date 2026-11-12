@@ -26,6 +26,10 @@ problems in few lines.
 
 ## Scenarios
 
+- **CLG-H1** (happy; CLG-7, CLG-8, CLG-4, CLG-5) Given a project that declares its lint command, when the agent ends a
+  turn with a change the lint refuses, then the turn is blocked with the lint's report; once the agent fixed it, the
+  turn ends, and a later turn with no new change ends without running the lint.
+
 - (CLG-4) Given a passing run, when the agent ends another turn having edited only Markdown files, then the lint does not run.
 - (CLG-5) Given a failing run, when the agent ends the next turn without touching the code, then the lint runs again and reports the same problems.
 - (CLG-5) Given a passing run, when the agent commits the changes, then the next end of turn with a dirty matching file runs the lint (the `HEAD` changed).

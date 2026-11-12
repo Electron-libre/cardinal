@@ -304,8 +304,7 @@ fn commit_check_reads_the_scopes_of_the_repository_root() {
     }
 }
 
-// spec: CMC-1
-// spec: CMC-2
+// spec: CMC-1, CMC-2, CMC-H1
 #[test]
 fn commit_check_reads_the_message_of_a_revision_else_stdin() {
     let repo = project(Some("[project]\n"));

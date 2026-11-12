@@ -80,7 +80,7 @@ fn log(project: &Path) -> String {
 
 const TS: &str = "format_command = \"sh fmt.sh\"\nformat_files = [\"*.ts\"]";
 
-// spec: FMT-1, FMT-3, FMT-4
+// spec: FMT-1, FMT-3, FMT-4, FMT-H1
 #[test]
 fn a_declared_format_runs_on_the_edited_file_from_the_root_silently() {
     let root = project(TS);

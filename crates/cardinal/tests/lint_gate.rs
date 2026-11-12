@@ -172,7 +172,7 @@ fn a_failing_lint_is_reported_in_at_most_40_lines() {
     assert_eq!((lines.len(), lines[1], lines[2]), (32, "out 1", "err 1"));
 }
 
-// spec: CLG-4, CLG-5
+// spec: CLG-4, CLG-5, CLG-H1
 #[test]
 fn a_passing_lint_is_stamped_until_the_files_or_the_command_change() {
     let root = project(TS);

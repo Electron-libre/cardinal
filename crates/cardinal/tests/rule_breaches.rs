@@ -399,7 +399,7 @@ fn sorted(mut v: Vec<String>) -> Vec<String> {
     v
 }
 
-// spec: BRE-1, BRE-2, BRE-4, BRE-5, BRE-6, BRE-7, BRE-8, BRE-11
+// spec: BRE-1, BRE-2, BRE-4, BRE-5, BRE-6, BRE-7, BRE-8, BRE-11, BRE-H1
 fn finding_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (projects, expected) = fixture(tmp);
     let (ok, out) = run(dir, &projects, false);
@@ -434,7 +434,7 @@ fn finding_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     checks
 }
 
-// spec: BRE-3
+// spec: BRE-3, BRE-H2
 fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (projects, _) = fixture(&tmp.join("summary"));
     let (ok, out) = run(dir, &projects, true);

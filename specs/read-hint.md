@@ -29,6 +29,11 @@ hold, and those of `oversized-result-review` (BRE-22) fall.
 
 ## Scenarios
 
+- **RDH-H1** (happy; RDH-1, RDH-3, RDH-7) Given a large file, when the agent reads it whole, then the read is sent
+  back once with its size and the range options; when the agent repeats it, it goes through.
+- **RDH-H2** (happy; RDH-8, RDH-9) Given an output Claude Code saved because it was too large, when the agent reads
+  it whole, then the read is sent back, every time, with the line ranges of the parts to read instead.
+
 - (RDH-1) Given a file of 300 lines of 100 bytes, when the agent reads it with no `offset` nor `limit`, then the call
   is denied with a reason naming 32100 bytes (RDH-7), `offset`, `limit` and `Grep`; (RDH-3) when it repeats the call, it goes through.
 - (RDH-2) Given a file whose estimate is at most 25,000 bytes, one of 300 lines read with `limit` 200, a minified

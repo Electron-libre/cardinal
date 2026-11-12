@@ -20,6 +20,10 @@ project's format command, `cargo fmt` when the project declares none, so the age
 
 ## Scenarios
 
+- **FMT-H1** (happy; FMT-1, FMT-3, FMT-4) Given a project that declares its format command and the files it formats,
+  when the agent edits one of those files, then the command formats it from the root of the work tree and the agent
+  sees nothing.
+
 - (FMT-1) Given a Rust project with no `format_command`, when the agent edits a `.rs` file, then `cargo fmt --all` runs from the directory of that file (PAR-12).
 - (FMT-3) Given `format_command = "npx prettier --write"` and `format_files = ["*.ts"]`, when the agent edits `src/a.ts`, then `npx prettier --write <path of src/a.ts>` runs from the root of the work tree.
 - (FMT-2) Given the same project, when the agent edits `README.md`, then nothing runs.

@@ -30,6 +30,11 @@ what a breach is.
 
 ## Scenarios
 
+- **LNG-H1** (happy; LNG-3, LNG-4, LNG-5) Given a project whose `user_language` is French, when the agent ends a turn
+  on a reply in English, then the hook sends it back with one line asking to give the reply again in French.
+- **LNG-H2** (happy; LNG-4, LNG-6) Given the same project, when the agent ends a turn on a reply in French, a short
+  reply or one made of code, then the turn ends.
+
 - (LNG-5) Given `user_language = "French"` and a last reply of 30 English words, when the agent stops, then the hook
   exits 2 with the hint; when the agent stops again (`stop_hook_active`), it exits 0 (LNG-1).
 - (LNG-6) Given `user_language = "French"` and a reply made of a fenced Rust block and one French sentence of eight

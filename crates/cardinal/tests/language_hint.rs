@@ -63,7 +63,7 @@ fn silent_pass(run: &Run) -> bool {
     run.code == Some(0) && run.stderr.is_empty() && run.stdout.is_empty()
 }
 
-// spec: LNG-5
+// spec: LNG-5, LNG-H1
 #[test]
 fn a_reply_in_the_other_language_gets_one_line_naming_the_language() {
     let dir = tempdir().unwrap();
@@ -95,7 +95,7 @@ fn the_hook_lets_go_once_it_sent_the_agent_back() {
     assert!(silent_pass(&hook(dir.path(), &event)));
 }
 
-// spec: LNG-4, LNG-6
+// spec: LNG-4, LNG-6, LNG-H2
 #[test]
 fn code_short_replies_and_replies_in_the_language_pass() {
     let dir = tempdir().unwrap();

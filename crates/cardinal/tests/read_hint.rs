@@ -60,7 +60,7 @@ fn denied(run: &Run) -> String {
         .to_string()
 }
 
-// spec: RDH-1, RDH-3, RDH-7
+// spec: RDH-1, RDH-3, RDH-7, RDH-H1
 #[test]
 fn a_whole_read_of_a_large_file_is_sent_back_once() {
     let dir = tempdir().unwrap();
@@ -213,7 +213,7 @@ fn saved_dir(dir: &Path) -> PathBuf {
     saved
 }
 
-// spec: RDH-8, RDH-9
+// spec: RDH-8, RDH-9, RDH-H2
 #[test]
 fn a_saved_result_is_sent_back_every_time_with_its_parts() {
     let dir = tempdir().unwrap();

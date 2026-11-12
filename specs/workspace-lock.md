@@ -32,6 +32,10 @@ gates it catches the mistakes of cooperative agents, not deliberate bypasses (AD
 
 ## Scenarios
 
+- **WSL-H1** (happy; WSL-5, WSL-3, WSL-6, WSL-1) Given a worktree where session `a` started and has work in progress,
+  when session `b` of another process calls a tool there, then the call is refused naming `a`; once `a` ends, the
+  next call of `b` goes through and `b` holds the lock.
+
 - (WSL-1) Given a lock naming session `a` and a process that no longer runs, when session `b` calls `Edit`, then the call passes and the lock names `b`.
 - (WSL-3) Given a lock naming session `a` whose process runs, when session `b` of another process calls `Bash`, then the call is refused and the lock still names `a`.
 - (WSL-10) Given a lock naming session `a` whose process runs, a clean worktree and no claim of `a`, when session `b`

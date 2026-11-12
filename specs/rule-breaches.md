@@ -43,6 +43,12 @@ tool gets a verdict on the waste it removes.
 
 ## Scenarios
 
+- **BRE-H1** (happy; BRE-1, BRE-2, BRE-4, BRE-5, BRE-11) Given the transcripts of sessions where the agent broke rules
+  of Cardinal, when the user runs `rule-breaches`, then it prints one row per finding naming the session, the
+  project, the revision and the rule, and no text of the conversation.
+- **BRE-H2** (happy; BRE-3) Given the same transcripts, when the user runs `rule-breaches --summary`, then it prints
+  per rule and revision how many sessions the rule applied to and how many broke it.
+
 - (BRE-5) Given a refused commit, then a `/code-review` call, then a commit that passes, when the session is read, then there is one `blocked` finding and no `breach`.
 - (BRE-5) Given a refused commit, then a commit that passes with nothing in between, when the session is read, then there is one `blocked` finding and one `breach`.
 - (BRE-4) Given the command `echo "a << b"` then, on the next line, a commit with `--no-verify`, when the session is read, then the flag is found: a `<<` inside quotes starts no here-document.

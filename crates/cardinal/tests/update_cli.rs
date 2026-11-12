@@ -48,7 +48,7 @@ fn updated_to_v1(home: &Home) -> (TempDir, String, TempDir) {
     (repo, first, root)
 }
 
-// spec: SYN-11, SYN-16
+// spec: SYN-11, SYN-16, SYN-H3
 #[test]
 fn update_pins_the_resolved_commit_then_syncs_and_reports_both_revisions() {
     let home = Home::new();

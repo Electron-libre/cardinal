@@ -51,7 +51,7 @@ const ROADMAP: &str = "# Roadmap\n\n## Next\n\n- State: in issues\n- Issues:\n  
 const DONE: &str =
     "# Done\n\n## Old\n\n- State: done\n- Released: v1.0.0\n- Issues:\n  - [z](issues/done/z.md)\n";
 
-// spec: RMP-1, RMP-2, RMP-3
+// spec: RMP-1, RMP-2, RMP-3, RMP-H1
 #[test]
 fn prints_one_row_per_milestone_in_order() {
     let root = project(&[

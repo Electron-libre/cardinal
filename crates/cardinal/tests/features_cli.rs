@@ -58,7 +58,7 @@ fn stop_commands(root: &TempDir) -> Vec<String> {
         .collect()
 }
 
-// spec: FEA-1, FEA-2, FEA-3
+// spec: FEA-1, FEA-2, FEA-3, FEA-H1
 #[test]
 fn sync_removes_the_files_and_entries_of_a_feature_turned_off() {
     let home = Home::new();
@@ -77,7 +77,7 @@ fn sync_removes_the_files_and_entries_of_a_feature_turned_off() {
     );
 }
 
-// spec: FEA-3
+// spec: FEA-3, FEA-H2
 #[test]
 fn sync_adds_back_a_feature_turned_on_again() {
     let home = Home::new();

@@ -31,6 +31,11 @@ reads in the changelog what changed since its last pin.
 
 ## Scenarios
 
+- **REL-H1** (happy; REL-1, REL-4, REL-6, REL-7, REL-8) Given a project with a version tag and a `feat` commit since
+  it, when the user runs `release`, then it proposes the next minor version; when they run `release <version>`,
+  then the changelog gets the section of that version and nothing is committed; once they commit it and run
+  `release <version> --tag`, then the annotated tag is created locally and nothing is pushed.
+
 - (REL-1) Given the tag `v0.2.0` and since it the commits `fix: a` and `feat(x): b`, when `release` runs, then it prints `0.3.0`.
 - (REL-1) Given the tag `v1.4.2` and since it only `docs: a` and `fix: b`, when `release` runs, then it prints `1.4.3`.
 - (REL-2) Given `release_breaking_files = ["cardinal-format"]` and since the tag `v0.2.0` a commit `feat: raise the format` that changes `cardinal-format`, when `release` runs, then it prints `1.0.0` and `release 0.3.0` is refused.

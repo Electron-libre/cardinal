@@ -256,7 +256,7 @@ fn runs_the_version_command_of_the_project_with_the_version() {
     );
 }
 
-// spec: REL-6, REL-7, REL-8
+// spec: REL-6, REL-7, REL-8, REL-H1
 #[test]
 fn prepares_then_tags_locally_and_never_pushes() {
     let dir = repo();
@@ -270,6 +270,7 @@ fn prepares_then_tags_locally_and_never_pushes() {
     tag(dir.path(), "v0.2.0");
     commit(dir.path(), "feat: add a flag", "a.txt");
     let head = git(dir.path(), &["rev-parse", "HEAD"]);
+    assert_eq!(proposed(dir.path()), "0.3.0");
 
     let out = release(dir.path(), &["0.3.0"]);
     assert!(out.status.success(), "{out:?}");

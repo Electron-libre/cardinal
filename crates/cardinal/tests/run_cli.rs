@@ -227,7 +227,7 @@ fn a_rev_that_is_no_hash_resolves_in_the_clone_sync_left_without_fetching() {
     assert_eq!(ran(&run), l.cached(&commit), "{run:?}");
 }
 
-// spec: BIN-3, BIN-4
+// spec: BIN-3, BIN-4, BIN-H1
 #[test]
 fn a_missing_binary_is_downloaded_with_its_digest_and_installed_whole() {
     let l = Launcher::new();
@@ -421,7 +421,7 @@ fn cargo_build(l: &Launcher, built: Option<&Path>) {
     l.home.program("cargo", &body);
 }
 
-// spec: BIN-6
+// spec: BIN-6, BIN-H2
 #[test]
 fn a_local_source_runs_the_crate_it_builds() {
     let l = Launcher::new();

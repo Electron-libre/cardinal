@@ -33,3 +33,36 @@ Specs that read as a product
 
 # Hints
 * A happy path added to an `accepted` spec must be cited in the same commit: `check-specs` fails an uncited one.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-12
+
+## Understanding
+Open the Scenarios of the 27 accepted specs without one with one to three happy paths in the terms of their user,
+each cited (`// spec: <ID>-H<n>`) by the existing test of `crates/cardinal/tests/` that drives the flow, a new one
+only when none does. No requirement changes; the "no behaviour" and "outgrows" warnings stay out of scope.
+
+## Plan
+1. [x] Sync and its tools: happy paths of `sync`, `features`, `tool-binaries`, `release`, `roadmap`; verified by
+   `cardinal run check-specs` (cited, CLR-10 no longer names them); makes true TRC-17, TRC-23 for these specs.
+   (autonomous)
+2. [ ] Hooks: `format-hook`, `lint-gate`, `read-hint`, `language-hint`, `workspace-lock`, `review-gate`,
+   `commit-check`, `rule-breaches`; verified the same way.
+3. [ ] Issue queue and deliverable tools: `check-issue`, `close-issue`, `issue-claim`, `next-issue`,
+   `parallel-issues`, `deliverable-size`, `review-target`, `project-check`; verified the same way.
+4. [ ] Measures: `cardinal-report`, `cardinal-verdicts`, `delivered-quality`, `evaluation`, `instruction-audit`,
+   `spec-coverage`; verified by `just check` with no CLR-10 warning left.
+
+## Decisions
+- Mode: autonomous
+- Base commit: ed5b2227fca22432d430b532c63baa57c78fa3af
+- A flow no existing test drives end to end gets a new end-to-end test through the binary, not the nearest partial test.
+
+## Deliverable 1
+- done: SYN-H1..H3, FEA-H1..H2, BIN-H1..H2, REL-H1, RMP-H1; two new tests in `sync_cli.rs` (SYN-H1, SYN-H2), the
+  others cite the existing end-to-end tests (`release.rs` also asserts the proposed version, REL-1).
+- red: SYN-H1, SYN-H2, SYN-H3, FEA-H1, FEA-H2, BIN-H1, BIN-H2, REL-H1, RMP-H1: `check-specs` fails each happy path of
+  an `accepted` spec that no test cites (TRC-23) until the citations are added.
+- checks: project-check, check-specs (CLR-10: 27 -> 22 specs), docs n/a (scenarios only).
+- Code review: no findings

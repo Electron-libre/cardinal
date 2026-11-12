@@ -22,6 +22,10 @@ the user and the agent need not read every section of the roadmap. It reads the 
 
 ## Scenarios
 
+- **RMP-H1** (happy; RMP-1, RMP-2, RMP-3) Given the `roadmap` documents of a project holding milestones that list
+  their issues, when the user runs `roadmap`, then it prints one row per milestone in the order of the documents,
+  with its state and how many of its issues are still open.
+
 - (RMP-1) Given `roadmap = ["ROADMAP.md", "ROADMAP-done.md"]`, `ROADMAP.md` holding `Next` (`in issues`) and `ROADMAP-done.md` holding `Old` (`done`, released `v1.0.0`), when `roadmap` runs, then it prints the row of `Next` before the row of `Old`, the latter reading `v1.0.0` and `ROADMAP-done.md`.
 - (RMP-2) Given milestone `Next` listing `issues/done/a.md` (existing), `issues/b.md`, `https://example.com/c.md` and `docs/d.md`, then `issues/b.md#goal` again, when `roadmap` runs, then its `issues` cell reads `1/2 open`.
 - (RMP-1) Given milestone `Next` whose line `- State: shaped <!-- see` is followed by the item `- Issues:` listing `issues/a.md`, and a later heading `## Later`, when `roadmap` runs, then the rows of `Next` and `Later` are printed and the `issues` cell of `Next` reads `1/1 open`.

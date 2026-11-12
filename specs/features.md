@@ -56,6 +56,12 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 
 ## Scenarios
 
+- **FEA-H1** (happy; FEA-1, FEA-2, FEA-3) Given a project synced with every feature of the source on, when it adds a
+  feature to `disabled` and runs `sync`, then the files and settings entries of that feature are removed and the
+  others stay.
+- **FEA-H2** (happy; FEA-3) Given a project that turned a feature off, when it removes it from `disabled` and runs
+  `sync`, then the files and entries of the feature come back.
+
 - (FEA-3) Given a project synced with every feature on, when it adds `no-ai-attribution` to `disabled` and runs `sync`, then the files of the feature are reported `removed` and are gone, and the lock no longer records them.
 - (FEA-3) Given a project that edited a file of a feature, when it turns the feature off and runs `sync`, then the file is reported `kept` and stays as the project wrote it.
 - (FEA-3) Given a project that turned a feature off, when it removes the name from `disabled` and runs `sync`, then the files and entries of the feature are added back.

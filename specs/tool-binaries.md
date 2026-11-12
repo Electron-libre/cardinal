@@ -39,6 +39,12 @@ from before the rename keep that name (BIN-3, BIN-5).
 
 ## Scenarios
 
+- **BIN-H1** (happy; BIN-1, BIN-2, BIN-3, BIN-4) Given a project pinned to a commit of a GitHub source whose binary
+  is not cached, when a hook runs `cardinal run <tool>`, then the binary of that commit is downloaded, checked
+  against its digest, cached and run, and the next run uses the cached one without a download.
+- **BIN-H2** (happy; BIN-1, BIN-6) Given a project whose source is a local directory, when a hook runs
+  `cardinal run <tool>`, then the `cardinal` crate of that directory is built and the fresh build runs the tool.
+
 - (BIN-2) Given a project pinned to commit C whose binary is cached, when a hook runs `cardinal run review-gate check`
   with no network, then the cached binary runs and its exit code is the hook's.
 - (BIN-10) Given a published digest that does not match the downloaded asset, when `sync` fetches it, then `sync` fails

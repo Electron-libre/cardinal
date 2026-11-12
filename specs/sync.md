@@ -78,6 +78,15 @@ without merging by hand, and learns at once when a managed file drifted from it.
 
 ## Scenarios
 
+- **SYN-H1** (happy; SYN-9, SYN-1, SYN-4, SYN-8, SYN-6) Given a new project, when the user runs `init` with the
+  source then `sync`, then every managed file is copied, every seed is written once, `check` reports nothing and a
+  second `sync` reports nothing and changes nothing.
+- **SYN-H2** (happy; SYN-8, SYN-2, SYN-3) Given a synced project whose user edited a managed file, when `check` runs,
+  then it names that file; when the source then changes and `sync` runs, then it updates the untouched files, keeps
+  the edited one as a conflict and fails.
+- **SYN-H3** (happy; SYN-11, SYN-12, SYN-16) Given a project on a git source, when the user runs `update`, then its
+  `rev` moves to the head of the source, the project is synced to it, and the report names the previous revision,
+  the new one and the files changed.
 
 - (SYN-3) Given a project whose file was never synced but differs from the source, when `sync` runs, then it is a conflict: the file is not ours yet.
 - (SYN-6) Given a project whose file already equals the source but is not in the lock, when `sync` runs, then it is locked and reported as unchanged.

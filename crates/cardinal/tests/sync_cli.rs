@@ -21,6 +21,46 @@ fn sync_copies_every_managed_file_to_the_same_path() {
     assert_eq!(run.outcome("sub/b.txt"), Some("added"));
 }
 
+// spec: SYN-H1
+#[test]
+fn init_then_sync_brings_the_harness_and_a_second_sync_changes_nothing() {
+    let home = Home::new();
+    let source = source();
+    put(source.path(), "files/a.txt", "a1");
+    put(source.path(), "seed/s.txt", "seed1");
+    let root = tempdir().unwrap();
+    home.ok(root.path(), &["init", source.path().to_str().unwrap()]);
+    let run = home.ok(root.path(), &["sync"]);
+    assert_eq!(run.outcome("a.txt"), Some("added"), "{run:?}");
+    assert_eq!(run.outcome("s.txt"), Some("seeded"), "{run:?}");
+    assert_eq!(get(root.path(), "a.txt").as_deref(), Some("a1"));
+    assert_eq!(get(root.path(), "s.txt").as_deref(), Some("seed1"));
+    assert_eq!(home.ok(root.path(), &["check"]).stdout, "");
+    let before = snapshot(root.path());
+    assert_eq!(home.ok(root.path(), &["sync"]).stdout, "");
+    assert_eq!(snapshot(root.path()), before);
+}
+
+// spec: SYN-H2
+#[test]
+fn a_local_edit_is_named_by_check_and_kept_by_the_next_sync() {
+    let home = Home::new();
+    let (source, root) = project(&home);
+    home.ok(root.path(), &["sync"]);
+    put(root.path(), "a.txt", "local");
+    let run = home.harness(root.path(), &["check"]);
+    assert_eq!(run.code, Some(1), "{run:?}");
+    assert_eq!(run.lines(), ["modified: a.txt"]);
+    put(source.path(), "files/a.txt", "a2");
+    put(source.path(), "files/sub/b.txt", "b2");
+    let run = home.harness(root.path(), &["sync"]);
+    assert_eq!(run.code, Some(1), "{run:?}");
+    assert_eq!(run.outcome("a.txt"), Some("conflict"), "{run:?}");
+    assert_eq!(run.outcome("sub/b.txt"), Some("updated"), "{run:?}");
+    assert_eq!(get(root.path(), "a.txt").as_deref(), Some("local"));
+    assert_eq!(get(root.path(), "sub/b.txt").as_deref(), Some("b2"));
+}
+
 // spec: SYN-2
 #[test]
 fn sync_overwrites_an_untouched_file_when_the_source_changed() {

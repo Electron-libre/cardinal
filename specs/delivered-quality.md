@@ -1,6 +1,6 @@
 ---
 id: QUA
-status: draft
+status: accepted
 adrs: [0003, 0006, 0010]
 ---
 
@@ -52,7 +52,7 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - (QUA-2) Given an issue opened in a commit whose Goal quotes `# Tracking` in a fence, then a commit adding its `# Tracking` section, a commit of its deliverable and its close commit, when the row is printed, then `commits` is 3.
 - (QUA-12) Given an issue file whose fence opened in the Goal is left open before its `# Tracking` section, when the row is printed, then `deliverables`, `reviews`, `counted_reviews`, `review_findings` and `traced_without_red` are empty; given an issue file with no `# Tracking` nor `## Plan` heading, then `deliverables` and `reviews` are 0.
 - (QUA-12) Given an issue file whose Goal holds a line ```` ```sh```` indented by four spaces and no closing fence, when the row is printed, then its `# Tracking` section is read: `deliverables` and `reviews` are not empty.
-- (QUA-12) Given an issue file whose Goal quotes `# Tracking` in a backtick fence and whose `# Tracking` holds, in an indented `~~~` fence, a line `# build` followed by `Code review: 2 findings` after the fence, when the row is printed, then `reviews` is 1 and `review_findings` 2.
+- (QUA-12) Given an issue file whose Goal quotes `# Tracking` in a backtick fence and whose `# Tracking` holds, in an indented `~~~` fence, a line `# build` followed by `Code review: 2 findings` after the fence, when the row is printed, then `reviews` is 1, `counted_reviews` 1 and `review_findings` 2.
 - (QUA-13) Given an issue whose commits add `# spec: ABC-1` to `tests/test_a.py` and `# spec: ABC-2` inside a string
   of `src/lib.rs`, with `spec_files = ["*.rs", "test_*.py"]`, when the row is printed, then `traced` is 1; a `# spec:
   ABC-3` added to `ci.yml` or `scripts/gen.py` does not count.

@@ -482,6 +482,12 @@ fn project_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (other_ok, other) = with(&["--project", "bare"]);
     let (_, other_summary) = with(&["--project", "bare", "--summary"]);
     let (refused, _) = with(&["--project"]);
+    let (flag_refused, _) = with(&["--project", "--summary"]);
+    let unknown = tool_command(dir.join("rule_breaches.rs"))
+        .arg(&projects)
+        .args(["--project", "nope"])
+        .output()
+        .unwrap();
     vec![
         (
             "--project keeps the sessions of that project in the summary".to_string(),
@@ -492,7 +498,14 @@ fn project_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
                 .to_string(),
             other_ok && other.trim() == COLUMNS && other_summary.trim() == SUMMARY,
         ),
-        ("--project with no value is refused".to_string(), !refused),
+        (
+            "--project with no value, or an option as its value, is refused".to_string(),
+            !refused && !flag_refused,
+        ),
+        (
+            "--project naming no project of the sessions warns".to_string(),
+            unknown.status.success() && String::from_utf8_lossy(&unknown.stderr).contains("nope"),
+        ),
     ]
 }
 

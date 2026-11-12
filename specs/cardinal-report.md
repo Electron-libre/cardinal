@@ -1,6 +1,6 @@
 ---
 id: REP
-status: draft
+status: accepted
 adrs: [0002, 0006, 0010]
 ---
 
@@ -33,7 +33,7 @@ it. It reports trends, never a pass or a fail.
 - **REP-15** (deterministic) The setup of a session must be the first model of its `models` (EVA-6, the model of its first assistant message) other than `<synthetic>` (the line Claude Code writes for a failed request), followed by ` solo` when its `advisor_models` (EVA-18) is empty or starts with that model (a model never advises itself), else by ` advised by ` and the first model of its `advisor_models`; a session whose `models` is empty has no setup and is left out of every table under `--by setup`.
 - **REP-16** (deterministic) With `--by setup`, the efficiency table must give, right after `versions`, `revisions`: the revisions of the group's sessions as `models` gives the models (`name=n`, written as REP-4 names them); the quality table sums the rows of the quality summaries of a non-empty revision whose `setup` (QUA-17) is the group's name, its columns unchanged (a `mixed` row, the issues made under several setups, belongs to no group); the skills table leaves out `unused`; and the rules table, the fixed context table and the verdicts, whose inputs are kept per revision, are not printed (their files still read and checked as REP-3 says).
 - **REP-17** (deterministic) `cardinal-report` must accept `--last <n>`, a whole number from 1 to 1000, and refuse any other value, or none, with an error and a non-zero exit, as it refuses with `--by setup` (its groups have no order in time). With it, each table prints only the rows of the last `n` groups of REP-4 (all of them when there are fewer); the groups are still cut over every revision and the verdicts (VRD-5) still read every group, so a change before the last `n` groups keeps its verdict.
-- **REP-18** (deterministic) `cardinal-report` must accept `--project <name>` and refuse it with no value as REP-3 refuses an option with none. With it, every table and the verdicts read only the sessions whose `project` (EVA-7) is `<name>` and the `fixed-context` rows of that project, the groups of REP-4 being cut over those sessions alone, so a verdict compares two groups of one project; the summaries of `--breaches` and `--quality` are read as given, the caller giving those of that project (BRE-23, the `delivered-quality` of its repository).
+- **REP-18** (deterministic) `cardinal-report` must accept `--project <name>` and refuse it with no value, or a value starting with `-`, as REP-3 refuses an option with none, and warn on stderr naming `<name>` when no session has that project. With it, every table and the verdicts read only the sessions whose `project` (EVA-7) is `<name>` and the `fixed-context` rows of that project, the groups of REP-4 being cut over those sessions alone, so a verdict compares two groups of one project; the summaries of `--breaches` and `--quality` are read as given, the caller giving those of that project (BRE-23, the `delivered-quality` of its repository).
 
 ## Scenarios
 

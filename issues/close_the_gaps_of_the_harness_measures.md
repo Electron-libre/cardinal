@@ -83,7 +83,7 @@ text (old transcripts included) rather than a longer refusal message.
 4. [x] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
    `skill:evaluate-harness` runs the report per project; verified by a report of two projects; makes true REP-18,
    BRE-23. (autonomous)
-5. [ ] Docs of the whole issue and fixes of its `high` review.
+5. [x] Docs of the whole issue and fixes of its `high` review. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -117,3 +117,19 @@ text (old transcripts included) rather than a longer refusal message.
 - red: REP-18: `--project keeps the sessions of that project only` and `--project keeps the fixed context rows`
   failed (unknown argument); BRE-23: both `--project` checks failed (unknown option).
 - Code review: no findings
+
+## Deliverable 5
+- done: the specs back to `accepted`; fixes of the `high` review: a claim names the issue over the branch (EVA-6), a
+  claim counts only at the start of a command and `just close-issue` too (EVA-21), `--project` refuses an option as
+  its value and warns when no session matches (REP-18, BRE-23), `rule-breaches` leaves the other projects before
+  their checks, the VRD-12 and QUA-12 scenarios name `counted_reviews`.
+- red: EVA-6, EVA-21: `left: "a,b,d,i,j"`, `right: "a,b,d,h"`; REP-18: the option value and warning checks failed.
+- High review: 10 findings. Fixed: 2 (branch and claim counted twice), 3 (`just close-issue`), 4 (a quoted call),
+  5 (an option as value, no warning), 6 (filter before the checks), 9 and 10 (scenarios). Not fixed: 7 (REP-18 has
+  the caller give the summaries of the project, which the skill does: they carry no project column), 8 (the test of
+  EVA-5 runs the real reason of `read-hint` through `session-metrics`, so a rewording fails it). Outside the
+  requirements: 1 (`delivered-quality` prefers a session by its branch only), now
+  [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).
+- Code review: no findings
+
+Done: every deliverable committed; left: [tie_an_issue_to_the_session_that_claimed_it](tie_an_issue_to_the_session_that_claimed_it.md).

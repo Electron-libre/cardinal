@@ -1439,6 +1439,8 @@ fn project_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     let (all_ok, all, _) = report(&[]);
     let all = tables(&all);
     let (refused, _, error) = report(&["--project"]);
+    let (flag_refused, _, _) = report(&["--project", "--anonymous"]);
+    let (unknown_ok, _, warning) = report(&["--project", "nope"]);
     vec![
         (
             "--project keeps the sessions of that project only, its groups cut over them",
@@ -1453,8 +1455,12 @@ fn project_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
                 && cell(all.get("Fixed context"), "r-b", "total_bytes") == "500",
         ),
         (
-            "--project with no value is refused",
-            !refused && error.contains("--project"),
+            "--project with no value, or an option as its value, is refused",
+            !refused && error.contains("--project") && !flag_refused,
+        ),
+        (
+            "--project naming no project of the sessions warns",
+            unknown_ok && warning.contains("nope"),
         ),
     ]
 }

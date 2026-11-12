@@ -884,7 +884,8 @@ fn options(args: &[String]) -> Result<Options, String> {
             "--anonymous" => options.anonymous = true,
             "--last" => options.last = Some(floor(&mut args, &arg)?),
             "--project" => {
-                options.project = Some(args.next().ok_or("--project needs a project name")?);
+                let name = args.next().filter(|n| !n.starts_with('-'));
+                options.project = Some(name.ok_or("--project needs a project name")?);
             }
             other => return Err(format!("unknown argument {other}")),
         }
@@ -916,6 +917,9 @@ pub(super) fn main(args: &[String]) -> u8 {
         .ok_or("--sessions is required".to_string())
         .and_then(|f| read(f, SESSIONS))
         .map_or_else(|e| fail(e), of_project);
+    if let Some(project) = options.project.as_ref().filter(|_| sessions.is_empty()) {
+        eprintln!("warning: no session of project {project}");
+    }
     let breaches = options
         .breaches
         .as_deref()

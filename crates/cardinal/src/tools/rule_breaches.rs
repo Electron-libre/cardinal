@@ -793,9 +793,9 @@ fn check_commits(repo: &Path, records: &mut [&mut Record]) {
     }
 }
 
-/// The record of the session of the transcript `path` (and its subagents), `None` outside a git repository or with no
-/// revision.
-fn record(path: &Path) -> Option<Record> {
+/// The record of the session of the transcript `path` (and its subagents), `None` outside a git repository, with no
+/// revision, or of another project than `only` when it is given.
+fn record(path: &Path, only: Option<&str>) -> Option<Record> {
     let mut place = Place::default();
     let id = path.file_stem().unwrap().to_string_lossy().into_owned();
     let main_name = path.file_name().unwrap().to_string_lossy().into_owned();
@@ -818,6 +818,11 @@ fn record(path: &Path) -> Option<Record> {
         return None;
     };
     let repo = repository(&cwd, &place.issues)?;
+    let project = project_name(&cwd, Some(&repo));
+    // the sessions of another project than the one asked for are left before their costly checks (BRE-23)
+    if only.is_some_and(|name| name != project) {
+        return None;
+    }
     let revision = revision(&repo, &start_text);
     if revision.is_empty() {
         return None;
@@ -852,7 +857,6 @@ fn record(path: &Path) -> Option<Record> {
     for (t, main, waste) in &transcripts {
         verdict.check(t, &context, *main, waste);
     }
-    let project = project_name(&cwd, Some(&repo));
     Some(Record {
         id,
         project,
@@ -873,7 +877,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         match arg.as_str() {
             "--summary" => summary = true,
             "--project" => {
-                let Some(name) = args.next() else {
+                let Some(name) = args.next().filter(|n| !n.starts_with('-')) else {
                     eprintln!("--project needs a project name\n{USAGE}");
                     std::process::exit(2);
                 };
@@ -899,11 +903,11 @@ pub(super) fn main(args: &[String]) -> u8 {
             sessions(&project)
                 .iter()
                 .map(PathBuf::as_path)
-                .filter_map(record),
+                .filter_map(|path| record(path, only.as_deref())),
         );
     }
-    if let Some(name) = &only {
-        records.retain(|r| r.project == *name);
+    if let Some(name) = only.as_ref().filter(|_| records.is_empty()) {
+        eprintln!("warning: no session of project {name}");
     }
     let repos: BTreeSet<PathBuf> = records.iter().map(|r| r.repo.clone()).collect();
     for repo in repos {

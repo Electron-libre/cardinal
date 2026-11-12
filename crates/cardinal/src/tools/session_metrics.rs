@@ -253,13 +253,14 @@ impl Session {
         }
     }
 
-    /// The branches of the session other than the default ones, then the issues it claims or closes (EVA-6).
-    fn issues(&self) -> Vec<String> {
-        let mut issues = self.place.issues.clone();
-        for stem in &self.claimed {
-            push_distinct(&mut issues, Some(stem));
+    /// The issues the session claims or closes, else its branches other than the default ones (EVA-6): a claim names
+    /// the issue, and a branch named otherwise would count it twice.
+    fn issues(&self) -> &[String] {
+        if self.claimed.is_empty() {
+            &self.place.issues
+        } else {
+            &self.claimed
         }
-        issues
     }
 
     fn row(&self, id: &str, project: &str, revision: &str) -> String {

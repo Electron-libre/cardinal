@@ -1086,11 +1086,17 @@ fn a_session_is_tied_to_the_issues_it_claims_or_closes() {
         "echo cardinal run issue-claim; grep x issues/e.md",
         "cardinal run next-issue issues/f.md",
         "cardinal run issue-claim docs/g.md",
+        "just close-issue issues/h.md",
+        "git commit -m 'then cardinal run close-issue issues/i.md'",
+        "git commit -F - <<EOF\nfix: x\n\nthen cardinal run close-issue issues/j.md moves it\nEOF",
     ];
     let on_main = [running("main", "m1", &claims)];
-    assert_eq!(cell_of(&on_main, "issues"), "a,b,d");
+    assert_eq!(cell_of(&on_main, "issues"), "a,b,d,h");
+    // a claim names the issue, whatever the branch is called; with none, the branch does
     let on_branch = [running("z", "m1", &claims[..1])];
-    assert_eq!(cell_of(&on_branch, "issues"), "z,a");
+    assert_eq!(cell_of(&on_branch, "issues"), "a");
+    let unclaimed = [running("z", "m1", &claims[5..6])];
+    assert_eq!(cell_of(&unclaimed, "issues"), "z");
     // a sidechain line is the work of a sub-agent, not of the session
     let mut sidechain = running("main", "m2", &claims[..1]);
     sidechain["isSidechain"] = serde_json::json!(true);

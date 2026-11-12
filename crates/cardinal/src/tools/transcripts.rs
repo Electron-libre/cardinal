@@ -192,19 +192,23 @@ pub fn push_distinct(list: &mut Vec<String>, value: Option<&str>) {
     }
 }
 
-/// The stems of the issues a shell command claims or closes (EVA-21): the arguments of each `cardinal run issue-claim`
-/// or `cardinal run close-issue` up to the end of its line or the next `;`, `&` or `|`, whose path ends with
-/// `issues/<stem>.md` or `issues/done/<stem>.md`.
+/// The stems of the issues a shell command claims or closes (EVA-21): the arguments of each `cardinal run issue-claim`,
+/// `cardinal run close-issue` or `just close-issue` that starts a line or follows a `;`, `&` or `|`, up to the end of
+/// its line or the next of these, whose path ends with `issues/<stem>.md` or `issues/done/<stem>.md`; a call quoted in
+/// a message or an `echo` is no claim.
 pub fn claimed_issues(command: &str) -> Vec<String> {
+    const CALLS: [&[&str]; 3] = [
+        &["cardinal", "run", "issue-claim"],
+        &["cardinal", "run", "close-issue"],
+        &["just", "close-issue"],
+    ];
     let mut stems = Vec::new();
     for segment in command.split(['\n', ';', '&', '|']) {
         let words: Vec<&str> = segment.split_whitespace().collect();
-        let Some(at) = words.windows(3).position(|w| {
-            w[0] == "cardinal" && w[1] == "run" && matches!(w[2], "issue-claim" | "close-issue")
-        }) else {
+        let Some(call) = CALLS.iter().find(|call| words.starts_with(call)) else {
             continue;
         };
-        for word in &words[at + 3..] {
+        for word in &words[call.len()..] {
             push_distinct(&mut stems, issue_stem(word.trim_matches(['\'', '"'])));
         }
     }

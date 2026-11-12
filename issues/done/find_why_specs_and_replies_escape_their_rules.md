@@ -41,7 +41,7 @@ Measures
 * `.claude/skills/evaluate-harness/SKILL.md`, `.claude/skills/audit-instructions/SKILL.md`,
   `files/.claude/skills/write-spec/SKILL.md`, `files/.claude/skills/issue-workflow/SKILL.md`,
   `files/.claude/rules/user-language.md`,
-  [measure_the_effect_of_the_language_hint](done/measure_the_effect_of_the_language_hint.md).
+  [measure_the_effect_of_the_language_hint](measure_the_effect_of_the_language_hint.md).
 
 # Tracking
 

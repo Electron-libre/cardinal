@@ -32,7 +32,7 @@ the change that should have caused it, or says it cannot.
 - **VRD-11** (deterministic) For the metric `fixes_after_per_issue`, a group whose `issues` (REP-6) is fewer than `--min-issues`, and for the metrics `input_tokens_per_issue` and `output_tokens_per_issue`, a group whose `token_issues` (REP-6) is fewer than `--min-issues`, must count as `too few` in VRD-6, the before group included, as VRD-9 does for `main_context_peak`; the verdict is then `confounded`, or `no data` when the value is missing.
 - **VRD-12** (deterministic) For the metrics `findings_per_review` and `doc_lines_per_spec_line`, a group whose `issues` (REP-6) is fewer than `--min-issues`, and for `findings_per_review` also a group whose `counted_reviews` (REP-6) is fewer than `--min-issues`, must count as `too few` in VRD-6, the before group included, as VRD-11 does for the per-issue metrics; the verdict is then `confounded`, or `no data` when the value is missing.
 - **VRD-13** (deterministic) The metric `bytes_per_session:<rule>`, `<rule>` a waste rule of `rule-breaches` (BRE-20), must be accepted as a metric of VRD-1 by `commit-check` and `cardinal-changes`, and its values (VRD-5) be the cells `bytes_per_session` (REP-13) of the rule's row in the rules table.
-- **VRD-14** (deterministic) For the metrics of REP-19, a group whose `specs` (QUA-18) is fewer than `--min-issues` must count as `too few` in VRD-6, the before group included, as VRD-11 does for the per-issue metrics; the verdict is then `confounded`, or `no data` when the value is missing.
+- **VRD-14** (deterministic) For the metrics of REP-19, a group whose `issues` (REP-6) or whose `specs` (QUA-18) is fewer than `--min-issues` must count as `too few` in VRD-6, the before group included, as VRD-11 does for the per-issue metrics; the verdict is then `confounded`, or `no data` when the value is missing.
 - **VRD-7** (deterministic) The output of `cardinal-changes` and of the `## Verdicts` table must hold no text of a commit message other than the metric and the direction of its expectations.
 - **VRD-8** (deterministic) `cardinal-changes` must refuse with an error and a non-zero exit a missing `--sessions`, a sessions file whose header is not the one of EVA-1, an unknown option, or a `repo` that is not a git repository.
 
@@ -59,7 +59,8 @@ the change that should have caused it, or says it cannot.
 - (VRD-2) Given a message with `Expected-effect: speed up`, when it is checked, then `commit-check` refuses it.
 - (VRD-13) Given groups `a` and `b` of 10 sessions each with the same mix, the change held by every revision of `b` and none of `a`, `oversized-result` with `bytes_per_session` 30000 in `a` and 12000 in `b`, when the expectation is `bytes_per_session:oversized-result down`, then `verdict` is `helped`, whatever its `breached_share`.
 - (VRD-14) Given groups `a` and `b` of 10 sessions each with the same mix, `a` measuring 3 `specs` and `b` 8, when
-  the expectation is `happy_paths_per_spec up`, then `verdict` is `confounded`, whatever the two ratios.
+  the expectation is `happy_paths_per_spec up`, then `verdict` is `confounded`, whatever the two ratios; so it is
+  when `a` measures 8 `specs` of 2 issues.
 - (VRD-1) Given a commit of `files/` with `Expected-effect: doc_lines_per_spec_line up`, when it is checked, then `commit-check` accepts it.
 
 ## Non-goals

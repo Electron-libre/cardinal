@@ -513,28 +513,28 @@ const QUALITY_RATIOS: [QualityRatio; 9] = [
         numerator: "spec_bytes",
         divisor: "specs",
         divide: per_unit,
-        floored: &["specs"],
+        floored: &["issues", "specs"],
     },
     QualityRatio {
         metric: "intent_chars_per_spec",
         numerator: "spec_intent_chars",
         divisor: "specs",
         divide: per_unit,
-        floored: &["specs"],
+        floored: &["issues", "specs"],
     },
     QualityRatio {
         metric: "requirements_per_spec",
         numerator: "spec_requirements",
         divisor: "specs",
         divide: ratio,
-        floored: &["specs"],
+        floored: &["issues", "specs"],
     },
     QualityRatio {
         metric: "happy_paths_per_spec",
         numerator: "spec_happy_paths",
         divisor: "specs",
         divide: ratio,
-        floored: &["specs"],
+        floored: &["issues", "specs"],
     },
 ];
 
@@ -543,34 +543,8 @@ fn quality_ratio(metric: &str) -> Option<&'static QualityRatio> {
 }
 
 fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
-    let summed = [
-        "issues",
-        "deliverables",
-        "commits",
-        "fixes_in_issue",
-        "fixes_after",
-        "reverts_after",
-        "reviews",
-        "counted_reviews",
-        "review_findings",
-        "traced",
-        "traced_without_red",
-        "spec_lines",
-        "doc_lines",
-        "specs",
-        "spec_bytes",
-        "spec_requirements",
-        "spec_intent_chars",
-        "spec_happy_paths",
-        "sessions",
-        "failed_checks",
-        "validations",
-        "other_messages",
-        "input_tokens",
-        "cache_read_tokens",
-        "output_tokens",
-        "token_issues",
-    ];
+    // the columns of the `delivered-quality` summary after `revision` and `setup`, in its order
+    let summed: Vec<&str> = QUALITY.split('\t').skip(2).collect();
     let mut columns: Vec<&str> = summed
         .iter()
         .map(|c| {

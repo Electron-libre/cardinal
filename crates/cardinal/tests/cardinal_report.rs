@@ -1393,16 +1393,16 @@ fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 fn shape_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     // `ra` measures 3 specs with 3 happy paths, `rb` 8 specs with 16: expected down, the happy paths per spec go up
     // from 1.00 to 2.00 and the bytes per spec down from 1000 to 500
-    let quality = write(
-        &tmp.join("s-quality.tsv"),
-        QUALITY,
-        &[
-            shape_row("ra", 6, [3, 3_000, 30, 300, 3]),
-            shape_row("rb", 6, [8, 4_000, 40, 400, 16]),
-        ],
-    );
-    let quality = quality.to_str().unwrap();
-    let one = |extra: &[&str]| {
+    let one = |ra_issues: u64, extra: &[&str]| {
+        let quality = write(
+            &tmp.join("s-quality.tsv"),
+            QUALITY,
+            &[
+                shape_row("ra", ra_issues, [3, 3_000, 30, 300, 3]),
+                shape_row("rb", 6, [8, 4_000, 40, 400, 16]),
+            ],
+        );
+        let quality = quality.to_str().unwrap();
         verdict(&verdicts(
             dir,
             tmp,
@@ -1417,11 +1417,15 @@ fn shape_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     vec![
         (
             "a group with fewer specs than --min-issues confounds a per-spec verdict",
-            one(&[]) == ["confounded", "confounded"],
+            one(6, &[]) == ["confounded", "confounded"],
         ),
         (
             "enough specs in both groups gives a per-spec verdict",
-            one(&["--min-issues", "3"]) == ["hurt", "helped"],
+            one(6, &["--min-issues", "3"]) == ["hurt", "helped"],
+        ),
+        (
+            "a group of fewer issues than --min-issues confounds a per-spec verdict, whatever its specs",
+            one(2, &["--min-issues", "3"]) == ["confounded", "confounded"],
         ),
     ]
 }

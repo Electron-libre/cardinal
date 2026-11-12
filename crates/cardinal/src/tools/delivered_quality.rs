@@ -465,13 +465,14 @@ impl DocFiles {
 
 /// The count of the specs `paths` the commit `close` holds and the sums of their shapes (QUA-18), each read at
 /// `close`; `None` when git cannot list its files.
-fn spec_shape(repo: &Path, close: &str, paths: &BTreeSet<String>) -> Option<[u64; 5]> {
-    let held = git(
-        repo,
-        &["ls-tree", "-r", "-z", "--name-only", close, "specs/"],
-    )?;
-    let mut sums = [0; 5];
-    for path in held.split('\0').filter(|p| paths.contains(*p)) {
+fn spec_shape(repo: &Path, close: &str, paths: &BTreeSet<String>) -> Option<[u64; SHAPES]> {
+    let mut sums = [0; SHAPES];
+    if paths.is_empty() {
+        return Some(sums);
+    }
+    let mut args = vec!["ls-tree", "-z", "--name-only", close, "--"];
+    args.extend(paths.iter().map(String::as_str));
+    for path in git(repo, &args)?.split('\0').filter(|p| paths.contains(*p)) {
         let bytes = transcripts::git_bytes(repo, &["show", &format!("{close}:{path}")])?;
         let text = String::from_utf8_lossy(&bytes);
         sums[0] += 1;
@@ -480,6 +481,16 @@ fn spec_shape(repo: &Path, close: &str, paths: &BTreeSet<String>) -> Option<[u64
         }
     }
     Some(sums)
+}
+
+/// Whether `path` is a spec as `check-specs` reads them (QUA-18): a `.md` file right under `specs/`, but its README
+/// and template.
+fn is_spec(path: &str) -> bool {
+    path.strip_prefix("specs/").is_some_and(|name| {
+        !name.contains('/')
+            && Path::new(name).extension().is_some_and(|e| e == "md")
+            && !matches!(name, "README.md" | "TEMPLATE.md")
+    })
 }
 
 /// The added and removed lines the commits `own` change in the specs and in the docs (QUA-14): the `.md` files of
@@ -512,9 +523,12 @@ fn doc_spec_lines(
         let spec = path.starts_with("specs/")
             && is_markdown(path)
             && !matches!(path, "specs/README.md" | "specs/TEMPLATE.md");
+        // the specs measured are those `check-specs` reads (QUA-18), the spec lines every `.md` under `specs/` (QUA-14)
+        if is_spec(path) {
+            specs.insert(path.to_string());
+        }
         if spec {
             spec_lines += count;
-            specs.insert(path.to_string());
         } else if docs.is_doc(path) {
             doc_lines += count;
         }
@@ -1005,7 +1019,7 @@ fn issue_row(
         cell(lines.as_ref().map(|l| l.0)),
         cell(lines.as_ref().map(|l| l.1)),
     ];
-    cells.extend((0..5).map(|k| cell(shapes.map(|s| s[k]))));
+    cells.extend((0..SHAPES).map(|k| cell(shapes.map(|s| s[k]))));
     // the tokens of an issue no session holds are unknown, not 0 (QUA-15)
     let known = |k: usize| k < TOKENS || transcript.is_some_and(|t| t[0] > 0);
     cells.extend((0..7).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));
@@ -1016,6 +1030,9 @@ fn issue_row(
         cells,
     })
 }
+
+/// The spec shape columns (QUA-18): `specs`, `spec_bytes`, `spec_requirements`, `spec_intent_chars`, `spec_happy_paths`.
+const SHAPES: usize = 5;
 
 /// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
 const TOKENS: usize = 4;

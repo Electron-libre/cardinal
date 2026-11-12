@@ -228,7 +228,8 @@ projects directory given, they read the `projects/` of the configuration directo
 - **Verdicts** (`--changes`): `helped`, `hurt`, `no observed effect`, `no data`, or `confounded` when something else
   changed too, a group is too small, or, for a ratio of the quality table, a group closed fewer issues than
   `--min-issues` (5) (only those of known tokens count for the tokens) or, for the findings per review, also held
-  fewer reviews whose findings are known (`counted_reviews`) than it.
+  fewer reviews whose findings are known (`counted_reviews`) than it; for a ratio per spec (`bytes_per_spec`,
+  `happy_paths_per_spec`…), a group measured fewer specs than it.
 
 ## Parallel issues in worktrees
 

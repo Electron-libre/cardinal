@@ -839,6 +839,7 @@ fn shape_fixture(tmp: &Path) -> (PathBuf, usize) {
         &[(".claude/harness.toml", Some(&toml("r1")))],
     );
     let lambda = "# lambda\n\n# Tracking\n\n## Plan\n1. [x] one\n";
+    let planned = lambda.replace("[x]", "[ ]");
     let draft = shaped_spec("A first Intent.");
     let spec = shaped_spec(&"x".repeat(120));
     commit_at(
@@ -846,7 +847,7 @@ fn shape_fixture(tmp: &Path) -> (PathBuf, usize) {
         "2026-01-02T00:00:00Z",
         "docs: draft the spec",
         &[
-            ("issues/lambda.md", Some(lambda)),
+            ("issues/lambda.md", Some(&planned)),
             ("specs/a.md", Some(&draft)),
             ("specs/README.md", Some("# Specs\n")),
             ("specs/b.md", Some(&shaped_spec("Gone."))),
@@ -860,6 +861,7 @@ fn shape_fixture(tmp: &Path) -> (PathBuf, usize) {
             ("issues/lambda.md", Some(lambda)),
             ("specs/a.md", Some(&spec)),
             ("specs/b.md", None),
+            ("specs/notes/c.md", Some(&shaped_spec("Not a spec."))),
             ("src/l.rs", Some("l")),
         ],
     );

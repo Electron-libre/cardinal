@@ -48,6 +48,7 @@ read. Out: the keyword-based measures (contract share, refusal share), the specs
 2. [x] Per-spec ratios in `cardinal-report` and their verdicts: `bytes_per_spec`, `intent_chars_per_spec`,
    `requirements_per_spec`, `happy_paths_per_spec`, accepted as `Expected-effect` metrics, floored on `specs`;
    verified by report and verdict tests; makes true REP-19, VRD-14 (and VRD-1's new metrics). (autonomous)
+3. [x] Docs over the issue and the fixes of its `high` review; verified by the tests of QUA-18 and VRD-14. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -88,5 +89,32 @@ read. Out: the keyword-based measures (contract share, refusal share), the specs
 
 - red: REP-19, VRD-14: FAIL - the spec shape is summed and divided by the specs of the group
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 3
+- done: `docs/usage.md` names the per-spec floor; the fixes of the `high` review of the issue.
+- Code review (high, whole issue): 8 findings
+  1. specs nested under `specs/` or not `.md` were measured, unlike `check-specs`: fixed (QUA-18 reworded, test).
+  2. a per-spec verdict could rest on one issue: fixed, floored on `issues` too (VRD-14, test).
+  3. a spec amended by several issues of a group counts once per issue: not fixed, the measure is per issue (decision 1 a).
+  4. a spec touched by one line is measured whole: not fixed, decision 1 a.
+  5. a `git ls-tree` per issue with no spec, a recursive one otherwise: fixed (none when empty, one call on the paths).
+  6. `shape` runs the whole `check-specs` parse: not fixed, it keeps the measures those of `check-specs`.
+  7. the summed quality columns repeated the summary header: fixed, read from it.
+  8. the five shape cells hard-coded: fixed, a `SHAPES` constant.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | pass, `accepted` |
+| docs | `docs/usage.md` |
+| code review | low, 1 finding |
+
+- red: QUA-18, VRD-14: lambda.specs: expected "1", got Some("2"); FAIL - a group of fewer issues than --min-issues
+  confounds a per-spec verdict, whatever its specs (each checked against the code of the previous commit)
+- Code review (low): 1 finding: `spec_lines` (QUA-14) counts nested `specs/` files that `specs` (QUA-18) leaves out:
+  kept, QUA-14 is unchanged; said in a comment.
 - not verified: none
 - decisions needed: none

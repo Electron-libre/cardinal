@@ -30,7 +30,7 @@ Specs that read as a product
 # Resources
 * `.claude/skills/evaluate-harness/SKILL.md`, `crates/cardinal/src/tools/delivered_quality.rs`,
   `crates/cardinal/src/tools/cardinal_report.rs`,
-  [require_a_happy_path_scenario_in_each_spec](done/require_a_happy_path_scenario_in_each_spec.md).
+  [require_a_happy_path_scenario_in_each_spec](require_a_happy_path_scenario_in_each_spec.md).
 
 # Tracking
 

@@ -51,12 +51,12 @@ Measures
 # Resources
 * `specs/rule-breaches.md` (BRE-19, BRE-22), `crates/cardinal/src/tools/review_target.rs`,
   `crates/cardinal/src/tools/read_hint.rs`, `files/.claude/skills/issue-workflow/SKILL.md` (step 5),
-  [tell_the_needed_oversized_results_from_the_waste](done/tell_the_needed_oversized_results_from_the_waste.md).
+  [tell_the_needed_oversized_results_from_the_waste](tell_the_needed_oversized_results_from_the_waste.md).
 
 # Hints
 * `/code-review` is a skill of Claude Code, not of Cardinal: only its target and the hooks are ours.
 * Count the refusals of `read-hint` once
-  [close_the_gaps_of_the_harness_measures](done/close_the_gaps_of_the_harness_measures.md) names them: today they
+  [close_the_gaps_of_the_harness_measures](close_the_gaps_of_the_harness_measures.md) names them: today they
   show as `unknown`.
 
 # Tracking

@@ -6,7 +6,8 @@
 //! from one that rarely applies, and sum the bytes of the waste rules. The commit messages are read from the git
 //! history of each project, a commit counting with the session whose span holds its date. No text of a message is
 //! printed.
-//! Usage: `cardinal run rule-breaches [projects_dir] [--summary]`
+//! With `--project <name>`, only the sessions of that project count (BRE-23).
+//! Usage: `cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 
 use super::commit_check::{BUILT_IN_SCOPES, TYPES};
@@ -864,11 +865,20 @@ fn record(path: &Path) -> Option<Record> {
 }
 
 pub(super) fn main(args: &[String]) -> u8 {
-    const USAGE: &str = "usage: cardinal run rule-breaches [projects_dir] [--summary]";
-    let (mut dir, mut summary) = (None, false);
-    for arg in args.iter().cloned() {
+    const USAGE: &str =
+        "usage: cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]";
+    let (mut dir, mut summary, mut only) = (None, false, None);
+    let mut args = args.iter().cloned();
+    while let Some(arg) = args.next() {
         match arg.as_str() {
             "--summary" => summary = true,
+            "--project" => {
+                let Some(name) = args.next() else {
+                    eprintln!("--project needs a project name\n{USAGE}");
+                    std::process::exit(2);
+                };
+                only = Some(name);
+            }
             flag if flag.starts_with('-') => {
                 eprintln!("unknown option {flag}\n{USAGE}");
                 std::process::exit(2);
@@ -891,6 +901,9 @@ pub(super) fn main(args: &[String]) -> u8 {
                 .map(PathBuf::as_path)
                 .filter_map(record),
         );
+    }
+    if let Some(name) = &only {
+        records.retain(|r| r.project == *name);
     }
     let repos: BTreeSet<PathBuf> = records.iter().map(|r| r.repo.clone()).collect();
     for repo in repos {

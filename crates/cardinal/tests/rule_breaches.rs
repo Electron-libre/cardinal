@@ -463,6 +463,39 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     )]
 }
 
+// spec: BRE-23
+fn project_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
+    let (projects, expected) = fixture(&tmp.join("project"));
+    let with = |args: &[&str]| {
+        let out = tool_command(dir.join("rule_breaches.rs"))
+            .arg(&projects)
+            .args(args)
+            .output()
+            .unwrap();
+        (
+            out.status.success(),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+        )
+    };
+    let (_, all) = with(&["--summary"]);
+    let (own_ok, own) = with(&["--summary", "--project", "proj"]);
+    let (other_ok, other) = with(&["--project", "bare"]);
+    let (_, other_summary) = with(&["--project", "bare", "--summary"]);
+    let (refused, _) = with(&["--project"]);
+    vec![
+        (
+            "--project keeps the sessions of that project in the summary".to_string(),
+            own_ok && !expected.is_empty() && own == all,
+        ),
+        (
+            "--project leaves out the findings and the summary rows of the other projects"
+                .to_string(),
+            other_ok && other.trim() == COLUMNS && other_summary.trim() == SUMMARY,
+        ),
+        ("--project with no value is refused".to_string(), !refused),
+    ]
+}
+
 /// Run git with `args` in `repo` as the user `t`, at the given author and committer dates.
 fn git_at(repo: &Path, author_date: &str, committer_date: &str, args: &[&str]) {
     let out = Command::new("git")
@@ -1339,6 +1372,7 @@ fn rule_breaches() {
         .chain(stage_checks(&dir, &tmp))
         .chain(gate_off_checks(&dir, &tmp))
         .chain(issue_files_off_checks(&dir, &tmp))
+        .chain(project_checks(&dir, &tmp))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

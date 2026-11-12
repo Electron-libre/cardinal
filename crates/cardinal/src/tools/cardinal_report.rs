@@ -4,8 +4,9 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--anonymous]`. With `--last <n>`, the
-//! tables print only the last `n` groups, the verdicts still reading them all. With `--by setup`, a group is a
+//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--project <name>] [--anonymous]`. With `--last <n>`, the
+//! tables print only the last `n` groups, the verdicts still reading them all. With `--project <name>`, the report
+//! reads the sessions and fixed context of that project alone, so a verdict compares two groups of one project. With `--by setup`, a group is a
 //! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives
 //! each recorded change of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
@@ -18,7 +19,7 @@ use super::session_metrics::HEADER as SESSIONS;
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
-const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--anonymous]";
+const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--project <name>] [--anonymous]";
 const TOO_FEW: &str = "too few";
 
 type Row = HashMap<String, String>;
@@ -837,6 +838,7 @@ struct Options {
     by_setup: bool,
     anonymous: bool,
     last: Option<usize>,
+    project: Option<String>,
 }
 
 /// The whole number from 1 to 1000 that follows the option `arg` (a floor or `--last`).
@@ -860,6 +862,7 @@ fn options(args: &[String]) -> Result<Options, String> {
         by_setup: false,
         anonymous: false,
         last: None,
+        project: None,
     };
     while let Some(arg) = args.next() {
         let mut file = || args.next().ok_or(format!("{arg} needs a file"));
@@ -880,6 +883,9 @@ fn options(args: &[String]) -> Result<Options, String> {
             }
             "--anonymous" => options.anonymous = true,
             "--last" => options.last = Some(floor(&mut args, &arg)?),
+            "--project" => {
+                options.project = Some(args.next().ok_or("--project needs a project name")?);
+            }
             other => return Err(format!("unknown argument {other}")),
         }
     }
@@ -897,12 +903,19 @@ pub(super) fn main(args: &[String]) -> u8 {
         std::process::exit(2);
     };
     let options = options(args).unwrap_or_else(|e| fail(e));
+    // the rows of one project only, with `--project` (REP-18)
+    let of_project = |mut rows: Vec<Row>| {
+        if let Some(project) = &options.project {
+            rows.retain(|r| r.get("project") == Some(project));
+        }
+        rows
+    };
     let sessions = options
         .sessions
         .as_deref()
         .ok_or("--sessions is required".to_string())
         .and_then(|f| read(f, SESSIONS))
-        .unwrap_or_else(|e| fail(e));
+        .map_or_else(|e| fail(e), of_project);
     let breaches = options
         .breaches
         .as_deref()
@@ -918,7 +931,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     let context = options
         .context
         .as_deref()
-        .map(|f| read(f, CONTEXT))
+        .map(|f| read(f, CONTEXT).map(of_project))
         .transpose()
         .unwrap_or_else(|e| fail(e));
     let changes = options

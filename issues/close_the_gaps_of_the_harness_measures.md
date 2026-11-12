@@ -80,9 +80,9 @@ text (old transcripts included) rather than a longer refusal message.
    QUA-1, QUA-6, QUA-12, REP-6, VRD-12. (autonomous)
 3. [x] Tie a session to its issues: the stems of `cardinal run issue-claim` / `close-issue` calls join `issues`;
    verified by a synthetic transcript on `main` and on a branch; makes true EVA-6, EVA-21. (autonomous)
-4. [ ] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
+4. [x] Read the report within one project: `cardinal-report --project`, `rule-breaches --project`, and
    `skill:evaluate-harness` runs the report per project; verified by a report of two projects; makes true REP-18,
-   BRE-23.
+   BRE-23. (autonomous)
 5. [ ] Docs of the whole issue and fixes of its `high` review.
 
 ## Decisions
@@ -110,3 +110,10 @@ text (old transcripts included) rather than a longer refusal message.
 - red: EVA-6, EVA-21: `left: ""`, `right: "a,b,d"`.
 - Code review: no findings
 - not verified: the `issues` of the archived sessions whose transcripts are gone stay as archived.
+
+## Deliverable 4
+- done: `cardinal-report --project` and `rule-breaches --project` read one project; `skill:evaluate-harness` runs a
+  report per project of enough sessions and reads its verdicts first; `docs/usage.md`, `docs/evaluation.md`.
+- red: REP-18: `--project keeps the sessions of that project only` and `--project keeps the fixed context rows`
+  failed (unknown argument); BRE-23: both `--project` checks failed (unknown option).
+- Code review: no findings

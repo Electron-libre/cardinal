@@ -58,11 +58,14 @@ The choices behind them:
   `--min-sessions` (`no data` when there are none), and for an advisor metric also when the advisor set changed
   (VRD-9, VRD-10). A verdict on a ratio of the quality table is `confounded` when a group closed fewer issues than
   `--min-issues` (5) (only those of known tokens count for the tokens) or, for the findings per review, also held
-  fewer reviews: an issue spans several sessions, and its reviews and lines are not independent (VRD-11, VRD-12).
+  fewer reviews whose findings are known (`counted_reviews`, a free-text review line counting in `reviews` only): an issue spans several sessions, and its reviews and lines are not independent (VRD-11, VRD-12).
 - **Signals, not verdicts**: medians per session, so one long session does not weigh as ten; groups of consecutive
   revisions of at least `--min-sessions` (10) sessions, since a `self:` revision often covers one issue; the sample
   size and the mix of models, versions and projects next to each number (REP-4, REP-5). The numbers are never turned
   into a pass or a fail, since they would become targets.
+- **Projects**: the groups follow the revisions, so the first sessions of a new project weigh on the group they
+  land in; `cardinal-report --project <name>` cuts the groups over one project, and a verdict then compares two
+  groups of that project (REP-18, BRE-23).
 - **Setups**: `cardinal-report --by setup` counts a session under its first model, so one switched with `/model`
   counts as the model it started with, and an advisor that is that model as none.
 

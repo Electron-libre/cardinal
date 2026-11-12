@@ -208,24 +208,27 @@ projects directory given, they read the `projects/` of the configuration directo
 | Tool | Prints |
 |---|---|
 | `session-metrics [--archive <file>]` | one row of numbers per session (cost, user interventions, project, issue, Cardinal revision, model, version), no message text; `--archive` also merges them into a file kept outside the repositories, so the history outlives the transcripts |
-| `rule-breaches [--summary]` | the breaches of the rules a program can see (no `--no-verify`, a review before each commit, no `git add` of every file, no edit of a managed copy, the validation stop of an issue, the commit message format and no AI attribution, the conversation language, the skill a commit, a plan or a new spec was due to load) and the tool results over 25,000 bytes (the session's own, a reviewer's or another sub-agent's), apart from what a gate blocked; `--summary` counts them per rule and Cardinal revision, with the bytes of the waste rules |
+| `rule-breaches [--summary] [--project <name>]` | the breaches of the rules a program can see (no `--no-verify`, a review before each commit, no `git add` of every file, no edit of a managed copy, the validation stop of an issue, the commit message format and no AI attribution, the conversation language, the skill a commit, a plan or a new spec was due to load) and the tool results over 25,000 bytes (the session's own, a reviewer's or another sub-agent's), apart from what a gate blocked; `--summary` counts them per rule and Cardinal revision, with the bytes of the waste rules; `--project` counts the sessions of one project only |
 | `delivered-quality [repo] [--summary]` | one row per done issue: its commits and deliverables, the fixes inside it, the fixes of the lines it wrote and the reverts of its files in the 30 days after its close, its reviews and their findings, the lines it changed in the specs and in the docs, the setup (main model, alone or advised; `mixed` when its sessions differ), failed checks, typed messages and tokens of the sessions that made it; `--summary` sums them per Cardinal revision and setup |
 | `fixed-context` | per project and Cardinal revision, the bytes of the memory files (`AGENTS.md` apart, counted only when loaded) and the skill descriptions that every session pays, and the skills the revision ships |
 | `cardinal-changes [repo] --sessions <file>` | one row per `Expected-effect: <metric> <up\|down>` line of a commit of the Cardinal source that changes `files/`, with the revisions of the sessions that hold the change |
-| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup] [--last <n>] [--anonymous]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), and with `--changes` a verdict per expected effect; see below |
+| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup] [--last <n>] [--project <name>] [--anonymous]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), and with `--changes` a verdict per expected effect; see below |
 
 `cardinal-report` in detail:
 
 - **Groups**: a row per group of consecutive revisions with at least `--min-sessions` (10) sessions, the model,
   version and project mix next to the numbers (`--anonymous` keeps only the count of projects); `--last <n>`
   prints only the last `n` groups, the verdicts still reading them all.
+- **`--project <name>`**: reads the sessions and the fixed context of one project only, its groups cut over them, so
+  a new project does not swamp the group it lands in; give it the `rule-breaches --summary --project <name>` and
+  the `delivered-quality` of that project.
 - **`--by setup`**: groups the sessions by setup (`<model> solo` or `<model> advised by <advisor>`) instead, with
   their revision mix and the quality of each setup, and leaves out the tables kept per revision (rules, fixed
   context, verdicts).
 - **Verdicts** (`--changes`): `helped`, `hurt`, `no observed effect`, `no data`, or `confounded` when something else
   changed too, a group is too small, or, for a ratio of the quality table, a group closed fewer issues than
   `--min-issues` (5) (only those of known tokens count for the tokens) or, for the findings per review, also held
-  fewer reviews than it.
+  fewer reviews whose findings are known (`counted_reviews`) than it.
 
 ## Parallel issues in worktrees
 

@@ -1403,6 +1403,62 @@ fn advisor_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     ]
 }
 
+// spec: REP-18
+fn project_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
+    let tmp = tmp.join("project");
+    std::fs::create_dir_all(&tmp).unwrap();
+    let (sessions, ..) = axes_inputs(&tmp);
+    let context = write(
+        &tmp.join("context.tsv"),
+        CONTEXT,
+        &[
+            "p1\tr-b\tc2\t100\t0\t0\ta".into(),
+            "p2\tr-b\tc3\t900\t0\t0\ta".into(),
+        ],
+    );
+    let args = |project: &[&'static str]| -> Vec<std::ffi::OsString> {
+        let mut args: Vec<std::ffi::OsString> = vec![
+            "--sessions".into(),
+            sessions.clone().into(),
+            "--context".into(),
+            context.clone().into(),
+            "--min-sessions".into(),
+            "2".into(),
+        ];
+        args.extend(project.iter().map(Into::into));
+        args
+    };
+    let report = |project: &[&'static str]| {
+        let args = args(project);
+        let refs: Vec<&std::ffi::OsStr> = args.iter().map(std::ffi::OsString::as_os_str).collect();
+        run(dir, &refs)
+    };
+    let (ok, out, _) = report(&["--project", "p1"]);
+    let t = tables(&out);
+    let eff = t.get("Efficiency");
+    let (all_ok, all, _) = report(&[]);
+    let all = tables(&all);
+    let (refused, _, error) = report(&["--project"]);
+    vec![
+        (
+            "--project keeps the sessions of that project only, its groups cut over them",
+            ok && cell(eff, "r-b", "sessions") == "2"
+                && cell(eff, "r-b", "projects") == "p1=2"
+                && group_names(&out, "Efficiency") == ["self:1111111", "r-b", "r-c"],
+        ),
+        (
+            "--project keeps the fixed context rows of that project only",
+            cell(t.get("Fixed context"), "r-b", "total_bytes") == "100"
+                && all_ok
+                && cell(all.get("Fixed context"), "r-b", "total_bytes") == "500",
+        ),
+        (
+            "--project with no value is refused",
+            !refused && error.contains("--project"),
+        ),
+    ]
+}
+
 #[test]
 fn cardinal_report() {
     let dir = std::path::PathBuf::from("/tools");
@@ -1424,6 +1480,7 @@ fn cardinal_report() {
         .chain(ratio_floor_checks(&dir, temp.path()))
         .chain(setup_checks(&dir, temp.path()))
         .chain(last_checks(&dir, temp.path()))
+        .chain(project_checks(&dir, temp.path()))
         .collect();
     let mut failed = false;
     for (name, ok) in checks {

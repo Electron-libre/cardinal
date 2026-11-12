@@ -42,9 +42,9 @@ fn line_bytes(line: &str) -> usize {
     kept + 1 + NUMBER_BYTES
 }
 
-/// The bytes a read of `lines` returns (RDH-7).
+/// The bytes a read of `lines` returns (RDH-7), all of them: the caller takes the lines read.
 fn estimate<'a>(lines: impl Iterator<Item = &'a str>) -> usize {
-    lines.take(READ_LINES).map(line_bytes).sum()
+    lines.map(line_bytes).sum()
 }
 
 /// Whether `path` is an output Claude Code saved because it was too large (RDH-8).
@@ -56,24 +56,28 @@ fn saved(path: &Path) -> bool {
             .is_some_and(|d| d == "tool-results")
 }
 
-/// The text of `path` when it is a regular file Claude Code reads as text and whole (RDH-1, RDH-2).
-fn text_of(path: &Path) -> Option<String> {
+/// The text of `path` when it is a regular file Claude Code reads as text, and whole unless it is a saved result
+/// (RDH-1, RDH-2, RDH-8).
+fn text_of(path: &Path, saved: bool) -> Option<String> {
     let rendered = path
         .extension()
         .and_then(|e| e.to_str())
         .is_some_and(|e| RENDERED.contains(&e.to_ascii_lowercase().as_str()));
     let mut file = File::open(path).ok()?;
     let meta = file.metadata().ok().filter(fs::Metadata::is_file)?;
-    if rendered || meta.len() > READ_CAP {
+    if rendered || (!saved && meta.len() > READ_CAP) {
         return None;
     }
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).ok()?;
-    Some(String::from_utf8_lossy(&bytes).into_owned())
+    Some(
+        String::from_utf8(bytes)
+            .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()),
+    )
 }
 
 /// The parts of `lines` as 1-based `(offset, limit)`: runs of at most `PART_BYTES`, ended before the last file diff
-/// of the run when the run stops before the end (RDH-9).
+/// of the run when the run stops before the end and not on a file diff (RDH-9).
 fn parts(lines: &[&str]) -> Vec<(usize, usize)> {
     let mut parts = Vec::new();
     let mut start = 0;
@@ -90,7 +94,7 @@ fn parts(lines: &[&str]) -> Vec<(usize, usize)> {
             bytes += more;
             end += 1;
         }
-        if end < lines.len() {
+        if end < lines.len() && !lines[end].starts_with(FILE_DIFF) {
             end = last_diff.unwrap_or(end);
         }
         parts.push((start + 1, end - start));
@@ -117,7 +121,7 @@ fn saved_reason(input: &Value, text: &str) -> Option<String> {
     if bytes <= OVERSIZED {
         return None;
     }
-    let whole = estimate(lines.iter().copied());
+    let whole = estimate(lines.iter().copied().take(READ_LINES));
     let this = if input["offset"].is_null() && input["limit"].is_null() {
         String::new()
     } else {
@@ -136,7 +140,7 @@ fn saved_reason(input: &Value, text: &str) -> Option<String> {
 
 /// The estimate of the result of a whole read of `text`, when it is over the threshold (RDH-1, RDH-2).
 fn oversized(text: &str) -> Option<usize> {
-    let bytes = estimate(text.lines());
+    let bytes = estimate(text.lines().take(READ_LINES));
     (bytes > OVERSIZED).then_some(bytes)
 }
 
@@ -201,39 +205,31 @@ pub(super) fn main(_args: &[String]) -> u8 {
     let Some(session) = event["session_id"].as_str().filter(|s| !s.is_empty()) else {
         return 0;
     };
-    let input = &event["tool_input"];
-    let Some(path) = input["file_path"].as_str() else {
-        return 0;
-    };
-    let saved = saved(Path::new(path));
-    let ranged = !input["offset"].is_null() || !input["limit"].is_null();
-    if ranged && !saved {
-        return 0;
+    match reason(&event["tool_input"], session) {
+        Some(reason) => deny(&reason),
+        None => 0,
     }
-    let Some(text) = text_of(Path::new(path)) else {
-        return 0;
-    };
-    let reason = if saved {
-        let Some(reason) = saved_reason(input, &text) else {
-            return 0;
-        };
-        reason
-    } else {
-        let Some(bytes) = oversized(&text) else {
-            return 0;
-        };
-        let Some(dir) = records() else {
-            return 0;
-        };
-        if !first_time(&record_of(&dir, session), path) {
-            return 0;
-        }
+}
+
+/// The reason to deny the read of `input` by `session`, `None` to let it through (RDH-1 to RDH-3, RDH-8).
+fn reason(input: &Value, session: &str) -> Option<String> {
+    let path = input["file_path"].as_str()?;
+    let is_saved = saved(Path::new(path));
+    if !is_saved && (!input["offset"].is_null() || !input["limit"].is_null()) {
+        return None;
+    }
+    let text = text_of(Path::new(path), is_saved)?;
+    if is_saved {
+        return saved_reason(input, &text);
+    }
+    let bytes = oversized(&text)?;
+    let dir = records()?;
+    first_time(&record_of(&dir, session), path).then(|| {
         format!(
             "{REASON_START} {bytes} bytes: read the range you need (`offset` and `limit`) or search it with `Grep`; \
              if you need it whole, repeat the same call, which then goes through."
         )
-    };
-    deny(&reason)
+    })
 }
 
 /// Print the deny of RDH-1 with `reason`.

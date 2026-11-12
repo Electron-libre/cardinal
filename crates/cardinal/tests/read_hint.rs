@@ -264,6 +264,14 @@ fn the_parts_of_a_saved_diff_keep_whole_file_diffs_where_they_fit() {
         &read("s1", &json!({"file_path": saved.join("d1.txt")})),
     ));
     assert_eq!(parts(&reason), [(1, 170), (171, 100)], "{reason}");
+    // two file diffs that fill a part exactly, then a third: the part ends on the file boundary
+    let text = diff("a.rs", 100) + &diff("b.rs", 100) + &diff("c.rs", 100);
+    put(&saved, "d4.txt", &text);
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": saved.join("d4.txt")})),
+    ));
+    assert_eq!(parts(&reason), [(1, 200), (201, 100)], "{reason}");
     // one file diff of 300 lines of 100 bytes: cut where its lines reach 20,000 bytes
     put(&saved, "d2.txt", &diff("big.rs", 300));
     let reason = denied(&hook(
@@ -300,4 +308,30 @@ fn a_text_file_outside_a_saved_result_directory_is_sent_back_once() {
         let ranged = read("s1", &json!({"file_path": path, "offset": 1}));
         assert!(silent_pass(&hook(tmp.path(), &ranged)));
     }
+}
+
+// spec: RDH-8
+#[test]
+fn a_large_saved_result_and_a_long_range_are_sent_back() {
+    let dir = tempdir().unwrap();
+    let tmp = tempdir().unwrap();
+    let saved = saved_dir(dir.path());
+    // 4,000 lines of 100 bytes: over the size Claude Code reads whole, 2,000 lines of it read with `limit`
+    let large = file(&saved, "b3.txt", 4_000, 100);
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": large, "limit": 2000})),
+    ));
+    assert_eq!(parts(&reason).last(), Some(&(3_907, 94)), "{reason}");
+    // 6,000 lines of 11 bytes: 2,000 of them hold 22,000 bytes, 6,000 hold 66,000
+    let long = file(&saved, "b4.txt", 6_000, 4);
+    assert!(silent_pass(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": long}))
+    )));
+    let reason = denied(&hook(
+        tmp.path(),
+        &read("s1", &json!({"file_path": long, "limit": 6000})),
+    ));
+    assert!(reason.contains("this read about 66000 bytes"), "{reason}");
 }

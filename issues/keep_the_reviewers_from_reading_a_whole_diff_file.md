@@ -71,6 +71,8 @@ target (approaches 1, 2) and the size limit (approach 4), see the Findings; a `g
 ## Plan
 1. [x] Read a saved result in parts: `read-hint` denies each oversized read of a saved result with its parts;
    verified by tests of the hook on saved results, plain files and ranged reads; makes true RDH-8, RDH-9. (autonomous)
+2. [x] Settle the `high` review of the issue: a saved result of any size, a `limit` over 2,000 lines counted, a part
+   that ends on a file diff kept whole; verified by tests of those cases; makes true RDH-8, RDH-9. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -85,4 +87,16 @@ target (approaches 1, 2) and the size limit (approach 4), see the Findings; a `g
 - red: RDH-8, RDH-9: the reason named no part (`[(1, 188), ...]` expected, `[]` found) and the repeat went through.
 - Code review: no findings.
 - checks: `project-check` passed (fmt, clippy, tests, specs); `deliverable-size` 305 lines, within.
+- not verified: the effect on `oversized-result-review`, to read in `cardinal-report` once consumers synced.
+
+## Summary of deliverable 2
+- done: the findings of the `high` review fixed: no size cap on a saved result, an explicit `limit` counted whole,
+  no cut back when a part already ends on a `diff --git` line; `main` reads through a `reason` helper; no copy of
+  valid UTF-8.
+- red: RDH-8, RDH-9: the 400 KB saved result passed silently and the parts of two full file diffs were `[(1, 100),
+  ...]` instead of `[(1, 200), (201, 100)]` (tests written after the fix, checked red on the code before it).
+- Code review: 8 findings (`high` of the issue): 6 fixed (the three bugs, the missing tests, the copy, the
+  shadowing); not fixed: `offset` or `limit` as a string (Claude Code validates the input as numbers before the
+  hook), and the `read_hint` refusals counted on each repeat (the intended effect of RDH-8; the reason keeps
+  `A whole read of this file returns about` so EVA-5 still names it, and names the range read apart).
 - not verified: the effect on `oversized-result-review`, to read in `cardinal-report` once consumers synced.

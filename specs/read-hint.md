@@ -24,8 +24,8 @@ hold, and those of `oversized-result-review` (BRE-22) fall.
 - **RDH-5** (deterministic) The hook must record the files it sent each session back from in one file per `session_id`, in a directory `cardinal-read-hint` of `XDG_RUNTIME_DIR` when it is set, else `cardinal-read-hint-<USER>` of the system's temporary directory (`TMPDIR`), created with mode 0700, and pass (RDH-4) when that directory lets its group or others in.
 - **RDH-6** (deterministic) The source of Cardinal must declare the hook in `entries/.claude/settings.json` as `PreToolUse` matcher `Read` command `cardinal run read-hint`, and the feature `read-hint` made of that one entry and no file.
 - **RDH-7** (deterministic) The estimated result of RDH-1 must be the bytes of the first 2,000 lines of the file, each cut at 2,000 characters, plus 7 bytes per line for the line number Claude Code prefixes.
-- **RDH-8** (deterministic) On a `PreToolUse` event of tool `Read` naming a saved result (a readable regular file of at most 262,144 bytes whose extension is `txt` and whose parent directory is named `tool-results`, where Claude Code saves an output too large to return) whose estimated result holds more than 25,000 bytes, the hook must print the JSON object of RDH-1, its `permissionDecisionReason` naming that estimate in bytes and each part of RDH-9 as its `offset` and `limit`, then exit 0, every time, whatever the session read before, and record nothing. The estimate is that of RDH-7 counted from line `offset` (1 when absent) for `limit` lines when given, else for 2,000 lines.
-- **RDH-9** (deterministic) The parts of a saved result must cover its lines from the first to the last, in order, each a run of whole lines whose estimate (RDH-7, without its 2,000 lines) holds at most 20,000 bytes and as long as fits; when the run that fits stops before the last line of the file and holds, past its first line, a line starting with `diff --git `, the part ends before the last such line, so a part holds whole file diffs where they fit.
+- **RDH-8** (deterministic) On a `PreToolUse` event of tool `Read` naming a saved result (a readable regular file, of any size, whose extension is `txt` and whose parent directory is named `tool-results`, where Claude Code saves an output too large to return) whose estimated result holds more than 25,000 bytes, the hook must print the JSON object of RDH-1, its `permissionDecisionReason` naming that estimate in bytes and each part of RDH-9 as its `offset` and `limit`, then exit 0, every time, whatever the session read before, and record nothing. The estimate is that of RDH-7 counted from line `offset` (1 when absent) for `limit` lines when given, even over 2,000, else for 2,000 lines.
+- **RDH-9** (deterministic) The parts of a saved result must cover its lines from the first to the last, in order, each a run of whole lines whose estimate (RDH-7, without its 2,000 lines) holds at most 20,000 bytes and as long as fits; when the run that fits stops before the last line of the file, on a line that does not start with `diff --git `, and holds, past its first line, a line starting with `diff --git `, the part ends before the last such line, so a part holds whole file diffs where they fit.
 
 ## Scenarios
 
@@ -42,6 +42,10 @@ hold, and those of `oversized-result-review` (BRE-22) fall.
 - (RDH-9) Given a saved diff of three files of 8,000, 9,000 and 10,000 bytes of estimate, then the parts are the
   first two files, then the third; a single file diff of 30,000 bytes is cut where its lines reach 20,000 bytes. A line is cut at 2,000
   characters (RDH-7), so a part always holds at least 9 lines.
+- (RDH-9) Given a saved diff whose first two file diffs fit in 20,000 bytes and whose third starts right after,
+  then the first part holds the first two whole.
+- (RDH-8) Given a saved result of 400 KB, when a session reads 2,000 lines of it, then the call is denied with its
+  parts; given one of 6,000 lines of 11 bytes, a read with `limit` 6000 is denied (66,000 bytes).
 - (RDH-8) Given a file `notes.txt` of 300 lines of 100 bytes outside a `tool-results` directory, then the hook acts
   as RDH-1 and RDH-3 say.
 - (RDH-2) Given a screenshot `shot.PNG` of 200 KB, when the agent reads it, then the hook prints nothing: Claude Code

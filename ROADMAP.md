@@ -17,3 +17,16 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
   - [ask_the_user_through_the_question_tool](issues/done/ask_the_user_through_the_question_tool.md)
+
+## Specs that read as a product
+
+- Goal: let a reader learn from a spec what the capability does for its user: a happy path first, the behaviour
+  apart from the contract details, and a size a reader can hold.
+- Why: the specs of the consumers grow by tens of kilobytes per milestone, list formats, codes and limits one by
+  one, and rarely state the main flow, which the format reserves to no scenario.
+- State: in issues
+- Issues:
+  - [require_a_happy_path_scenario_in_each_spec](issues/require_a_happy_path_scenario_in_each_spec.md)
+  - [warn_when_a_spec_outgrows_its_capability](issues/warn_when_a_spec_outgrows_its_capability.md)
+  - [separate_the_functional_requirements_from_the_contract](issues/separate_the_functional_requirements_from_the_contract.md)
+  - [measure_the_shape_of_the_specs](issues/measure_the_shape_of_the_specs.md)

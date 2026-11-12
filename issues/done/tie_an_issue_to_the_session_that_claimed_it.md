@@ -61,7 +61,7 @@ session on the trunk still counts from after the other work it did, not from its
 
 ## Deliverable 2
 - done: the `high` review of `base..HEAD` gave 7 findings; 2 fixed here, 5 moved to
-  [time_the_claims_that_tie_a_session_to_an_issue](../time_the_claims_that_tie_a_session_to_an_issue.md).
+  [time_the_claims_that_tie_a_session_to_an_issue](time_the_claims_that_tie_a_session_to_an_issue.md).
 - red: none (the widened test fails when the order puts the branch before the claim, checked by swapping it).
 - Code review (high, issue): 7 findings: the simplification and the missing test cases fixed; the QUA-8 span of a
   claiming session (out of scope in the plan), a refused claim counted (EVA-21 counts it), the time of the claims,

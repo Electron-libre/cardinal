@@ -47,7 +47,7 @@ fn read(path: &str, header: &str) -> Result<Vec<Row>, String> {
 }
 
 fn value<'a>(row: &'a Row, column: &str) -> &'a str {
-    row.get(column).map(String::as_str).unwrap_or_default()
+    row.get(column).map_or_default(String::as_str)
 }
 
 fn number(row: &Row, column: &str) -> u64 {
@@ -561,7 +561,7 @@ fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
         let total = |c: &str| sum(&rows, c);
         let mut cells: Vec<String> = summed
             .iter()
-            .map(|c| total(c).map(|n| n.to_string()).unwrap_or_default())
+            .map(|c| total(c).map_or_default(|n| n.to_string()))
             .collect();
         cells.extend(
             QUALITY_RATIOS
@@ -609,7 +609,7 @@ fn rules(groups: &[Group], breach_rows: &[Row]) -> Table {
                     total("breaches").to_string(),
                     total("blocked").to_string(),
                     share,
-                    bytes.map(|b| b.to_string()).unwrap_or_default(),
+                    bytes.map_or_default(|b| b.to_string()),
                     per_unit(bytes, Some(applied)),
                 ]
             })
@@ -789,7 +789,7 @@ fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors)
         let change = value(row, "change");
         let (metric, direction) = (value(row, "metric"), value(row, "direction"));
         let before_index = after_index.and_then(|i| i.checked_sub(1));
-        let name = |i: Option<usize>| i.map(|i| groups[i].name.clone()).unwrap_or_default();
+        let name = |i: Option<usize>| i.map_or_default(|i| groups[i].name.clone());
         let at = |i: Option<usize>| i.and_then(|i| metric_value(tables, i, metric));
         let (before_value, after_value) = (at(before_index), at(*after_index));
         let verdict = match (before_index, after_index, &before_value, &after_value) {
@@ -828,8 +828,8 @@ fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors)
             "| {short_change} | {metric} | {direction} | {} | {} | {} | {} | {verdict} |",
             name(before_index),
             name(*after_index),
-            before_value.map(|(printed, _)| printed).unwrap_or_default(),
-            after_value.map(|(printed, _)| printed).unwrap_or_default(),
+            before_value.map_or_default(|(printed, _)| printed),
+            after_value.map_or_default(|(printed, _)| printed),
         );
     }
     println!();

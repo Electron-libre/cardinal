@@ -38,8 +38,7 @@ fn assistant(cwd: &Path, ts: &str, id: &str, model: &str, blocks: &str, usage: &
 
 fn usage(input: u64, output: u64, thinking: Option<u64>, read: u64, creation: u64) -> String {
     let details = thinking
-        .map(|t| format!(",\"output_tokens_details\":{{\"thinking_tokens\":{t}}}"))
-        .unwrap_or_default();
+        .map_or_default(|t| format!(",\"output_tokens_details\":{{\"thinking_tokens\":{t}}}"));
     format!(",\"usage\":{{\"input_tokens\":{input},\"output_tokens\":{output},\"cache_read_input_tokens\":{read},\"cache_creation_input_tokens\":{creation}{details}}}")
 }
 

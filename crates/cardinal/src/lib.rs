@@ -262,9 +262,7 @@ fn read_lock(root: &Path) -> Result<Option<Lock>> {
 
 /// The managed files the lock of the project at `root` lists, sorted by path; none when it has no lock.
 pub(crate) fn managed_files(root: &Path) -> Result<Vec<String>> {
-    Ok(read_lock(root)?
-        .map(|lock| lock.files.into_keys().collect())
-        .unwrap_or_default())
+    Ok(read_lock(root)?.map_or_default(|lock| lock.files.into_keys().collect()))
 }
 
 /// The command that installs the `cardinal` of the revision the configuration pins, quoted, or what to install when it
@@ -1156,8 +1154,7 @@ fn update_in(
     let mut refused: Vec<String> = fs::read_to_string(dir.join(entries::FRAGMENT))
         .ok()
         .and_then(|text| serde_json::from_str(&text).ok())
-        .map(|fragment| launcher::refused(&fragment))
-        .unwrap_or_default()
+        .map_or_default(|fragment| launcher::refused(&fragment))
         .iter()
         .filter(|command| !off.contains(*command))
         .map(|command| {
@@ -1284,8 +1281,7 @@ fn check_with(root: &Path, ci: bool) -> Result<Checked> {
     let hooks = text
         .as_deref()
         .and_then(|text| serde_json::from_str(text).ok())
-        .map(|settings| launcher::refused(&settings))
-        .unwrap_or_default();
+        .map_or_default(|settings| launcher::refused(&settings));
     let install = install_hint(root);
     let problems = lock
         .files

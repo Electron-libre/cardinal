@@ -276,13 +276,11 @@ fn config_list(root: &std::path::Path, key: &str) -> Vec<String> {
         .get("project")
         .and_then(|p| p.get(key))
         .or_else(|| table.get(key));
-    list.and_then(toml::Value::as_array)
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(str::to_string))
-                .collect()
-        })
-        .unwrap_or_default()
+    list.and_then(toml::Value::as_array).map_or_default(|a| {
+        a.iter()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect()
+    })
 }
 
 fn is_doc_path(s: &str, root_docs: &[String]) -> bool {
@@ -756,8 +754,7 @@ fn the_hook_only_features_are_their_hook_entries() {
                     if commands.iter().any(|c| c == command) {
                         let matcher = group["matcher"]
                             .as_str()
-                            .map(|m| format!("{m} "))
-                            .unwrap_or_default();
+                            .map_or_default(|m| format!("{m} "));
                         declared.push(format!("hook {event} {matcher}{command}"));
                     }
                 }
@@ -905,8 +902,7 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
                 if command.starts_with("cardinal run review-gate ") {
                     let matcher = group["matcher"]
                         .as_str()
-                        .map(|m| format!("{m} "))
-                        .unwrap_or_default();
+                        .map_or_default(|m| format!("{m} "));
                     declared.push(format!("hook {event} {matcher}{command}"));
                 }
             }

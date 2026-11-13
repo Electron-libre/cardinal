@@ -175,8 +175,7 @@ impl Transcript {
             let location = format!("{name}:{n}");
             let blocks = line["message"]["content"]
                 .as_array()
-                .map(Vec::as_slice)
-                .unwrap_or_default();
+                .map_or_default(Vec::as_slice);
             match line["type"].as_str() {
                 Some("assistant") => {
                     if main {
@@ -712,13 +711,12 @@ fn commit_scopes(config: Option<&toml::Table>) -> Vec<String> {
         .and_then(|c| c.get("project"))
         .and_then(|p| p.get("commit_scopes"))
         .and_then(toml::Value::as_array);
-    list.map(|l| {
+    list.map_or_default(|l| {
         l.iter()
             .filter_map(toml::Value::as_str)
             .map(str::to_string)
             .collect()
     })
-    .unwrap_or_default()
 }
 
 /// A session checked against the rules, with what places it.

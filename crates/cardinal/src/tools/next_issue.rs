@@ -36,13 +36,12 @@ fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
         .output()
         .ok()
         .filter(|o| o.status.success())
-        .map(|o| {
+        .map_or_default(|o| {
             String::from_utf8_lossy(&o.stdout)
                 .lines()
                 .map(str::to_string)
                 .collect()
         })
-        .unwrap_or_default()
 }
 
 /// Whether `branch` holds work that `trunk` lacks; true when git cannot tell, so unmerged work is never ignored.
@@ -134,15 +133,13 @@ fn branches(dir: &Path, stems: &[&str]) -> (Vec<Branch>, String) {
 
 /// The stems of the issue files of `dir`, sorted.
 fn issue_stems(dir: &Path) -> Vec<String> {
-    let mut stems: Vec<String> = std::fs::read_dir(dir)
-        .map(|d| {
-            d.flatten()
-                .map(|e| e.path())
-                .filter(|p| p.is_file() && p.extension().is_some_and(|x| x == "md"))
-                .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
-                .collect()
-        })
-        .unwrap_or_default();
+    let mut stems: Vec<String> = std::fs::read_dir(dir).map_or_default(|d| {
+        d.flatten()
+            .map(|e| e.path())
+            .filter(|p| p.is_file() && p.extension().is_some_and(|x| x == "md"))
+            .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))
+            .collect()
+    });
     stems.sort();
     stems
 }

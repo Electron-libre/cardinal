@@ -48,12 +48,11 @@ const REQUIRED: [&str; 7] = [
 fn allow(settings: &Value) -> Vec<String> {
     settings["permissions"]["allow"]
         .as_array()
-        .map(|a| {
+        .map_or_default(|a| {
             a.iter()
                 .filter_map(|v| v.as_str().map(String::from))
                 .collect()
         })
-        .unwrap_or_default()
 }
 
 fn read_settings(path: &Path, label: &str, failures: &mut Vec<String>) -> Value {

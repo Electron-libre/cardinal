@@ -65,7 +65,7 @@ pub fn install(source: &str, rev: Option<&str>) -> String {
     if let Some(commit) = rev.filter(|rev| is_full_hash(rev)) {
         return format!("{LAUNCHER} upgrade {source} {commit}");
     }
-    let rev = rev.map(|rev| format!(" --rev {rev}")).unwrap_or_default();
+    let rev = rev.map_or_default(|rev| format!(" --rev {rev}"));
     format!(
         "cargo install --force --git {}{rev} --locked",
         cargo_url(source)

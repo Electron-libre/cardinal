@@ -30,13 +30,11 @@ fn config_list(root: &std::path::Path, key: &str) -> Vec<String> {
         .get("project")
         .and_then(|p| p.get(key))
         .or_else(|| table.get(key));
-    list.and_then(toml::Value::as_array)
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(str::to_string))
-                .collect()
-        })
-        .unwrap_or_default()
+    list.and_then(toml::Value::as_array).map_or_default(|a| {
+        a.iter()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect()
+    })
 }
 
 fn is_text_file(path: &Path) -> bool {

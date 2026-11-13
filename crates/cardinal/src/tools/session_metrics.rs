@@ -165,10 +165,7 @@ impl Session {
 
     fn assistant(&mut self, line: &Value, message: &Value, main: bool) {
         push_distinct(&mut self.advisors, line["advisorModel"].as_str());
-        let blocks = message["content"]
-            .as_array()
-            .map(Vec::as_slice)
-            .unwrap_or_default();
+        let blocks = message["content"].as_array().map_or_default(Vec::as_slice);
         self.advisor_calls += blocks
             .iter()
             .filter(|b| b["type"] == "server_tool_use" && b["name"] == "advisor")
@@ -209,10 +206,7 @@ impl Session {
         self.thinking += usage["output_tokens_details"]["thinking_tokens"]
             .as_u64()
             .unwrap_or(0);
-        let iterations = usage["iterations"]
-            .as_array()
-            .map(Vec::as_slice)
-            .unwrap_or_default();
+        let iterations = usage["iterations"].as_array().map_or_default(Vec::as_slice);
         if main {
             // An advised message's top-level usage adds up its executor iterations: its context is the largest one.
             let advised = iterations.iter().any(|i| i["type"] == "advisor_message");
@@ -238,8 +232,7 @@ impl Session {
         }
         let blocks = line["message"]["content"]
             .as_array()
-            .map(Vec::as_slice)
-            .unwrap_or_default();
+            .map_or_default(Vec::as_slice);
         for block in blocks
             .iter()
             .filter(|b| b["type"] == "tool_result" && b["is_error"].as_bool() == Some(true))
@@ -473,8 +466,7 @@ pub(super) fn main(args: &[String]) -> u8 {
             let revision = repo
                 .as_deref()
                 .filter(|_| !start.is_empty())
-                .map(|r| revision(r, start))
-                .unwrap_or_default();
+                .map_or_default(|r| revision(r, start));
             rows.push(session.row(&id, &project_name(&cwd, repo.as_deref()), &revision));
         }
     }

@@ -37,8 +37,7 @@ fn git(dir: &str, args: &[&str]) -> String {
         .args(args)
         .current_dir(dir)
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-        .unwrap_or_default()
+        .map_or_default(|o| String::from_utf8_lossy(&o.stdout).into_owned())
 }
 
 /// The directory to check: where `CLAUDE_PROJECT_DIR` sits in its work tree, taken in the work tree of the event's

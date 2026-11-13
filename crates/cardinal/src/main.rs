@@ -122,7 +122,6 @@ fn print_changes(report: &Report) -> bool {
 /// The skill `update` names as its next step (SYN-61): the agent otherwise writes the commit message inline.
 const COMMIT_SKILL: &str = ".claude/skills/commit-message/SKILL.md";
 
-#[must_use]
 pub fn main() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,

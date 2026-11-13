@@ -1089,8 +1089,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         summed
             .lines()
             .find(|l| l.starts_with(&format!("{revision}\t")))
-            .map(|l| l.split('\t').rev().take(4).collect::<Vec<_>>().join(" "))
-            .unwrap_or_default()
+            .map_or_default(|l| l.split('\t').rev().take(4).collect::<Vec<_>>().join(" "))
     };
     let (_, none) = run(dir, &repo, &[]);
     let n = rows(&none);

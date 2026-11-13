@@ -16,9 +16,8 @@ pub const DEFAULT_BRANCHES: &[&str] = &["main", "master", "HEAD"];
 
 /// The entries of `dir`, sorted; empty when it cannot be read.
 pub fn sorted_entries(dir: &Path) -> Vec<PathBuf> {
-    let mut paths: Vec<PathBuf> = std::fs::read_dir(dir)
-        .map(|d| d.flatten().map(|e| e.path()).collect())
-        .unwrap_or_default();
+    let mut paths: Vec<PathBuf> =
+        std::fs::read_dir(dir).map_or_default(|d| d.flatten().map(|e| e.path()).collect());
     paths.sort();
     paths
 }
@@ -314,8 +313,7 @@ impl Place {
     pub fn start_text(&self) -> &str {
         self.start
             .as_ref()
-            .map(|(_, text)| text.as_str())
-            .unwrap_or_default()
+            .map_or_default(|(_, text)| text.as_str())
     }
 }
 
@@ -394,8 +392,7 @@ fn sibling(gone: &Path, branches: &[String]) -> Option<PathBuf> {
 pub fn project_name(cwd: &str, repo: Option<&Path>) -> String {
     repo.and_then(Path::file_name)
         .or_else(|| Path::new(cwd).file_name())
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_default()
+        .map_or_default(|n| n.to_string_lossy().into_owned())
 }
 
 /// The default branch of `repo`: `origin/HEAD`, else `main`, else `master`.
@@ -483,9 +480,7 @@ pub fn revision(repo: &Path, start: &str) -> String {
         return String::new();
     };
     pinned_revision(&config).unwrap_or_else(|| {
-        last_commit(repo, start, &["files"])
-            .map(|c| format!("self:{c}"))
-            .unwrap_or_default()
+        last_commit(repo, start, &["files"]).map_or_default(|c| format!("self:{c}"))
     })
 }
 

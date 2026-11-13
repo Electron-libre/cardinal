@@ -34,9 +34,7 @@ fn repo(dir: &Path, language: Option<&str>) {
         .status()
         .is_ok_and(|s| s.success());
     assert!(ok, "git init failed");
-    let key = language
-        .map(|l| format!("user_language = \"{l}\"\n"))
-        .unwrap_or_default();
+    let key = language.map_or_default(|l| format!("user_language = \"{l}\"\n"));
     put(
         dir,
         ".claude/cardinal.toml",

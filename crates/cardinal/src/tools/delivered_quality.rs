@@ -193,7 +193,7 @@ impl Issues {
             return *span;
         }
         let done = format!("issues/done/{stem}.md");
-        let touching = self.files.get(stem).map(Vec::as_slice).unwrap_or_default();
+        let touching = self.files.get(stem).map_or_default(Vec::as_slice);
         let close = touching
             .iter()
             .rev()
@@ -440,13 +440,12 @@ impl DocFiles {
         let roadmap = project
             .and_then(|p| p.get("roadmap"))
             .and_then(toml::Value::as_array)
-            .map(|a| {
+            .map_or_default(|a| {
                 a.iter()
                     .filter_map(toml::Value::as_str)
                     .map(str::to_string)
                     .collect()
-            })
-            .unwrap_or_default();
+            });
         DocFiles {
             root_docs: config_names(repo, "root_docs", "README.md").0,
             architecture,
@@ -819,8 +818,7 @@ fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
             }
             for block in line["message"]["content"]
                 .as_array()
-                .map(Vec::as_slice)
-                .unwrap_or_default()
+                .map_or_default(Vec::as_slice)
             {
                 let id = block["id"]
                     .as_str()
@@ -952,7 +950,7 @@ struct Row {
 
 /// A count, empty when unknown.
 fn cell(value: Option<impl ToString>) -> String {
-    value.map(|n| n.to_string()).unwrap_or_default()
+    value.map_or_default(|n| n.to_string())
 }
 
 fn issue_row(
@@ -1071,7 +1069,7 @@ fn summary(rows: &[Row]) -> Vec<String> {
         .map(|((revision, setup), (count, sums, known))| {
             let sums: Vec<String> = sums
                 .iter()
-                .map(|s| s.map(|n| n.to_string()).unwrap_or_default())
+                .map(|s| s.map_or_default(|n| n.to_string()))
                 .collect();
             format!("{revision}\t{setup}\t{count}\t{}\t{known}", sums.join("\t"))
         })

@@ -58,7 +58,7 @@ impl S<'_> {
             "0".into(),
             self.input[1].to_string(),
             self.input[2].to_string(),
-            self.peak.map(|p| p.to_string()).unwrap_or_default(),
+            self.peak.map_or_default(|p| p.to_string()),
             self.advisor.into(),
             advised(self.calls),
             advised(self.calls * 1000),
@@ -239,9 +239,8 @@ fn efficiency_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         "other_messages",
     ]
     .to_vec();
-    let groups: Vec<String> = eff
-        .map(|r| r.iter().skip(1).map(|c| c[0].clone()).collect())
-        .unwrap_or_default();
+    let groups: Vec<String> =
+        eff.map_or_default(|r| r.iter().skip(1).map(|c| c[0].clone()).collect());
     let too_few = eff
         .and_then(|r| r.iter().find(|c| c[0] == "r-c"))
         .is_some_and(|c| c[1] == "4" && c[2..].iter().all(|v| v == "too few"));
@@ -449,15 +448,13 @@ fn axes_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         t.get("Skills"),
         t.get("Fixed context"),
     );
-    let rule_rows: Vec<String> = rules
-        .map(|r| {
-            r.iter()
-                .skip(1)
-                .filter(|c| c[0] == first)
-                .map(|c| c[2..].join(" "))
-                .collect()
-        })
-        .unwrap_or_default();
+    let rule_rows: Vec<String> = rules.map_or_default(|r| {
+        r.iter()
+            .skip(1)
+            .filter(|c| c[0] == first)
+            .map(|c| c[2..].join(" "))
+            .collect()
+    });
     let rule_rows: Vec<String> = rule_rows
         .into_iter()
         .filter(|r| !r.starts_with("oversized-result"))
@@ -622,15 +619,12 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             breaches.as_os_str(),
         ],
     );
-    let rows: Vec<String> = tables(&out)
-        .get("Rules")
-        .map(|r| {
-            r.iter()
-                .filter(|c| c[0] == "self:1111111..r-b")
-                .map(|c| c[2..].join(" "))
-                .collect()
-        })
-        .unwrap_or_default();
+    let rows: Vec<String> = tables(&out).get("Rules").map_or_default(|r| {
+        r.iter()
+            .filter(|c| c[0] == "self:1111111..r-b")
+            .map(|c| c[2..].join(" "))
+            .collect()
+    });
     vec![
         (
             "a waste rule sums its bytes and their mean per applied session",
@@ -816,9 +810,8 @@ fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
     }
     let t = tables(&out);
     let eff = t.get("Efficiency");
-    let groups: Vec<String> = eff
-        .map(|r| r.iter().skip(1).map(|c| c[0].clone()).collect())
-        .unwrap_or_default();
+    let groups: Vec<String> =
+        eff.map_or_default(|r| r.iter().skip(1).map(|c| c[0].clone()).collect());
     let advised = "claude-sonnet-5-5 advised by claude-opus-5-5";
     let too_few = eff
         .and_then(|r| r.iter().find(|c| c[0] == "claude-sonnet-5-5 solo"))
@@ -1208,8 +1201,7 @@ fn last_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 fn group_names(out: &str, title: &str) -> Vec<String> {
     tables(out)
         .remove(title)
-        .map(|rows| rows.into_iter().skip(1).map(|r| r[0].clone()).collect())
-        .unwrap_or_default()
+        .map_or_default(|rows| rows.into_iter().skip(1).map(|r| r[0].clone()).collect())
 }
 
 // spec: VRD-1, VRD-5

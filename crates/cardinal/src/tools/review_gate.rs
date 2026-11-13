@@ -64,10 +64,7 @@ fn git(cwd: &Path, args: &[&str], stdin: &[u8]) -> Vec<u8> {
     let mut pipe = child.stdin.take().unwrap();
     let input = stdin.to_vec();
     let writer = std::thread::spawn(move || pipe.write_all(&input).ok());
-    let out = child
-        .wait_with_output()
-        .map(|o| o.stdout)
-        .unwrap_or_default();
+    let out = child.wait_with_output().map_or_default(|o| o.stdout);
     writer.join().ok();
     out
 }

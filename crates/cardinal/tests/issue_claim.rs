@@ -96,8 +96,7 @@ fn claim_text(repo: &Path, stem: &str) -> String {
         .args(["cat-file", "blob", &format!("refs/cardinal/claims/{stem}")])
         .current_dir(repo)
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
-        .unwrap_or_default()
+        .map_or_default(|o| String::from_utf8_lossy(&o.stdout).into_owned())
 }
 
 /// A process id that runs: this test's own.

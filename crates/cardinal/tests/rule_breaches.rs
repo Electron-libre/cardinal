@@ -793,9 +793,7 @@ fn language_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         ("none", None),
     ] {
         let repo = new_repo(&tmp.join(name));
-        let key = language
-            .map(|l| format!("user_language = \"{l}\"\n"))
-            .unwrap_or_default();
+        let key = language.map_or_default(|l| format!("user_language = \"{l}\"\n"));
         commit_at(
             &repo,
             "2026-01-01T00:00:00Z",

@@ -229,8 +229,7 @@ fn toplevel(dir: &Path) -> String {
         .args(["rev-parse", "--show-toplevel"])
         .current_dir(dir)
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        .unwrap_or_default()
+        .map_or_default(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
 }
 
 /// A command a project declares for a hook, run by `sh -c`, or its default (`None`), and the file-name patterns of the
@@ -330,12 +329,9 @@ fn config_list(root: &Path, key: &str) -> Result<Vec<String>, String> {
         .get("project")
         .and_then(|p| p.get(key))
         .or_else(|| table.get(key));
-    Ok(list
-        .and_then(toml::Value::as_array)
-        .map(|a| {
-            a.iter()
-                .filter_map(|v| v.as_str().map(str::to_string))
-                .collect()
-        })
-        .unwrap_or_default())
+    Ok(list.and_then(toml::Value::as_array).map_or_default(|a| {
+        a.iter()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect()
+    }))
 }

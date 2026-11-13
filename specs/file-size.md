@@ -26,7 +26,7 @@ grows rather than after.
 - **FSZ-5** (deterministic) `file-size` must leave out a deleted file, a file git reads as binary, the files under `issues/` (unless the project turns off the feature `issue-files`, FEA-37) and the lock files `deliverable-size` leaves out (SIZ-4).
 - **FSZ-6** (deterministic) `file-size` must compare the count with `file_size_limit` of the `[project]` table of `.claude/cardinal.toml`, defaulting to 800 when the file or the key is absent; a limit of 0 turns the check off: nothing listed, exit 0.
 - **FSZ-7** (deterministic) `file-size` must print one line `<lines>\t<path>` per listed file, with ` (was <before>)` appended when the file existed before the change, largest first then by path, then a last line `<n> files over the limit of <limit> lines` (`0 files ...` when none), and exit 0 when it lists none, 1 when it lists one or more.
-- **FSZ-8** (deterministic) When git fails (no repository, an unknown revision), an argument other than `--all` starts with `-`, there is more than one argument, the configuration cannot be read or the limit is not a non-negative integer, `file-size` must print the reason on stderr and exit 3, listing nothing.
+- **FSZ-8** (deterministic) When git fails (no repository), a revision or a side of a range does not name one commit (an unknown revision, an option such as `--output=x`, a range shorthand such as `HEAD^!`), there is more than one argument, the configuration cannot be read or the limit is not a non-negative integer, `file-size` must print the reason on stderr and exit 3, listing nothing.
 - **FSZ-9** (deterministic) `file-size` must leave the index of the repository unchanged.
 
 ## Scenarios
@@ -49,7 +49,8 @@ grows rather than after.
 - (FSZ-6) Given `file_size_limit = 0` and an untracked file of 2,000 lines, when `file-size` runs, then it prints `0 files over the limit of 0 lines` and exits 0.
 - (FSZ-6) Given `file_size_limit = 10` and a file grown from 5 to 11 lines, when `file-size` runs, then it lists the file and exits 1.
 - (FSZ-8) Given `file_size_limit = "big"`, when `file-size` runs, then it exits 3.
-- (FSZ-8) Given any repository, when `file-size --output=x` runs, then it exits 3 and writes no file `x`.
+- (FSZ-8) Given any repository, when `file-size --output=x` or `file-size HEAD..--output=x` runs, then it exits 3 and writes no file `x`.
+- (FSZ-8) Given any repository, when `file-size HEAD^!` runs, then it exits 3.
 - (FSZ-9) Given an untracked file of 801 lines, when `file-size` runs, then `git status --porcelain` prints the same before and after.
 
 ## Non-goals
@@ -59,3 +60,5 @@ grows rather than after.
 - A list of generated or vendored files to leave out: `skipped_dirs` is not read; a project that keeps such files
   raises the limit or turns it off.
 - A limit per language or per directory: one limit for every file, test files included.
+- A move git does not pair as a rename (rewritten beyond half of its lines): it counts as a new file, listed when
+  over the limit even if the change shrank it.

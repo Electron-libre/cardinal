@@ -67,6 +67,9 @@ the split itself, the new metric of `cardinal-report` (see Decisions).
 2. [x] The skills: `issue-workflow` step 1 (where the code goes for a touched file over the limit, or a split deliverable
    first), step 3.5 (run `file-size`, cut or say why in the summary of 3.6), `prioritize-issues` (`file-size --all`,
    a restructuring issue proposed for the worst), `docs/workflow.md`; verified by `just check` and `just sync`. (autonomous)
+3. [x] The fixes of the `high` review of the issue: each revision resolved to one commit, one `numstat -M` pass with
+   no pathspec, the git helpers in `tools/git_diff.rs`, FSZ-2, FSZ-8 and FEA-37 amended; verified by the tests of
+   `file_size`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -115,3 +118,32 @@ red: none (skill text).
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Deliverable 3
+done: the 8 findings of the `high` review of `1823f53..HEAD` (the clippy commit had its own `low` review):
+
+| finding | done |
+|---|---|
+| `HEAD..--output=x` read as a git option | each side resolved by `rev-parse --verify --end-of-options <rev>^{commit}`, tested |
+| `HEAD^!` mixes a range and the working tree | refused by the same resolution, tested |
+| every path as a pathspec (E2BIG) | no pathspec: one `numstat -M` pass, the lines after = before + added - removed |
+| a path not UTF-8 dropped | the same pass keys both sides alike, tested |
+| the working tree read twice | read once |
+| a rename rewritten beyond 50% listed as new | kept: git's pairing, written as a non-goal of the spec |
+| the git helpers in `deliverable_size.rs` | moved to `tools/git_diff.rs` |
+| FEA-37 silent on `file-size` | amended, cited by the test |
+
+| check | result |
+|---|---|
+| tests | pass (`file_size` 14, `deliverable_size` 14) |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: FSZ-8: `HEAD..--output=x` exited 0 and wrote `x` (the review reproduced it on the binary).
+
+Code review: no findings
+
+not verified: the argument length limit (E2BIG) is not tested; the fix removes the pathspecs that caused it.
+decisions needed: none.

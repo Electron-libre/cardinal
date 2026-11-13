@@ -159,7 +159,7 @@ deliverable then.
 
 ## Size of the touched files
 
-`cardinal run file-size [<rev> | <a>..<b> | --all]` ([specs/file-size.md](../specs/file-size.md)) lists the files a
+`cardinal run file-size [<rev> | <a>..<b> | <a>...<b> | --all]` ([specs/file-size.md](../specs/file-size.md)) lists the files a
 change grows over `file_size_limit` (800 lines, `[project]` table of `.claude/cardinal.toml`, 0 turns it off): those
 it pushes over the limit and those it grows while already over it, each with its lines before the change, outside
 `issues/`, the lock files and the binary files. With no argument it compares the working tree with `HEAD`; `--all`

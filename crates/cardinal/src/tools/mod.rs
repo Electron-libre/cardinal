@@ -17,6 +17,7 @@ mod delivered_quality;
 mod file_size;
 mod fixed_context;
 mod format_code;
+mod git_diff;
 mod issue_claim;
 mod language;
 mod language_hint;
@@ -102,7 +103,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "file-size",
-        about: "[<rev> | <a>..<b> | --all]: the files a change grows over the file size limit, or every file over it",
+        about: "[<rev> | <a>..<b> | <a>...<b> | --all]: the files a change grows over the file size limit, or every file over it",
         main: file_size::main,
     },
     Tool {

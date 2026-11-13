@@ -191,7 +191,7 @@ fn leaves_out_the_issues_the_lock_files_the_binaries_and_the_deleted_files() {
     assert_eq!(size(dir.path(), &["--all"]), (Some(0), NONE.into()));
 }
 
-// spec: FSZ-5
+// spec: FSZ-5, FEA-37
 #[test]
 fn lists_the_issues_with_the_issue_files_off() {
     let dir = repo(&[(
@@ -245,8 +245,34 @@ fn a_git_failure_a_bad_argument_or_a_bad_limit_exits_3_listing_nothing() {
         size(dir.path(), &["HEAD", "--all"]),
         (Some(3), String::new())
     );
+    for target in ["HEAD..--output=x", "--output=x...HEAD", "HEAD^!", "HEAD^@"] {
+        assert_eq!(
+            size(dir.path(), &[target]),
+            (Some(3), String::new()),
+            "{target}"
+        );
+    }
+    assert!(!dir.path().join("x").exists());
     let outside = tempfile::tempdir().unwrap();
     assert_eq!(size(outside.path(), &[]), (Some(3), String::new()));
+}
+
+// spec: FSZ-1
+#[cfg(unix)]
+#[test]
+fn a_path_that_is_not_utf8_is_listed() {
+    use std::os::unix::ffi::OsStrExt;
+    let dir = repo(&[]);
+    let name = std::ffi::OsStr::from_bytes(b"caf\xe9.rs");
+    std::fs::write(dir.path().join(name), lines(700)).unwrap();
+    commit(dir.path(), "latin-1");
+    std::fs::write(dir.path().join(name), lines(900)).unwrap();
+    let (code, stdout) = size(dir.path(), &[]);
+    assert_eq!(code, Some(1), "{stdout}");
+    assert!(
+        stdout.ends_with(" (was 700)\n1 files over the limit of 800 lines\n"),
+        "{stdout}"
+    );
 }
 
 fn status(dir: &Path) -> String {

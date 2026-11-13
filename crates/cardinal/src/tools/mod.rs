@@ -14,6 +14,7 @@ mod close_issue;
 mod commit_check;
 mod deliverable_size;
 mod delivered_quality;
+mod file_size;
 mod fixed_context;
 mod format_code;
 mod issue_claim;
@@ -98,6 +99,11 @@ pub const TOOLS: &[Tool] = &[
         name: "delivered-quality",
         about: "[repo] [--summary]: one row per done issue, its fixes, reviews and failed checks",
         main: delivered_quality::main,
+    },
+    Tool {
+        name: "file-size",
+        about: "[<rev> | <a>..<b> | --all]: the files a change grows over the file size limit, or every file over it",
+        main: file_size::main,
     },
     Tool {
         name: "fixed-context",

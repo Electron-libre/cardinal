@@ -38,8 +38,7 @@ over the limit become restructuring issues.
    `oversized-result`.
 
 # Specs
-* A new spec of `file-size` (or an amendment of `specs/deliverable-size.md`, SIZ), the requirements of the key and
-  of the tool.
+* `specs/file-size.md` (FSZ-1 to FSZ-9, new).
 
 # Resources
 * `crates/cardinal/src/tools/deliverable_size.rs`, `specs/deliverable-size.md`, ADR 0009: the tool to model on.
@@ -51,3 +50,49 @@ over the limit become restructuring issues.
   tool reports, the plan decides; never a refusal.
 * Count the lines as `wc -l` does, on the files of the diff only, so the check stays cheap.
 * Verdict: `Expected-effect: bytes_per_session:oversized-result down`, and the new metric down.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-13
+
+## Understanding
+Report the files a change pushes over `file_size_limit` (or grows while over it) and the files of the repository over
+it, then have the plan, the review step and `skill:prioritize-issues` act on that report. Out of scope: any refusal,
+the split itself, the new metric of `cardinal-report` (see Decisions).
+
+## Plan
+1. [x] The tool `cardinal run file-size [<rev> | <a>..<b> | --all]` and the key `file_size_limit` (seeded
+   `cardinal.toml` comment, `docs/architecture.md`, `docs/usage.md`); verified by tests over temporary repositories;
+   makes true FSZ-1 to FSZ-9. (autonomous)
+2. [ ] The skills: `issue-workflow` step 1 (where the code goes for a touched file over the limit, or a split deliverable
+   first), step 3.5 (run `file-size`, cut or say why in the summary of 3.6), `prioritize-issues` (`file-size --all`,
+   a restructuring issue proposed for the worst), `docs/workflow.md`; verified by `just check` and `just sync`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 435978cf46b5f58d4e6c052926e6be80f54e86a6
+- The metric of the largest touched file in `cardinal-report`: a separate issue later; `oversized-result` measures the effect meanwhile.
+- `file-size` exiting 1 at step 3.5 does not block: cut the file or write why not in the summary of 3.6.
+- Commit 1823f53 (outside the plan): clippy 1.100 of the stable toolchain failed `-D warnings` on 32 sites of
+  `map(_).unwrap_or_default()`; fixed apart, before deliverable 1, so the base stays green.
+- The tests run with `TMPDIR` outside `/tmp` (its quota was full of other sessions' directories) and outside the
+  repository (`audit_sources` reads the `CLAUDE.md` of the parents of its temporary directory).
+
+## Deliverable 1
+done: `cardinal run file-size [<rev> | <a>..<b> | --all]`, the key `file_size_limit` (800, 0 off), its spec accepted, docs.
+
+| check | result |
+|---|---|
+| tests | pass (`file_size` 13, `deliverable_size` 14) |
+| lint | pass |
+| specs | pass, FSZ accepted |
+| docs | `docs/usage.md`, `docs/architecture.md`, seeded `cardinal.toml` |
+| code review | see below |
+
+red: FSZ-1, FSZ-7, FSZ-H1: `left: (Some(3), "")` (the tool did not exist), 12 of 13 tests red.
+
+Code review: 1 findings
+- `a...b` and an open range `a..` were split by hand into bad revisions (exit 3): fixed, an empty side reads
+  `HEAD` and `...` compares with the merge base (FSZ-2 amended, tested).
+
+not verified: none. decisions needed: none.

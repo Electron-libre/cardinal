@@ -52,23 +52,15 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
         None => ("deliverable_size_limit", 1000),
         Some(_) => ("issue_size_limit", 3000),
     };
-    let limit = limit(root, key, default)?;
+    let limit = limit(root, key, default, 1)?;
     let numstat = match target {
         Some(range) if range.contains("..") => git(root, &diff_args(range), None, None)?,
         Some(rev) => working_tree_diff(root, rev)?,
         None if git(root, &["rev-parse", "--verify", "-q", "HEAD"], None, None).is_ok() => {
             working_tree_diff(root, "HEAD")?
         }
-        None => {
-            // no commit yet: everything counts as added (SIZ-1)
-            let empty = git(
-                root,
-                &["hash-object", "-t", "tree", "--stdin"],
-                None,
-                Some(b""),
-            )?;
-            working_tree_diff(root, String::from_utf8_lossy(&empty).trim())?
-        }
+        // no commit yet: everything counts as added (SIZ-1)
+        None => working_tree_diff(root, &empty_tree(root)?)?,
     };
     // with the issue files off, `issues/` counts as any other directory (FEA-37)
     let issue_files = !crate::features::is_off(root, crate::features::ISSUE_FILES);
@@ -89,9 +81,20 @@ fn report(target: Option<&str>) -> Result<(String, bool), String> {
     Ok((out, over))
 }
 
-/// The positive integer `key` of the `[project]` table of the configuration, `default` when the file or the key is
-/// absent (SIZ-8, SIZ-10).
-fn limit(root: &Path, key: &str, default: u64) -> Result<u64, String> {
+/// The id of the empty tree, the base of a branch with no commit yet.
+pub(super) fn empty_tree(root: &Path) -> Result<String, String> {
+    let id = git(
+        root,
+        &["hash-object", "-t", "tree", "--stdin"],
+        None,
+        Some(b""),
+    )?;
+    Ok(String::from_utf8_lossy(&id).trim().to_string())
+}
+
+/// The integer `key` of the `[project]` table of the configuration, at least `min`, `default` when the file or the
+/// key is absent (SIZ-8, SIZ-10).
+pub(super) fn limit(root: &Path, key: &str, default: u64, min: u64) -> Result<u64, String> {
     let path = crate::config_of(root);
     let text = match std::fs::read_to_string(&path) {
         Ok(text) => text,
@@ -106,8 +109,13 @@ fn limit(root: &Path, key: &str, default: u64) -> Result<u64, String> {
         Some(value) => value
             .as_integer()
             .and_then(|n| u64::try_from(n).ok())
-            .filter(|n| *n > 0)
-            .ok_or_else(|| format!("{key} of {} is not a positive integer", path.display())),
+            .filter(|n| *n >= min)
+            .ok_or_else(|| {
+                format!(
+                    "{key} of {} is not an integer of at least {min}",
+                    path.display()
+                )
+            }),
     }
 }
 
@@ -125,9 +133,14 @@ fn diff_args(target: &str) -> [&str; 7] {
     ]
 }
 
-/// The diff of the working tree against `rev`, the untracked files included as new ones: they are marked
-/// intent-to-add in a copy of the index, removed after, so the index of the repository is untouched (SIZ-11).
+/// The diff of the working tree against `rev`, the untracked files included as new ones (SIZ-11).
 fn working_tree_diff(root: &Path, rev: &str) -> Result<Vec<u8>, String> {
+    working_tree_git(root, &diff_args(rev))
+}
+
+/// `git <args>` run on the working tree with the untracked files included as new ones: they are marked
+/// intent-to-add in a copy of the index, removed after, so the index of the repository is untouched (SIZ-11).
+pub(super) fn working_tree_git(root: &Path, args: &[&str]) -> Result<Vec<u8>, String> {
     let index = git(
         root,
         &["rev-parse", "--path-format=absolute", "--git-path", "index"],
@@ -165,7 +178,7 @@ fn working_tree_diff(root: &Path, rev: &str) -> Result<Vec<u8>, String> {
             Some(&untracked),
         )?;
     }
-    git(root, &diff_args(rev), Some(&copy.0), None)
+    git(root, args, Some(&copy.0), None)
 }
 
 /// A copy of the index, deleted when dropped.
@@ -203,7 +216,7 @@ fn counts(numstat: &[u8]) -> BTreeMap<String, u64> {
 }
 
 /// Whether `path` is left out of the count: a lock file, or a file under `issues/` when `issue_files` is on.
-fn left_out(path: &str, issue_files: bool) -> bool {
+pub(super) fn left_out(path: &str, issue_files: bool) -> bool {
     let name = path.rsplit('/').next().unwrap_or(path);
     issue_files && path.starts_with("issues/")
         || LOCK_FILES
@@ -212,7 +225,7 @@ fn left_out(path: &str, issue_files: bool) -> bool {
 }
 
 /// The stdout of `git <args>` run in `root`, with `index` as its index and `stdin` as its input, or git's message.
-fn git(
+pub(super) fn git(
     root: &Path,
     args: &[&str],
     index: Option<&Path>,

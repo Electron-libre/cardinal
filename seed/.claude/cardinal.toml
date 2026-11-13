@@ -37,6 +37,9 @@ skipped_dirs = []
 # The size limit `deliverable-size` checks, in changed lines (issue-workflow): of a deliverable, and of a whole issue.
 # deliverable_size_limit = 1000
 # issue_size_limit = 3000
+# The lines a file a change grows may reach before `file-size` lists it (issue-workflow, prioritize-issues); 0 turns
+# the check off.
+# file_size_limit = 800
 # Where the agent finds the context of the project (issue-workflow, create-issue, prioritize-issues).
 roadmap = ["ROADMAP.md", "ROADMAP-done.md"]
 # The roadmap document `release` moves the released milestones to (created when missing); listed in `roadmap` too.

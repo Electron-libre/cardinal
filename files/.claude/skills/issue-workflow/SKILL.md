@@ -65,6 +65,9 @@ the console only shows the link and the questions.
   deliverable); the tool reads the limits of the project. It counts a move that also edits twice, so move in a
   deliverable of its own (in the issue total, a moved file edited later still counts twice). A deliverable over the limit is cut until each part is under it; an issue over it gets a
   split proposed at step 2 ([details.md](details.md), "Split an issue").
+- **File size**: for each file the plan touches that `cardinal run file-size --all` lists, or that the estimate pushes
+  over the `file_size_limit` it reads, the plan says where the new code goes: a module of its own, or a first
+  deliverable that splits the file by responsibility with no change of behaviour.
 
 ## 2. Validate (STOP)
 
@@ -101,7 +104,8 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    `docs/adr/` (template and numbering in `docs/adr/README.md`) and update the
    diagrams in the `architecture` document of `.claude/cardinal.toml` when the flow changed.
 5. **Review (mandatory)**: run `cardinal run project-check` (the project's format, lint and tests, and the specs); when `cardinal run deliverable-size`
-   exits 1 (over the limit of a deliverable), cut the deliverable before the review; then **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
+   exits 1 (over the limit of a deliverable), cut the deliverable before the review; when `cardinal run file-size`
+   lists a file, split it in this deliverable or say why not in the summary of step 6; then **invoke `/code-review low <target>` with the Skill tool**, `<target>` the line
    `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level; it
    refuses an untracked file, which `git diff` leaves out: mark it intent-to-add with the `git add -N` it prints),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say

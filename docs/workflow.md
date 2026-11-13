@@ -62,6 +62,9 @@ flowchart TD
   the steps are in the skill's `details.md`, "Drive a queue".
 - **Size limit**: an issue too large for one session is split at step 2 (the limits are in step 1 of the skill);
   `cardinal run deliverable-size` counts a deliverable at step 3.5 and what the issue changed since its base commit.
+- **File size**: the plan says where the code goes for each touched file over `file_size_limit` (a module of its own
+  or a split first); `cardinal run file-size` lists at step 3.5 the files the deliverable grew over it, split then or
+  explained; `skill:prioritize-issues` proposes a restructuring issue for the largest files `file-size --all` lists.
 - **Review target**: `cardinal run review-target` gives `/code-review` its target, the diff without `issues/` nor the
   managed copies of `.claude/cardinal.lock`, for the `low` review of a deliverable and the `high` one of the issue;
   `bytes_per_session:oversized-result-review` in `cardinal-report` measures the effect.

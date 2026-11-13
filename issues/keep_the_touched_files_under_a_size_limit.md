@@ -64,9 +64,9 @@ the split itself, the new metric of `cardinal-report` (see Decisions).
 1. [x] The tool `cardinal run file-size [<rev> | <a>..<b> | --all]` and the key `file_size_limit` (seeded
    `cardinal.toml` comment, `docs/architecture.md`, `docs/usage.md`); verified by tests over temporary repositories;
    makes true FSZ-1 to FSZ-9. (autonomous)
-2. [ ] The skills: `issue-workflow` step 1 (where the code goes for a touched file over the limit, or a split deliverable
+2. [x] The skills: `issue-workflow` step 1 (where the code goes for a touched file over the limit, or a split deliverable
    first), step 3.5 (run `file-size`, cut or say why in the summary of 3.6), `prioritize-issues` (`file-size --all`,
-   a restructuring issue proposed for the worst), `docs/workflow.md`; verified by `just check` and `just sync`.
+   a restructuring issue proposed for the worst), `docs/workflow.md`; verified by `just check` and `just sync`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -94,5 +94,24 @@ red: FSZ-1, FSZ-7, FSZ-H1: `left: (Some(3), "")` (the tool did not exist), 12 of
 Code review: 1 findings
 - `a...b` and an open range `a..` were split by hand into bad revisions (exit 3): fixed, an empty side reads
   `HEAD` and `...` compares with the merge base (FSZ-2 amended, tested).
+
+not verified: none. decisions needed: none.
+
+## Deliverable 2
+done: `issue-workflow` step 1 (where the code goes for a touched file over the limit) and step 3.5 (`file-size`, split
+or say why), `prioritize-issues` (`file-size --all`, restructuring issues proposed), `docs/workflow.md`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/workflow.md` |
+| sync | copies updated, `check-cardinal` pass |
+| code review | see below |
+
+red: none (skill text).
+
+Code review: no findings
 
 not verified: none. decisions needed: none.

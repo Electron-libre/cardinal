@@ -2,8 +2,8 @@
 //!
 //! Usage: hook `cardinal run update-notice` (`SessionStart`). It compares the latest `v<X.Y.Z>` tag of the git source
 //! with the pinned `rev` and, when the pin does not contain it, prints a `systemMessage` the user reads and the agent
-//! never sees. The query of the source runs at most once a day (its record lives in the cache) and under a deadline;
-//! any failure, CI, a linked worktree or uncommitted work print nothing. It always exits 0.
+//! never sees. The query of the source runs at most once a day (its record lives in the cache, answered or not) and
+//! under a deadline; any failure, CI, a resumed session, a linked worktree or uncommitted work print nothing. It always exits 0.
 
 use std::fs;
 use std::io::Read;
@@ -13,7 +13,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::run::project_root;
-use crate::{cache_dir, clone_dir, hash, in_ci, is_git_url, source_and_rev};
+use crate::{cache_dir, clone_dir, hash, in_ci, is_full_hash, is_git_url, source_and_rev};
 
 /// How long the hook may spend on its git commands, all of them together (UPN-8).
 const DEADLINE: Duration = Duration::from_secs(3);
@@ -33,91 +33,89 @@ pub(super) fn main(_args: &[String]) -> u8 {
 }
 
 /// The latest release of the source the pinned revision of the project of the hook's `cwd` does not contain, if any.
+/// The cheap checks come first, so a project the hook skips pays for no `git status` nor query.
 fn newer_release(input: &str) -> Option<String> {
     if in_ci() {
         return None;
     }
     let event: serde_json::Value = serde_json::from_str(input).ok()?;
-    let cwd = Path::new(event["cwd"].as_str()?);
-    let end = Instant::now() + DEADLINE;
-    if !clean_main_worktree(cwd, end) {
+    // a resumed, cleared or compacted session already had its notice (UPN-11)
+    if event
+        .get("source")
+        .is_some_and(|source| source != "startup")
+    {
         return None;
     }
+    let cwd = Path::new(event["cwd"].as_str()?);
     let root = project_root(cwd, None).ok()?;
     let (source, rev) = source_and_rev(&root).ok()?;
     if !is_git_url(&source) {
         return None;
     }
+    let end = Instant::now() + DEADLINE;
     let cache = cache_dir().ok()?;
     let clone = clone_dir(&cache, &source);
-    let pinned = commit_of(&clone, &rev?, end)?;
+    let pinned = pinned_commit(&clone, &rev?, end)?;
+    if !clean_main_worktree(cwd, end) {
+        return None;
+    }
     let (tag, commit) = latest_release(&cache, &source, end)?;
-    (!contains(&clone, &pinned, &tag, &commit, end)?).then_some(tag)
+    (!contains(&clone, &pinned, &commit, end)?).then_some(tag)
 }
 
-/// Whether `cwd` is in the main worktree of its repository and `git status` lists nothing there (UPN-11).
+/// Whether `cwd` is in the main worktree of its repository and `git status` lists nothing there (UPN-11). The status
+/// takes no optional lock, so it never holds the index of the user's worktree.
 fn clean_main_worktree(cwd: &Path, end: Instant) -> bool {
-    let Some(dirs) = git_in(
-        cwd,
-        &[
-            "rev-parse",
-            "--path-format=absolute",
-            "--git-dir",
-            "--git-common-dir",
-        ],
-        end,
-    ) else {
+    let Some(dirs) = git_in(cwd, &["rev-parse", "--git-dir", "--git-common-dir"], end) else {
         return false;
     };
-    let mut dirs = dirs.lines().map(|dir| fs::canonicalize(dir).ok());
-    if dirs.next() != dirs.next() {
+    let mut dirs = dirs.lines().map(|dir| fs::canonicalize(cwd.join(dir)).ok());
+    let (Some(Some(git_dir)), Some(Some(common))) = (dirs.next(), dirs.next()) else {
         return false;
-    }
-    git_in(cwd, &["status", "--porcelain"], end).is_some_and(|status| status.trim().is_empty())
+    };
+    git_dir == common
+        && git_in(cwd, &["--no-optional-locks", "status", "--porcelain"], end)
+            .is_some_and(|status| status.trim().is_empty())
 }
 
-/// The commit `rev` resolves to in the clone of the source.
-fn commit_of(clone: &Path, rev: &str, end: Instant) -> Option<String> {
+/// The commit `rev` resolves to in the clone of the source, `origin/<rev>` first as `sync` resolves it, so a branch
+/// is read where the last fetch left it.
+fn pinned_commit(clone: &Path, rev: &str, end: Instant) -> Option<String> {
     if rev.starts_with('-') {
         return None;
     }
-    git_in(
-        clone,
-        &[
-            "rev-parse",
-            "--verify",
-            "--quiet",
-            &format!("{rev}^{{commit}}"),
-        ],
-        end,
-    )
-    .map(|commit| commit.trim().to_string())
+    [format!("origin/{rev}"), rev.to_string()]
+        .iter()
+        .find_map(|candidate| commit_of(clone, candidate, end))
 }
 
-/// Whether the pinned commit is the commit of the release or descends from it; the tag is fetched into the clone first
-/// when the clone does not have it. `None` when it cannot be judged.
-fn contains(clone: &Path, pinned: &str, tag: &str, commit: &str, end: Instant) -> Option<bool> {
+/// The commit `rev` names in the clone.
+fn commit_of(clone: &Path, rev: &str, end: Instant) -> Option<String> {
+    let rev = format!("{rev}^{{commit}}");
+    git_in(clone, &["rev-parse", "--verify", "--quiet", &rev], end)
+        .map(|commit| commit.trim().to_string())
+}
+
+/// Whether the pinned commit is the commit of the release or descends from it; `None` when it cannot be judged. The
+/// clone holds every ancestor of the pinned commit, so a release commit it lacks is newer: nothing is fetched.
+fn contains(clone: &Path, pinned: &str, commit: &str, end: Instant) -> Option<bool> {
     if pinned == commit {
         return Some(true);
     }
     if commit_of(clone, commit, end).is_none() {
-        let refspec = format!("+refs/tags/{tag}:refs/tags/{tag}");
-        let mut fetch = git(clone);
-        fetch.args(["fetch", "--quiet", "--no-tags", "origin", &refspec]);
-        succeeded(fetch, end)?;
+        return Some(false);
     }
     let mut ancestor = git(clone);
     ancestor.args(["merge-base", "--is-ancestor", commit, pinned]);
-    let code = within(ancestor, end)?.status.code()?;
-    match code {
+    match within(ancestor, end)?.status.code()? {
         0 => Some(true),
         1 => Some(false),
         _ => None,
     }
 }
 
-/// The latest release of `source` and its commit: from the record of a query of the last day, else from a new query
-/// that is recorded (UPN-9, UPN-10).
+/// The latest release of `source` and its commit: from the record of a query of the last day, else from a new query,
+/// recorded whether it was answered or not (UPN-9, UPN-10).
 fn latest_release(cache: &Path, source: &str, end: Instant) -> Option<(String, String)> {
     let record = record_path(cache, source);
     let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
@@ -131,7 +129,14 @@ fn latest_release(cache: &Path, source: &str, end: Instant) -> Option<(String, S
     }
     let mut query = Command::new("git");
     query.args(["ls-remote", "--tags", source]);
-    let release = latest(&succeeded(query, end)?);
+    if std::env::var_os("GIT_SSH_COMMAND").is_none() && std::env::var_os("GIT_SSH").is_none() {
+        // an ssh source must never ask the terminal for a passphrase or a host key
+        query.env(
+            "GIT_SSH_COMMAND",
+            "ssh -o BatchMode=yes -o ConnectTimeout=3",
+        );
+    }
+    let release = succeeded(query, end).and_then(|listing| latest(&listing));
     let text = match &release {
         Some((tag, commit)) => format!("{now} {tag} {commit}\n"),
         None => format!("{now}\n"),
@@ -148,16 +153,23 @@ fn record_path(cache: &Path, source: &str) -> PathBuf {
         .join(&hash(source.as_bytes())[..12])
 }
 
-/// A record `<unix seconds> [<tag> <commit>]`: its time and the release it found.
+/// A record `<unix seconds> [<tag> <commit>]`: its time and the release it found; `None` when it has another shape.
 fn parse_record(text: &str) -> Option<(u64, Option<(String, String)>)> {
     let mut words = text.split_whitespace();
     let time = words.next()?.parse().ok()?;
-    let release = match (words.next(), words.next()) {
-        (Some(tag), Some(commit)) => Some((tag.to_string(), commit.to_string())),
-        (None, None) => None,
+    let release = match (words.next(), words.next(), words.next()) {
+        (Some(tag), Some(commit), None) if is_release(tag, commit) => {
+            Some((tag.to_string(), commit.to_string()))
+        }
+        (None, None, None) => None,
         _ => return None,
     };
     Some((time, release))
+}
+
+/// Whether `tag` names a release and `commit` is a full commit hash.
+fn is_release(tag: &str, commit: &str) -> bool {
+    version(tag).is_some() && is_full_hash(commit)
 }
 
 /// The release of the greatest version in the output of `git ls-remote --tags`, with its commit (the peeled line of an
@@ -189,7 +201,9 @@ fn latest(listing: &str) -> Option<(String, String)> {
             .is_none_or(|(greatest, _, _)| version > *greatest)
         {
             let commit = peeled.get(&tag).cloned().unwrap_or(object);
-            best = Some((version, tag, commit));
+            if is_full_hash(&commit) {
+                best = Some((version, tag, commit));
+            }
         }
     }
     best.map(|(_, tag, commit)| (tag, commit))

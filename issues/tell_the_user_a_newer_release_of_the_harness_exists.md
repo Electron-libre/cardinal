@@ -70,6 +70,11 @@ the install, BIN-16) and turning it off in the replay fixture (a `systemMessage`
    `features.toml`, `just sync`, the hook row of `docs/architecture.md` and the docs `update-docs` names; verified by
    a test of the declared entries and feature; makes true UPN-12. ~60 lines. (autonomous)
 
+3. [x] Settle the `high` review of the issue: no fetch into the shared clone, a failed query recorded, a status with
+   no optional lock run after the cheap checks, a branch `rev` read at `origin/<rev>`, ssh in batch mode, a record of
+   another shape ignored, no notice on a resumed session, the tests' paths kept in temp dirs; UPN-7, UPN-9, UPN-10,
+   UPN-11 amended. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 5192aeaf1a7a3ad416118302386735665083efa0
@@ -86,4 +91,12 @@ the install, BIN-16) and turning it off in the replay fixture (a `systemMessage`
   README, `docs/usage.md` and `docs/architecture.md` name them; the spec `accepted`.
 - red: UPN-12: `update-notice: []` (no entry declared).
 - docs: `docs/gates.md` n/a, the notice is no gate.
+- Code review: no findings
+
+## Deliverable 3
+- done: the 10 findings of the `high` review settled (plan line 3).
+- red: none, the new tests were written with the fixes (UPN-7, UPN-9, UPN-10, UPN-11, UPN-5 for a branch `rev`).
+- not fixed: the one budget of 3 s still covers `git status` too (run last of the local checks, and a failed query is
+  now recorded, so a slow status costs at most one silent session a day); an `ssh` that git leaves behind is not
+  killed (no process group without a new dependency), batch mode and a 3 s connect timeout end it.
 - Code review: no findings

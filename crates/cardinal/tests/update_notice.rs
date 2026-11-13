@@ -58,6 +58,7 @@ fn hook_env(home: &Home, cwd: &Path, env: &[(&str, &str)]) -> Run {
         "session_id": "s1",
         "cwd": cwd,
         "hook_event_name": "SessionStart",
+        "source": "startup",
     })
     .to_string();
     hook_input(home, cwd, env, &event)
@@ -169,7 +170,7 @@ fn the_latest_release_compares_the_numbers_and_skips_other_tags() {
 
 // spec: UPN-7
 #[test]
-fn a_local_source_an_unreadable_input_or_a_lost_source_print_nothing() {
+fn a_local_source_an_unreadable_input_or_no_repository_print_nothing() {
     let home = Home::new();
     let local = tempdir().unwrap();
     put(
@@ -188,10 +189,68 @@ fn a_local_source_an_unreadable_input_or_a_lost_source_print_nothing() {
     let unconfigured = tempdir().unwrap();
     assert_eq!(hook(&home, unconfigured.path()).stdout, "");
 
-    // the source moved away: the query fails
-    std::fs::rename(repo.path(), repo.path().with_extension("moved")).unwrap();
+    // the configuration of a project that is no git repository
+    let outside = tempdir().unwrap();
+    put(
+        outside.path(),
+        CONFIG,
+        &std::fs::read_to_string(root.path().join(CONFIG)).unwrap(),
+    );
+    assert_eq!(hook(&home, outside.path()).stdout, "");
+    assert_eq!(hook(&home, root.path()).stdout, notice("v5.1.0"));
+}
+
+// spec: UPN-7, UPN-9, UPN-10
+#[test]
+fn a_query_that_fails_is_recorded_and_not_repeated_within_the_day() {
+    let home = Home::new();
+    let repo = source(&home);
+    let root = project(&home, repo.path(), "v5.0.0");
+    commit(&home, repo.path(), Some("v5.1.0"));
+    let away = tempdir().unwrap();
+    let moved = away.path().join("moved");
+    std::fs::rename(repo.path(), &moved).unwrap();
+
     assert_eq!(hook(&home, root.path()).stdout, "");
-    std::fs::rename(repo.path().with_extension("moved"), repo.path()).unwrap();
+    let records = records(&home);
+    assert_eq!(records.len(), 1, "{records:?}");
+    let text = std::fs::read_to_string(&records[0]).unwrap();
+    assert_eq!(text.split_whitespace().count(), 1, "{text}");
+
+    std::fs::rename(&moved, repo.path()).unwrap();
+    assert_eq!(hook(&home, root.path()).stdout, "");
+}
+
+// spec: UPN-9
+#[test]
+fn a_record_of_another_shape_is_queried_again() {
+    let home = Home::new();
+    let repo = source(&home);
+    let root = project(&home, repo.path(), "v5.0.0");
+    commit(&home, repo.path(), Some("v5.1.0"));
+    age_record(&home, root.path(), 60, "v5.1.0", "--foo");
+
+    assert_eq!(hook(&home, root.path()).stdout, notice("v5.1.0"));
+}
+
+// spec: UPN-5
+#[test]
+fn a_branch_rev_is_read_where_the_last_fetch_left_it() {
+    let home = Home::new();
+    let repo = source(&home);
+    let root = project(&home, repo.path(), "v5.0.0");
+    commit(&home, repo.path(), Some("v5.1.0"));
+    commit(&home, repo.path(), None);
+    // the clone of the cache fetched by a sync; its local `main` stays where the first clone left it
+    home.ok(root.path(), &["sync"]);
+    let config = format!(
+        "[cardinal]\nsource = \"{}\"\nrev = \"main\"\n",
+        url(repo.path())
+    );
+    put(root.path(), CONFIG, &config);
+    home.git(root.path(), &["commit", "--quiet", "-am", "branch rev"]);
+
+    assert_eq!(hook(&home, root.path()).stdout, "");
 }
 
 // spec: UPN-7
@@ -267,7 +326,11 @@ fn ci_a_linked_worktree_or_uncommitted_work_print_nothing() {
 
     assert_eq!(hook_env(&home, root.path(), &[("CI", "true")]).stdout, "");
 
-    let linked = root.path().with_extension("ws");
+    let resumed = serde_json::json!({"cwd": root.path(), "source": "resume"}).to_string();
+    assert_eq!(hook_input(&home, root.path(), &[], &resumed).stdout, "");
+
+    let worktrees = tempdir().unwrap();
+    let linked = worktrees.path().join("ws");
     home.git(
         root.path(),
         &[

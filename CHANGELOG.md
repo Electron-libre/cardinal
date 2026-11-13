@@ -4,6 +4,15 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [5.1.0] - 2026-11-13
+
+### Added
+
+- `cardinal run file-size [<rev> | <a>..<b> | <a>...<b> | --all]` lists the files a change grows over
+  `file_size_limit` (800 lines, 0 turns it off), or every file over it
+- `issue-workflow` says in the plan where the code goes for a touched file over the limit and runs `file-size` at
+  the review step; `prioritize-issues` proposes a restructuring issue for the largest files
+
 ## [5.0.0] - 2026-11-12
 
 ### Milestones

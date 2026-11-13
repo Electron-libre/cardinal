@@ -49,3 +49,34 @@ tracked files and ends in a commit, the user's decision.
   `systemMessage`) without adding it to the agent's context.
 * The hook must never slow the start of a session noticeably nor block it: a hook exits 0 whatever happens.
 * A pinned commit after the latest tag is up to date: compare by ancestry in the cached clone, not by name.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-13
+
+## Understanding
+A `SessionStart` hook `cardinal run update-notice` shows the user (a `systemMessage`, not the agent's context) the
+latest `v<X.Y.Z>` tag of a git source that the pinned `rev` does not contain, at most one query a day, silent on any
+failure, under `CI`, in a linked worktree or a dirty one. Out of scope: the launcher check (`update` already names
+the install, BIN-16) and turning it off in the replay fixture (a `systemMessage` never reaches the agent).
+
+## Plan
+1. [x] The tool `update-notice`: a new module `crates/cardinal/src/tools/update_notice.rs` registered in `TOOLS`
+   (it reuses `source_and_rev`, `clone_dir` and `hash` of `lib.rs`, over the file size limit, which only widens their
+   visibility); `git ls-remote --tags` under a 3 s deadline, ancestry judged in the cached clone (the tag fetched into
+   it when missing), the record of the query in the cache; verified by `tests/update_notice.rs` driving the binary
+   with a `file://` source in a temp dir (UPN-8 internal, a fake slow query); makes true UPN-1 to UPN-11. ~450 lines. (autonomous)
+2. [ ] Declare it: the `SessionStart` entry in `entries/.claude/settings.json`, the feature `update-notice` in
+   `features.toml`, `just sync`, the hook row of `docs/architecture.md` and the docs `update-docs` names; verified by
+   a test of the declared entries and feature; makes true UPN-12. ~60 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 5192aeaf1a7a3ad416118302386735665083efa0
+
+## Deliverable 1
+- done: the tool `update-notice` (`crates/cardinal/src/tools/update_notice.rs`), not declared as a hook yet.
+- red: UPN-1, UPN-2, UPN-3, UPN-4, UPN-5, UPN-6, UPN-7, UPN-9, UPN-10, UPN-11: `cardinal: unknown tool `update-notice`` (exit 3); UPN-8 internal.
+- docs: n/a, the pages describe the declared hooks and features (deliverable 2).
+- Code review: 2 findings, both fixed: the output read after the exit of git waited for a process holding the pipe
+  (now bounded by the deadline, tested); each git call had its own 3 s (now one deadline for all of them).

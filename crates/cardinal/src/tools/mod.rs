@@ -36,6 +36,7 @@ mod session_metrics;
 mod shell;
 mod spec_coverage;
 mod transcripts;
+mod update_notice;
 mod waive_review;
 mod workspace_lock;
 mod worktree;
@@ -180,6 +181,11 @@ pub const TOOLS: &[Tool] = &[
         name: "spec-coverage",
         about: "[root]: the test files that cite no requirement of an accepted spec, largest first",
         main: spec_coverage::main,
+    },
+    Tool {
+        name: "update-notice",
+        about: "the SessionStart hook that tells the user a newer release of the harness is out",
+        main: update_notice::main,
     },
     Tool {
         name: "waive-review",

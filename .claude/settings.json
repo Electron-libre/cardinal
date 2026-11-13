@@ -116,6 +116,10 @@
           {
             "type": "command",
             "command": "cardinal run workspace-lock start"
+          },
+          {
+            "type": "command",
+            "command": "cardinal run update-notice"
           }
         ]
       }

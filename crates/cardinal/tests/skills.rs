@@ -722,7 +722,7 @@ fn the_commit_convention_lives_in_its_feature_alone() {
     }
 }
 
-// spec: FEA-16, FEA-35, RDH-6
+// spec: FEA-16, FEA-35, RDH-6, UPN-12
 /// Each hook-only feature is the hook entries that run its tool, as `sync` prints them, and no file nor `needs`.
 #[test]
 fn the_hook_only_features_are_their_hook_entries() {
@@ -740,6 +740,7 @@ fn the_hook_only_features_are_their_hook_entries() {
         ("format-code", &[""]),
         ("language-hint", &[""]),
         ("read-hint", &[""]),
+        ("update-notice", &[""]),
         ("workspace-lock", &[" check", " start", " release"]),
     ] {
         let commands: Vec<String> = commands

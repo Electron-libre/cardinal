@@ -41,4 +41,5 @@ entry  {"event":"PostToolUse","matcher":"Edit|Write","hook":{"type":"command","c
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run lint-gate","timeout":600}}
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run language-hint","timeout":600}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock start"}}
+entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run update-notice"}}
 entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock release"}}

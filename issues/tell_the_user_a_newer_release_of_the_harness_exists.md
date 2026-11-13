@@ -66,9 +66,9 @@ the install, BIN-16) and turning it off in the replay fixture (a `systemMessage`
    visibility); `git ls-remote --tags` under a 3 s deadline, ancestry judged in the cached clone (the tag fetched into
    it when missing), the record of the query in the cache; verified by `tests/update_notice.rs` driving the binary
    with a `file://` source in a temp dir (UPN-8 internal, a fake slow query); makes true UPN-1 to UPN-11. ~450 lines. (autonomous)
-2. [ ] Declare it: the `SessionStart` entry in `entries/.claude/settings.json`, the feature `update-notice` in
+2. [x] Declare it: the `SessionStart` entry in `entries/.claude/settings.json`, the feature `update-notice` in
    `features.toml`, `just sync`, the hook row of `docs/architecture.md` and the docs `update-docs` names; verified by
-   a test of the declared entries and feature; makes true UPN-12. ~60 lines.
+   a test of the declared entries and feature; makes true UPN-12. ~60 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -80,3 +80,10 @@ the install, BIN-16) and turning it off in the replay fixture (a `systemMessage`
 - docs: n/a, the pages describe the declared hooks and features (deliverable 2).
 - Code review: 2 findings, both fixed: the output read after the exit of git waited for a process holding the pipe
   (now bounded by the deadline, tested); each git call had its own 3 s (now one deadline for all of them).
+
+## Deliverable 2
+- done: the hook declared (`entries/.claude/settings.json`, `SessionStart`), the feature `update-notice`, synced here;
+  README, `docs/usage.md` and `docs/architecture.md` name them; the spec `accepted`.
+- red: UPN-12: `update-notice: []` (no entry declared).
+- docs: `docs/gates.md` n/a, the notice is no gate.
+- Code review: no findings

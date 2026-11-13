@@ -98,6 +98,7 @@ names both, and turning both off is accepted.
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
 | `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`, `roadmap`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `file-size` lists it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
 | `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI skips `check-specs` without `cardinal-specs.just` and `project-check` skips it. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
+| `update-notice` | the SessionStart hook that names to the user the latest release of the source the pin lacks, for a project that follows the releases another way: the source is then never queried at start |
 | `workspace-lock` | the three hooks of the worktree lock, for a user who never runs two sessions in one worktree: the hook call of each tool call goes; `issue-claim` stays, so `next-issue` still skips an issue another worktree works |
 
 ### The installed launcher
@@ -188,7 +189,9 @@ ask rules `Bash(cardinal run release *.*)` and `Bash(just release *.*)`, auto mo
 | `cardinal run release <version> --tag` | once the release is committed, creates the annotated tag `v<version>` on `HEAD`, the section as its message, and prints `git push origin v<version>`: the push is the user's |
 
 A consumer of Cardinal pins a version with `cardinal update --rev v<version>` and reads in `CHANGELOG.md` what
-changed since its last pin.
+changed since its last pin. At the start of a session in a clean main worktree, the hook `update-notice` names the latest
+`v<version>` of the source the pin lacks and the `cardinal update --rev` to run (at most one query of the source a
+day; spec [`update-notice.md`](../specs/update-notice.md)); the update stays the user's call.
 
 A project that turns off `conventional-commits` gets no type read: a commit is breaking only when it changes a file of
 `release_breaking_files`, the proposal is a major or a patch (a minor only from a `feat` written before the turn off), `release` warns so on stderr (and says when that list is

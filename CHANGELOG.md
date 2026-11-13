@@ -4,6 +4,14 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [5.2.0] - 2026-11-13
+
+### Added
+
+- the `SessionStart` hook `update-notice` tells the user when the source has a `v<X.Y.Z>` release the pinned `rev`
+  lacks, with the `cardinal update --rev` to run (one query of the source a day, silent under CI, in a resumed session,
+  a linked or dirty worktree and on any failure); the feature `update-notice` turns it off
+
 ## [5.1.0] - 2026-11-13
 
 ### Added

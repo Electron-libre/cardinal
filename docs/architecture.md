@@ -151,16 +151,18 @@ nothing: it only names a commit a consumer can pin (`cardinal update --rev v0.2.
 | `PreToolUse` | `Read` | `read-hint` | denies once per file and session a whole read whose result would hold more than 25,000 bytes (the threshold of rule `oversized-result` of `rule-breaches`), naming its size and the range options; the same call repeated goes through, but for an output Claude Code saved under `tool-results/`, denied each time with the parts to read | [`read-hint.md`](../specs/read-hint.md) |
 | `SessionStart` | | `workspace-lock start` | takes the lock, or tells the agent the worktree is busy | [`workspace-lock.md`](../specs/workspace-lock.md) WSL-5, WSL-10 |
 | `SessionStart` | | `update-notice` | shows the user (a `systemMessage`, out of the agent's context) the latest `v<X.Y.Z>` tag of a git source the pinned `rev` lacks, with the `cardinal update` to run; one query of the source a day, recorded under `<cache>/cardinal/update-notice/`, 3 s for all its git commands, silent under CI, in a resumed session, a linked or dirty worktree and on any failure | [`update-notice.md`](../specs/update-notice.md) |
+| `SessionStart` | | `session-scratch start` | creates `<tmp>/claude-scratch-<session id>/`, exports it as `TMPDIR` to the `Bash` commands of the session (`CLAUDE_ENV_FILE`) and removes the directories of the sessions dead and unchanged for a day | [`session-scratch.md`](../specs/session-scratch.md) |
 | `SessionEnd` | | `workspace-lock release` | releases the lock of the session | [`workspace-lock.md`](../specs/workspace-lock.md) WSL-6 |
+| `SessionEnd` | | `session-scratch end` | removes the scratch directory of the session, unless it holds `cardinal-keep` | [`session-scratch.md`](../specs/session-scratch.md) SCR-2 |
 | `PostToolUse` | `Skill` | `review-gate record` | records what the code review saw | [`review-gate.md`](../specs/review-gate.md) |
 | `PostToolUse` | `Edit\|Write` | `format-code` | formats an edited file with the project's format command, else `cargo fmt` the project of an edited `.rs` file | [`format-hook.md`](../specs/format-hook.md) |
 | `Stop` | | `lint-gate` | blocks the end of a turn while the project's lint (else clippy) reports a problem | [`lint-gate.md`](../specs/lint-gate.md) |
 | `Stop` | | `language-hint` | sends the agent back once when its last reply is not in the `user_language`, judged as rule `user-language` of `rule-breaches` (`tools/language.rs`) | [`language-hint.md`](../specs/language-hint.md) |
 | git `pre-commit` | | `review-gate native` | refuses a commit whose diff the review never saw | [`review-gate.md`](../specs/review-gate.md) REV-9 |
 
-How each works: [gates.md](gates.md). `format-code`, `lint-gate`, `language-hint`, `read-hint`, `update-notice`, the `review-gate` hooks and the
-three `workspace-lock` hooks are also features of `features.toml` a project turns off with `disabled` (FEA-16,
-FEA-23, FEA-35, RDH-6, UPN-12, [`features.md`](../specs/features.md)); `issue-claim` stays with the lock off.
+How each works: [gates.md](gates.md). `format-code`, `lint-gate`, `language-hint`, `read-hint`, `update-notice`, the `review-gate` hooks, the
+three `workspace-lock` hooks and the two `session-scratch` hooks are also features of `features.toml` a project turns off with `disabled` (FEA-16,
+FEA-23, FEA-35, RDH-6, UPN-12, SCR-10, [`features.md`](../specs/features.md)); `issue-claim` stays with the lock off.
 
 Claude Code runs a hook only once declared in `.claude/settings.json`, which is seeded and then owned by the project.
 The source therefore declares what it manages in `entries/.claude/settings.json`: the hooks above, the

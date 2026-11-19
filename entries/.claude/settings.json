@@ -92,6 +92,10 @@
           {
             "type": "command",
             "command": "cardinal run update-notice"
+          },
+          {
+            "type": "command",
+            "command": "cardinal run session-scratch start"
           }
         ]
       }
@@ -102,6 +106,10 @@
           {
             "type": "command",
             "command": "cardinal run workspace-lock release"
+          },
+          {
+            "type": "command",
+            "command": "cardinal run session-scratch end"
           }
         ]
       }

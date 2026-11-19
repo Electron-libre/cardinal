@@ -34,6 +34,7 @@ mod roadmap_state;
 mod rule_breaches;
 mod scratch_writes;
 mod session_metrics;
+mod session_scratch;
 mod shell;
 mod spec_coverage;
 mod transcripts;
@@ -177,6 +178,11 @@ pub const TOOLS: &[Tool] = &[
         name: "session-metrics",
         about: "[projects_dir] [--archive <file>]: one row of numbers per session of every project",
         main: session_metrics::main,
+    },
+    Tool {
+        name: "session-scratch",
+        about: "start | end: the hooks that give each Claude Code session a scratch directory it removes",
+        main: session_scratch::main,
     },
     Tool {
         name: "spec-coverage",

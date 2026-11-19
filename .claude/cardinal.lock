@@ -3,6 +3,7 @@ format 11
 b4fe84fed80dc97880785faf08940de44160155dced518cc48d169786a2c8491  .claude/.gitignore
 2e9ec9b1abf20e48f491ced1b6fbccd741232b87a38d7455e22cd43a5ad499fe  .claude/rules/no-ai-attribution.md
 ae32a54ad3e59066328e1a2f7f5afff0ca4b13bf194272c376e23280e4a7ce4e  .claude/rules/reports-to-the-user.md
+af29107a0076b0900c483d1859d03e520c439988b1a9debae68e6c6c8682d112  .claude/rules/scratch-files.md
 ef6a69d39e2eb88055a355ee79925f3f80e42e1c75532f7ddcce91616909f136  .claude/rules/user-language.md
 c99d044e7f4a777bb6cdb1ca8f84e559cfec3b669cac5d7c6eb9f4062f8e8bb3  .claude/skills/audit-instructions/SKILL.md
 fdb77fd8baac0adda0d3b6a13d158abafa43211569b45e82b4f1882096ae2aa4  .claude/skills/commit-message/SKILL.md
@@ -42,4 +43,6 @@ entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardin
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run language-hint","timeout":600}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock start"}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run update-notice"}}
+entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run session-scratch start"}}
 entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock release"}}
+entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run session-scratch end"}}

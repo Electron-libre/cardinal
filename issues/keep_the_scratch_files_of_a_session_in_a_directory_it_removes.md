@@ -61,10 +61,10 @@ hint hook (approach 3, second half), until the measure shows the rule is not eno
 ## Plan
 1. [x] Measure: rule `scratch-outside-tmpdir` of `rule-breaches`, in a module of its own (`rule_breaches.rs` is over
    the file size limit), its tests in a new test file; verified by tests on fake transcripts; makes true BRE-24. (autonomous)
-2. [ ] Scratch directory: tool `cardinal run session-scratch start|end` (module `session_scratch.rs`), its two hook
+2. [x] Scratch directory: tool `cardinal run session-scratch start|end` (module `session_scratch.rs`), its two hook
    entries, the rule `files/.claude/rules/scratch-files.md`, the feature `session-scratch` of `features.toml`, docs;
    verified by tests through the binary (fake `CLAUDE_ENV_FILE`, `TMPDIR` in a tempdir) and the sync of this repo;
-   makes true SCR-1 to SCR-10.
+   makes true SCR-1 to SCR-10. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -90,3 +90,21 @@ not verified: none
 decisions needed: none
 file size: `rule_breaches.rs` (+25) and its test file (+3) stay over the limit: the rule lives in a module of its own,
 only its dispatch and the expected summary rows grew.
+
+## Deliverable 2
+done: tool `cardinal run session-scratch start|end`, its two hook entries, the rule `.claude/rules/scratch-files.md`,
+the feature `session-scratch`; specs `session-scratch` and `rule-breaches` accepted; `cardinal` installed here.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (SCR-1 to SCR-10 traced) |
+| docs | `README.md`, `docs/architecture.md`, `docs/usage.md` |
+| code review | 1 finding, fixed |
+
+red: SCR-H1, SCR-H2, SCR-1 to SCR-10: `unknown tool session-scratch` (exit 3), and no entry, rule nor feature.
+Code review: 1 finding: with no `CLAUDE_PID`, `start` recorded no process, so a later sweep could remove the
+directory of a live session left unchanged for a day; fixed: `start` then creates nothing (SCR-4 amended, tested).
+not verified: a live session: the next one started here gets its `TMPDIR` (the hooks run the installed `cardinal`).
+decisions needed: none

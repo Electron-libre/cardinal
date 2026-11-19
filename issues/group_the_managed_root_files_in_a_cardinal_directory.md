@@ -56,3 +56,46 @@ Propose, don't decide:
   use `[no-cd]` or call `cardinal run`, which finds the repository itself).
 * A moved file is a deleted managed file for an older `cardinal check`: the format raise keeps an older binary off.
 * This repository is its own consumer: `just sync` moves its own root files, and `just check-cardinal` must pass.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-19
+
+## Understanding
+Move the five managed `.just` files from the root of a consumer to `cardinal/` (`cardinal/cardinal.just` importing
+`cardinal/<part>.just`), with a format raise and a migration that rewrites the `import` line of the `justfile`.
+Out of scope: `AGENTS.md` (other agents read it at the root), the project-owned seeds. No Rust code changes: `just`
+resolves an import against the importing file and runs every recipe at the root, and SYN-52/53 already rewrite a
+seeded line.
+
+## Plan
+1. [x] Move the recipes to `cardinal/`: `git mv` of `files/cardinal*.just` to `files/cardinal/{cardinal,commits,issues,specs,review}.just`,
+   their imports and headers fixed; `features.toml`, the CI guard, `seed/justfile`, `fixtures/replay/justfile`,
+   `migrations/11.toml`, `cardinal-format` and `FORMAT` raised to 11; docs (`README.md`, `docs/architecture.md`,
+   `docs/usage.md`); `just sync` of this repository; verified by the tests of FEA-19, FEA-23, FEA-30 to FEA-32 on the
+   new paths and a `sync` test of FEA-40 from a format-10 project; makes true FEA-19, FEA-23, FEA-30, FEA-31, FEA-32,
+   FEA-40. (~350 lines) (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: ed7fb6f4b33054de1dcf7d76cd8cb7d673f32739
+- Directory: `cardinal/` (1 a)
+
+## Summary of deliverable 1
+done: the five recipe files moved to `cardinal/` (`files/` and this repository's copies), the format raised to 11 with
+`migrations/11.toml` rewriting the `import` line of the `justfile`; features, CI guard, seeds, docs and spec on the new
+paths.
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| `just check-cardinal` | pass |
+| deliverable size | 508 lines, within |
+| file size | `crates/cardinal/tests/skills.rs` 1165 lines (was 1066, already over 800): not split here, a test file split is a refactor of its own |
+| docs | README, CLAUDE.md, architecture, usage, tutorial, update-docs map and skill |
+| code review (low) | pass |
+
+red: FEA-19, FEA-23, FEA-30, FEA-31, FEA-32, FEA-40: `No such file or directory` on `files/cardinal/` and `migrations/11.toml`, the feature lists and the CI guard on the old paths
+Code review: no findings
+not verified: a consumer other than this repository (its `sync` applies the same migration)
+decisions needed: none

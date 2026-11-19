@@ -96,8 +96,8 @@ names both, and turning both off is accepted.
 | `harness-measure` | the skills `evaluate-harness` and `audit-instructions`, for a project that does not measure Cardinal, and the warning on the retention of the transcripts the user settings keep |
 | `report-style` | the format of the reports to the user (`.claude/rules/reports-to-the-user.md`); the language of the conversation stays (`.claude/rules/user-language.md`) |
 | `github-ci` | the GitHub CI job (`.github/workflows/cardinal.yml`) and its installer, for a project not on GitHub |
-| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal-issues.just` (`next-issue`, `close-issue`, `check-issue`, `roadmap`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `file-size` lists it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
-| `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal-specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI skips `check-specs` without `cardinal-specs.just` and `project-check` skips it. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
+| `issue-files` | the issue files, for a project tracking its issues in another tool: the skills `issue-workflow`, `create-issue` and `prioritize-issues` and the recipes of `cardinal/issues.just` (`next-issue`, `close-issue`, `check-issue`, `roadmap`); the gates, the specs and the commit checks stay, the seeded `ROADMAP.md` too, and the project writes its own workflow skill; `issues/` is then a directory like any other: the review gate reviews it, `deliverable-size` counts it, `file-size` lists it, `review-target` keeps it, and `rule-breaches` applies rule `validation-stop` to no session |
+| `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal/specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI skips `check-specs` without `cardinal/specs.just` and `project-check` skips it. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
 | `update-notice` | the SessionStart hook that names to the user the latest release of the source the pin lacks, for a project that follows the releases another way: the source is then never queried at start |
 | `workspace-lock` | the three hooks of the worktree lock, for a user who never runs two sessions in one worktree: the hook call of each tool call goes; `issue-claim` stays, so `next-issue` still skips an issue another worktree works |
 
@@ -121,8 +121,9 @@ A source declares the format of its managed content in `cardinal-format`, a whol
 | `check`, `sync`, `update` | the lock was synced from a source of such a format | SYN-42 |
 | `init`, `sync`, `update` | the source is below the format 5, whose tools order the issues by `issues/queue.md` | SYN-51, ADR 0020 |
 
-The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and `cardinal.just`
-(which imports the `cardinal-<part>.just` files).
+The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and the recipes of
+`cardinal/` (`cardinal.just`, which imports the `<part>.just` files next to it); the project's `justfile` imports
+`cardinal/cardinal.just` (the format 11 moved them from the root and rewrote that line).
 
 A source that raises its format declares what changed in `migrations/<n>.toml`, `<n>` the new format (ADR 0017):
 

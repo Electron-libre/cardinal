@@ -51,7 +51,7 @@ entries = [
 # gives a chained `pre-commit` back (SYN-60). The refusals of `review-gate check` (`--no-verify`, `git add -A`) go too,
 # and the rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` of `rule-breaches`.
 [review-gate]
-files = ["cardinal-review.just"]
+files = ["cardinal/review.just"]
 entries = [
     "deny Bash(just waive-review)",
     "deny Bash(just waive-review *)",
@@ -85,12 +85,12 @@ files = [
     ".claude/skills/issue-workflow/SKILL.md",
     ".claude/skills/issue-workflow/details.md",
     ".claude/skills/prioritize-issues/SKILL.md",
-    "cardinal-issues.just",
+    "cardinal/issues.just",
 ]
 
 # The specs and their tracing: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of
-# `cardinal-specs.just`, for a project that writes no spec. `issue-workflow` skips its spec steps without
+# `cardinal/specs.just`, for a project that writes no spec. `issue-workflow` skips its spec steps without
 # `specs/README.md`, the CI and the seeded `check` without
-# `cardinal-specs.just`; the spec tools of `cardinal run` stay.
+# `cardinal/specs.just`; the spec tools of `cardinal run` stay.
 [specs]
-files = [".claude/skills/write-spec/SKILL.md", "cardinal-specs.just", "specs/README.md", "specs/TEMPLATE.md"]
+files = [".claude/skills/write-spec/SKILL.md", "cardinal/specs.just", "specs/README.md", "specs/TEMPLATE.md"]

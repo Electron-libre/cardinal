@@ -1,4 +1,4 @@
-# The recipes of the issue files, imported by `cardinal.just`. Managed by `cardinal sync`: change them in the Cardinal repository.
+# The recipes of the issue files, imported by `cardinal/cardinal.just`. Managed by `cardinal sync`: change them in the Cardinal repository.
 
 # Move a finished issue to issues/done/ and repoint the documents that cite it (only after the user agreed). Ends on the next issue to work on. `--relink` repairs old references.
 close-issue issue:

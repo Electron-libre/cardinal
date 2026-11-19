@@ -35,7 +35,7 @@ flowchart LR
 
 | Kind | From | Examples | Owner |
 |---|---|---|---|
-| Managed | `files/` | skills, `.claude/rules/` (always-on rules, loaded at launch with no import), `.claude/.gitignore` (ignores the personal configuration), `cardinal.just` and the `cardinal-<part>.just` it imports when present (the recipes of a part a feature may leave out), `AGENTS.md`, `specs/README.md`, the CI workflow and its `install_cardinal.sh` | the source: an edit in a project is a conflict |
+| Managed | `files/` | skills, `.claude/rules/` (always-on rules, loaded at launch with no import), `.claude/.gitignore` (ignores the personal configuration), `cardinal/cardinal.just` and the `cardinal/<part>.just` it imports when present (the recipes of a part a feature may leave out), `AGENTS.md`, `specs/README.md`, the CI workflow and its `install_cardinal.sh` | the source: an edit in a project is a conflict |
 | Seeded | `seed/` | `.claude/cardinal.toml` defaults, `.claude/settings.json`, `.claude/update-docs-map.md`, `justfile`, `ROADMAP.md` (the milestones the `roadmap` key points at), `CHANGELOG.md` (the header of the sections `release` writes) | the project, from the first copy |
 | Entries | `entries/.claude/settings.json` | the hooks, the deny rules of the review waiver, the allow rule of `cardinal run` and the ask rules of `release` | the source, inside a file the project owns ("Hooks and their declaration") |
 
@@ -91,7 +91,7 @@ The tools of Cardinal (hooks, checks, issue tools, transcript readers) are modul
 tool under `crates/cardinal/src/tools/`, listed in `TOOLS`
 ([ADR 0010](adr/0010-the-tools-ship-in-the-harness-binary.md), spec
 [`specs/tool-binaries.md`](../specs/tool-binaries.md)). A hook, a recipe or a skill calls `cardinal run <tool> [args]`.
-A consumer needs only `cardinal` (ADR 0028; the `cardinal*.just` recipes are optional aliases), and Rust only for a
+A consumer needs only `cardinal` (ADR 0028; the recipes of `cardinal/` are optional aliases), and Rust only for a
 commit with no published binary. The tests of the tools and of the shared content (`tests/skills.rs`,
 `tests/settings_hygiene.rs`) are the `cargo test` of this repository; consumers run none.
 

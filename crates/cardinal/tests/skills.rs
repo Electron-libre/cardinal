@@ -822,7 +822,7 @@ fn the_file_only_features_are_their_files() {
                     ".claude/skills/issue-workflow",
                     ".claude/skills/prioritize-issues",
                 ]),
-                vec!["cardinal-issues.just".to_string()],
+                vec!["cardinal/issues.just".to_string()],
             ]
             .concat(),
         ),
@@ -830,7 +830,7 @@ fn the_file_only_features_are_their_files() {
             "specs",
             [
                 under(&["specs", ".claude/skills/write-spec"]),
-                vec!["cardinal-specs.just".to_string()],
+                vec!["cardinal/specs.just".to_string()],
             ]
             .concat(),
         ),
@@ -926,7 +926,7 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
     };
     declared.sort();
     assert_eq!(strings("entries"), declared);
-    assert_eq!(strings("files"), ["cardinal-review.just"]);
+    assert_eq!(strings("files"), ["cardinal/review.just"]);
 }
 
 // spec: FEA-33
@@ -940,11 +940,7 @@ fn the_seeded_check_runs_the_project_check() {
     let check = |code: u8| {
         let dir = tempfile::tempdir().unwrap();
         fs::copy(root.join("seed/justfile"), dir.path().join("justfile")).unwrap();
-        fs::copy(
-            root.join("files/cardinal.just"),
-            dir.path().join("cardinal.just"),
-        )
-        .unwrap();
+        copy_recipes(dir.path(), None);
         let bin = dir.path().join("bin");
         fs::create_dir(&bin).unwrap();
         let fake = bin.join("cardinal");
@@ -970,7 +966,7 @@ fn the_seeded_check_runs_the_project_check() {
 }
 
 // spec: FEA-32
-/// The CI step of the specs runs `cardinal run check-specs` only when the project has `cardinal-specs.just`.
+/// The CI step of the specs runs `cardinal run check-specs` only when the project has `cardinal/specs.just`.
 #[test]
 fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
     let workflow =
@@ -979,7 +975,7 @@ fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
         .lines()
         .find(|l| l.contains("cardinal run check-specs"))
         .expect("the CI runs cardinal run check-specs");
-    let guard = "if [ ! -f cardinal-specs.just ]; then echo";
+    let guard = "if [ ! -f cardinal/specs.just ]; then echo";
     let (before, after) = line.split_once(guard).expect(line);
     assert!(!before.contains("cardinal run check-specs"), "{line}");
     assert!(
@@ -1006,7 +1002,7 @@ fn the_issue_workflow_writes_specs_only_with_the_specs_readme() {
 }
 
 // spec: FEA-19
-/// The recipes of each part a feature may leave out live in a file of their own, which `cardinal.just` imports
+/// The recipes of each part a feature may leave out live in a file of their own, which `cardinal/cardinal.just` imports
 /// optionally: `just` loads every recipe with all the files, and the others with any one missing.
 #[test]
 fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
@@ -1020,25 +1016,27 @@ fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
                 "check-cardinal",
             ],
         ),
-        ("cardinal-commits.just", &["check-commit", "check-commits"]),
+        ("commits.just", &["check-commit", "check-commits"]),
         (
-            "cardinal-issues.just",
+            "issues.just",
             &["next-issue", "close-issue", "check-issue", "roadmap"],
         ),
-        ("cardinal-specs.just", &["check-specs", "spec-coverage"]),
-        ("cardinal-review.just", &["waive-review"]),
+        ("specs.just", &["check-specs", "spec-coverage"]),
+        ("review.just", &["waive-review"]),
     ];
-    let files = repo_root().join("files");
-    let core = fs::read_to_string(files.join("cardinal.just")).unwrap();
+    let core = fs::read_to_string(repo_root().join("files/cardinal/cardinal.just")).unwrap();
     let recipes = |missing: Option<&str>| {
         let dir = tempfile::tempdir().unwrap();
-        for (file, _) in PARTS.iter().filter(|(f, _)| Some(*f) != missing) {
-            fs::copy(files.join(file), dir.path().join(file)).unwrap();
-        }
-        fs::write(dir.path().join("justfile"), "import 'cardinal.just'\n").unwrap();
+        copy_recipes(dir.path(), missing);
+        fs::write(
+            dir.path().join("justfile"),
+            "import 'cardinal/cardinal.just'\n",
+        )
+        .unwrap();
+        fs::create_dir(dir.path().join("sub")).unwrap();
         let out = std::process::Command::new("just")
             .arg("--summary")
-            .current_dir(dir.path())
+            .current_dir(dir.path().join("sub"))
             .output()
             .unwrap();
         assert!(
@@ -1063,4 +1061,105 @@ fn the_recipes_of_each_part_live_in_a_file_imported_optionally() {
         let left: Vec<_> = PARTS.iter().copied().filter(|(f, _)| f != file).collect();
         assert_eq!(recipes(Some(file)), of(&left), "{file}");
     }
+}
+
+/// Copy the managed recipes of `files/cardinal/` to `<dir>/cardinal/`, but `missing`.
+fn copy_recipes(dir: &Path, missing: Option<&str>) {
+    let (from, to) = (repo_root().join("files/cardinal"), dir.join("cardinal"));
+    fs::create_dir_all(&to).unwrap();
+    for entry in fs::read_dir(&from).unwrap() {
+        let name = entry.unwrap().file_name();
+        if Some(name.to_str().unwrap()) != missing {
+            fs::copy(from.join(&name), to.join(&name)).unwrap();
+        }
+    }
+}
+
+// spec: FEA-19
+/// The source manages no recipe file at the root of the project: they live under `cardinal/`, and an imported
+/// recipe runs at the root.
+#[test]
+fn the_recipes_live_under_the_cardinal_directory_and_run_at_the_root() {
+    let root_files: Vec<_> = fs::read_dir(repo_root().join("files"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.is_file() && p.extension().is_some_and(|e| e == "just"))
+        .collect();
+    assert!(root_files.is_empty(), "{root_files:?}");
+    let dir = tempfile::tempdir().unwrap();
+    copy_recipes(dir.path(), None);
+    fs::write(
+        dir.path().join("justfile"),
+        "import 'cardinal/cardinal.just'\nwhere:\n    pwd\n",
+    )
+    .unwrap();
+    let out = std::process::Command::new("just")
+        .arg("where")
+        .current_dir(dir.path().join("cardinal"))
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(
+        Path::new(String::from_utf8_lossy(&out.stdout).trim())
+            .canonicalize()
+            .unwrap(),
+        dir.path().canonicalize().unwrap()
+    );
+}
+
+// spec: FEA-40
+/// The migration of the format 11 rewrites the import line of the justfile and names the moved recipe files; the
+/// seeded justfile, rewritten so, loads every recipe from `cardinal/`.
+#[test]
+fn the_migration_of_the_format_11_points_the_justfile_at_the_cardinal_directory() {
+    let root = repo_root();
+    let migration: toml::Table =
+        toml::from_str(&fs::read_to_string(root.join("migrations/11.toml")).unwrap()).unwrap();
+    let rewrites = migration["rewrite"].as_array().unwrap();
+    let rewrite = rewrites
+        .iter()
+        .find(|r| r["path"].as_str() == Some("justfile"))
+        .expect("a rewrite of the justfile");
+    assert_eq!(rewrite["old"].as_str(), Some("import 'cardinal.just'"));
+    assert_eq!(
+        rewrite["new"].as_str(),
+        Some("import 'cardinal/cardinal.just'")
+    );
+    let names: BTreeSet<(String, String)> = migration["names"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|n| {
+            (
+                n["old"].as_str().unwrap().to_string(),
+                n["new"].as_str().unwrap().to_string(),
+            )
+        })
+        .collect();
+    for (old, new) in [
+        ("cardinal.just", "cardinal/cardinal.just"),
+        ("cardinal-commits.just", "cardinal/commits.just"),
+        ("cardinal-issues.just", "cardinal/issues.just"),
+        ("cardinal-specs.just", "cardinal/specs.just"),
+        ("cardinal-review.just", "cardinal/review.just"),
+    ] {
+        assert!(
+            names.contains(&(format!("`{old}`"), format!("`{new}`"))),
+            "{old} -> {new}: {names:?}"
+        );
+    }
+    assert!(fs::read_to_string(root.join("seed/justfile"))
+        .unwrap()
+        .lines()
+        .any(|l| l == "import 'cardinal/cardinal.just'"));
+    assert_eq!(
+        fs::read_to_string(root.join("cardinal-format"))
+            .unwrap()
+            .trim(),
+        "11"
+    );
 }

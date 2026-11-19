@@ -8,7 +8,7 @@ process in [workflow.md](workflow.md).
 
 Cardinal needs one program on your `PATH`: `cardinal`. The agent runs every tool of Cardinal and the project's check
 through it (`cardinal run project-check`, `cardinal run next-issue`…). [`just`](https://github.com/casey/just#installation)
-is optional: the seeded `justfile` and the `cardinal*.just` recipes are aliases of the same commands (`just next-issue`
+is optional: the seeded `justfile` and the recipes of `cardinal/` are aliases of the same commands (`just next-issue`
 runs `cardinal run next-issue`) for who wants `just --list`.
 
 Download the binary of the latest release for your platform (`x86_64-unknown-linux-musl`,
@@ -90,7 +90,7 @@ disabled = ["github-ci"]
 
 ```sh
 git status --short   # the files sync added or seeded
-git add .claude AGENTS.md CHANGELOG.md ROADMAP.md justfile cardinal*.just
+git add .claude AGENTS.md CHANGELOG.md ROADMAP.md justfile cardinal
 git add .github specs  # unless step 3 turned off `github-ci` and `specs`
 git commit -m "chore: adopt cardinal"
 ```

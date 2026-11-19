@@ -12,6 +12,7 @@
 
 use super::commit_check::{BUILT_IN_SCOPES, TYPES};
 use super::language::{is_hint, Language};
+use super::scratch_writes;
 use super::shell;
 use super::transcripts;
 use crate::features;
@@ -284,6 +285,8 @@ struct Context {
     language: Option<Language>,
     gate: bool,
     issue_files: bool,
+    /// Whether the project keeps the scratch directory of a session (BRE-24).
+    scratch: bool,
     repo: PathBuf,
     start: String,
 }
@@ -452,6 +455,26 @@ impl Verdict {
         }
     }
 
+    /// The rules of a `Bash` call of the features the project keeps.
+    fn check_shell(&mut self, call: &Call, blocked: bool, context: &Context, refused: &mut bool) {
+        // a project that turned the review gate off has none of its rules to breach (FEA-26)
+        if context.gate {
+            self.check_bash(call, blocked, refused);
+        }
+        if context.scratch {
+            self.check_scratch(call, blocked);
+        }
+    }
+
+    /// Rule `scratch-outside-tmpdir` of a `Bash` call: one finding per `/tmp/<name>` it writes to (BRE-24).
+    fn check_scratch(&mut self, call: &Call, blocked: bool) {
+        self.applied.insert(scratch_writes::RULE);
+        let command = call.input["command"].as_str().unwrap_or_default();
+        for path in scratch_writes::written(command) {
+            self.add(scratch_writes::RULE, blocked, &call.location, path);
+        }
+    }
+
     /// The rules of a call that edits a file; `plan_proposed` once a plan awaits its validation.
     fn check_edit(
         &mut self,
@@ -579,9 +602,7 @@ impl Verdict {
                     }
                     let before = self.findings.len();
                     match call.name.as_str() {
-                        // a project that turned the review gate off has none of its rules to breach (FEA-26)
-                        "Bash" if !context.gate => {}
-                        "Bash" => self.check_bash(call, blocked, &mut refused),
+                        "Bash" => self.check_shell(call, blocked, context, &mut refused),
                         "Skill"
                             if call.input["skill"]
                                 .as_str()
@@ -850,12 +871,16 @@ fn record(path: &Path, only: Option<&str>) -> Option<Record> {
     let issue_files = !config
         .as_ref()
         .is_some_and(|c| features::turns_off(c, features::ISSUE_FILES));
+    let scratch = !config
+        .as_ref()
+        .is_some_and(|c| features::turns_off(c, features::SESSION_SCRATCH));
     let context = Context {
         worktrees,
         managed: managed_paths(&repo, &start_text),
         language,
         gate,
         issue_files,
+        scratch,
         repo: repo.clone(),
         start: start_text.clone(),
     };

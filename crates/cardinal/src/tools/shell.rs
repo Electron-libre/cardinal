@@ -22,6 +22,16 @@ const SEPARATORS: &str = ";&|()`";
 /// terminator starting with a letter or `_`), a comment (`#` starting a word) and the backslash of an escape; a
 /// continued line is joined. So a commit message that names a command runs none.
 pub(super) fn commands(line: &str) -> Vec<Vec<String>> {
+    read(line, false)
+}
+
+/// The commands of a shell line as `commands` reads them, each output redirection (`>`, `>>`, `2>`) kept as the word
+/// `>` before its target, the file descriptor glued to it dropped (BRE-24 of `specs/rule-breaches.md`).
+pub(super) fn commands_with_redirections(line: &str) -> Vec<Vec<String>> {
+    read(line, true)
+}
+
+fn read(line: &str, redirections: bool) -> Vec<Vec<String>> {
     let (mut commands, mut command, mut word) = (Vec::new(), Vec::new(), None::<String>);
     let mut quote = None;
     let joined = line.replace("\\\n", " ");
@@ -64,6 +74,19 @@ pub(super) fn commands(line: &str) -> Vec<Vec<String>> {
                 None if SEPARATORS.contains(c) => {
                     command.extend(word.take());
                     commands.extend((!command.is_empty()).then(|| std::mem::take(&mut command)));
+                }
+                None if c == '>' && redirections => {
+                    // the file descriptor glued to it is part of the redirection, not a word of the command
+                    if word
+                        .as_deref()
+                        .is_some_and(|w| !w.is_empty() && w.chars().all(|c| c.is_ascii_digit()))
+                    {
+                        word = None;
+                    }
+                    command.extend(word.take());
+                    if chars.peek() != Some(&'>') {
+                        command.push(">".to_string());
+                    }
                 }
                 None if c.is_whitespace() || c == '<' || c == '>' => command.extend(word.take()),
                 None => word.get_or_insert_with(String::new).push(c),

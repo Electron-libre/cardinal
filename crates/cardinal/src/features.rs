@@ -28,6 +28,8 @@ pub const ISSUE_FILES: &str = "issue-files";
 pub const HARNESS_MEASURE: &str = "harness-measure";
 /// The feature whose skill and recipes write the specs and trace them to the tests.
 pub const SPECS: &str = "specs";
+/// The scratch directory of a session (`specs/session-scratch.md`).
+pub const SESSION_SCRATCH: &str = "session-scratch";
 
 /// What a feature is made of: paths under `files/`, and entries written as `sync` prints them (SYN-34); and the
 /// features it needs (FEA-17).

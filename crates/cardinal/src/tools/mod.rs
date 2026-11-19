@@ -32,6 +32,7 @@ mod review_target;
 mod roadmap;
 mod roadmap_state;
 mod rule_breaches;
+mod scratch_writes;
 mod session_metrics;
 mod shell;
 mod spec_coverage;

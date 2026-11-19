@@ -450,6 +450,8 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "review-before-commit\tr2\t1\t0\t0\t0\t",
         "review-waiver\tr1\t4\t1\t1\t3\t",
         "review-waiver\tr2\t1\t0\t0\t0\t",
+        "scratch-outside-tmpdir\tr1\t4\t0\t0\t0\t",
+        "scratch-outside-tmpdir\tr2\t1\t0\t0\t0\t",
         "stage-everything\tr1\t1\t0\t0\t0\t",
         "validation-stop\tr1\t1\t1\t1\t0\t",
     ];
@@ -1223,6 +1225,7 @@ fn waste_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
         "oversized-result\tr1\t1\t1\t2\t0\t50002",
         "oversized-result-review\tr1\t1\t1\t1\t0\t30000",
         "oversized-result-subagent\tr1\t1\t1\t2\t0\t60000",
+        "scratch-outside-tmpdir\tr1\t1\t0\t0\t0\t",
     ];
     if sorted(rows.clone()) != sorted(expected.clone()) || summary != want_summary {
         println!("{out}{}", summary.join("\n"));

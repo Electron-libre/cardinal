@@ -1,6 +1,6 @@
 ---
 id: BRE
-status: accepted
+status: draft
 adrs: [0003, 0005, 0006, 0010, 0018, 0022]
 ---
 
@@ -8,18 +8,22 @@ adrs: [0003, 0005, 0006, 0010, 0018, 0022]
 
 ## Intent
 
-`cardinal run rule-breaches` reads the Claude Code transcripts of every project and lists where the agent
-broke a rule Cardinal states (`AGENTS.md`, the skills, the ADRs), apart from where a gate refused it, then counts
-them per rule and per Cardinal revision over the sessions where the rule applied, so `audit-instructions` can tell a
+`cardinal run rule-breaches` reads the Claude Code transcripts of every project and lists where the agent broke
+a rule Cardinal states (`AGENTS.md`, the skills, the ADRs), apart from where a gate refused it, then counts them per rule and per Cardinal revision over the sessions where the rule applied, so `audit-instructions` tells a
 rule broken often (a hook candidate) from a rule that rarely applies. Only the breaches a program can see are in
-scope. It also lists the known patterns of token waste a program can see, so a change of the instructions or of a
+scope. It also lists the known patterns of token waste a program sees, so a change of the instructions or a
 tool gets a verdict on the waste it removes.
 
 ## Requirements
 
+### Behaviour
+
 - **BRE-1** (deterministic) `rule-breaches [projects_dir]` must print a header line then one tab-separated row per finding, with the columns `session`, `project`, `revision`, `rule`, `kind`, `location`, `detail`; `kind` is `breach` when the act went through and `blocked` when a hook or a permission rule refused it; `location` is `<transcript file name>:<line>` (1-based, the file name of a sub-agent transcript being `subagents/<name>`), empty for a finding read from git.
 - **BRE-2** (deterministic) `project` and `revision` must be resolved as in `session-metrics` (EVA-7, EVA-8), through the shared module `transcripts.rs`, so both scripts give a session the same project and revision; no rule applies to a session whose `revision` is empty (the project had no Cardinal then).
 - **BRE-3** (deterministic) With `--summary`, the script must print instead a header then one row per rule and revision, with the columns `rule`, `revision`, `applied` (sessions where the rule applied, as each requirement below defines), `breached` (those with at least one `breach`), `breaches` and `blocked` (counts of findings), sorted by rule then revision.
+
+### Contract
+
 - **BRE-4** (deterministic) Rule `no-verify`: a `Bash` call whose command holds the words `git` and `commit` or `push` and the token `--no-verify` must be a finding (`blocked` when its result is an error). It applies to the sessions with a `Bash` call holding `git` and `commit` or `push` (not when the session turns off the feature `review-gate`, FEA-26).
 - **BRE-5** (deterministic) Rule `review-before-commit`: an error result of a `Bash` call holding `git` and `commit` whose text holds `Refused:` and `code review` but not `Refused: only the user waives` must be a `blocked` finding (a refusal of another command is a mistake of the gate, not of the agent); a `Bash` call holding `git` and `commit` whose result is not an error, after such a refusal with neither a `Skill` call whose skill name ends with `code-review` nor a user turn in between (a typed message, the filter of `transcripts.rs`, or a command the user typed: a user line, not meta nor sidechain, whose text holds `<command-name>/` or starts with `<bash-input>`), must be a `breach` (the bypass of ADR 0005). It applies to the sessions with a `Bash` call holding `git` and `commit` (not when the session turns off the feature `review-gate`, FEA-26).
 - **BRE-6** (deterministic) Rule `review-waiver`: a `Bash` call whose command runs the waiver (the words `just` and `waive-review`, or a command holding `cardinal`, then `run` or `tool`, then `waive-review` in a row), an `Edit` or `Write` of a path whose file name is `claude-review-waived`, or an error tool result holding `Refused: only the user waives` must be a finding (`blocked` when the result is an error). It applies to the sessions with a `Bash` call holding `git` and `commit` (not when the session turns off the feature `review-gate`, FEA-26).
@@ -40,6 +44,7 @@ tool gets a verdict on the waste it removes.
 - **BRE-21** (deterministic) Rule `stage-everything`: a `Bash` call whose command stages every file as the `review-gate check` hook reads it (REV-21 of `specs/review-gate.md`, the shared module `shell.rs`) must be a finding (`blocked` when its result is an error). It applies to the sessions with a `Bash` call holding `git` and `add` (not when the session turns off the feature `review-gate`, FEA-26).
 - **BRE-22** (deterministic) Rules `oversized-result-review` and `oversized-result-subagent`: a tool result of a sub-agent's transcript over the threshold of BRE-19 must be a `breach` of `oversized-result-review` when the `<name>.meta.json` next to the transcript is a JSON object whose `agentType` is `general-purpose` and that has no `description` or an empty one (a reviewer of the built-in `/code-review`: an `Agent` call always gives a description), else of `oversized-result-subagent` (a missing or unreadable `.meta.json` included), located and detailed as BRE-19. Each applies to the sessions with at least one tool result in a transcript of its kind.
 - **BRE-23** (deterministic) `rule-breaches` must accept `--project <name>` and refuse it with no value, or a value starting with `-`, with an error and a non-zero exit, and warn on stderr naming `<name>` when no session has that project; with it, its rows and its summary (BRE-3) count only the sessions whose `project` (BRE-2) is `<name>`, and the findings read from git (BRE-9) only those of that project.
+- **BRE-24** (deterministic) Rule `scratch-outside-tmpdir`: a `Bash` call must be a finding (`blocked` when its result is an error) for each distinct `/tmp/<name>` that one of its commands, as the shared module `shell.rs` reads them, writes to, `<name>` being the first component of a path under `/tmp/` that does not start with `claude-scratch-` (the scratch directory of a session, SCR-1), with `detail` `/tmp/<name>`; a command writes to a word starting with `/tmp/` when the word is the target of an output redirection (`>`, `>>`, `2>`, `&>`, with or without a blank before the path), an argument of `mkdir`, `mktemp`, `touch` or `tee`, the last word of `cp`, `mv`, `ln`, `rsync` or of `git clone`, the word after an option `-o`, `--output`, `--out-dir`, `--target-dir` or `--user-data-dir`, or the value of a word `--<option>=/tmp/...`. It applies to the sessions with a `Bash` call (not when the session's `.claude/cardinal.toml` committed at its `start`, as BRE-14 reads it, turns off the feature `session-scratch`, SCR-10).
 
 ## Scenarios
 
@@ -74,6 +79,9 @@ tool gets a verdict on the waste it removes.
 - (BRE-22) Given a session whose own transcript, a reviewer's and an `Explore` sub-agent's each hold a result of 30,000 bytes, when the session is read, then there is one breach of each of `oversized-result`, `oversized-result-review` and `oversized-result-subagent`; with no `.meta.json` next to the reviewer's transcript, two are `oversized-result-subagent`.
 - (BRE-20) Given two sessions of a revision, one with results of 30,000 and 40,000 bytes and one with no result over the threshold, when the summary is printed, then the row of `oversized-result` reads `bytes` 70000, and the row of `no-verify` an empty `bytes`.
 - (BRE-21) Given `git add -A && git commit -m x`, then `git add src/a.rs`, then `git -C repo add .`, when the session is read, then the first and the third calls are findings; `git commit -am x` is none: it stages no untracked file.
+- (BRE-24) Given `mkdir -p /tmp/measure/a && cargo build --target-dir /tmp/measure/t`, then `cat /tmp/log`, then `ls > /tmp/out.txt 2>/tmp/err`, then `mktemp -d` and `cp x /tmp/claude-scratch-s/y`, when the session is read, then the first call is one finding `/tmp/measure`, the third two (`/tmp/out.txt`, `/tmp/err`) and the others none: a read is no write, and the scratch directory of a session is its own.
+- (BRE-24) Given a session started after a commit that sets `disabled = ["session-scratch"]`, which runs `mkdir /tmp/x`, when the session is read, then it has no `scratch-outside-tmpdir` finding and its summary no row for the rule.
+- (BRE-24) Given `git commit -m "write to /tmp/x"` and `echo '> /tmp/y'`, when the session is read, then neither is a finding: a quoted text writes nothing.
 
 ## Non-goals
 
@@ -88,3 +96,4 @@ tool gets a verdict on the waste it removes.
 - Whether the agent used a large result: it takes judgment; `oversized-result` counts its size only, and the bytes of `detail` are the only estimate of the tokens a finding wastes.
 - Whether a large result was needed: a review must read its diff; BRE-22 only tells the reviewers, whose results cost their own tokens and not the session's context, from the session's own results.
 - An image or a document part of a tool result: its tokens follow its dimensions or its pages, not the bytes of its base64 data, so `oversized-result` counts the text parts only.
+- A write to `/tmp` made by a program the command runs (a test, a build script, a browser) with no path on the command line, or through a variable (`$TMPDIR`, `$out`): `scratch-outside-tmpdir` reads the literal paths of the command only.

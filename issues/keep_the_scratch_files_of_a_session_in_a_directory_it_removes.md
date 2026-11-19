@@ -47,3 +47,46 @@ in `/tmp` is measured.
 * A test of Cardinal must not depend on `TMPDIR` pointing outside the repository: `audit_sources` reads the
   `CLAUDE.md` of the parents of its temporary directory.
 * Verdict: `Expected-effect:` the new metric down.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-19
+
+## Understanding
+Each session gets `$TMPDIR=<tmp>/claude-scratch-<session id>/` (a `SessionStart` hook through `CLAUDE_ENV_FILE`,
+verified in the Claude Code binary), removed at `SessionEnd`, stale ones swept at start, kept on a `cardinal-keep`
+file; a rule line asks for `$TMPDIR`; `rule-breaches` measures the literal `/tmp/<name>` writes. Out of scope: the
+hint hook (approach 3, second half), until the measure shows the rule is not enough.
+
+## Plan
+1. [x] Measure: rule `scratch-outside-tmpdir` of `rule-breaches`, in a module of its own (`rule_breaches.rs` is over
+   the file size limit), its tests in a new test file; verified by tests on fake transcripts; makes true BRE-24. (autonomous)
+2. [ ] Scratch directory: tool `cardinal run session-scratch start|end` (module `session_scratch.rs`), its two hook
+   entries, the rule `files/.claude/rules/scratch-files.md`, the feature `session-scratch` of `features.toml`, docs;
+   verified by tests through the binary (fake `CLAUDE_ENV_FILE`, `TMPDIR` in a tempdir) and the sync of this repo;
+   makes true SCR-1 to SCR-10.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f5cdc654c0e18760a88a3cf452f65f4e3251541c
+- Keep: a file `cardinal-keep` in `$TMPDIR` keeps the directory (1 a).
+- Sweep: a dead process and nothing changed for 24 hours (2 a).
+
+## Deliverable 1
+done: rule `scratch-outside-tmpdir` of `rule-breaches` (`tools/scratch_writes.rs`, `shell::commands_with_redirections`).
+On the transcripts of the machine: 521 of the 713 sessions with a `Bash` call breach it, 2,973 findings.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (BRE-24 traced, spec still `draft` until SCR) |
+| docs | `docs/evaluation.md` |
+| code review | no findings |
+
+red: BRE-24: `left: []` against the eleven expected findings (no rule).
+Code review: no findings
+not verified: none
+decisions needed: none
+file size: `rule_breaches.rs` (+25) and its test file (+3) stay over the limit: the rule lives in a module of its own,
+only its dispatch and the expected summary rows grew.

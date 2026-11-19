@@ -249,6 +249,55 @@ fn a_broken_input_or_environment_changes_nothing() {
     assert_eq!(env_lines(&m), "");
 }
 
+// spec: SCR-4
+#[test]
+fn a_directory_of_the_session_open_to_others_is_not_exported() {
+    let m = machine();
+    let target = m.tmp.join("target");
+    std::fs::create_dir(&target).unwrap();
+    std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::os::unix::fs::symlink(&target, m.scratch("s")).unwrap();
+    assert_eq!(
+        m.start("s", &live()),
+        (Some(0), String::new(), String::new())
+    );
+    let open = m.scratch("o");
+    std::fs::create_dir(&open).unwrap();
+    std::fs::set_permissions(&open, std::fs::Permissions::from_mode(0o755)).unwrap();
+    assert_eq!(
+        m.start("o", &live()),
+        (Some(0), String::new(), String::new())
+    );
+    assert_eq!(env_lines(&m), "");
+    assert!(!target.join(".cardinal-session").exists());
+}
+
+// spec: SCR-6
+#[test]
+fn an_empty_tmpdir_creates_nothing() {
+    let m = machine();
+    let cwd = m.tmp.join("cwd");
+    std::fs::create_dir(&cwd).unwrap();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_cardinal"));
+    let out = cmd
+        .args(["tool", "session-scratch", "start"])
+        .current_dir(&cwd)
+        .env("TMPDIR", "")
+        .env("CLAUDE_PID", live())
+        .env("CLAUDE_ENV_FILE", &m.env_file)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .and_then(|mut c| {
+            c.stdin.take().unwrap().write_all(event("s").as_bytes())?;
+            c.wait_with_output()
+        })
+        .unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(std::fs::read_dir(&cwd).unwrap().count(), 0);
+    assert_eq!(env_lines(&m), "");
+}
+
 // spec: SCR-6
 #[test]
 fn a_session_started_from_another_gets_its_directory_beside_it() {

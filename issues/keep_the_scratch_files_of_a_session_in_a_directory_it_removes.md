@@ -65,6 +65,7 @@ hint hook (approach 3, second half), until the measure shows the rule is not eno
    entries, the rule `files/.claude/rules/scratch-files.md`, the feature `session-scratch` of `features.toml`, docs;
    verified by tests through the binary (fake `CLAUDE_ENV_FILE`, `TMPDIR` in a tempdir) and the sync of this repo;
    makes true SCR-1 to SCR-10. (autonomous)
+3. [x] Fixes of the `high` review of the issue: BRE-24 and SCR-4, SCR-6 amended; verified by the tests of both rules. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -107,4 +108,30 @@ red: SCR-H1, SCR-H2, SCR-1 to SCR-10: `unknown tool session-scratch` (exit 3), a
 Code review: 1 finding: with no `CLAUDE_PID`, `start` recorded no process, so a later sweep could remove the
 directory of a live session left unchanged for a day; fixed: `start` then creates nothing (SCR-4 amended, tested).
 not verified: a live session: the next one started here gets its `TMPDIR` (the hooks run the installed `cardinal`).
+decisions needed: none
+
+## Deliverable 3
+done: the fixes of the `high` review of `base..HEAD` (10 findings).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (BRE-24, SCR-4, SCR-6 amended and traced) |
+| docs | the rule `scratch-files.md` reworded |
+| code review | no findings |
+
+red: BRE-24, BRE-5, SCR-4, SCR-6: a refused commit writing under `/tmp` lost its `review-before-commit` finding;
+`--manifest-path=/tmp/...` and `grep -o` counted; `>&`, `>|`, `-o/tmp/x`, `cp -t` missed; a failed command was
+`blocked`; a symbolic link or an open directory exported; an empty `TMPDIR` created the directory in the cwd.
+High review: 10 findings:
+- fixed: a scratch finding hid the gate refusal of its call (BRE-5); a failed command `blocked` instead of `breach`;
+  reading options counted as writes; `>&`, `>|`, glued `-o`, `cp -t` missed; an empty `TMPDIR`; a link or an open
+  directory exported; the rule stated `$TMPDIR` as the session's even when no hook made it.
+- not fixed: the sandbox of Claude Code: its `TMPDIR` is exported after the env file is sourced (read in the
+  binary), so a sandboxed command keeps the sandbox's directory; the sweep's cost at start: it walks and removes only
+  the directories of dead sessions unchanged for a day, once each; the second parse of a `Bash` call: one more pass
+  of the shell reader per call, negligible next to the JSON parse of the transcripts.
+Code review: no findings
+not verified: none
 decisions needed: none

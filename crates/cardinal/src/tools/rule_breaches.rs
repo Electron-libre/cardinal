@@ -455,6 +455,14 @@ impl Verdict {
         }
     }
 
+    /// Whether a finding since the `before`-th is of a rule an error result could be the refusal of: a write under
+    /// `/tmp` is refused by no gate, so its error stays for the gate rules (BRE-24, BRE-5).
+    fn found_gate_rule_since(&self, before: usize) -> bool {
+        self.findings[before..]
+            .iter()
+            .any(|f| f.rule != scratch_writes::RULE)
+    }
+
     /// The rules of a `Bash` call of the features the project keeps.
     fn check_shell(&mut self, call: &Call, blocked: bool, context: &Context, refused: &mut bool) {
         // a project that turned the review gate off has none of its rules to breach (FEA-26)
@@ -462,16 +470,17 @@ impl Verdict {
             self.check_bash(call, blocked, refused);
         }
         if context.scratch {
-            self.check_scratch(call, blocked);
+            self.check_scratch(call);
         }
     }
 
-    /// Rule `scratch-outside-tmpdir` of a `Bash` call: one finding per `/tmp/<name>` it writes to (BRE-24).
-    fn check_scratch(&mut self, call: &Call, blocked: bool) {
+    /// Rule `scratch-outside-tmpdir` of a `Bash` call: one breach per `/tmp/<name>` it writes to, failed or not: no
+    /// gate refuses it, and a command that fails may have written already (BRE-24).
+    fn check_scratch(&mut self, call: &Call) {
         self.applied.insert(scratch_writes::RULE);
         let command = call.input["command"].as_str().unwrap_or_default();
         for path in scratch_writes::written(command) {
-            self.add(scratch_writes::RULE, blocked, &call.location, path);
+            self.add(scratch_writes::RULE, false, &call.location, path);
         }
     }
 
@@ -614,7 +623,7 @@ impl Verdict {
                             self.check_edit(call, blocked, context, main, &mut plan_proposed);
                         }
                     }
-                    if self.findings.len() > before {
+                    if self.found_gate_rule_since(before) {
                         flagged.insert(*i);
                     }
                 }

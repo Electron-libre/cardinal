@@ -20,12 +20,12 @@ habit, removed when the session ends.
 - **SCR-1** (deterministic) `cardinal run session-scratch start`, run as a `SessionStart` hook, must create the directory `claude-scratch-<session_id>` (the `session_id` of its input) in the temporary directory of SCR-6, readable by its owner only, and append to the file named by `CLAUDE_ENV_FILE` the line `export TMPDIR='<that directory>'`, so the `Bash` commands of the session write their temporary files in it.
 - **SCR-2** (deterministic) `cardinal run session-scratch end`, run as a `SessionEnd` hook, must remove the directory of the `session_id` of its input with all it holds, unless it holds a file named `cardinal-keep` (SCR-5).
 - **SCR-3** (deterministic) `start` must also remove each other directory `claude-scratch-<id>` of the temporary directory whose recorded process (SCR-7) no longer runs, or that records none, and that nothing in it changed for 24 hours (its own modification time and that of each entry it holds), so the directory of a session killed before its `SessionEnd` goes; never a directory that holds `cardinal-keep`, nor one whose process runs.
-- **SCR-4** (deterministic) `start` and `end` must exit 0 and print nothing whatever happens: an unreadable input, a missing `session_id` or one holding a character other than an ASCII letter, a digit, `-` or `_`, an unset `CLAUDE_ENV_FILE` or `CLAUDE_PID` (for `start`: no directory is created, since the sweep could not tell its session alive), or a directory that cannot be created, read or removed (left as is), so that a broken hook never blocks a session.
+- **SCR-4** (deterministic) `start` and `end` must exit 0 and print nothing whatever happens: an unreadable input, a missing `session_id` or one holding a character other than an ASCII letter, a digit, `-` or `_`, an unset `CLAUDE_ENV_FILE` or `CLAUDE_PID` (for `start`: no directory is created, since the sweep could not tell its session alive), a directory that cannot be created, read or removed (left as is), or a directory of the session that already exists and is not a directory of the user readable by them only (a symbolic link included: nothing exported), so that a broken hook never blocks a session.
 - **SCR-5** (deterministic) A directory holding a file named `cardinal-keep` must be left in place by `end` and by the sweep of SCR-3, so an artefact the user wants to read after the session survives it.
 
 ### Contract
 
-- **SCR-6** (deterministic) The temporary directory must be the one of the hook's environment (`TMPDIR`, else `/tmp`); when its own name starts with `claude-scratch-` (a session started from the `Bash` of another one), its parent instead, so no scratch directory is created inside another.
+- **SCR-6** (deterministic) The temporary directory must be the one of the hook's environment (`TMPDIR`, else `/tmp`); when its own name starts with `claude-scratch-` (a session started from the `Bash` of another one), its parent instead, so no scratch directory is created inside another; a relative one (an empty `TMPDIR`) creates nothing.
 - **SCR-7** (deterministic) `start` must write the process of the session (`CLAUDE_PID`) to the file `.cardinal-session` of the directory of its session, replacing the one a former start of the same session (a resumed session) wrote; the directory and the files it already holds are kept.
 - **SCR-8** (deterministic) The managed entries of `.claude/settings.json` (`entries/.claude/settings.json` of the source, SYN-29) must hold `cardinal run session-scratch start` as a `SessionStart` hook and `cardinal run session-scratch end` as a `SessionEnd` hook.
 - **SCR-9** (deterministic) The managed rule `.claude/rules/scratch-files.md` must tell the agent to write its scratch files under `$TMPDIR` (`mktemp`), never to a literal `/tmp/<name>` path, and to create `$TMPDIR/cardinal-keep` for an artefact the user reads after the session.
@@ -49,6 +49,8 @@ habit, removed when the session ends.
 - (SCR-4) Given an input whose `session_id` is `../x`, when `start` or `end` runs, then nothing is created nor
   removed and the exit code is 0.
 - (SCR-4) Given no `CLAUDE_ENV_FILE`, or no `CLAUDE_PID`, when `start` runs, then no directory is created and the exit code is 0.
+- (SCR-4) Given a symbolic link `<tmp>/claude-scratch-s` to a directory, or a directory of that name readable by others, when `s` starts, then nothing is exported.
+- (SCR-6) Given an empty `TMPDIR`, when a session starts, then nothing is created in the directory of the hook.
 - (SCR-6) Given `TMPDIR` set to `/t/claude-scratch-p`, when session `s` starts, then its directory is
   `/t/claude-scratch-s`.
 - (SCR-7) Given a directory of session `s` holding `out.log`, when `s` starts again (resumed) from process `q`, then

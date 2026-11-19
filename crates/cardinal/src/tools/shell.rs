@@ -25,7 +25,7 @@ pub(super) fn commands(line: &str) -> Vec<Vec<String>> {
     read(line, false)
 }
 
-/// The commands of a shell line as `commands` reads them, each output redirection (`>`, `>>`, `2>`) kept as the word
+/// The commands of a shell line as `commands` reads them, each output redirection (`>`, `>>`, `2>`, `>&`, `>|`) kept as the word
 /// `>` before its target, the file descriptor glued to it dropped (BRE-24 of `specs/rule-breaches.md`).
 pub(super) fn commands_with_redirections(line: &str) -> Vec<Vec<String>> {
     read(line, true)
@@ -86,6 +86,10 @@ fn read(line: &str, redirections: bool) -> Vec<Vec<String>> {
                     command.extend(word.take());
                     if chars.peek() != Some(&'>') {
                         command.push(">".to_string());
+                    }
+                    // `>&` and `>|` redirect to the word after them, which a separator would cut off
+                    if matches!(chars.peek(), Some('&' | '|')) {
+                        chars.next();
                     }
                 }
                 None if c.is_whitespace() || c == '<' || c == '>' => command.extend(word.take()),

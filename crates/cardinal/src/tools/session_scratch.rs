@@ -8,7 +8,7 @@
 
 use std::fs;
 use std::io::{Read, Write};
-use std::os::unix::fs::DirBuilderExt;
+use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
@@ -33,6 +33,10 @@ pub(super) fn main(args: &[String]) -> u8 {
         return 0;
     };
     let root = temp_root();
+    // an empty `TMPDIR` gives a relative path: the directory of the hook, not a temporary one (SCR-6)
+    if !root.is_absolute() {
+        return 0;
+    }
     match args.first().map(String::as_str) {
         Some("start") => start(&root, &session),
         Some("end") => end(&root.join(format!("{PREFIX}{session}"))),
@@ -73,11 +77,13 @@ fn start(root: &Path, session: &str) {
         return;
     };
     let dir = root.join(format!("{PREFIX}{session}"));
-    let created = fs::DirBuilder::new().mode(0o700).create(&dir);
-    if created.is_err() && !dir.is_dir() {
+    fs::DirBuilder::new().mode(0o700).create(&dir).ok();
+    // a link, or a directory others may read or that is not the user's (the record cannot be written), is not exported
+    let private = fs::symlink_metadata(&dir)
+        .is_ok_and(|m| m.is_dir() && m.permissions().mode() & 0o777 == 0o700);
+    if !private || fs::write(dir.join(OWNER), format!("{pid}\n")).is_err() {
         return;
     }
-    fs::write(dir.join(OWNER), format!("{pid}\n")).ok();
     let quoted = dir.to_string_lossy().replace('\'', r"'\''");
     fs::OpenOptions::new()
         .create(true)

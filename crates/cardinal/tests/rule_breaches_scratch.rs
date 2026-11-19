@@ -33,6 +33,18 @@ fn repo(dir: &Path, config: &str) -> PathBuf {
 /// Writes under `projects` a session of `repo` running each command of `commands`, the last one failing; returns the
 /// 1-based line of each call.
 fn session(projects: &Path, repo: &Path, commands: &[&str]) -> Vec<usize> {
+    let last = commands.len().saturating_sub(1);
+    let calls: Vec<_> = commands
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (*c, (i == last).then_some("SECRET")))
+        .collect();
+    session_of(projects, repo, &calls)
+}
+
+/// Writes under `projects` a session of `repo` running each `(command, error)` of `calls`, a call with an error
+/// failing with that text; returns the 1-based line of each call.
+fn session_of(projects: &Path, repo: &Path, calls: &[(&str, Option<&str>)]) -> Vec<usize> {
     let stamp = |mut line: serde_json::Value| {
         line["cwd"] = json!(repo);
         line["timestamp"] = json!("2026-02-01T10:00:00.000Z");
@@ -43,12 +55,11 @@ fn session(projects: &Path, repo: &Path, commands: &[&str]) -> Vec<usize> {
         json!({"type": "user", "gitBranch": "main", "message": {"role": "user", "content": "go"}}),
     )];
     let mut at = Vec::new();
-    for (i, command) in commands.iter().enumerate() {
+    for (i, (command, error)) in calls.iter().enumerate() {
         let id = format!("c{i}");
         lines.push(stamp(json!({"type": "assistant", "message": {"id": format!("m{i}"), "content": [{"type": "tool_use", "id": id, "name": "Bash", "input": {"command": command}}]}})));
         at.push(lines.len());
-        let error = i + 1 == commands.len();
-        lines.push(stamp(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": id, "is_error": error, "content": "SECRET"}]}})));
+        lines.push(stamp(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": id, "is_error": error.is_some(), "content": error.unwrap_or("SECRET")}]}})));
     }
     let file = projects.join("-proj/s.jsonl");
     std::fs::create_dir_all(file.parent().unwrap()).unwrap();
@@ -106,6 +117,9 @@ fn literal_tmp_writes_are_findings() {
             "cp a b /tmp/copy && tee -a /tmp/tee.log < in && touch /tmp/t1",
             "chromium --user-data-dir=/tmp/profile && curl -o /tmp/page x && git clone u /tmp/clone",
             "rsync -a src/ /tmp/sync/ && echo x >> /tmp/append 2>&1",
+            "cargo test --manifest-path=/tmp/m/Cargo.toml && grep -o x /tmp/log && ls -o /tmp/l",
+            "make >& /tmp/build.log; cc -o/tmp/bin x.c; cp -t /tmp/cpt a b; echo x >| /tmp/clobber",
+            "sort -o /tmp/sorted in && cargo build --target-dir=/tmp/target",
         ],
     );
     let finding = |i: usize, detail: &str| ("breach".to_string(), at[i], detail.to_string());
@@ -119,8 +133,15 @@ fn literal_tmp_writes_are_findings() {
         finding(6, "/tmp/clone"),
         finding(6, "/tmp/page"),
         finding(6, "/tmp/profile"),
-        ("blocked".to_string(), at[7], "/tmp/append".to_string()),
-        ("blocked".to_string(), at[7], "/tmp/sync".to_string()),
+        finding(7, "/tmp/append"),
+        finding(7, "/tmp/sync"),
+        finding(9, "/tmp/bin"),
+        finding(9, "/tmp/build.log"),
+        finding(9, "/tmp/clobber"),
+        finding(9, "/tmp/cpt"),
+        // the last call fails: it may have written already, and no gate refuses it
+        finding(10, "/tmp/sorted"),
+        finding(10, "/tmp/target"),
     ];
     expected.sort();
     assert_eq!(findings(&rule_breaches(&projects, false)), expected);
@@ -128,7 +149,7 @@ fn literal_tmp_writes_are_findings() {
     assert!(
         summary
             .lines()
-            .any(|l| l.starts_with(&format!("{RULE}\tr1\t1\t1\t9\t2\t"))),
+            .any(|l| l.starts_with(&format!("{RULE}\tr1\t1\t1\t17\t0\t"))),
         "{summary}"
     );
 }
@@ -151,4 +172,36 @@ fn a_project_that_turned_off_session_scratch_is_not_checked() {
     );
     // the session is read: the waste rule applies to it
     assert!(summary.contains("oversized-result\t"), "{summary}");
+}
+
+// spec: BRE-24, BRE-5
+#[test]
+fn a_refused_commit_that_writes_under_tmp_still_counts_for_the_review_gate() {
+    let tmp = tempfile::tempdir().unwrap();
+    let repo = repo(&tmp.path().join("proj"), CONFIG);
+    let projects = tmp.path().join("projects");
+    let at = session_of(
+        &projects,
+        &repo,
+        &[
+            (
+                "cargo test > /tmp/log && git commit -m x",
+                Some("Refused: run a code review first"),
+            ),
+            ("git commit -m x", None),
+        ],
+    );
+    let out = rule_breaches(&projects, false);
+    let has = |kind: &str, line: usize| {
+        out.lines().any(|l| {
+            l.contains(&format!("\treview-before-commit\t{kind}\t"))
+                && l.contains(&format!(":{line}\t"))
+        })
+    };
+    // the refusal is found at its result, the line after the call
+    assert!(has("blocked", at[0] + 1) && has("breach", at[1]), "{out}");
+    assert_eq!(
+        findings(&out),
+        [("breach".to_string(), at[0], "/tmp/log".to_string())]
+    );
 }

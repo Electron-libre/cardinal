@@ -19,14 +19,14 @@ const WRITE_EVERY_ARGUMENT: [&str; 4] = ["mkdir", "mktemp", "touch", "tee"];
 /// The programs whose last argument is the path they write.
 const WRITE_LAST_ARGUMENT: [&str; 4] = ["cp", "mv", "ln", "rsync"];
 
-/// The options whose value, the next word, is a path the program writes.
-const OUTPUT_OPTIONS: [&str; 5] = [
-    "-o",
-    "--output",
-    "--out-dir",
-    "--target-dir",
-    "--user-data-dir",
-];
+/// The options whose value, the next word or the text after `=`, is a path the program writes.
+const OUTPUT_OPTIONS: [&str; 4] = ["--output", "--out-dir", "--target-dir", "--user-data-dir"];
+
+/// The programs whose `-o` reads rather than names an output file.
+const READING_O: [&str; 4] = ["grep", "rg", "ls", "ps"];
+
+/// The options of `cp`, `mv` and `ln` that name the directory they write to.
+const TARGET_DIRECTORY: [&str; 2] = ["-t", "--target-directory"];
 
 /// Each distinct `/tmp/<name>` a command of `line` writes to, `<name>` the first component under `/tmp/`, the scratch
 /// directory of a session left out.
@@ -47,23 +47,9 @@ fn targets(command: &[String]) -> Vec<&str> {
     while let Some(word) = words.next() {
         if word == ">" {
             targets.extend(words.next());
-            continue;
-        }
-        if OUTPUT_OPTIONS.contains(&word) {
+        } else {
             arguments.push(word);
-            if let Some(value) = words.next() {
-                targets.push(value);
-                arguments.push(value);
-            }
-            continue;
         }
-        if let Some((_, value)) = word
-            .strip_prefix("--")
-            .and_then(|option| option.split_once('='))
-        {
-            targets.push(value);
-        }
-        arguments.push(word);
     }
     // the program, past the assignments of variables before it
     let Some(at) = arguments.iter().position(|w| !w.contains('=')) else {
@@ -71,10 +57,37 @@ fn targets(command: &[String]) -> Vec<&str> {
     };
     let program = arguments[at].rsplit('/').next().unwrap_or_default();
     let rest = &arguments[at + 1..];
+    let after = |options: &[&str]| -> Vec<&str> {
+        rest.windows(2)
+            .filter(|w| options.contains(&w[0]))
+            .map(|w| w[1])
+            .collect()
+    };
+    targets.extend(after(&OUTPUT_OPTIONS));
+    targets.extend(rest.iter().filter_map(|w| {
+        let (option, value) = w.split_once('=')?;
+        OUTPUT_OPTIONS.contains(&option).then_some(value)
+    }));
+    if !READING_O.contains(&program) {
+        targets.extend(after(&["-o"]));
+        targets.extend(
+            rest.iter()
+                .filter_map(|w| w.strip_prefix("-o").filter(|v| v.starts_with('/'))),
+        );
+    }
     if WRITE_EVERY_ARGUMENT.contains(&program) {
         targets.extend(rest);
     } else if WRITE_LAST_ARGUMENT.contains(&program) {
-        targets.extend(rest.last());
+        // `rsync -t` keeps the times
+        let directory = if program == "rsync" {
+            Vec::new()
+        } else {
+            after(&TARGET_DIRECTORY)
+        };
+        if directory.is_empty() {
+            targets.extend(rest.last());
+        }
+        targets.extend(directory);
     }
     let clones = shell::git_invocations(command).any(|(subcommand, _, _)| subcommand == "clone");
     if clones {

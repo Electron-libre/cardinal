@@ -438,3 +438,71 @@ fn sync_dry_run_judges_neither_a_removed_managed_file_nor_the_settings_it_merges
         assert!(!run.stdout.contains("rewritten: old.txt"), "{run:?}");
     }
 }
+
+// spec: FEA-40
+/// A project of the format 10, recipes at the root, synced by the source of the format 11: the recipes move to
+/// `cardinal/`, the root ones are removed but an edited one, and the import line of the justfile follows them.
+#[test]
+fn the_format_11_moves_the_recipes_under_cardinal_and_rewrites_the_import() {
+    let home = Home::new();
+    let (source, root) = project(&home);
+    for part in ["cardinal", "cardinal-issues"] {
+        put(
+            source.path(),
+            &format!("files/{part}.just"),
+            "x:\n    true\n",
+        );
+    }
+    home.ok(root.path(), &["sync"]);
+    set_lock_format(root.path(), Some(10));
+    put(root.path(), "justfile", "import 'cardinal.just'\n");
+    put(root.path(), "cardinal-issues.just", "edited:\n    true\n");
+    for (old, new) in [("cardinal", "cardinal"), ("cardinal-issues", "issues")] {
+        std::fs::remove_file(source.path().join(format!("files/{old}.just"))).unwrap();
+        put(
+            source.path(),
+            &format!("files/cardinal/{new}.just"),
+            "x:\n    true\n",
+        );
+    }
+    let migration = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations/11.toml");
+    put(
+        source.path(),
+        "migrations/11.toml",
+        &std::fs::read_to_string(migration).unwrap(),
+    );
+
+    // a git repository, whose tracked files are judged for the old names (SYN-54)
+    put(root.path(), "notes.md", "see cardinal.just\n");
+    for args in [&["init", "-q"][..], &["add", "-A"]] {
+        let git = std::process::Command::new("git")
+            .args(args)
+            .current_dir(root.path())
+            .status()
+            .unwrap();
+        assert!(git.success());
+    }
+
+    let run = home.ok(root.path(), &["sync"]);
+    assert_eq!(run.outcome("justfile"), Some("rewritten"), "{run:?}");
+    assert_eq!(
+        get(root.path(), "justfile").unwrap(),
+        "import 'cardinal/cardinal.just'\n"
+    );
+    // the old name inside the new path of the rewritten line is no leftover, a bare one is
+    assert!(!run.stderr.contains("justfile:1 cites"), "{run:?}");
+    assert!(
+        run.stderr.contains(
+            "notes.md:1 cites cardinal.just, named cardinal/cardinal.just since the format 11"
+        ),
+        "{run:?}"
+    );
+    assert_eq!(get(root.path(), "cardinal.just"), None, "{run:?}");
+    assert_eq!(
+        get(root.path(), "cardinal-issues.just").unwrap(),
+        "edited:\n    true\n"
+    );
+    for new in ["cardinal/cardinal.just", "cardinal/issues.just"] {
+        assert!(get(root.path(), new).is_some(), "{new} {run:?}");
+    }
+}

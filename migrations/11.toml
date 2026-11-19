@@ -1,12 +1,14 @@
 # The format 11 moves the recipes of Cardinal from the root of the project to `cardinal/` (FEA-19, FEA-40): the
-# justfile imports `cardinal/cardinal.just`, which imports the recipes of each part next to it.
+# justfile imports `cardinal/cardinal.just`, which imports the recipes of each part next to it. The names are bare, so
+# that an import line the rewrites miss (indented, commented) is still reported.
 names = [
-  { old = "`cardinal.just`", new = "`cardinal/cardinal.just`" },
-  { old = "`cardinal-commits.just`", new = "`cardinal/commits.just`" },
-  { old = "`cardinal-issues.just`", new = "`cardinal/issues.just`" },
-  { old = "`cardinal-specs.just`", new = "`cardinal/specs.just`" },
-  { old = "`cardinal-review.just`", new = "`cardinal/review.just`" },
+  { old = "cardinal.just", new = "cardinal/cardinal.just" },
+  { old = "cardinal-commits.just", new = "cardinal/commits.just" },
+  { old = "cardinal-issues.just", new = "cardinal/issues.just" },
+  { old = "cardinal-specs.just", new = "cardinal/specs.just" },
+  { old = "cardinal-review.just", new = "cardinal/review.just" },
 ]
 rewrite = [
   { path = "justfile", old = "import 'cardinal.just'", new = "import 'cardinal/cardinal.just'" },
+  { path = "justfile", old = "import \"cardinal.just\"", new = "import \"cardinal/cardinal.just\"" },
 ]

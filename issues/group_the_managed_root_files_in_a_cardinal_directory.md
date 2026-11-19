@@ -75,6 +75,10 @@ seeded line.
    `docs/usage.md`); `just sync` of this repository; verified by the tests of FEA-19, FEA-23, FEA-30 to FEA-32 on the
    new paths and a `sync` test of FEA-40 from a format-10 project; makes true FEA-19, FEA-23, FEA-30, FEA-31, FEA-32,
    FEA-40. (~350 lines) (autonomous)
+2. [x] Fixes of the `high` review of the issue: the replay fixture imports either layout, the migration also rewrites
+   `import "cardinal.just"` and names the old files bare (an import line it misses is reported), the FEA-19 test runs
+   a recipe of `cardinal/cardinal.just`, an end-to-end `sync` test of FEA-40, `docs/usage.md` cites no old name.
+   (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -98,4 +102,24 @@ paths.
 red: FEA-19, FEA-23, FEA-30, FEA-31, FEA-32, FEA-40: `No such file or directory` on `files/cardinal/` and `migrations/11.toml`, the feature lists and the CI guard on the old paths
 Code review: no findings
 not verified: a consumer other than this repository (its `sync` applies the same migration)
+decisions needed: none
+
+## Summary of deliverable 2
+done: 5 of the 6 findings of the `high` review fixed; the collision with a project's own `cardinal/` is not (the
+directory name was decided at the plan, 1 a; `sync` writes into an existing directory like any other managed path).
+
+| check | result |
+|---|---|
+| `just check` | pass |
+| `just check-cardinal` | pass |
+| deliverable size | 111 lines, within |
+| code review (low) | pass |
+
+red: FEA-40: the end-to-end test passed at once (the migration already did it); the double-quote rewrite test failed on
+the missing rewrite before `migrations/11.toml` held it
+Code review: 1 finding
+- bare `cardinal.just` is a substring of its new path: not a leftover (`cites` skips an occurrence inside the new
+  name); proven by the FEA-40 test, which now runs in a git repository and checks both cases.
+not verified: a consumer whose `justfile` imports `cardinal.just` in another form (indented, with a comment): reported
+by the bare names, not rewritten
 decisions needed: none

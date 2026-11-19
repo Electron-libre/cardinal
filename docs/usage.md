@@ -122,8 +122,8 @@ A source declares the format of its managed content in `cardinal-format`, a whol
 | `init`, `sync`, `update` | the source is below the format 5, whose tools order the issues by `issues/queue.md` | SYN-51, ADR 0020 |
 
 The files of a project are `.claude/cardinal.toml` (table `[cardinal]`), `.claude/cardinal.lock` and the recipes of
-`cardinal/` (`cardinal.just`, which imports the `<part>.just` files next to it); the project's `justfile` imports
-`cardinal/cardinal.just` (the format 11 moved them from the root and rewrote that line).
+`cardinal/`: `cardinal/cardinal.just`, imported by the project's `justfile`, imports the `<part>.just` files next to
+it (the format 11 moved them from the root and rewrote the `import` line).
 
 A source that raises its format declares what changed in `migrations/<n>.toml`, `<n>` the new format (ADR 0017):
 

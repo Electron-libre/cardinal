@@ -1088,9 +1088,12 @@ fn the_recipes_live_under_the_cardinal_directory_and_run_at_the_root() {
     assert!(root_files.is_empty(), "{root_files:?}");
     let dir = tempfile::tempdir().unwrap();
     copy_recipes(dir.path(), None);
+    let core = dir.path().join("cardinal/cardinal.just");
+    let recipes = fs::read_to_string(&core).unwrap();
+    fs::write(&core, format!("{recipes}\nwhere:\n    pwd\n")).unwrap();
     fs::write(
         dir.path().join("justfile"),
-        "import 'cardinal/cardinal.just'\nwhere:\n    pwd\n",
+        "import 'cardinal/cardinal.just'\n",
     )
     .unwrap();
     let out = std::process::Command::new("just")
@@ -1119,16 +1122,29 @@ fn the_migration_of_the_format_11_points_the_justfile_at_the_cardinal_directory(
     let root = repo_root();
     let migration: toml::Table =
         toml::from_str(&fs::read_to_string(root.join("migrations/11.toml")).unwrap()).unwrap();
-    let rewrites = migration["rewrite"].as_array().unwrap();
-    let rewrite = rewrites
+    let rewrites: BTreeSet<(&str, &str, &str)> = migration["rewrite"]
+        .as_array()
+        .unwrap()
         .iter()
-        .find(|r| r["path"].as_str() == Some("justfile"))
-        .expect("a rewrite of the justfile");
-    assert_eq!(rewrite["old"].as_str(), Some("import 'cardinal.just'"));
-    assert_eq!(
-        rewrite["new"].as_str(),
-        Some("import 'cardinal/cardinal.just'")
-    );
+        .map(|r| {
+            (
+                r["path"].as_str().unwrap(),
+                r["old"].as_str().unwrap(),
+                r["new"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    for quote in ["'", "\""] {
+        let line = |path: &str| format!("import {quote}{path}{quote}");
+        assert!(
+            rewrites.contains(&(
+                "justfile",
+                line("cardinal.just").as_str(),
+                line("cardinal/cardinal.just").as_str()
+            )),
+            "{quote}: {rewrites:?}"
+        );
+    }
     let names: BTreeSet<(String, String)> = migration["names"]
         .as_array()
         .unwrap()
@@ -1148,7 +1164,7 @@ fn the_migration_of_the_format_11_points_the_justfile_at_the_cardinal_directory(
         ("cardinal-review.just", "cardinal/review.just"),
     ] {
         assert!(
-            names.contains(&(format!("`{old}`"), format!("`{new}`"))),
+            names.contains(&(old.to_string(), new.to_string())),
             "{old} -> {new}: {names:?}"
         );
     }

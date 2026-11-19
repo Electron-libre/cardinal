@@ -58,7 +58,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-37** (deterministic) `deliverable-size` and `file-size` must count the files under `issues/` as any other file when the project turns off the feature `issue-files`; the lock files stay out (SIZ-4, FSZ-5).
 - **FEA-38** (deterministic) `rule-breaches` must not apply rule `validation-stop` (BRE-8) to a session whose `.claude/cardinal.toml` committed at its `start` (as BRE-14 reads it) turns off the feature `issue-files`: no finding of it, and it applies to no such session.
 - **FEA-39** (deterministic) `review-target` must not exclude `issues/` from the target when the project turns off the feature `issue-files` (RVT-3); the managed files stay out.
-- **FEA-40** (deterministic) The source of Cardinal must declare, in the migration of the format 11 (SYN-52), the rewrite of the `justfile` line `import 'cardinal.just'` into `import 'cardinal/cardinal.just'`, and the names `cardinal.just`, `cardinal-commits.just`, `cardinal-issues.just`, `cardinal-specs.just` and `cardinal-review.just` replaced by their path under `cardinal/`.
+- **FEA-40** (deterministic) The source of Cardinal must declare, in the migration of the format 11 (SYN-52), the rewrite of the `justfile` line `import 'cardinal.just'` into `import 'cardinal/cardinal.just'` (and the same with double quotes), and the names `cardinal.just`, `cardinal-commits.just`, `cardinal-issues.just`, `cardinal-specs.just` and `cardinal-review.just` replaced by their path under `cardinal/`.
 
 ## Scenarios
 

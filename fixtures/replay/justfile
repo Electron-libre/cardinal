@@ -1,5 +1,7 @@
 # Development commands. `just` lists them; the agent harness uses the same entry points.
-import 'cardinal/cardinal.just'
+# Either layout, so that a revision older than the format 11 (recipes at the root) replays too.
+import? 'cardinal.just'
+import? 'cardinal/cardinal.just'
 
 default:
     @just --list

@@ -238,7 +238,7 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 `cardinal-ui` is the binary of its own crate, `crates/cardinal-ui`, which does not depend on the `cardinal` crate
 ([ADR 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec
 [`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
-of its pinned revision (NXT-19, RMP-8, REP-21), checked by their `version`, and through git. It drives zellij from outside to
+of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through git. It drives zellij from outside to
 start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs
 `git merge --ff-only` in the main worktree to merge an issue closed on its branch (STU-20), then ends the session,
 the tab and the worktree that issue left (STU-24). It is not managed content and a
@@ -247,7 +247,7 @@ consumer does not need it; the release workflow does not build it.
 ```mermaid
 flowchart LR
   ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims"]
-  ui -->|"cardinal run roadmap --json"| milestones["milestones"]
+  ui -->|"cardinal run roadmap --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
   ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]

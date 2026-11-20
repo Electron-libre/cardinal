@@ -26,3 +26,41 @@ Releases from the steering UI
 
 # Resources
 * `specs/steering-ui.md`, `crates/cardinal-ui/src/panels.rs`, `crates/cardinal-ui/src/source.rs`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+Mark in the milestones panel each milestone that `release --json` lists (matched on name and document) as
+`awaits release v<proposed>` (bare `awaits release` when `proposed` is `null`); run `release` only when a listed
+milestone is `done`. Out of scope: preparing or tagging the release from the UI, splitting the spec
+(`issues/split_the_steering_ui_spec.md`).
+
+## Plan
+1. [x] Awaiting release mark: `source.rs` reads `release --json` after `roadmap` when a milestone is `done`, `panels.rs`
+   writes the mark, a failed `release` keeps the milestones with its error line under them; verified by
+   `tests/print.rs` (fake `cardinal`); makes true STU-1, STU-3, STU-6 (amended). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 1e109b1ef199aa3fb5194ac7543244f36e5f4d53
+- Questions of the plan stop answered `ok`: `release` only with a `done` milestone (1 a), its error under the milestones (2 a), bare `awaits release` on a `null` proposal (3 a).
+- `release` runs only when `roadmap` lists a `done` milestone, so a project with nothing to release pays no read of its commits every 2 s.
+- A failed `release` does not hide the milestones (unlike the other tools of STU-6): its line goes under them.
+
+## Deliverable 1: awaiting release mark
+done: the milestones panel marks each milestone `release --json` lists `awaits release v<proposed>`, a failed `release` under the milestones.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui`: pass (6 new in `tests/print.rs`) |
+| lint | clippy `-D warnings`: clean |
+| specs | STU-1, STU-3, STU-6 amended, spec back to `accepted` |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md` |
+| code review | see below |
+
+red: STU-1, STU-3, STU-6, STU-8: `no line with awaits release` / `the error goes under the milestones` (the fake `release` never ran)
+Code review: no findings
+not verified: the mark in the live terminal screen (only `--print` is tested; the panel code is shared).
+decisions needed: none

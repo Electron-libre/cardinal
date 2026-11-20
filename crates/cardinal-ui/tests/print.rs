@@ -79,8 +79,19 @@ fn project() -> Project {
 
 impl Project {
     /// Writes the fake `cardinal`: `run next-issue --json` and `run roadmap --json` give their answer, the steps of a
-    /// measure an empty one (STU-17).
+    /// measure an empty one (STU-17); a call of `run release --json` fails the test.
     fn cardinal(&self, queue: &Answer, roadmap: &Answer) -> PathBuf {
+        self.cardinal_releasing(queue, roadmap, None)
+    }
+
+    /// The fake `cardinal` of [`Project::cardinal`], whose `run release --json` gives `release` when given and
+    /// leaves the file `release-ran` next to it.
+    fn cardinal_releasing(
+        &self,
+        queue: &Answer,
+        roadmap: &Answer,
+        release: Option<&Answer>,
+    ) -> PathBuf {
         let path = self.root.path().join("cardinal");
         let arm = |a: &Answer| {
             format!(
@@ -91,9 +102,14 @@ impl Project {
             )
         };
         let script = format!(
-            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\n  'run session-metrics' | 'run delivered-quality '*) exit 0 ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\n{}  'run session-metrics' | 'run delivered-quality '*) exit 0 ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             arm(queue),
-            arm(roadmap)
+            arm(roadmap),
+            release.map_or_else(String::new, |r| format!(
+                "  'run release --json') touch '{}'; {} ;;\n",
+                self.root.path().join("release-ran").display(),
+                arm(r)
+            ))
         );
         std::fs::write(&path, script).unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -230,6 +246,100 @@ fn a_milestone_on_hold_says_so() {
     let cardinal = p.cardinal(&ok(QUEUE), &ok(&roadmap));
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert!(line(&out, "One  ").contains("on hold"), "{out}");
+}
+
+/// A roadmap of the milestone `New`, `done` in `ROADMAP.md`, not released.
+const DONE: &str = r#"{"version":1,"milestones":[{"name":"New","state":"done","on_hold":null,"released":null,"document":"ROADMAP.md","issues":[{"path":"issues/done/a.md","stem":"a","open":false}]}]}"#;
+
+/// The document of `release --json` (REL-15) proposing `proposed` (JSON) and listing `New` of `document`.
+fn release(proposed: &str, document: &str) -> String {
+    format!(
+        r#"{{"version":1,"proposed":{proposed},"prepared":false,"last":"0.2.0","commits":2,"milestones":[{{"name":"New","document":"{document}"}}]}}"#
+    )
+}
+
+// spec: STU-1, STU-3
+#[test]
+fn a_done_milestone_that_release_lists_awaits_its_release() {
+    let p = project();
+    let doc = release(r#""0.3.0""#, "ROADMAP.md");
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(&doc)));
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    let new = line(&out, "New  ");
+    assert!(
+        new.contains("done") && new.contains("awaits release v0.3.0"),
+        "{new}"
+    );
+}
+
+// spec: STU-1
+#[test]
+fn with_no_proposed_version_the_mark_has_no_version() {
+    let p = project();
+    let doc = release("null", "ROADMAP.md");
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(&doc)));
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let new = line(&out, "New  ");
+    assert!(new.contains("awaits release"), "{new}");
+    assert!(!new.contains("awaits release v"), "{new}");
+}
+
+// spec: STU-1
+#[test]
+fn a_milestone_of_another_document_is_not_marked() {
+    let p = project();
+    let doc = release(r#""0.3.0""#, "docs/OTHER.md");
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(&doc)));
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(!line(&out, "New  ").contains("awaits release"), "{out}");
+}
+
+// spec: STU-3
+#[test]
+fn with_no_done_milestone_release_is_not_run() {
+    let p = project();
+    let doc = release(r#""0.3.0""#, "ROADMAP.md");
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(ROADMAP), Some(&ok(&doc)));
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(!p.root.path().join("release-ran").exists(), "{out}");
+    assert!(!out.contains("awaits release"), "{out}");
+}
+
+// spec: STU-6, STU-8
+#[test]
+fn a_release_that_fails_leaves_the_milestones_with_its_error_under_them() {
+    let p = project();
+    let failing = Answer {
+        out: "",
+        err: "cannot read the tags\nmore",
+        code: 3,
+    };
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&failing));
+    let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(p.root.path().join("release-ran").exists(), "{out}");
+    let row = out.lines().position(|l| l.contains("New  "));
+    let error = out
+        .lines()
+        .position(|l| l.contains("release: exit 3: cannot read the tags"));
+    assert!(
+        matches!((row, error), (Some(r), Some(e)) if r < e),
+        "the error goes under the milestones: {out}"
+    );
+    assert!(!line(&out, "New  ").contains("awaits release"), "{out}");
+    assert_eq!(code, Some(1));
+}
+
+// spec: STU-6
+#[test]
+fn a_release_of_an_unsupported_version_is_an_error_under_the_milestones() {
+    let p = project();
+    let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(r#"{"version":2}"#)));
+    let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(out.contains("New  "), "{out}");
+    assert!(out.contains("release: version 2 unsupported"), "{out}");
+    assert_eq!(code, Some(1));
 }
 
 // spec: STU-6, STU-8

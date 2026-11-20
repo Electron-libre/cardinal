@@ -17,9 +17,9 @@ zellij tab of its own, to merge into the trunk an issue closed on its branch, an
 
 ### Behaviour
 
-- **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels, above the measures of STU-16: the milestones not yet released (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
+- **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels, above the measures of STU-16: the milestones not yet released (each with its state, `on hold` when it is, `awaits release v<version>` when the milestones of `cardinal run release --json` (REL-15) hold one of its name and its document, `<version>` the `proposed` of that document, the bare `awaits release` when it is `null`, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
 - **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, one read at a time and apart from the keys, so a slow read never keeps a key from being answered, and quit on `q`, `Esc` or `Ctrl+C`, giving the terminal back as it found it.
-- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json` and, at an end, `zellij action list-panes --json --all`, and changes it only through the start of STU-9 and STU-11, the merge of STU-20 and STU-21 and the end of STU-22 and STU-24.
+- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, `cardinal run release --json` when a milestone that `roadmap` lists has the state `done`, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json` and, at an end, `zellij action list-panes --json --all`, and changes it only through the start of STU-9 and STU-11, the merge of STU-20 and STU-21 and the end of STU-22 and STU-24.
 - **STU-9** (deterministic) In a zellij session, the key `s` on the issue selected in the queue (moved with the arrow keys, `j` and `k`), when its state is `ready` and nothing takes it, must open a worktree for it with `cardinal run worktree open <stem>` and start in it, in a new zellij tab named after its stem, an interactive `claude` whose first message hands `issues/<stem>.md` to `issue-workflow`; on another issue it starts nothing and says why on the status line.
 - **STU-10** (deterministic) The queue must show, after an issue, `tab` when a tab of the current zellij session is named after its stem.
 - **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time, its date `<YYYY-MM-DD>` before it when it is not today) when that session runs and the mark of SWT-3 of the worktree names it.
@@ -33,7 +33,7 @@ zellij tab of its own, to merge into the trunk an issue closed on its branch, an
 ### Contract
 
 - **STU-5** (deterministic) The `cardinal` it runs must be the program named by the environment variable `CARDINAL_UI_CARDINAL`, else `cardinal` found on the `PATH`, run in the root of the work tree of the current directory (the current directory outside a git repository), as are the git commands.
-- **STU-6** (deterministic) A tool of STU-3 that cannot be run, exits with a code other than 0 (other than 0 and 1 for `next-issue`), prints no JSON object, or one whose `version` is not `1`, must leave its panel showing one line naming the tool and the cause (the exit code and the first line of its stderr, `not JSON`, or `version <n> unsupported`), the other panels shown as usual; the exit code 1 of `next-issue` (a problem of the issue files, NXT-2) is no such error: the queue is shown with the lines of its stderr under it.
+- **STU-6** (deterministic) A tool of STU-3 that cannot be run, exits with a code other than 0 (other than 0 and 1 for `next-issue`), prints no JSON object, or one whose `version` is not `1`, must leave its panel showing one line naming the tool and the cause (the exit code and the first line of its stderr, `not JSON`, or `version <n> unsupported`), the other panels shown as usual; the exit code 1 of `next-issue` (a problem of the issue files, NXT-2) is no such error: the queue is shown with the lines of its stderr under it. A `release` in such an error leaves the milestones of `roadmap` shown, none of them marked `awaits release`, with its line under them, the panel counting as failed for STU-8.
 - **STU-7** (deterministic) The worktrees must be those `git worktree list --porcelain` lists, in its order, each with its branch (`detached` when it has none); the session of a worktree is the `session` and `pid` of the file `cardinal-session` of its git directory (WSL-9), ended when no process of that `pid` runs, `free` when the file is missing or lacks the `session` or the `pid` (as `workspace-lock` reads it).
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and `cardinal-ui` 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
@@ -79,6 +79,19 @@ zellij tab of its own, to merge into the trunk an issue closed on its branch, an
 - (STU-6) Given a `cardinal` whose `roadmap --json` prints `{"version":2,"milestones":[]}`, when `cardinal-ui --print` runs, then the milestones panel reads `roadmap: version 2 unsupported`.
 - (STU-6) Given a `cardinal` whose `next-issue --json` prints text, when `cardinal-ui --print` runs, then the queue panel reads `next-issue: not JSON`.
 - (STU-6) Given issue files of which one has no priority, when `cardinal-ui --print` runs, then the queue is shown with the line `issue without a priority: <stem>` under it, and it exits 0.
+- (STU-1) Given `New` (`done`, document `ROADMAP.md`) listed by `roadmap --open --json`, and a `release --json` that
+  prints `"proposed":"0.3.0"` and lists `New` of `ROADMAP.md`, when `cardinal-ui --print` runs, then the row of `New`
+  reads `awaits release v0.3.0`.
+- (STU-1) Given the same milestone and a `release --json` that prints `"proposed":null` and lists it, then its row
+  reads `awaits release` with no version.
+- (STU-1) Given a `release --json` that lists `New` of another document, then the row of `New` shows no `awaits
+  release`.
+- (STU-3) Given no milestone in the state `done`, when `cardinal-ui --print` runs, then it does not run `release`.
+- (STU-6) Given a `done` milestone and a `cardinal` that exits 3 with `cannot read the tags` on stderr for `release`,
+  when `cardinal-ui --print` runs, then the milestones panel shows the milestone without `awaits release` and the
+  line `release: exit 3: cannot read the tags` under it, and it exits 1.
+- (STU-6) Given a `release --json` that prints `{"version":2}`, then the milestones panel holds the line `release:
+  version 2 unsupported` under its milestones.
 - (STU-7) Given a worktree with no `cardinal-session` file, when `cardinal-ui --print` runs, then its row reads `free`.
 - (STU-8) Given a directory outside any git repository, when `cardinal-ui --print` runs, then the worktrees panel shows an error and it exits 1.
 - (STU-4) Given 700 open issues, when `cardinal-ui --print` runs, then the first and the last issues are both printed.
@@ -180,6 +193,7 @@ zellij tab of its own, to merge into the trunk an issue closed on its branch, an
 - The other tables of `cardinal-report` (rules, skills, fixed context, verdicts), its reports by setup and the
   verdict of a trend: `skill:evaluate-harness` reads them; the panel never turns a number into a pass or a fail.
 - A faster reading of the transcripts: the measure takes the time of the readers, the cache hides it.
+- Preparing or tagging a release from the UI: later issues of the milestone "Releases from the steering UI".
 - Following the changes of the files as they happen: the interval of STU-2 bounds how stale the screen is.
 - Rebasing a diverged branch, merging anything but a fast-forward, or pushing the trunk: the rebase is the issue
   session's, the push the user's.

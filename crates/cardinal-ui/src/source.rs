@@ -1,5 +1,5 @@
-//! What `cardinal-ui` reads of a project (STU-3): the documents of `cardinal run next-issue --json` and
-//! `cardinal run roadmap --json` (NXT-19, RMP-8) and the worktrees git lists, each with the session of its lock
+//! What `cardinal-ui` reads of a project (STU-3): the documents of `cardinal run next-issue --json`,
+//! `cardinal run roadmap --json` and `cardinal run release --json` (NXT-19, RMP-8, REL-15) and the worktrees git lists, each with the session of its lock
 //! (WSL-9) and its wait mark (SWT-3), and, in a zellij session, the names of its tabs (STU-10). A source that cannot
 //! be read gives the line its panel shows instead (STU-6).
 
@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 
 use serde_json::Value;
 
-/// The version of the documents of the tools this UI reads (NXT-19, RMP-8).
+/// The version of the documents of the tools this UI reads (NXT-19, RMP-8, REL-15).
 const VERSION: u64 = 1;
 
 /// A milestone of `roadmap --json` (RMP-8).
@@ -18,6 +18,16 @@ pub struct Milestone {
     pub on_hold: bool,
     pub open: usize,
     pub listed: usize,
+    /// Whether `release --json` lists it (STU-1).
+    pub awaits_release: bool,
+    /// The version `release --json` proposes when it lists it, `None` when it proposes none.
+    pub proposed: Option<String>,
+}
+
+/// The milestones of `roadmap --json`, and the error line of a `release --json` that could not be read (STU-6).
+pub struct Milestones {
+    pub list: Vec<Milestone>,
+    pub release_error: Option<String>,
 }
 
 /// What takes an issue (NXT-19).
@@ -75,7 +85,7 @@ pub struct Worktree {
 
 /// Everything the screen shows; each panel holds its error line when it could not be read (STU-6).
 pub struct State {
-    pub milestones: Result<Vec<Milestone>, String>,
+    pub milestones: Result<Milestones, String>,
     pub queue: Result<Queue, String>,
     pub worktrees: Result<Vec<Worktree>, String>,
     /// The lines of the last measure (STU-16), whether one runs and the error of the last one (STU-17, STU-19).
@@ -191,10 +201,31 @@ fn array(v: &Value) -> &[Value] {
     v.as_array().map_or(&[], Vec::as_slice)
 }
 
-/// The milestones of `roadmap --json` (RMP-8).
-fn milestones(dir: &Path) -> Result<Vec<Milestone>, String> {
+/// The milestones of `roadmap --json` (RMP-8), each marked when `release --json` (REL-15), run only when one of
+/// them is `done`, lists it by its name and its document (STU-1, STU-3); a `release` that cannot be read leaves them
+/// unmarked with its error line (STU-6).
+fn milestones(dir: &Path) -> Result<Milestones, String> {
     let (doc, _) = document("roadmap", &["--open"], dir, false)?;
-    Ok(array(&doc["milestones"])
+    let listed = array(&doc["milestones"]);
+    let release = if listed.iter().any(|m| m["state"] == "done") {
+        Some(document("release", &[], dir, false).map(|(doc, _)| doc))
+    } else {
+        None
+    };
+    let (release, release_error) = match release {
+        Some(Ok(doc)) => (Some(doc), None),
+        Some(Err(e)) => (None, Some(e)),
+        None => (None, None),
+    };
+    let awaits = |m: &Value| {
+        release.as_ref().is_some_and(|doc| {
+            array(&doc["milestones"])
+                .iter()
+                .any(|r| r["name"] == m["name"] && r["document"] == m["document"])
+        })
+    };
+    let proposed = release.as_ref().and_then(|doc| string(&doc["proposed"]));
+    let list = listed
         .iter()
         .map(|m| {
             let issues = array(&m["issues"]);
@@ -204,9 +235,15 @@ fn milestones(dir: &Path) -> Result<Vec<Milestone>, String> {
                 on_hold: !m["on_hold"].is_null(),
                 open: issues.iter().filter(|i| i["open"] == true).count(),
                 listed: issues.len(),
+                awaits_release: awaits(m),
+                proposed: if awaits(m) { proposed.clone() } else { None },
             }
         })
-        .collect())
+        .collect();
+    Ok(Milestones {
+        list,
+        release_error,
+    })
 }
 
 fn taken(v: &Value) -> Option<Taken> {

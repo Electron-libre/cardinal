@@ -1,7 +1,7 @@
 //! The panels of the screen (STU-1, STU-16): a title and one line per milestone, issue, worktree or measure, or the
 //! error line of a source that could not be read (STU-6).
 
-use crate::source::{Milestone, Queue, State, Taken, Worktree};
+use crate::source::{Milestone, Milestones, Queue, State, Taken, Worktree};
 
 /// A panel: its title and its lines.
 pub struct Panel {
@@ -35,12 +35,35 @@ fn milestone(m: &Milestone) -> String {
     if m.on_hold {
         state.push_str(" (on hold)");
     }
+    if m.awaits_release {
+        state.push_str("  awaits release");
+        if let Some(version) = &m.proposed {
+            state.push_str(" v");
+            state.push_str(version);
+        }
+    }
     let issues = if m.listed == 0 {
         String::new()
     } else {
         format!("  {}/{} open", m.open, m.listed)
     };
     format!("{}  {state}{issues}", m.name)
+}
+
+/// The panel of the milestones (STU-1): the error line of a `release` that could not be read under them, the panel
+/// failed (STU-6).
+fn milestones(read: &Result<Milestones, String>) -> Panel {
+    let mut panel = panel("Milestones", read, |ms| {
+        let mut lines: Vec<String> = if ms.list.is_empty() {
+            vec!["No milestone.".to_string()]
+        } else {
+            ms.list.iter().map(milestone).collect()
+        };
+        lines.extend(ms.release_error.clone());
+        lines
+    });
+    panel.failed |= read.as_ref().is_ok_and(|ms| ms.release_error.is_some());
+    panel
 }
 
 fn taken(t: &Taken) -> String {
@@ -155,13 +178,7 @@ fn measures(measure: &[String], running: bool, error: Option<&str>) -> Panel {
 /// The panels of `state`, in the order of the screen.
 pub fn panels(state: &State) -> [Panel; 4] {
     [
-        panel("Milestones", &state.milestones, |ms| {
-            if ms.is_empty() {
-                vec!["No milestone.".to_string()]
-            } else {
-                ms.iter().map(milestone).collect()
-            }
-        }),
+        milestones(&state.milestones),
         panel("Queue", &state.queue, queue),
         panel("Worktrees", &state.worktrees, |ws| {
             ws.iter().map(worktree).collect()

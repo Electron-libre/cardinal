@@ -1,7 +1,8 @@
 //! The measures of the project (STU-16 to STU-19): `session-metrics` and `delivered-quality --summary` run into the
 //! cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
 //! milestone. The readers take about a minute each on a large history of transcripts, so the screen shows the last
-//! measure at once and measures again when it is over an hour old or on `m`, on a thread of its own.
+//! measure at once, measures again when it starts and the last one is over an hour old and on `m`, on a thread of its
+//! own.
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -27,18 +28,41 @@ pub fn directory(root: &Path) -> Option<PathBuf> {
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))?;
-    Some(base.join("cardinal-ui").join(project(root)))
+    let main = main_worktree(root);
+    let key = format!(
+        "{}-{:016x}",
+        project(root),
+        fnv(main.to_string_lossy().as_bytes())
+    );
+    Some(base.join("cardinal-ui").join(key))
 }
 
-/// The main worktree of the project at `root`: the directory that holds its git common directory, the repository
-/// its sessions resolve to (EVA-7); `root` outside a git repository (STU-17).
+/// The 64-bit FNV-1a hash of `bytes`: stable across builds, so a project keeps its cache directory (STU-18).
+fn fnv(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, b| {
+        (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
+    })
+}
+
+/// The repository the sessions of the project at `root` resolve to (EVA-7): the main worktree, the directory that
+/// holds its git common directory when that is a `.git`, else the top level of `root`; `root` outside a git
+/// repository (STU-17).
 fn main_worktree(root: &Path) -> PathBuf {
-    let args = ["rev-parse", "--path-format=absolute", "--git-common-dir"];
-    match run("git", Path::new("git"), &args, root) {
-        Ok((out, _, 0)) => Path::new(out.trim()).parent().map(Path::to_path_buf),
+    let git = |args: &[&str]| match run("git", Path::new("git"), args, root) {
+        Ok((out, _, 0)) if !out.trim().is_empty() => Some(PathBuf::from(out.trim())),
         _ => None,
+    };
+    let Some(common) = git(&["rev-parse", "--path-format=absolute", "--git-common-dir"]) else {
+        return root.to_path_buf();
+    };
+    // a separate git directory or a submodule is its own project, as EVA-7 reads it
+    if common.file_name().is_some_and(|n| n == ".git") {
+        common
+            .parent()
+            .map_or_else(|| root.to_path_buf(), Path::to_path_buf)
+    } else {
+        git(&["rev-parse", "--show-toplevel"]).unwrap_or_else(|| root.to_path_buf())
     }
-    .unwrap_or_else(|| root.to_path_buf())
 }
 
 /// The name of the project at `root`, as EVA-7 names it: the last component of its main worktree (STU-16).
@@ -62,7 +86,26 @@ pub fn stale(dir: &Path) -> bool {
 
 /// The temporary name of the file `name` of `dir` during a measure.
 fn temporary(dir: &Path, name: &str) -> PathBuf {
-    dir.join(format!(".{name}.new"))
+    // per process, so two measures of the project at once never take each other's files (STU-18)
+    dir.join(format!(".{name}.{}.new", std::process::id()))
+}
+
+/// Removes the temporary files of `dir` over an hour old: those of a measure whose process ended before it did.
+fn sweep(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let old = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .is_ok_and(|t| t.elapsed().is_ok_and(|age| age > STALE));
+        let temporary = Path::new(&name).extension().is_some_and(|e| e == "new");
+        if name.starts_with('.') && temporary && old {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
 }
 
 /// Takes a measure of the project at `root` into `dir` (STU-17); every file is renamed into place only once every
@@ -70,6 +113,7 @@ fn temporary(dir: &Path, name: &str) -> PathBuf {
 pub fn measure(root: &Path, dir: &Path) -> Result<(), String> {
     std::fs::create_dir_all(dir)
         .map_err(|e| format!("measures: cannot create {}: {e}", dir.display()))?;
+    sweep(dir);
     let result = steps(root, dir).and_then(|()| {
         FILES.iter().try_for_each(|name| {
             std::fs::rename(temporary(dir, name), dir.join(name))

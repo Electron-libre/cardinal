@@ -42,6 +42,7 @@ it. It reports trends, never a pass or a fail.
 - **REP-19** (deterministic) The quality table must give, after the ratios of REP-6, `bytes_per_spec` and `intent_chars_per_spec`, the ratios of `spec_bytes` and of `spec_intent_chars` (QUA-18) to `specs`, rounded half up to the unit, then `requirements_per_spec` and `happy_paths_per_spec`, the ratios of `spec_requirements` and of `spec_happy_paths` to `specs`, with two decimals, each empty when a term is empty or `specs` is 0; its sums of REP-6 include the five columns of QUA-18.
 - **REP-20** (deterministic) `cardinal-report` must accept `--by milestone`, refused with `--last` as REP-17 refuses `--by setup`. With it, the groups are the values of the `milestone` column (QUA-19) of the quality summaries, in the order of their first row over the files given, one group per milestone named after it (`(no milestone)` for the empty value), and only the quality table is printed, its sums and ratios those of REP-6 and REP-19 over the rows of that milestone, whatever their revision; no group is `too few` (its `issues` is its sample) and its `sessions` cell is empty (the sessions of its issues are its `issue_sessions`); the other files are still read and checked as REP-3 says, and `--quality` is required, refused with an error and a non-zero exit when missing.
 - **REP-21** (deterministic) With `--json`, `cardinal-report` must print instead of the Markdown one JSON document on one line, for a program: an object with the fields `version` (the integer `1`, raised when a later revision removes or renames a field or changes the type of its value) and `tables`, one object per table it would print, in the same order, with the fields `title` (its heading without `## `), `columns` (every column name, `group` and `sessions` first as REP-3 says, the verdicts' own for `Verdicts`) and `rows` (one array of strings per row, the cells as the Markdown writes them, `too few` included); its warnings stay on stderr.
+- **REP-22** (deterministic) A quality summary whose header is the one of QUA-17 without `milestone` (written before QUA-19) must be read as if it had the current header, each of its rows given an empty `milestone`.
 
 ## Scenarios
 
@@ -81,6 +82,8 @@ it. It reports trends, never a pass or a fail.
   and `Two` (2 issues), in that order, when `cardinal-report --by milestone` runs, then its quality table holds the
   groups `One` (3 issues), `(no milestone)` (1) and `Two` (2), and no efficiency table.
 - (REP-20) Given `--by milestone` with no `--quality`, or with `--last 2`, then it exits non-zero with an error.
+- (REP-22) Given a quality summary written before the `milestone` column, when `cardinal-report --by milestone` runs,
+  then its issues form the group `(no milestone)`.
 - (REP-21) Given the sessions of two groups, the second `too few`, when `cardinal-report --json` runs, then it prints
   one line whose `tables` holds `Efficiency` and `Skills` with two rows each, the second row's cells after
   `sessions` reading `too few`.

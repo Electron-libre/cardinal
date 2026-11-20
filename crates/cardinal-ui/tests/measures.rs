@@ -46,7 +46,7 @@ impl Project {
 
     /// The cache directory of the measures of `repo` under `XDG_CACHE_HOME` (STU-18).
     fn cache(&self) -> PathBuf {
-        self.path("cache/cardinal-ui/repo")
+        project_cache(&self.path("cache/cardinal-ui"))
     }
 
     /// Writes the fake `cardinal`, logging each call in `calls`; `metrics` replaces the answer of `session-metrics`, and
@@ -114,6 +114,22 @@ impl Project {
             assert!(ok);
         }
     }
+}
+
+/// The one directory of `parent` named after the project `repo` and the hash of its path (STU-18).
+fn project_cache(parent: &Path) -> PathBuf {
+    let dirs: Vec<PathBuf> = std::fs::read_dir(parent)
+        .map_or_else(|_| Vec::new(), |d| d.flatten().map(|e| e.path()).collect());
+    let [dir] = dirs.as_slice() else {
+        panic!("one cache directory in {}: {dirs:?}", parent.display());
+    };
+    let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let hash = name.strip_prefix("repo-").unwrap_or_default();
+    assert!(
+        hash.len() == 16 && hash.chars().all(|c| c.is_ascii_hexdigit()),
+        "{name}"
+    );
+    dir.clone()
 }
 
 /// The line of `out` that holds `needle`.
@@ -241,8 +257,8 @@ fn a_relative_cache_home_falls_back_to_the_home_cache() {
     let p = Project::new();
     let (code, out) = p.print_with("cache");
     assert_eq!(code, Some(0), "{out}");
-    assert!(p
-        .path("home/.cache/cardinal-ui/repo/efficiency.json")
+    assert!(project_cache(&p.path("home/.cache/cardinal-ui"))
+        .join("efficiency.json")
         .is_file());
     assert!(!p.repo.join("cache").exists());
 }
@@ -293,4 +309,102 @@ fn a_group_of_too_few_sessions_shows_no_median() {
     let r3 = line(&out, "r3  ");
     assert!(r3.contains("4 sessions") && r3.contains("too few"), "{r3}");
     assert!(!r3.contains("input"), "{r3}");
+}
+
+// spec: STU-18
+#[test]
+fn two_projects_of_one_name_keep_their_own_cache() {
+    let (a, b) = (Project::new(), Project::new());
+    let shared = a.path("shared");
+    a.print_with(shared.to_str().unwrap());
+    let out = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
+        .arg("--print")
+        .current_dir(&b.repo)
+        .env("CARDINAL_UI_CARDINAL", b.path("cardinal"))
+        .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
+        .env_remove("ZELLIJ")
+        .env("XDG_CACHE_HOME", &shared)
+        .output()
+        .unwrap();
+    assert!(out.status.success());
+    assert!(
+        b.calls().contains("run session-metrics"),
+        "b measured its own"
+    );
+    let dirs = std::fs::read_dir(shared.join("cardinal-ui"))
+        .unwrap()
+        .count();
+    assert_eq!(dirs, 2);
+}
+
+// spec: STU-18
+#[test]
+fn a_measure_removes_the_temporary_files_of_an_ended_one() {
+    let p = Project::new();
+    p.print();
+    let left = p.cache().join(".sessions.tsv.999999.new");
+    std::fs::write(&left, "partial").unwrap();
+    let ok = Command::new("touch")
+        .args(["-d", "2 hours ago"])
+        .arg(&left)
+        .status()
+        .unwrap()
+        .success();
+    assert!(ok);
+    p.age(2);
+    p.print();
+    assert!(!left.exists());
+    let names: Vec<String> = std::fs::read_dir(p.cache())
+        .unwrap()
+        .flatten()
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names.len(), 4, "{names:?}");
+}
+
+// spec: STU-17
+#[test]
+fn a_separate_git_directory_is_its_own_project() {
+    let p = Project::new();
+    let work = p.path("work");
+    std::fs::create_dir_all(&work).unwrap();
+    let store = p.path("store");
+    git(
+        &work,
+        &[
+            "init",
+            "-q",
+            "--separate-git-dir",
+            store.to_str().unwrap(),
+            ".",
+        ],
+    );
+    git(
+        &work,
+        &["commit", "-qm", "init", "--allow-empty", "--no-verify"],
+    );
+    let work = std::fs::canonicalize(work).unwrap();
+    // the fake answers the quality of `repo` only: point it at this work tree
+    let script = std::fs::read_to_string(p.path("cardinal"))
+        .unwrap()
+        .replace(p.repo.to_str().unwrap(), work.to_str().unwrap());
+    std::fs::write(p.path("cardinal"), script).unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
+        .arg("--print")
+        .current_dir(&work)
+        .env("CARDINAL_UI_CARDINAL", p.path("cardinal"))
+        .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
+        .env_remove("ZELLIJ")
+        .env("XDG_CACHE_HOME", p.path("cache"))
+        .output()
+        .unwrap();
+    let calls = p.calls();
+    assert!(
+        calls.contains(&format!(
+            "run delivered-quality {} --summary",
+            work.display()
+        )) && calls.contains("--project work "),
+        "{calls}{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }

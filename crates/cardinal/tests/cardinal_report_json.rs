@@ -230,3 +230,28 @@ fn by_milestone_needs_quality_and_refuses_last() {
     );
     assert!(!ok);
 }
+
+// spec: REP-22
+#[test]
+fn a_summary_written_before_the_milestone_column_is_read() {
+    let dir = tempfile::tempdir().unwrap();
+    let s = sessions(dir.path());
+    let old_header = QUALITY.replacen("\tmilestone", "", 1);
+    let row = quality("r1", "", 2).replacen("\t\t\t", "\t\t", 1);
+    let q = write(&dir.path().join("old.tsv"), &old_header, &[row]);
+    let args = [
+        Path::new("--sessions"),
+        &s,
+        Path::new("--quality"),
+        &q,
+        Path::new("--by"),
+        Path::new("milestone"),
+        Path::new("--json"),
+    ];
+    let (ok, out, err) = report(&args);
+    assert!(ok, "{err}");
+    let doc = json(&out);
+    let quality = table(&doc, "Quality");
+    assert_eq!(cells(quality, "group"), ["(no milestone)"]);
+    assert_eq!(cells(quality, "issues"), ["2"]);
+}

@@ -275,8 +275,8 @@ prints the screen once as text (exit 1 when a panel could not be read). A tool t
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
 the issues the trunk closed, as it does for the agent.
 
-A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` into
-`$XDG_CACHE_HOME/cardinal-ui/<project>` (`~/.cache/cardinal-ui/<project>` when unset), outside the project since the
+A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to) into
+`$XDG_CACHE_HOME/cardinal-ui/<project>-<hash of its path>` (under `~/.cache` when unset), outside the project since the
 rows name projects and issues, then `cardinal-report --project <project> --last 4 --json` and
 `cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
 transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts

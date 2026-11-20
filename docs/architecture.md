@@ -248,7 +248,7 @@ flowchart LR
   ui -->|"cardinal run roadmap --json"| milestones["milestones"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
-  ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at most hourly, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;")]
+  ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]

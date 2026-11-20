@@ -44,7 +44,7 @@ outside the project and re-measures when it is over an hour old or on `m`.
 1. [x] Milestone of a done issue: the `milestone` column of `delivered-quality` rows and summary, from the `roadmap` documents (new module `delivered_quality/milestone.rs`, the file is over the size limit); verified by `tests/delivered_quality_milestone.rs`; makes true QUA-19. (autonomous)
 2. [x] Report by milestone and as JSON: `cardinal-report --by milestone` (quality table per milestone) and `--json` (new module `cardinal_report/json.rs`, the file is over the size limit); verified by `tests/cardinal_report_json.rs`; makes true REP-20, REP-21. (autonomous)
 3. [x] Measures panel: the measure in the background into the cache directory, the key `m`, the panel, `--print` measuring when stale (new module `crates/cardinal-ui/src/measures.rs`); verified by `--print` tests with a fake `cardinal` and `XDG_CACHE_HOME`; makes true STU-3, STU-16, STU-17, STU-18, STU-19. (autonomous)
-4. [ ] Docs of the issue and settlement of its `high` review.
+4. [x] Docs of the issue and settlement of its `high` review: 7 findings fixed; makes true STU-17, STU-18, QUA-19, REP-22. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -122,4 +122,26 @@ Code review: 3 findings
   measure) renamed last and the temporary files removed on any failure.
 - not verified: the screen in a real terminal (the key `m`, the panel refreshed while measuring); a second smoke
   run of `--print` after the main-worktree fix.
+- decisions needed: none.
+
+## Deliverable 4: docs of the issue and settlement of the high review
+- done: `update-docs` over the issue found nothing stale; the 7 findings of the `high` review settled: per-process
+  temporary names and a sweep of the leftovers over an hour old (two measures at once, a measure cut by `q`); the
+  repository of the sessions read as EVA-7 reads it (a separate git directory or a submodule is its own project); the
+  cache directory keyed by the project name and a hash of its path (two projects of one name); the module doc says
+  the measure runs at start and on `m`, as STU-17; a tab of a milestone name written as a space (QUA-19); a quality
+  summary written before the `milestone` column still read (REP-22).
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green; 3 new `--print` tests, 1 new report test, 1 internal test |
+| lint | clean (two clippy remarks fixed) |
+| specs | STU-17, STU-18, QUA-19 amended, REP-22 added, all traced; specs accepted |
+| docs | `docs/usage.md`, `docs/architecture.md` (the cache directory) |
+| code review | see below |
+
+red: REP-22, STU-17, STU-18: not captured (tests written with the fixes)
+Code review: no findings
+- not verified: the screen in a real terminal; concurrent measures from two processes (per-process names, not raced in
+  a test).
 - decisions needed: none.

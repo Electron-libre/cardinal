@@ -65,6 +65,13 @@ fn read(path: &str, header: &str) -> Result<Vec<Row>, String> {
         .collect())
 }
 
+/// The rows of a quality summary, also one written before its `milestone` column, read with an empty milestone
+/// (REP-22).
+fn read_quality(path: &str) -> Result<Vec<Row>, String> {
+    read(path, QUALITY)
+        .or_else(|e| read(path, &QUALITY.replacen("\tmilestone", "", 1)).map_err(|_| e))
+}
+
 fn value<'a>(row: &'a Row, column: &str) -> &'a str {
     row.get(column).map_or_default(String::as_str)
 }
@@ -1010,7 +1017,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     let quality_files: Vec<Vec<Row>> = options
         .quality
         .iter()
-        .map(|f| read(f, QUALITY))
+        .map(|f| read_quality(f))
         .collect::<Result<_, _>>()
         .unwrap_or_else(|e| fail(e));
     let context = options

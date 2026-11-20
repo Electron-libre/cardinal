@@ -18,12 +18,17 @@ pub(super) fn milestones(repo: &Path) -> HashMap<String, String> {
         for m in roadmap::milestones(&lines) {
             for listed in close_issue::listed_issues(&path, &m.issues(&lines), &issues) {
                 if let Some(stem) = stem(&listed) {
-                    out.entry(stem).or_insert_with(|| m.name.clone());
+                    out.entry(stem).or_insert_with(|| cell(&m.name));
                 }
             }
         }
     }
     out
+}
+
+/// The name `name` as one cell of a row: a tab or another control character written as a space (QUA-19).
+fn cell(name: &str) -> String {
+    name.replace(char::is_control, " ")
 }
 
 /// The stem of `issues/<stem>.md` or `issues/done/<stem>.md`, as components.
@@ -34,4 +39,16 @@ fn stem(path: &[String]) -> Option<String> {
         _ => return None,
     };
     file.strip_suffix(".md").map(str::to_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // spec: QUA-19 (internal: a heading holds no tab in the fixtures a test writes through git cleanly)
+    #[test]
+    fn a_tab_of_a_name_is_written_as_a_space() {
+        assert_eq!(cell("Beta\tlaunch"), "Beta launch");
+        assert_eq!(cell("One"), "One");
+    }
 }

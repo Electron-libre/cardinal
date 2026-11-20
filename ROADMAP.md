@@ -7,6 +7,31 @@ issues once it is shaped; the `priority` and `depends_on` of each issue file ord
 A line `- On hold: <reason>` defers a milestone: `cardinal run next-issue` offers none of its issues until it is removed.
 The work done before this file existed is in `issues/done/`.
 
+## A steering UI to watch
+
+- Goal: make `cardinal-ui` the screen the user keeps open: the colors of the user's desktop, the issues of each
+  milestone as a tree of their `depends_on` (a table where an issue depends on several), their state at a glance
+  with the issue at work animated, a screen of charts that follows the measures of `cardinal-report` over the
+  revisions and the milestones, a desktop notification when a session starts to wait for the user, and no linked
+  worktree left behind once its issue is merged.
+- Why: the panels are lines of plain text in the terminal's default colors, the measures a wall of numbers no trend
+  stands out of, and five worktrees of issues merged on 2026-11-20 are still on disk, each to end by hand with `e`.
+- Approach: the colors come from a theme file the user's desktop theme generator writes (a neutral default when it
+  is absent), never from a palette held in the shared tool; the animation runs on the 100 ms tick of the screen, not
+  on the 2 s read; the charts read the same `cardinal-report --json` as the measures panel, on a screen of their own
+  behind one key; the notification goes out when the UI sees a worktree take the wait mark of `session-wait`
+  (SWT-3), through a command the user can replace (`notify-send` by default), so the shared hooks stay free of the
+  desktop; the merge removes the worktree directory it ends, and the worktrees already merged and free are
+  ended in one go.
+- State: in issues
+- Issues:
+  - [read_the_colors_of_the_ui_from_a_theme_file](issues/read_the_colors_of_the_ui_from_a_theme_file.md)
+  - [show_the_issues_as_a_tree_of_their_dependencies](issues/show_the_issues_as_a_tree_of_their_dependencies.md)
+  - [animate_the_issue_at_work](issues/animate_the_issue_at_work.md)
+  - [chart_the_measures_on_a_screen_of_their_own](issues/chart_the_measures_on_a_screen_of_their_own.md)
+  - [end_every_merged_worktree_in_one_go](issues/end_every_merged_worktree_in_one_go.md)
+  - [notify_the_desktop_when_a_session_waits](issues/notify_the_desktop_when_a_session_waits.md)
+
 ## User control
 
 - Goal: let the user confirm each irreversible action and answer each question of the agent in a prompt of Claude

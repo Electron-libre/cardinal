@@ -43,7 +43,7 @@ outside the project and re-measures when it is over an hour old or on `m`.
 ## Plan
 1. [x] Milestone of a done issue: the `milestone` column of `delivered-quality` rows and summary, from the `roadmap` documents (new module `delivered_quality/milestone.rs`, the file is over the size limit); verified by `tests/delivered_quality_milestone.rs`; makes true QUA-19. (autonomous)
 2. [x] Report by milestone and as JSON: `cardinal-report --by milestone` (quality table per milestone) and `--json` (new module `cardinal_report/json.rs`, the file is over the size limit); verified by `tests/cardinal_report_json.rs`; makes true REP-20, REP-21. (autonomous)
-3. [ ] Measures panel: the measure in the background into the cache directory, the key `m`, the panel, `--print` measuring when stale (new module `crates/cardinal-ui/src/measures.rs`); verified by `--print` tests with a fake `cardinal` and `XDG_CACHE_HOME`; makes true STU-3, STU-16, STU-17, STU-18, STU-19.
+3. [x] Measures panel: the measure in the background into the cache directory, the key `m`, the panel, `--print` measuring when stale (new module `crates/cardinal-ui/src/measures.rs`); verified by `--print` tests with a fake `cardinal` and `XDG_CACHE_HOME`; makes true STU-3, STU-16, STU-17, STU-18, STU-19. (autonomous)
 4. [ ] Docs of the issue and settlement of its `high` review.
 
 ## Decisions
@@ -91,4 +91,35 @@ Code review: no findings
   milestone groups and the split of `main` into `tables_of`; moving the verdicts out is a move of its own, left to a
   later split.
 - not verified: none.
+- decisions needed: none.
+
+## Deliverable 3: measures panel
+- done: a fourth panel `Measures` of `cardinal-ui`: `measured <HH:MM>`, the last four groups of revisions of the
+  project (sessions, input with its cached share, output, peak with its sessions, validations, or `too few`) and the
+  quality per milestone (issues, fixes after per issue, findings per review with the reviews, input per issue with
+  the issues), from `cardinal-report --json`; a measure runs `session-metrics` and `delivered-quality <main
+  worktree> --summary` into `$XDG_CACHE_HOME/cardinal-ui/<project>`, renamed into place once every step succeeded,
+  at start when over an hour old and on `m`, on a thread of its own; `--print` measures first when stale; a failed
+  step shows its error above the last measure. Specs STU, REP and QUA accepted.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green, 7 tests in `crates/cardinal-ui/tests/measures.rs`, `print.rs` given an isolated cache and empty measure answers, the key `m` in the internal key test |
+| lint | clean (one `map_or_default` fixed) |
+| specs | STU-3, STU-16 to STU-19, STU-H4 traced; STU, REP, QUA accepted |
+| docs | `docs/usage.md`, `docs/architecture.md` (diagram and modules), `README.md` |
+| code review | see below |
+
+red: STU-H4, STU-16, STU-17, STU-18, STU-19: no `Measures` panel in the `--print` output (`no line with r1..r2`)
+- smoke: `--print` on this repository with the built `cardinal` measured in 113 s and showed the four groups and 11
+  milestones; it found `token_issues` 0 from a linked worktree, fixed by reading `delivered-quality` of the main
+  worktree (STU-17 amended, test added). The second smoke run after the fix was not run (interrupted).
+Code review: 3 findings
+- nit, a JSON of another version with exit 1 showed the generic failure: fixed, only a missing document falls back
+  to the exit code and stderr.
+- nit, `measuring…  last No measure yet.` before the first measure: fixed, `measuring…` alone (internal test added).
+- nit, a failed rename left a mixed measure and temporary files: fixed, `efficiency.json` (whose time dates the
+  measure) renamed last and the temporary files removed on any failure.
+- not verified: the screen in a real terminal (the key `m`, the panel refreshed while measuring); a second smoke
+  run of `--print` after the main-worktree fix.
 - decisions needed: none.

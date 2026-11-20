@@ -78,7 +78,8 @@ fn project() -> Project {
 }
 
 impl Project {
-    /// Writes the fake `cardinal`: `run next-issue --json` and `run roadmap --json` give their answer.
+    /// Writes the fake `cardinal`: `run next-issue --json` and `run roadmap --json` give their answer, the steps of a
+    /// measure an empty one (STU-17).
     fn cardinal(&self, queue: &Answer, roadmap: &Answer) -> PathBuf {
         let path = self.root.path().join("cardinal");
         let arm = |a: &Answer| {
@@ -90,7 +91,7 @@ impl Project {
             )
         };
         let script = format!(
-            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\n  'run session-metrics' | 'run delivered-quality '*) exit 0 ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             arm(queue),
             arm(roadmap)
         );
@@ -149,7 +150,9 @@ fn ui_in(
         .env("TZ", "UTC")
         .env_remove("ZELLIJ")
         // outside zellij, a call of `zellij` fails the test
-        .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij");
+        .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
+        // the measures go next to the fake `cardinal`, never to the cache of the user (STU-18)
+        .env("XDG_CACHE_HOME", cardinal.parent().unwrap().join("cache"));
     if let Some(zellij) = zellij {
         cmd.env("ZELLIJ", "0").env("CARDINAL_UI_ZELLIJ", zellij);
     }
@@ -325,9 +328,9 @@ fn a_queue_that_fails_with_exit_1_and_no_document_shows_its_stderr() {
     assert_eq!(code, Some(1));
 }
 
-// spec: STU-1, STU-4
+// spec: STU-1, STU-4, STU-16
 #[test]
-fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
+fn the_screen_holds_four_titled_panels_at_least_100_columns_wide() {
     let p = project();
     let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
@@ -335,7 +338,11 @@ fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
         .lines()
         .filter_map(|l| l.strip_prefix("┌ ")?.split(' ').next())
         .collect();
-    assert_eq!(titles, ["Milestones", "Queue", "Worktrees"], "{out}");
+    assert_eq!(
+        titles,
+        ["Milestones", "Queue", "Worktrees", "Measures"],
+        "{out}"
+    );
     let width = out.lines().next().unwrap().chars().count();
     assert!(width >= 100, "{width}: {out}");
     assert!(out.lines().all(|l| l.chars().count() <= width), "{out}");

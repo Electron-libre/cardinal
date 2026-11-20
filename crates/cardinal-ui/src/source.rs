@@ -74,6 +74,10 @@ pub struct State {
     pub milestones: Result<Vec<Milestone>, String>,
     pub queue: Result<Queue, String>,
     pub worktrees: Result<Vec<Worktree>, String>,
+    /// The lines of the last measure (STU-16), whether one runs and the error of the last one (STU-17, STU-19).
+    pub measure: Vec<String>,
+    pub measuring: bool,
+    pub measure_error: Option<String>,
 }
 
 /// The `cardinal` to run: `CARDINAL_UI_CARDINAL`, else `cardinal` on the `PATH` (STU-5).
@@ -154,19 +158,22 @@ fn document(
     if code != 0 && !(problems && code == 1) {
         return Err(failure(tool, code, &err));
     }
+    match parse(tool, &out) {
+        Ok(doc) => Ok((doc, err)),
+        // a failure with exit code 1 prints no document: its stderr says why
+        Err(e) if code != 0 && e.ends_with(": not JSON") => Err(failure(tool, code, &err)),
+        Err(e) => Err(e),
+    }
+}
+
+/// The JSON object `tool` printed as `out`, of version 1; else the error line of STU-6.
+pub fn parse(tool: &str, out: &str) -> Result<Value, String> {
     let doc = serde_json::from_str::<Value>(out.trim())
         .ok()
-        .filter(Value::is_object);
-    let Some(doc) = doc else {
-        // a failure with exit code 1 prints no document: its stderr says why
-        return Err(if code == 0 {
-            format!("{tool}: not JSON")
-        } else {
-            failure(tool, code, &err)
-        });
-    };
+        .filter(Value::is_object)
+        .ok_or_else(|| format!("{tool}: not JSON"))?;
     match doc["version"].as_u64() {
-        Some(VERSION) => Ok((doc, err)),
+        Some(VERSION) => Ok(doc),
         Some(v) => Err(format!("{tool}: version {v} unsupported")),
         None => Err(format!("{tool}: version {} unsupported", doc["version"])),
     }
@@ -323,11 +330,15 @@ pub fn root(dir: &Path) -> PathBuf {
     }
 }
 
-/// Reads the project of `dir`, the root of its work tree (STU-5).
-pub fn read(dir: &Path) -> State {
+/// Reads the project of `dir`, the root of its work tree (STU-5), and its last measure, `measuring` and the error
+/// `measure_error` of the last one.
+pub fn read(dir: &Path, measuring: bool, measure_error: Option<String>) -> State {
     State {
         milestones: milestones(dir),
         queue: queue(dir, &tabs(dir)),
         worktrees: worktrees(dir),
+        measure: crate::measures::lines(crate::measures::directory(dir).as_deref()),
+        measuring,
+        measure_error,
     }
 }

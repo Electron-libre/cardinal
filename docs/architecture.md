@@ -238,7 +238,7 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 `cardinal-ui` is the binary of its own crate, `crates/cardinal-ui`, which does not depend on the `cardinal` crate
 ([ADR 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec
 [`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
-of its pinned revision (NXT-19, RMP-8), checked by their `version`, and through git. It drives zellij from outside to
+of its pinned revision (NXT-19, RMP-8, REP-21), checked by their `version`, and through git. It drives zellij from outside to
 start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)). It is not managed content and a
 consumer does not need it; the release workflow does not build it.
 
@@ -248,6 +248,8 @@ flowchart LR
   ui -->|"cardinal run roadmap --json"| milestones["milestones"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
+  ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at most hourly, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;")]
+  cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
   milestones --> screen
@@ -257,7 +259,8 @@ flowchart LR
 | Module | Does |
 |---|---|
 | `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
-| `panels.rs` | one line per milestone, issue and worktree, or the error of a source |
+| `panels.rs` | one line per milestone, issue and worktree, or the error of a source; the measures panel |
+| `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads and the starts on threads of their own, renders `--print` into a buffer |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 

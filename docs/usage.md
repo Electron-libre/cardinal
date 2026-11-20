@@ -259,13 +259,14 @@ projects directory given, they read the `projects/` of the configuration directo
 ## Steering UI
 
 `cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md)) shows the
-project of the current directory (the root of its work tree) in one terminal screen, in three panels:
+project of the current directory (the root of its work tree) in one terminal screen, in four panels:
 
 | Panel | Read from | Each line |
 |---|---|---|
 | Milestones | `cardinal run roadmap --open --json`, the released ones left out | name, state (`(on hold)` after it), open issues over the listed ones |
 | Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem; the problems of the issue files under it, after `!` |
 | Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
+| Measures | the last measure of the project (below) | `measured <HH:MM>`; per group of the last four groups of revisions of the project, its sessions and the medians of input tokens (with the share read from cache), output tokens, peak context (with the sessions it rests on) and validations, or `too few`; per milestone, its done issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue (with the issues of known tokens) |
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` or `Ctrl+C`. `cardinal-ui --print`
@@ -274,6 +275,16 @@ prints the screen once as text (exit 1 when a panel could not be read). A tool t
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
 the issues the trunk closed, as it does for the agent.
 
+A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` into
+`$XDG_CACHE_HOME/cardinal-ui/<project>` (`~/.cache/cardinal-ui/<project>` when unset), outside the project since the
+rows name projects and issues, then `cardinal-report --project <project> --last 4 --json` and
+`cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
+transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts
+and the last one is over an hour old, and on `m`: `measuring…` heads the panel meanwhile, and a failed step shows its
+error above the last measure, whose files stay as they were. `--print` measures first when the measure is over an
+hour old. The numbers are trends with their sample, never a pass or a fail: `skill:evaluate-harness` reads the rest
+of the report.
+
 Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
 press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
 `<main worktree>-<stem>` on a branch `<stem>`) and a zellij tab named after it, running
@@ -281,7 +292,7 @@ press `s` (the selection follows its issue across the reads, and `q` during a st
 validation stops stay in Claude Code. The status line says what started or why nothing did (outside zellij, an issue
 taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same from a shell of the zellij session
 (exit 1 when nothing started). It lists the tabs with `zellij action list-tabs --json`, through the `zellij` on the
-`PATH` or the program `CARDINAL_UI_ZELLIJ` names. Apart from a start, it writes nothing.
+`PATH` or the program `CARDINAL_UI_ZELLIJ` names. Apart from a start and its cache of measures, it writes nothing.
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

@@ -1,5 +1,6 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
-//! (STU-4); in the terminal, an issue of the queue is selected and `s` starts its session (STU-9).
+//! (STU-4); in the terminal, an issue of the queue is selected and `s` starts its session (STU-9), and `m` takes the
+//! measures again (STU-17).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -23,11 +24,11 @@ const TICK: Duration = Duration::from_millis(100);
 const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
-const HELP: &str = "q quit  r refresh  ↑↓ select  s start";
+const HELP: &str = "q quit  r refresh  ↑↓ select  s start  m measure";
 
 /// What a read gives: the panels, and the stems of the issues of the queue in the order of its lines.
 pub struct View {
-    pub panels: [Panel; 3],
+    pub panels: [Panel; 4],
     pub stems: Vec<String>,
 }
 
@@ -38,20 +39,21 @@ fn height(p: &Panel) -> u16 {
         .saturating_add(2)
 }
 
-/// Renders the panels into `buf` over `area`: the milestones and the worktrees at their height, the queue in the
-/// rest with its line `selected` highlighted, the help line and `status` last.
+/// Renders the panels into `buf` over `area`: the milestones, the worktrees and the measures at their height, the
+/// queue in the rest with its line `selected` highlighted, the help line and `status` last.
 fn render(
     area: Rect,
     buf: &mut Buffer,
-    panels: &[Panel; 3],
+    panels: &[Panel; 4],
     selected: Option<usize>,
     status: &str,
 ) {
-    let [milestones, queue, worktrees] = panels;
+    let [milestones, queue, worktrees, measures] = panels;
     let areas = Layout::vertical([
         Constraint::Max(height(milestones)),
         Constraint::Min(height(queue).min(3)),
         Constraint::Max(height(worktrees)),
+        Constraint::Max(height(measures)),
         Constraint::Length(1),
     ])
     .split(area);
@@ -84,13 +86,13 @@ fn render(
     } else {
         format!("{HELP}  {status}")
     };
-    Line::raw(help).render(areas[3], buf);
+    Line::raw(help).render(areas[4], buf);
 }
 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
 /// row without its trailing spaces (STU-4). Rendered straight into a buffer: a terminal of the test backend
 /// mixes up the cells past the 65,535th.
-pub fn text(panels: &[Panel; 3]) -> String {
+pub fn text(panels: &[Panel; 4]) -> String {
     let longest = panels
         .iter()
         .flat_map(|p| p.lines.iter())
@@ -127,6 +129,7 @@ pub enum Action {
     Up,
     Down,
     Start,
+    Measure,
     Nothing,
 }
 
@@ -142,6 +145,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Up | KeyCode::Char('k') => Action::Up,
         KeyCode::Down | KeyCode::Char('j') => Action::Down,
         KeyCode::Char('s') => Action::Start,
+        KeyCode::Char('m') => Action::Measure,
         _ => Action::Nothing,
     }
 }
@@ -212,9 +216,13 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `start` starts the session of the selected issue on `s`, on a
-/// thread too, its result on the status line (STU-9). The terminal is given back as it was, also on a panic
-/// (Ratatui's hook).
-pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std::io::Result<()> {
+/// thread too, its result on the status line (STU-9); `measure` starts a measure on `m`, which runs apart (STU-17).
+/// The terminal is given back as it was, also on a panic (Ratatui's hook).
+pub fn run(
+    read: impl Fn() -> View + Send + 'static,
+    start: fn(&str) -> Result<String, String>,
+    measure: impl Fn(),
+) -> std::io::Result<()> {
     let (ask, asked) = mpsc::channel::<()>();
     let (send, read_panels) = mpsc::channel();
     std::thread::spawn(move || {
@@ -281,6 +289,10 @@ pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std
                     match key {
                         Action::Quit => {}
                         Action::Refresh => schedule.asked = true,
+                        Action::Measure => {
+                            measure();
+                            schedule.asked = true;
+                        }
                         Action::Start => {
                             let stem = view.as_ref().and_then(|v| v.stems.get(selected));
                             if let (Some(stem), false) = (stem.cloned(), starting) {
@@ -308,7 +320,7 @@ mod tests {
         KeyEvent::new(code, KeyModifiers::NONE)
     }
 
-    // spec: STU-2 (internal: the keys of a screen that needs a real terminal)
+    // spec: STU-2, STU-17 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn q_esc_and_ctrl_c_quit_and_r_refreshes() {
         assert_eq!(action(&press(KeyCode::Char('q'))), Action::Quit);
@@ -317,6 +329,7 @@ mod tests {
         assert_eq!(action(&ctrl_c), Action::Quit);
         assert_eq!(action(&press(KeyCode::Char('c'))), Action::Nothing);
         assert_eq!(action(&press(KeyCode::Char('r'))), Action::Refresh);
+        assert_eq!(action(&press(KeyCode::Char('m'))), Action::Measure);
         assert_eq!(action(&press(KeyCode::Char('x'))), Action::Nothing);
         let mut release = press(KeyCode::Char('q'));
         release.kind = KeyEventKind::Release;
@@ -354,16 +367,17 @@ mod tests {
             panel("Milestones", &["m"]),
             panel("Queue", &["> b", "  a"]),
             panel("Worktrees", &["w"]),
+            panel("Measures", &["x"]),
         ];
-        let area = Rect::new(0, 0, 60, 12);
+        let area = Rect::new(0, 0, 80, 15);
         let mut buf = Buffer::empty(area);
         render(area, &mut buf, &panels, Some(1), "started a in /w");
-        let row = |y: u16| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>();
-        let a = (0..12).find(|y| row(*y).contains("  a")).unwrap();
-        let b = (0..12).find(|y| row(*y).contains("> b")).unwrap();
+        let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let a = (0..15).find(|y| row(*y).contains("  a")).unwrap();
+        let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
-        assert!((0..12).any(|y| row(y).contains("s start  started a in /w")));
+        assert!((0..15).any(|y| row(y).contains("m measure  started a in /w")));
     }
 
     // spec: STU-14 (internal: the selection of a screen that needs a real terminal)
@@ -395,6 +409,7 @@ mod tests {
             panel("Milestones", vec!["m".to_string()]),
             panel("Queue", queue),
             panel("Worktrees", vec!["w".to_string()]),
+            panel("Measures", vec!["x".to_string()]),
         ];
         let area = Rect::new(0, 0, 40, 22);
         let mut buf = Buffer::empty(area);

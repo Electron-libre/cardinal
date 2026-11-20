@@ -5,11 +5,11 @@ close-issue issue:
     cardinal run close-issue {{issue}}
 
 # Which issue to work on next (the first ready issue no branch or worktree has taken), the blocked ones and the problems of
-# the priorities and dependencies.
+# the priorities and dependencies; `--json` prints them for a program.
 next-issue *args:
     cardinal run next-issue {{args}}
 
-# The milestones of the roadmap documents: state, release, open issues (`--open` hides the released ones). Writes nothing.
+# The milestones of the roadmap documents: state, release, open issues (`--open` hides the released ones, `--json` prints them for a program). Writes nothing.
 roadmap *args:
     cardinal run roadmap {{args}}
 

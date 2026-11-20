@@ -21,7 +21,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - **NXT-7** (deterministic) An open issue is ready when every stem of the `depends_on` of its front matter (`depends_on: [<stem>, <stem>...]` on one line, `[]` or no key for none) is an issue of `issues/done/`, else blocked: `next-issue` must never offer a blocked issue.
 - **NXT-11** (deterministic) `next-issue` must list each blocked issue after the ready ones, in the order of NXT-1, on a line `Blocked: <stem> (by <stem>, <stem>...)` naming the stems that are not done.
 - **NXT-15** (deterministic) An open issue whose front matter has an `on_hold` key is on hold, its reason the value of the key (unquoted as NXT-1 reads `why`, then trimmed): `next-issue` must never offer it but list it after the blocked ones, in the order of NXT-1, on a line `On hold: <stem> (<reason>)` instead of a `Blocked:` line, followed by `, blocked by <stem>, <stem>...` (the stems of NXT-11) when it is also blocked; an issue whose `depends_on` names it stays blocked (NXT-7).
-- **NXT-18** (deterministic) With `--json`, `next-issue` must print instead of its text one JSON document (NXT-19) that a program reads: every open issue in the order of NXT-1, NXT-11 and NXT-15, with its state, what takes it, and the issue it offers, so a tool shows the queue without parsing a text written for the agent; it reports the problems on stderr and exits as without `--json`.
+- **NXT-18** (deterministic) With `--json`, `next-issue` must print instead of its text one JSON document (NXT-19) that a program reads: every open issue in the order of NXT-1, NXT-11 and NXT-15, with its state, what takes it, and the issue it offers, so a tool shows the queue without parsing a text written for the agent; it reports the problems on stderr and exits as without `--json`. An option other than `--json`, or a second directory, must be refused on stderr with exit code 2.
 
 ### Contract
 
@@ -43,10 +43,10 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 | Field | Value |
 |---|---|
 | `stem` | the stem of the issue file |
-| `title` | its title, as the text output prints it |
+| `title` | the first `# ` heading after its front matter, `null` when it has none |
 | `priority` | `"high"`, `"medium"` or `"low"`; `null` for an issue NXT-2 reports |
 | `why` | the `why` of its front matter, `""` when it has none |
-| `milestone` | the name of its milestone (NXT-10), `null` when it has none |
+| `milestone` | the name of its milestone (NXT-10), `null` when it has none or NXT-13 reports it unknown |
 | `depends_on` | the stems of its `depends_on`, `[]` for none, `null` when NXT-8 reports it invalid |
 | `state` | `"ready"`, `"blocked"` or `"on hold"` |
 | `blocked_by` | the stems NXT-11 names, `[]` when none |
@@ -89,6 +89,8 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - (NXT-19) Given `a.md` of priority `high` with `depends_on: [b]`, `b.md` of priority `low` and `c.md` with `on_hold: later`, when `next-issue --json` runs, then `next` is `"b"` and `issues` lists `b` (`ready`), `a` (`blocked`, `blocked_by` `["b"]`) and `c` (`on hold`, `hold` `"later"`), in that order.
 - (NXT-19) Given `a.md` with `depends_on: b`, when `next-issue --json` runs, then `a` has `depends_on` `null` and `state` `"blocked"`.
 - (NXT-19) Given only `a.md`, claimed by a session whose process has ended, when `next-issue --json` runs, then `next` is `null` and `a` has `taken` `{"by": "claim", "state": "working", ..., "session_alive": false}`.
+- (NXT-19) Given `a.md` with a front matter and no heading, and `b.md` in milestone `Gone` that no roadmap heading names, when `next-issue --json` runs, then `a` has `title` `null` and `b` has `milestone` `null`.
+- (NXT-18) Given `a.md`, when `next-issue --jsn` or `next-issue issues other` runs, then it prints nothing on stdout and exits 2.
 - (NXT-19) Given no open issue, when `next-issue --json` runs, then it prints `{"version":1,"next":null,"issues":[]}`.
 
 ## Non-goals

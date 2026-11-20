@@ -17,7 +17,8 @@ use std::process::Command;
 
 use super::issue_claim::{self, Claim};
 
-fn title(dir: &Path, stem: &str) -> String {
+/// The first `# ` heading after the front matter of the issue `stem`, `None` when it has none or cannot be read.
+fn heading(dir: &Path, stem: &str) -> Option<String> {
     std::fs::read_to_string(dir.join(format!("{stem}.md")))
         .ok()
         .and_then(|t| {
@@ -26,7 +27,10 @@ fn title(dir: &Path, stem: &str) -> String {
                 .lines()
                 .find_map(|l| l.strip_prefix("# ").map(str::to_string))
         })
-        .unwrap_or_else(|| "(no file)".to_string())
+}
+
+fn title(dir: &Path, stem: &str) -> String {
+    heading(dir, stem).unwrap_or_else(|| "(no file)".to_string())
 }
 
 fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
@@ -383,7 +387,7 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
         if rank.is_none() {
             report(format!("issue without a priority: {stem}"));
         }
-        let milestone = milestone(&text);
+        let mut milestone = milestone(&text);
         let (place, milestone_hold) = match (milestone.clone(), &roadmap) {
             (Some(name), Some(names)) => {
                 if let Some(i) = names.iter().position(|(n, _)| *n == name) {
@@ -395,6 +399,7 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
                     (i, hold.map(|h| format!("milestone {name}: {}", reason(h))))
                 } else {
                     report(format!("unknown milestone of {stem}: {name}"));
+                    milestone = None;
                     (usize::MAX, None)
                 }
             }
@@ -568,7 +573,7 @@ impl Queue {
                 };
                 serde_json::json!({
                     "stem": e.stem,
-                    "title": title(dir, &e.stem),
+                    "title": heading(dir, &e.stem),
                     "priority": e.priority.and_then(|p| PRIORITIES.get(usize::from(p))),
                     "why": e.why,
                     "milestone": e.milestone,
@@ -616,12 +621,18 @@ pub(super) fn next(dir: &Path) -> String {
 }
 
 pub(super) fn main(args: &[String]) -> u8 {
-    let json = args.iter().any(|a| a == "--json");
-    let dir = args
-        .iter()
-        .find(|a| *a != "--json")
-        .map_or("issues", String::as_str);
-    let dir = Path::new(dir);
+    let (mut json, mut dir) = (false, None);
+    for arg in args {
+        match arg.as_str() {
+            "--json" => json = true,
+            a if a.starts_with("--") || dir.is_some() => {
+                eprintln!("unknown argument {a}: next-issue [--json] [<issues dir>]");
+                std::process::exit(2);
+            }
+            a => dir = Some(a),
+        }
+    }
+    let dir = Path::new(dir.unwrap_or("issues"));
     if !dir.is_dir() {
         eprintln!("no {} directory", dir.display());
         std::process::exit(2);

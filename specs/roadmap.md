@@ -34,7 +34,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 | `on_hold` | the reason of its `On hold:` field (RMP-6), `""` when empty, `null` when it has none |
 | `released` | the value of its `Released:` line, `null` when it has none |
 | `document` | the document, as the configuration writes it |
-| `issues` | one object `{"stem", "open": true or false}` per issue file RMP-2 counts, sorted by path, each once |
+| `issues` | one object `{"path", "stem", "open": true or false}` per issue file RMP-2 counts, sorted by path, each once: its path from the project root (`/` between the components), its file name without `.md`, and whether RMP-2 counts it open |
 
 ## Scenarios
 
@@ -61,7 +61,8 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-4) Given `Old` released and `Next` not, when `roadmap --open` runs, then only `Next` is printed.
 - (RMP-5) Given a configuration naming a missing `ROADMAP-done.md` and a `ROADMAP.md` with no milestone, when `roadmap` runs, then it prints `No milestone.` and exits 0.
 
-- (RMP-8) Given milestone `Next` with `- State: paused`, `- On hold: later` and listing `issues/b.md` and `issues/done/a.md` (both existing), when `roadmap --json` runs, then its row reads `"state":"paused"`, `"on_hold":"later"`, `"released":null` and `issues` `[{"stem":"b","open":true},{"stem":"a","open":false}]`.
+- (RMP-8) Given milestone `Next` with `- State: paused`, `- On hold: later` and listing `issues/b.md` and `issues/done/a.md` (both existing), when `roadmap --json` runs, then its row reads `"state":"paused"`, `"on_hold":"later"`, `"released":null` and `issues` `[{"path":"issues/b.md","stem":"b","open":true},{"path":"issues/done/a.md","stem":"a","open":false}]`.
+- (RMP-8) Given milestone `Next` listing `issues/a.md` and `issues/sub/a.md`, when `roadmap --json` runs, then `issues` holds both, told apart by their `path`.
 - (RMP-7) Given `Old` released and `Next` not, when `roadmap --json --open` runs, then `milestones` holds `Next` only.
 - (RMP-7) Given no milestone, when `roadmap --json` runs, then it prints `{"version":1,"milestones":[]}` and exits 0.
 

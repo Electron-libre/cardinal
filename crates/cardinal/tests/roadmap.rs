@@ -282,7 +282,10 @@ fn a_program_reads_each_milestone_and_its_issues() {
         doc["milestones"][0],
         serde_json::json!({
             "name": "Next", "state": "in issues", "on_hold": null, "released": null, "document": "ROADMAP.md",
-            "issues": [{"stem": "b", "open": true}, {"stem": "a", "open": false}]
+            "issues": [
+                {"path": "issues/b.md", "stem": "b", "open": true},
+                {"path": "issues/done/a.md", "stem": "a", "open": false}
+            ]
         })
     );
     assert_eq!(doc["milestones"][1]["state"], serde_json::Value::Null);
@@ -329,4 +332,21 @@ fn json_with_no_milestone_prints_an_empty_list() {
     let (code, out) = roadmap(root.path(), &["--json"]);
     assert_eq!(out, "{\"version\":1,\"milestones\":[]}\n");
     assert_eq!(code, Some(0));
+}
+
+// spec: RMP-8
+#[test]
+fn json_tells_two_issues_of_the_same_stem_apart_by_their_path() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## Next\n\n- Issues:\n  - [a](issues/a.md)\n  - [a](issues/sub/a.md)\n",
+    )]);
+    let doc = document(root.path(), &["--json"]);
+    let paths: Vec<&str> = doc["milestones"][0]["issues"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|i| i["path"].as_str().unwrap())
+        .collect();
+    assert_eq!(paths, ["issues/a.md", "issues/sub/a.md"]);
 }

@@ -208,3 +208,41 @@ fn a_branch_named_after_an_issue_takes_it_or_is_stale() {
     assert_eq!(issue(&doc, "b")["stale"], true);
     assert_eq!(doc["next"], "b");
 }
+
+// spec: NXT-19
+#[test]
+fn a_missing_heading_and_an_unknown_milestone_are_null() {
+    let r = repo(&[
+        ("a", "---\npriority: low\n---\nno heading\n"),
+        (
+            "b",
+            "---\npriority: low\n---\n# Title b\n\n# Milestone\nGone\n",
+        ),
+    ]);
+    std::fs::create_dir_all(r.path().join(".claude")).unwrap();
+    std::fs::write(
+        r.path().join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    std::fs::write(r.path().join("ROADMAP.md"), "## One\n").unwrap();
+    let (doc, code, err) = document(r.path());
+    assert!(err.contains("unknown milestone of b: Gone"), "{err}");
+    assert_eq!(code, Some(1));
+    assert_eq!(issue(&doc, "a")["title"], Value::Null);
+    assert_eq!(issue(&doc, "b")["milestone"], Value::Null);
+}
+
+// spec: NXT-18
+#[test]
+fn an_unknown_option_or_a_second_directory_is_refused() {
+    let r = repo(&[("a", "---\npriority: low\n---\n# Title a\n")]);
+    for args in [
+        &["next-issue", "--jsn"][..],
+        &["next-issue", "issues", "other"],
+    ] {
+        let (code, out, err) = tool(r.path(), "", args);
+        assert_eq!((code, out.as_str()), (Some(2), ""), "{args:?}: {err}");
+        assert!(err.contains("unknown argument"), "{err}");
+    }
+}

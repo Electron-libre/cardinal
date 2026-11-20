@@ -136,7 +136,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "next-issue",
-        about: "the first ready issue no claim, branch or worktree has taken, and the blocked ones",
+        about: "[--json] [<issues dir>]: the first ready issue no claim, branch or worktree has taken, and the blocked ones",
         main: next_issue::main,
     },
     Tool {
@@ -166,7 +166,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "roadmap",
-        about: "[--open]: the milestones of the roadmap documents, their state, release and open issues",
+        about: "[--open] [--json]: the milestones of the roadmap documents, their state, release and open issues",
         main: roadmap_state::main,
     },
     Tool {

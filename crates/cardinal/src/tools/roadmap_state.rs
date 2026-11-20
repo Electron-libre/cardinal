@@ -14,8 +14,8 @@ struct Row {
     hold: Option<String>,
     released: Option<String>,
     document: String,
-    /// The issue files it lists, sorted by path, each once: the stem and whether it is open.
-    issues: Vec<(String, bool)>,
+    /// The issue files it lists, sorted by path, each once: the path from the root, its stem and whether it is open.
+    issues: Vec<(String, String, bool)>,
 }
 
 impl Row {
@@ -31,7 +31,7 @@ impl Row {
         } else {
             state
         };
-        let open = self.issues.iter().filter(|(_, open)| *open).count();
+        let open = self.issues.iter().filter(|(_, _, open)| *open).count();
         let count = if self.issues.is_empty() {
             String::new()
         } else {
@@ -51,7 +51,7 @@ impl Row {
         let issues: Vec<serde_json::Value> = self
             .issues
             .iter()
-            .map(|(stem, open)| serde_json::json!({"stem": stem, "open": open}))
+            .map(|(path, stem, open)| serde_json::json!({"path": path, "stem": stem, "open": open}))
             .collect();
         serde_json::json!({
             "name": self.name,
@@ -89,7 +89,11 @@ fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) ->
                 .map(|p| {
                     let file = p.last().map_or("", String::as_str);
                     let stem = file.strip_suffix(".md").unwrap_or(file).to_string();
-                    (stem, !close_issue::is_closed(&issues, p, exists))
+                    (
+                        p.join("/"),
+                        stem,
+                        !close_issue::is_closed(&issues, p, exists),
+                    )
                 })
                 .collect();
             Some(Row {

@@ -60,6 +60,11 @@ as text for scripts and the tests, which run a fake `cardinal` named by `CARDINA
    (panels) and a unit test of the key handling; makes true STU-1, STU-2, STU-4, STU-H1. ~600 lines. (autonomous)
 3. [x] Install and docs: `just install-ui`, `README.md`, `docs/architecture.md` (a section on the UI),
    `docs/usage.md`, `commit_scopes` gains `ui`; verified by `just check`. ~100 lines. (autonomous)
+4. [x] Fix of the `high` review (important 1): with `cardinal-ui` in the repository, a `cargo install --git` that
+   names no package fails; the launcher (BIN-5), the install it prints (BIN-20) and the CI installer (BIN-22) name
+   `cardinal`, else `harness`; verified by `run_cli.rs`, `launcher_cli.rs`, `install_script.rs`. (autonomous)
+5. [ ] Fixes of the `high` review of the UI (important 2 and 3, nits 4 to 10); verified by `tests/print.rs` and unit
+   tests.
 
 ## Deliverable 1
 done: crate `cardinal-ui` (workspace member), its reading of the tools, the worktrees and their locks, and a
@@ -128,6 +133,28 @@ red: none: docs and a recipe, no test.
 Code review: no findings
 
 not verified: `cargo install --git` of the README, which needs the push
+
+decisions needed: none
+
+## Deliverable 4
+done: the launcher, the install `check` prints and the CI installer name the package `cardinal` (else `harness`)
+in their `cargo install --git`; BIN-5, BIN-20 amended, BIN-22 added.
+
+| check | result |
+|---|---|
+| tests | `run_cli`, `launcher_cli`, `format_cli`, `install_script` green; `just check` green |
+| lint | clean |
+| specs | `check-specs` clean, BIN-22 traced |
+| docs | `docs/architecture.md`; the managed installer synced |
+| real cargo | `cargo install --locked --git file://<repo> --rev HEAD --root <tmp> cardinal` builds `cardinal` |
+| code review | `low`, clean |
+
+red: BIN-5: `cardinal run: no cardinal binary ... cargo is missing or failed to build it`, the fake cargo building
+only a named package; BIN-20: the printed install lacked `cardinal`. BIN-22: not observed, the script changed first.
+
+Code review: no findings
+
+not verified: the CI of a consumer on a pushed commit
 
 decisions needed: none
 

@@ -66,8 +66,9 @@ pub fn install(source: &str, rev: Option<&str>) -> String {
         return format!("{LAUNCHER} upgrade {source} {commit}");
     }
     let rev = rev.map_or_default(|rev| format!(" --rev {rev}"));
+    // the package is named: the source holds others (`cardinal-ui`)
     format!(
-        "cargo install --force --git {}{rev} --locked",
+        "cargo install --force --git {}{rev} --locked cardinal",
         cargo_url(source)
     )
 }

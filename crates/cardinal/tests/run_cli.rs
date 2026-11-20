@@ -65,7 +65,9 @@ if [ -n "$out" ]; then cat "$file" > "$out"; else cat "$file"; fi
             "cargo",
             &format!(
                 r#"echo "$*" >> '{home}/log'
-root=""; while [ $# -gt 0 ]; do case "$1" in --root) root="$2"; shift 2;; *) shift;; esac; done
+root=""; krate=""; while [ $# -gt 0 ]; do case "$1" in install) shift;; --root) root="$2"; shift 2;; --git|--rev) shift 2;; -*) shift;; *) krate="$1"; shift;; esac; done
+# a repository of several packages: only the package named after the binary builds
+[ "$krate" = "{bin}" ] || {{ echo "no package $krate" >&2; exit 101; }}
 mkdir -p "$root/bin"; printf '#!/bin/sh\n{TOOL}' > "$root/bin/{bin}"
 "#,
                 home = self.home.path().display()
@@ -317,16 +319,24 @@ fn with_no_asset_the_binary_is_built_with_cargo_install() {
             assert!(run.stdout.starts_with("args: tool t 0\n"), "{run:?}");
             assert!(executable(&l.cached(COMMIT)), "{source}");
             let log = l.log();
-            let install = log.lines().find(|l| l.starts_with("install")).unwrap();
-            assert!(
-                install.contains(&format!("--locked --git {url} --rev {COMMIT} --root")),
-                "{install}"
-            );
-            // no crate named: the single package of the commit, `harness` before the rename
-            assert!(
-                Path::new(install).extension().is_some_and(|e| e == "root"),
-                "{install}"
-            );
+            let installs: Vec<&str> = log.lines().filter(|l| l.starts_with("install")).collect();
+            for install in &installs {
+                assert!(
+                    install.contains(&format!("--locked --git {url} --rev {COMMIT} --root")),
+                    "{install}"
+                );
+            }
+            // the package `cardinal` is named, the repository holding others; `harness` before the rename
+            let names: Vec<&str> = installs
+                .iter()
+                .filter_map(|l| l.rsplit(' ').next())
+                .collect();
+            let expected: &[&str] = if bin == "cardinal" {
+                &["cardinal"]
+            } else {
+                &["cardinal", "harness"]
+            };
+            assert_eq!(names, expected, "{log}");
             // a source not on GitHub is built without a download
             assert_eq!(!log.starts_with("install"), downloads, "{source}: {log}");
             assert!(l.leftovers().is_empty(), "{:?}", l.leftovers());

@@ -73,9 +73,12 @@ fn check_names_the_cargo_install_of_a_git_source_at_a_revision_that_is_no_commit
     for (rev, install) in [
         (
             "rev = \"main\"\n",
-            format!("cargo install --force --git {source} --rev main --locked"),
+            format!("cargo install --force --git {source} --rev main --locked cardinal"),
         ),
-        ("", format!("cargo install --force --git {source} --locked")),
+        (
+            "",
+            format!("cargo install --force --git {source} --locked cardinal"),
+        ),
     ] {
         put(
             root.path(),

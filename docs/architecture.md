@@ -126,7 +126,8 @@ flowchart TD
   (a branch, from `init --rev`) resolves in the clone `sync` left (`<cache>/cardinal/<hash of the URL>`), without a
   fetch. `sync` and `update` fetch the binary ahead.
 - **Before the rename**: the binary was named `harness`. A commit from before it is fetched from its
-  `harness-<commit>` release, or built by a `cargo install` that names no crate (BIN-3, BIN-5).
+  `harness-<commit>` release, or built by a `cargo install` of the package `harness` (BIN-3, BIN-5); a later one names the package `cardinal`,
+  since the repository holds others (`cardinal-ui`).
 - **An older launcher**: the launcher is not of the pinned revision, so a hook running a subcommand it does not know
   cannot run. `check` names the install to run (BIN-15) and `update` refuses such a revision (BIN-16,
   `crates/cardinal/src/launcher.rs`): `cardinal upgrade <source> <commit>` at a pinned commit, which fetches the

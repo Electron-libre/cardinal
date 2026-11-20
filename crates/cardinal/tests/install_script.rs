@@ -74,7 +74,7 @@ fn a_path_git_source_is_installed_from_its_file_url_from_the_project_root() {
         let log = fs::read_to_string(bin.path().join("log")).unwrap_or_default();
         assert_eq!(
             log,
-            format!("install --quiet --force --git {url} --rev main --locked\n"),
+            format!("install --quiet --force --git {url} --rev main --locked cardinal\n"),
             "{source}: {run:?}"
         );
     }
@@ -143,7 +143,7 @@ fn a_runner_without_tomllib_fails_naming_python() {
     assert!(!bin.path().join("log").exists(), "{run:?}");
 }
 
-// spec: SYN-56
+// spec: SYN-56, BIN-22
 #[test]
 fn every_toml_form_of_the_source_and_rev_is_installed() {
     for config in [
@@ -165,7 +165,7 @@ fn every_toml_form_of_the_source_and_rev_is_installed() {
         assert_eq!(run.code, Some(0), "{config}: {run:?}");
         let log = fs::read_to_string(bin.path().join("log")).unwrap_or_default();
         assert_eq!(
-            log, "install --quiet --force --git ssh://host/x.git --rev main --locked\n",
+            log, "install --quiet --force --git ssh://host/x.git --rev main --locked cardinal\n",
             "{config}: {run:?}"
         );
     }
@@ -187,7 +187,7 @@ fn an_escaped_quote_and_a_rev_that_is_no_string_are_read_as_cardinal_reads_them(
     assert_eq!(run.code, Some(0), "{run:?}");
     let log = fs::read_to_string(bin.path().join("log")).unwrap_or_default();
     assert_eq!(
-        log, "install --quiet --force --git ssh://host/x\"y.git --locked\n",
+        log, "install --quiet --force --git ssh://host/x\"y.git --locked cardinal\n",
         "{run:?}"
     );
 }
@@ -206,4 +206,57 @@ fn a_source_of_a_newline_is_read_as_a_source() {
         run.stdout.contains("source '\n' is a local path"),
         "{run:?}"
     );
+}
+
+// spec: BIN-22
+#[test]
+fn a_commit_with_no_release_builds_the_package_cardinal_else_harness() {
+    for (package, logged) in [
+        ("cardinal", vec!["cardinal"]),
+        ("harness", vec!["cardinal", "harness"]),
+    ] {
+        let root = tempdir().unwrap();
+        let bin = tempdir().unwrap();
+        let commit = "a".repeat(40);
+        put(
+            root.path(),
+            CONFIG,
+            &format!("[cardinal]\nsource = \"host:x.git\"\nrev = \"{commit}\"\n"),
+        );
+        // a first run writes the fake `curl` that finds nothing; its `cargo` logs only, so it is replaced by one that
+        // builds the package named `package`, as cargo does
+        let run = install(root.path(), bin.path());
+        script(
+            &bin.path().join("cargo"),
+            &format!(
+                "echo \"$*\" >> '{log}'\nroot=\"\"; krate=\"\"; while [ $# -gt 0 ]; do case \"$1\" in install) shift;; --root) root=\"$2\"; shift 2;; --git|--rev) shift 2;; -*) shift;; *) krate=\"$1\"; shift;; esac; done\n[ \"$krate\" = {package} ] || exit 101\nmkdir -p \"$root/bin\" && echo built > \"$root/bin/{package}\"\n",
+                log = bin.path().join("log").display()
+            ),
+        );
+        let _ = fs::remove_file(bin.path().join("log"));
+        let installer =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../files/.github/install_cardinal.sh");
+        let path = std::env::join_paths(std::iter::once(bin.path().to_path_buf()).chain(
+            std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()),
+        ))
+        .unwrap();
+        let mut cmd = Command::new("sh");
+        cmd.arg(&installer)
+            .current_dir(root.path())
+            .env("PATH", path)
+            .env("HOME", bin.path())
+            .env("GITHUB_PATH", bin.path().join("github_path"))
+            .env_remove("XDG_CACHE_HOME");
+        let run2 = output(cmd, "");
+        assert_eq!(run2.code, Some(0), "{package}: {run:?} {run2:?}");
+        let log = fs::read_to_string(bin.path().join("log")).unwrap();
+        let names: Vec<&str> = log.lines().filter_map(|l| l.rsplit(' ').next()).collect();
+        assert_eq!(names, logged, "{log}");
+        let built = bin.path().join(format!(".cache/cardinal/bin/{commit}"));
+        let has_binary = fs::read_dir(&built)
+            .unwrap()
+            .flatten()
+            .any(|t| t.path().join("cardinal").is_file());
+        assert!(has_binary, "{package}: {log}");
+    }
 }

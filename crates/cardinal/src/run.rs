@@ -206,22 +206,23 @@ pub(crate) fn cargo_url(source: &str) -> String {
     }
 }
 
-/// Build the binary of `commit` with `cargo install` and put it at `to`; false when cargo is missing or fails. No crate
-/// is named: the source holds one package, `cardinal`, or `harness` before the rename.
+/// Build the binary of `commit` with `cargo install` and put it at `to`; false when cargo is missing or fails. The
+/// package is named, since the source holds others (`cardinal-ui`): `cardinal`, else `harness` before the rename.
 fn build(programs: &Programs, source: &str, commit: &str, to: &Path) -> bool {
     let root = to.with_extension("root");
     let url = cargo_url(source);
-    let built = Command::new(&programs.cargo)
-        .args([
-            "install", "--quiet", "--locked", "--git", &url, "--rev", commit, "--root",
-        ])
-        .arg(&root)
-        .stdout(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
-        && NAMES
-            .iter()
-            .any(|name| fs::rename(root.join("bin").join(name), to).is_ok());
+    let built = NAMES.iter().any(|name| {
+        Command::new(&programs.cargo)
+            .args([
+                "install", "--quiet", "--locked", "--git", &url, "--rev", commit, "--root",
+            ])
+            .arg(&root)
+            .arg(name)
+            .stdout(Stdio::null())
+            .status()
+            .is_ok_and(|s| s.success())
+            && fs::rename(root.join("bin").join(name), to).is_ok()
+    });
     let _ = fs::remove_dir_all(&root);
     built
 }

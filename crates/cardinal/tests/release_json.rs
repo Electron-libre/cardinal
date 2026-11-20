@@ -94,15 +94,11 @@ fn prints_the_version_the_milestones_and_the_commits_of_the_next_release() {
     tag(dir.path(), "v0.2.0");
     commit(dir.path(), "fix: a", "a.txt");
     commit(dir.path(), "feat: b", "b.txt");
+    let out = release(dir.path(), &["--json"]);
+    assert!(out.status.success(), "{out:?}");
     assert_eq!(
-        document(dir.path()),
-        json!({
-            "version": 1,
-            "proposed": "0.3.0",
-            "last": "0.2.0",
-            "commits": 2,
-            "milestones": [{"name": "New", "document": "ROADMAP.md"}],
-        })
+        String::from_utf8_lossy(&out.stdout),
+        "{\"version\":1,\"proposed\":\"0.3.0\",\"prepared\":false,\"last\":\"0.2.0\",\"commits\":2,\"milestones\":[{\"name\":\"New\",\"document\":\"ROADMAP.md\"}]}\n"
     );
     assert_eq!(status(dir.path()), "");
 }
@@ -114,7 +110,7 @@ fn proposes_nothing_when_no_commit_follows_the_last_tag() {
     tag(dir.path(), "v0.3.0");
     assert_eq!(
         document(dir.path()),
-        json!({"version": 1, "proposed": null, "last": "0.3.0", "commits": 0, "milestones": []})
+        json!({"version": 1, "proposed": null, "prepared": false, "last": "0.3.0", "commits": 0, "milestones": []})
     );
 }
 
@@ -149,6 +145,72 @@ fn refuses_a_version_a_tag_or_a_refused_archive() {
         dir.path(),
         "[project]\nroadmap = [\"ROADMAP.md\"]\nroadmap_archive = \"ROADMAP-done.md\"\n",
     );
+    let out = release(dir.path(), &["--json"]);
+    assert!(!out.status.success(), "{out:?}");
+    assert!(out.stdout.is_empty(), "{out:?}");
+}
+
+// spec: REL-15
+#[test]
+fn a_prepared_release_is_marked_so() {
+    let dir = repo();
+    std::fs::write(
+        dir.path().join("CHANGELOG.md"),
+        "# Changelog\n\n## [0.1.0] - 2026-01-01\n\nFirst numbered release.\n",
+    )
+    .unwrap();
+    git(dir.path(), &["add", "-A"]);
+    git(
+        dir.path(),
+        &["commit", "-qm", "chore: release 0.1.0", "--no-verify"],
+    );
+    let doc = document(dir.path());
+    assert_eq!(doc["proposed"], "0.1.0");
+    assert_eq!(doc["prepared"], true);
+}
+
+// spec: REL-15
+#[test]
+fn proposes_nothing_when_the_proposed_tag_exists_elsewhere() {
+    let dir = repo();
+    tag(dir.path(), "v0.2.0");
+    git(dir.path(), &["checkout", "-q", "-b", "other"]);
+    commit(dir.path(), "feat: b", "b.txt");
+    tag(dir.path(), "v0.3.0");
+    git(dir.path(), &["checkout", "-q", "main"]);
+    commit(dir.path(), "feat: c", "c.txt");
+    let doc = document(dir.path());
+    assert_eq!(doc["proposed"], Value::Null);
+    assert_eq!(doc["last"], "0.2.0");
+}
+
+// spec: REL-14
+#[test]
+fn prints_the_warnings_of_the_convention_on_stderr_only() {
+    let dir = repo();
+    config(
+        dir.path(),
+        "[cardinal]\ndisabled = [\"conventional-commits\"]\n",
+    );
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "Add b", "b.txt");
+    let out = release(dir.path(), &["--json"]);
+    assert!(out.status.success(), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("conventional-commits is off"),
+        "{out:?}"
+    );
+    let doc: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(doc["proposed"], "0.2.1");
+}
+
+// spec: REL-16
+#[test]
+fn refuses_a_configuration_it_cannot_parse() {
+    let dir = repo();
+    config(dir.path(), "[project\n");
+    tag(dir.path(), "v0.2.0");
+    commit(dir.path(), "feat: b", "b.txt");
     let out = release(dir.path(), &["--json"]);
     assert!(!out.status.success(), "{out:?}");
     assert!(out.stdout.is_empty(), "{out:?}");

@@ -135,6 +135,16 @@ fn run(args: &[String]) -> Result<(), String> {
 /// The proposal of REL-15: the version to number, `null` when no commit follows the last tag, the last tag, the commits
 /// since it, and the milestones REL-9 would list. Writes nothing.
 fn document(root: &Path) -> Result<serde_json::Value, String> {
+    // The other readers of the configuration take a broken one for a missing one: a program would believe it (REL-16).
+    let config = crate::config_of(root);
+    match std::fs::read_to_string(&config) {
+        Ok(text) => {
+            text.parse::<toml::Table>()
+                .map_err(|e| format!("invalid {}: {e}", config.display()))?;
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("cannot read {}: {e}", config.display())),
+    }
     let (proposal, last, commits) = proposed(root)?;
     let count = match last {
         Some(_) => commits.len(),
@@ -149,9 +159,23 @@ fn document(root: &Path) -> Result<serde_json::Value, String> {
         .into_iter()
         .map(|(document, name)| serde_json::json!({"name": name, "document": document}))
         .collect();
+    let tagged = git(
+        root,
+        &[
+            "rev-parse",
+            "-q",
+            "--verify",
+            &format!("refs/tags/v{proposal}"),
+        ],
+    )
+    .is_ok();
+    let proposed = (last.is_none() || count > 0) && !tagged;
+    let prepared = std::fs::read_to_string(root.join(CHANGELOG))
+        .is_ok_and(|text| section(&text, proposal).is_some());
     Ok(serde_json::json!({
         "version": 1,
-        "proposed": (last.is_none() || count > 0).then(|| proposal.to_string()),
+        "proposed": proposed.then(|| proposal.to_string()),
+        "prepared": proposed && prepared,
         "last": last.map(|l| l.to_string()),
         "commits": count,
         "milestones": milestones,

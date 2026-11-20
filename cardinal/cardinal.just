@@ -17,7 +17,7 @@ open-worktree name *flags:
 close-worktree target *flags:
     cardinal run worktree close {{target}} {{flags}}
 
-# Prepare a release: no argument prints the proposed version; `<version>` writes its CHANGELOG.md section to reread and commit; `<version> --tag` then creates the local tag (never pushed).
+# Prepare a release: no argument prints the proposed version; `<version>` writes its CHANGELOG.md section to reread and commit; `<version> --tag` then creates the local tag (never pushed). `--json` prints the proposal for a program.
 release *args:
     cardinal run release {{args}}
 

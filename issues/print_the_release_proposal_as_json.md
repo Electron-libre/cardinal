@@ -45,6 +45,9 @@ with a version or `--tag` (REL-16). Out of scope: previewing the changelog secti
    returns names with their document), no write; tests in a new `crates/cardinal/tests/release_json.rs`
    (`tests/release.rs` is 750 lines, the limit 800); verified by those tests on temporary repositories; makes true
    REL-14, REL-15, REL-16. (autonomous)
+2. [x] Fixes of the `high` review: `prepared` field, `proposed` `null` when its tag exists, a broken
+   `.claude/cardinal.toml` refused, the exact line and the stderr warnings tested, the `just release` comment;
+   verified by `release_json.rs`; makes true REL-14, REL-15, REL-16. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -71,6 +74,37 @@ red: REL-14, REL-15: `release: `--json` is not a version X.Y.Z` (exit 1); REL-16
 flag being then refused as a malformed version.
 
 Code review: no findings
+
+not verified: the steering UI reading the document (not in this issue).
+
+decisions needed: none
+
+## Summary of deliverable 2
+
+done: the findings of the `high` review fixed: `prepared` (the section is written, `--tag` left), `proposed` `null`
+when its tag exists on another branch, a `.claude/cardinal.toml` that is not TOML refused (REL-16), the document
+compared as the exact line, the REL-11 warnings tested on stderr, `--json` in the comment of `just release`.
+
+| check | result |
+|---|---|
+| tests | `release_json` 8/8, `just check` green |
+| lint | clippy -D warnings clean |
+| specs | `check-specs`: no warning on `specs/release.md` |
+| docs | `docs/usage.md`, `files/cardinal/cardinal.just` (synced) |
+| code review | low on this deliverable, see below |
+
+red: REL-14, REL-15, REL-16: no `prepared` field, the convention-off warning not checked, a broken configuration
+accepted with exit 0.
+
+Code review (high, whole issue): 7 findings
+- `proposed` offered once prepared or tagged elsewhere: fixed (`prepared`, `null` when tagged).
+- milestones listed with `proposed` `null`: kept and stated in REL-15: they do wait for a release.
+- a broken configuration read as missing: fixed for `--json` (REL-16); the text forms keep the old reading.
+- `commits` in a shallow clone: not fixed: `release` reads the history and the tags, a shallow clone misleads every
+  form of it.
+- the exact line and the stderr warnings untested: fixed.
+- `just release` comment: fixed in `files/`, synced.
+- no blank line after the REL-15 table: fixed.
 
 not verified: the steering UI reading the document (not in this issue).
 

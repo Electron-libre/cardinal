@@ -39,11 +39,13 @@ reads in the changelog what changed since its last pin.
 | Field | Value |
 |---|---|
 | `version` | the integer `1` |
-| `proposed` | the version REL-1 proposes, `"X.Y.Z"`; `null` when a version tag exists and no commit follows it (REL-3) |
+| `proposed` | the version REL-1 proposes, `"X.Y.Z"`; `null` when a version tag exists and no commit follows it, or when its tag `v<version>` exists (REL-3) |
+| `prepared` | `true` when the `CHANGELOG.md` of the work tree already has a section for `proposed` (REL-4: `release <version> --tag` is the step left), else `false`, `false` when `proposed` is `null` |
 | `last` | the last version tag reachable from `HEAD` (REL-1) without its `v`, `"X.Y.Z"`; `null` when there is none |
 | `commits` | the number of non-merge commits since that tag, of all the non-merge commits of `HEAD` when there is none |
-| `milestones` | one object per milestone REL-9 would list, in the order of the `roadmap` documents then of their headings, with the fields `name` (its name) and `document` (the path of its document as `roadmap` of `.claude/cardinal.toml` names it); `[]` when none |
-- **REL-16** (deterministic) `release --json` must be refused, with a non-zero exit, nothing on stdout and no file changed, when it is given a version or `--tag`, or when `.claude/cardinal.toml` names a `roadmap_archive` that REL-13 refuses.
+| `milestones` | one object per milestone REL-9 would list, in the order of the `roadmap` documents then of their headings, with the fields `name` (its name) and `document` (the path of its document as `roadmap` of `.claude/cardinal.toml` names it); `[]` when none; listed even when `proposed` is `null` |
+
+- **REL-16** (deterministic) `release --json` must be refused, with a non-zero exit, nothing on stdout and no file changed, when it is given a version or `--tag`, or when `.claude/cardinal.toml` cannot be read or parsed, or names a `roadmap_archive` that REL-13 refuses.
 
 ## Scenarios
 
@@ -77,9 +79,12 @@ reads in the changelog what changed since its last pin.
 - (REL-13) Given `roadmap_archive = "docs/done.md"` and a released milestone of `ROADMAP.md` linking `issues/done/a.md`, when `release` moves it, then its link in the archive is `../issues/done/a.md`.
 - (REL-10) Given `release 0.3.0` ran and its changes are not committed yet, when `release 0.3.0 --tag` runs, then it is refused and no tag exists.
 
-- (REL-15) Given the tag `v0.2.0`, since it the commits `fix: a` and `feat: b`, and `ROADMAP.md` holding `Old` (`done`, released `v0.2.0`) and `New` (`done`), when `release --json` runs, then it prints `{"version":1,"proposed":"0.3.0","last":"0.2.0","commits":2,"milestones":[{"name":"New","document":"ROADMAP.md"}]}` and `ROADMAP.md` is unchanged.
+- (REL-15) Given the tag `v0.2.0`, since it the commits `fix: a` and `feat: b`, and `ROADMAP.md` holding `Old` (`done`, released `v0.2.0`) and `New` (`done`), when `release --json` runs, then it prints `{"version":1,"proposed":"0.3.0","prepared":false,"last":"0.2.0","commits":2,"milestones":[{"name":"New","document":"ROADMAP.md"}]}` and `ROADMAP.md` is unchanged.
 - (REL-15) Given the tag `v0.3.0` on `HEAD`, when `release --json` runs, then it prints `"proposed":null`, `"last":"0.3.0"` and `"commits":0`, and exits 0.
 - (REL-15) Given no version tag and two commits, when `release --json` runs, then it prints `"proposed":"0.1.0"`, `"last":null` and `"commits":2`.
+- (REL-15) Given no version tag and `release 0.1.0` run and committed, when `release --json` runs, then it prints `"proposed":"0.1.0"` and `"prepared":true`.
+- (REL-14) Given `disabled = ["conventional-commits"]` and a commit since the last tag, when `release --json` runs, then its stderr holds the warnings of REL-11 and its stdout one JSON line.
+- (REL-16) Given a `.claude/cardinal.toml` that is not TOML, when `release --json` runs, then it exits non-zero and prints nothing on stdout.
 - (REL-16) Given a `feat` since the last tag, when `release --json 0.3.0` or `release --json --tag` runs, then it exits non-zero, prints nothing on stdout and `CHANGELOG.md` is not created.
 
 ## Non-goals

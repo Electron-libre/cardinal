@@ -30,3 +30,11 @@ The work done before this file existed is in `issues/done/`.
   - [show_the_project_state_in_a_steering_ui](issues/done/show_the_project_state_in_a_steering_ui.md)
   - [start_an_issue_session_in_a_zellij_pane](issues/done/start_an_issue_session_in_a_zellij_pane.md)
   - [show_the_measures_in_the_steering_ui](issues/done/show_the_measures_in_the_steering_ui.md)
+
+## Releases from the steering UI
+
+- Goal: give the user a path to release from the steering UI: see which `done` milestone awaits its release, then
+  start it on the trunk (the version `cardinal run release` proposes, the section to reread and review, the tag).
+- Why: an issue session runs in a linked worktree and never enters the main one, so it cannot prepare the release
+  its close proposes; today the user merges, opens a session in the main worktree and asks for the release by hand.
+- State: idea

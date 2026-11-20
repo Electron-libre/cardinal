@@ -54,7 +54,7 @@ fn cell<'a>(row: &'a [(String, String)], column: &str) -> &'a str {
 
 /// The row of `column` of the report row `row`, its sample the cell `sample` followed by `unit`.
 fn row(r: &[(String, String)], column: &str, sample: &str, unit: &str) -> Row {
-    let name = cell(r, "group").replace("self:", "");
+    let name = cell(r, "group").to_string();
     let sample = format!("{} {unit}", cell(r, sample));
     match cell(r, column) {
         "too few" => Row {
@@ -79,15 +79,36 @@ fn row(r: &[(String, String)], column: &str, sample: &str, unit: &str) -> Row {
     }
 }
 
+/// The name of the group of revisions `name` without the `self:` of each revision (SUC-2).
+fn revision(name: &str) -> String {
+    name.split("..")
+        .map(|r| r.strip_prefix("self:").unwrap_or(r))
+        .collect::<Vec<_>>()
+        .join("..")
+}
+
 /// The four charts of the last measure of `dir` (SUC-2), by revision then by milestone; empty with no directory.
 pub fn charts(dir: Option<&Path>) -> [Chart; 4] {
     let read = |name: &str, title| dir.map_or_else(Vec::new, |d| table(&d.join(name), title));
-    // a measure taken before the charts has no `revisions.json` (SUC-4)
-    let revisions = if dir.is_some_and(|d| !d.join("revisions.json").is_file()) {
-        read("efficiency.json", "Efficiency")
-    } else {
-        read("revisions.json", "Efficiency")
+    let modified = |name: &str| {
+        dir.and_then(|d| {
+            std::fs::metadata(d.join(name))
+                .and_then(|m| m.modified())
+                .ok()
+        })
     };
+    // renamed into place after `milestones.json`: an older one was left by a measure that did not write it, and a
+    // measure taken before the charts has none (SUC-4)
+    let current = modified("revisions.json")
+        .is_some_and(|r| modified("milestones.json").is_none_or(|m| r >= m));
+    let revisions = read(
+        if current {
+            "revisions.json"
+        } else {
+            "efficiency.json"
+        },
+        "Efficiency",
+    );
     let milestones: Vec<_> = read("milestones.json", "Quality")
         .into_iter()
         .filter(|r| cell(r, "group") != NO_MILESTONE)
@@ -96,21 +117,16 @@ pub fn charts(dir: Option<&Path>) -> [Chart; 4] {
         title,
         rows: rows.iter().map(|r| row(r, column, sample, unit)).collect(),
     };
+    let by_revision = |title, column| {
+        let mut chart = series(title, &revisions, column, "sessions", "sessions");
+        for r in &mut chart.rows {
+            r.name = revision(&r.name);
+        }
+        chart
+    };
     [
-        series(
-            "input per session",
-            &revisions,
-            "input_tokens",
-            "sessions",
-            "sessions",
-        ),
-        series(
-            "cached share",
-            &revisions,
-            "cache_read_share",
-            "sessions",
-            "sessions",
-        ),
+        by_revision("input per session", "input_tokens"),
+        by_revision("cached share", "cache_read_share"),
         series(
             "fixes after per issue",
             &milestones,
@@ -164,8 +180,10 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
         .collect();
     let name_width = names.iter().map(|n| n.chars().count()).max().unwrap_or(0);
     let drawn = chart.rows.iter().filter(|r| r.value.is_some());
-    let shown_width = drawn
-        .clone()
+    let shown_width = chart
+        .rows
+        .iter()
+        .filter(|r| r.shown != "too few")
         .map(|r| r.shown.chars().count())
         .max()
         .unwrap_or(0);
@@ -260,11 +278,20 @@ pub(crate) fn render_charts(
     let columns = Layout::horizontal([Constraint::Percentage(50); 2]).split(middle);
     for (column, pair) in columns.iter().zip(charts.chunks(2)) {
         let width = usize::from(column.width.saturating_sub(2));
-        let panels: Vec<Panel> = pair.iter().map(|c| panel(c, width)).collect();
-        let areas =
-            Layout::vertical(panels.iter().map(|p| Constraint::Max(height(p)))).split(*column);
-        for (p, area) in panels.iter().zip(areas.iter()) {
-            draw_panel(p, *area, buf, None, theme);
+        let areas = Layout::vertical(
+            pair.iter()
+                .map(|c| Constraint::Max(height(&panel(c, width)))),
+        )
+        .split(*column);
+        for (chart, area) in pair.iter().zip(areas.iter()) {
+            // a chart taller than its room keeps its newest rows, the last ones (SUC-2)
+            let room = usize::from(area.height.saturating_sub(2));
+            let first = chart.rows.len().saturating_sub(room);
+            let shown = Chart {
+                title: chart.title,
+                rows: chart.rows[first..].to_vec(),
+            };
+            draw_panel(&panel(&shown, width), *area, buf, None, theme);
         }
     }
     help_line(CHARTS_HELP, status, bottom, buf, theme);
@@ -280,6 +307,9 @@ mod tests {
 
     fn measure(files: &[(&str, &str)]) -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
+        // `milestones.json` first, as a measure renames it before `revisions.json` (SUC-4)
+        let mut files = files.to_vec();
+        files.sort_by_key(|(name, _)| *name != "milestones.json");
         for (name, text) in files {
             std::fs::write(dir.path().join(name), text).unwrap();
         }
@@ -320,6 +350,91 @@ mod tests {
         assert!(
             charts(Some(dir.path()))[0].rows.is_empty(),
             "revisions.json wins"
+        );
+    }
+
+    // spec: SUC-2 (internal: the charts are drawn only in the terminal, never by `--print`)
+    #[test]
+    fn only_the_self_prefix_of_a_revision_is_left_out_of_a_name() {
+        let efficiency = r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa..bbbbbbb","10","5","96%"]]}]}"#;
+        let milestones = r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["Host self: builds","","2","1.50","1.71","7"]]}]}"#;
+        let dir = measure(&[
+            ("revisions.json", efficiency),
+            ("milestones.json", milestones),
+        ]);
+        let [input, _, fixes, _] = charts(Some(dir.path()));
+        assert_eq!(names(&input), ["aaaaaaa..bbbbbbb"]);
+        assert_eq!(names(&fixes), ["Host self: builds"]);
+    }
+
+    // spec: SUC-4 (internal: the charts are drawn only in the terminal, never by `--print`)
+    #[test]
+    fn a_revisions_json_older_than_the_measure_is_not_charted() {
+        let dir = measure(&[
+            ("revisions.json", r#"{"version":1,"tables":[]}"#),
+            ("efficiency.json", EFFICIENCY),
+            ("milestones.json", MILESTONES),
+        ]);
+        let old = std::time::SystemTime::now() - std::time::Duration::from_secs(7200);
+        std::fs::File::options()
+            .write(true)
+            .open(dir.path().join("revisions.json"))
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+        let [input, ..] = charts(Some(dir.path()));
+        assert_eq!(names(&input), ["aaaaaaa..bbbbbbb", "ccccccc", "ddddddd"]);
+    }
+
+    // spec: SUC-3 (internal: the charts are drawn only in the terminal, never by `--print`)
+    #[test]
+    fn a_chart_of_empty_cells_keeps_its_samples_whole() {
+        let chart = Chart {
+            title: "findings per review",
+            rows: vec![Row {
+                name: "One".to_string(),
+                value: None,
+                shown: "-".to_string(),
+                sample: "0 reviews".to_string(),
+            }],
+        };
+        let p = panel(&chart, 30);
+        assert!(p.lines[0].chars().count() <= 30, "{:?}", p.lines);
+        assert!(p.lines[0].ends_with(" - 0 reviews"), "{:?}", p.lines);
+    }
+
+    // spec: SUC-2 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn a_chart_taller_than_its_room_shows_its_newest_rows() {
+        let rows: Vec<String> = (1..=12)
+            .map(|n| format!(r#"["self:r{n:02}","10","{n}","90%"]"#))
+            .collect();
+        let efficiency = format!(
+            r#"{{"version":1,"tables":[{{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[{}]}}]}}"#,
+            rows.join(",")
+        );
+        let dir = measure(&[("revisions.json", &efficiency)]);
+        let area = Rect::new(0, 0, 100, 24);
+        let mut buf = Buffer::empty(area);
+        let head = Panel {
+            title: "Measures",
+            lines: vec!["measured 19:23".to_string()],
+            marks: Vec::new(),
+            failed: false,
+        };
+        render_charts(
+            area,
+            &mut buf,
+            &head,
+            &charts(Some(dir.path())),
+            "",
+            &Theme::default(),
+        );
+        let screen = rows_of(&buf).join("\n");
+        assert_eq!(
+            screen.matches("r12 ").count(),
+            2,
+            "both charts end on the newest: {screen}"
         );
     }
 
@@ -371,8 +486,8 @@ mod tests {
     /// A measure of three groups of revisions, the last `too few`, and two milestones besides `(no milestone)`.
     fn screen_measure() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("revisions.json"), r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa","10","5000000","96%"],["self:bbbbbbb","10","10000000","97%"],["self:ccccccc","6","too few","too few"]]}]}"#).unwrap();
         std::fs::write(dir.path().join("milestones.json"), r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["(no milestone)","","149","1.17","1.15","358"],["One","","2","1.50","1.71","7"],["Two","","1","0.00","","0"]]}]}"#).unwrap();
+        std::fs::write(dir.path().join("revisions.json"), r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa","10","5000000","96%"],["self:bbbbbbb","10","10000000","97%"],["self:ccccccc","6","too few","too few"]]}]}"#).unwrap();
         dir
     }
 
@@ -392,7 +507,7 @@ mod tests {
         buf
     }
 
-    fn rows(buf: &Buffer) -> Vec<String> {
+    fn rows_of(buf: &Buffer) -> Vec<String> {
         (0..buf.area.height)
             .map(|y| (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect())
             .collect()
@@ -402,7 +517,7 @@ mod tests {
     #[test]
     fn the_charts_show_each_group_with_its_bar_and_its_sample() {
         let buf = charts_screen(&["measured 19:23"], &Theme::default());
-        let rows = rows(&buf);
+        let rows = rows_of(&buf);
         let screen = rows.join("\n");
         assert!(rows[0].starts_with("measured 19:23"), "{screen}");
         for title in [
@@ -439,7 +554,7 @@ mod tests {
             ],
             &Theme::default(),
         );
-        let rows = rows(&buf);
+        let rows = rows_of(&buf);
         assert!(rows[0].starts_with("session-metrics: exit 3"), "{rows:?}");
         assert!(rows[1].starts_with("measuring…"), "{rows:?}");
         let panel = Panel {
@@ -461,7 +576,7 @@ mod tests {
         );
         assert!(ignored.is_empty(), "{ignored:?}");
         let buf = charts_screen(&["measured 19:23"], &theme);
-        let rows = rows(&buf);
+        let rows = rows_of(&buf);
         let cell = |needle: &str| {
             let (y, row) = rows
                 .iter()

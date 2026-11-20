@@ -15,13 +15,13 @@ over the milestones, each with its sample, so a trend of the harness stands out 
 
 ### Behaviour
 
-- **SUC-1** (deterministic) The key `g` must switch the screen of `cardinal-ui` from its panels to the charts of SUC-2, and back to the panels, the selection of the panels kept as it was; on the charts, the keys of STU-2 and STU-17 work as on the panels and the keys of SUA do nothing.
-- **SUC-2** (deterministic) The charts screen must show, from the last measure of STU-17, the line the `Measures` panel opens on (`measured <HH:MM>`, `measuring…`, the error of STU-19), then four charts: `input per session` (the median `input_tokens`) and `cached share` (`cache_read_share`) for each group of the efficiency table of `revisions.json`, oldest first, and `fixes after per issue` (`fixes_after_per_issue`) and `findings per review` (`findings_per_review`) for each milestone of `milestones.json` but `(no milestone)`, in the order of that report; each group one row: its name, a bar, the number as the report writes it and its sample (`<sessions> sessions`, `<issues> issues`, `<counted_reviews> reviews`).
+- **SUC-1** (deterministic) The key `g` must switch the screen of `cardinal-ui` from its panels to the charts of SUC-2, and back to the panels, the selection of the panels kept as it was; on the charts, `Esc` goes back to the panels, `q`, `Ctrl+C`, `r` and `m` work as on the panels and the other keys do nothing.
+- **SUC-2** (deterministic) The charts screen must show, from the last measure of STU-17, the line the `Measures` panel opens on (`measured <HH:MM>`, `measuring…`, the error of STU-19), then four charts: `input per session` (the median `input_tokens`) and `cached share` (`cache_read_share`) for each group of the efficiency table of `revisions.json`, oldest first, and `fixes after per issue` (`fixes_after_per_issue`) and `findings per review` (`findings_per_review`) for each milestone of `milestones.json` but `(no milestone)`, in the order of that report; each group one row: its name (a revision without its `self:` prefix), a bar, the number as the report writes it and its sample (`<sessions> sessions`, `<issues> issues`, `<counted_reviews> reviews`); a chart taller than its room shows its last rows, the newest.
 
 ### Contract
 
 - **SUC-3** (deterministic) The bar of a row must be as long as its number over the largest number of its chart times the width left to the bars, from zero, in eighths of a cell, a group `too few` (REP-4) showing `too few` and its `sessions` instead of a bar and a number, and an empty cell (a ratio over no sample) `-` and no bar, so a group with too few sessions is never drawn as a value.
-- **SUC-4** (deterministic) A measure must also run `cardinal-report --project <project> --last 12 --json` (REP-17) into `revisions.json`, written and kept as the files of STU-17, STU-18 and STU-19 are; a last measure without that file (taken before it existed) draws the groups of revisions of `efficiency.json` instead.
+- **SUC-4** (deterministic) A measure must also run `cardinal-report --project <project> --last 12 --json` (REP-17) into `revisions.json`, written and kept as the files of STU-17, STU-18 and STU-19 are; a last measure without that file, or whose `revisions.json` is older than its `milestones.json` (left by a measure that did not write it), draws the groups of revisions of `efficiency.json` instead.
 - **SUC-5** (deterministic) The charts screen must draw the bars in `accent`, `too few` and the samples in `muted`, and the rest as STU-31 draws the panels.
 
 ## Scenarios
@@ -40,6 +40,11 @@ over the milestones, each with its sample, so a trend of the harness stands out 
 - (SUC-4) Given a measure whose `cardinal-report --last 12` fails, then the five files of the last measure are
   unchanged and the charts screen opens on the error line of STU-19.
 - (SUC-1) Given the charts screen, when the user presses `s`, then no session is started.
+- (SUC-1) Given the charts screen, when the user presses `Esc`, then the panels are shown and `cardinal-ui` runs on.
+- (SUC-2) Given twelve groups of revisions and room for eight rows, then the chart shows the last eight.
+- (SUC-2) Given a milestone named `Host self: builds`, then its row reads that name whole.
+- (SUC-4) Given a `revisions.json` older than `milestones.json`, then the groups of revisions are those of
+  `efficiency.json`.
 
 ## Non-goals
 

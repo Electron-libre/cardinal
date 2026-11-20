@@ -30,8 +30,7 @@ const USAGE: &str =
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
-    let root = source::root(Path::new("."));
-    let state = source::read(&root, measuring, measure_error);
+    let state = source::read(&source::root(Path::new(".")), measuring, measure_error);
     let stems = state.queue.as_ref().map_or_else(
         |_| Vec::new(),
         |q| q.issues.iter().map(|i| i.stem.clone()).collect(),
@@ -50,7 +49,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         stems,
         worktrees,
         waits,
-        charts: charts::charts(measures::directory(&root).as_deref()),
+        charts: state.charts,
     }
 }
 

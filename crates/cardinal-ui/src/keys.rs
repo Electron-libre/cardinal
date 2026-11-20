@@ -66,6 +66,8 @@ pub enum Action {
     Release,
     Measure,
     Charts,
+    /// `Esc`: back to the panels from the charts (SUC-1), else quit (STU-2).
+    Back,
     Nothing,
 }
 
@@ -130,7 +132,8 @@ pub fn action(key: &KeyEvent) -> Action {
     }
     match key.code {
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
-        KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
+        KeyCode::Char('q') => Action::Quit,
+        KeyCode::Esc => Action::Back,
         KeyCode::Char('r') => Action::Refresh,
         KeyCode::Up | KeyCode::Char('k') => Action::Up,
         KeyCode::Down | KeyCode::Char('j') => Action::Down,
@@ -147,10 +150,13 @@ pub fn action(key: &KeyEvent) -> Action {
 }
 
 /// Whether the charts are shown after `action`, and what it then does (SUC-1): `g` switches between the panels and
-/// the charts, where only the keys of the reads and of the measures act, so the selection and the tasks wait.
+/// the charts, where `Esc` goes back to the panels and only the keys of the reads and of the measures act, so the
+/// selection and the tasks wait; `Esc` quits from the panels.
 pub(crate) fn charts_key(charts: bool, action: Action) -> (bool, Action) {
     match action {
         Action::Charts => (!charts, Action::Nothing),
+        Action::Back if charts => (false, Action::Nothing),
+        Action::Back => (false, Action::Quit),
         Action::Quit | Action::Refresh | Action::Measure => (charts, action),
         _ if charts => (charts, Action::Nothing),
         a => (charts, a),
@@ -218,7 +224,10 @@ pub(crate) mod tests {
     #[test]
     fn q_esc_and_ctrl_c_quit_and_r_refreshes() {
         assert_eq!(action(&press(KeyCode::Char('q'))), Action::Quit);
-        assert_eq!(action(&press(KeyCode::Esc)), Action::Quit);
+        assert_eq!(
+            charts_key(false, action(&press(KeyCode::Esc))).1,
+            Action::Quit
+        );
         let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
         assert_eq!(action(&ctrl_c), Action::Quit);
         assert_eq!(action(&press(KeyCode::Char('c'))), Action::Nothing);
@@ -360,6 +369,17 @@ pub(crate) mod tests {
             assert_eq!(charts_key(true, acts.clone()), (true, acts));
         }
         assert_eq!(charts_key(true, Action::Charts), (false, Action::Nothing));
+        assert_eq!(action(&press(KeyCode::Esc)), Action::Back);
+        assert_eq!(
+            charts_key(true, Action::Back),
+            (false, Action::Nothing),
+            "Esc back to the panels"
+        );
+        assert_eq!(
+            charts_key(false, Action::Back),
+            (false, Action::Quit),
+            "Esc quits from the panels"
+        );
         assert_eq!(charts_key(false, Action::Start), (false, Action::Start));
         assert!(HELP.contains("g charts"), "{HELP}");
     }

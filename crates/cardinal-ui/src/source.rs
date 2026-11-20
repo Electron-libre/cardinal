@@ -92,6 +92,8 @@ pub struct State {
     pub measure: Vec<String>,
     pub measuring: bool,
     pub measure_error: Option<String>,
+    /// The charts of the last measure (SUC-2).
+    pub charts: [crate::charts::Chart; 4],
 }
 
 /// The `cardinal` to run: `CARDINAL_UI_CARDINAL`, else `cardinal` on the `PATH` (STU-5).
@@ -422,15 +424,18 @@ pub fn root(dir: &Path) -> PathBuf {
 }
 
 /// Reads the project of `dir`, the root of its work tree (STU-5), and its last measure, `measuring` and the error
-/// `measure_error` of the last one.
+/// `measure_error` of the last one, and its charts.
 pub fn read(dir: &Path, measuring: bool, measure_error: Option<String>) -> State {
+    // resolved once: it runs git (STU-18)
+    let cache = crate::measures::directory(dir);
     State {
         milestones: milestones(dir),
         queue: queue(dir, &tabs(dir)),
         worktrees: worktrees(dir),
-        measure: crate::measures::lines(crate::measures::directory(dir).as_deref()),
+        measure: crate::measures::lines(cache.as_deref()),
         measuring,
         measure_error,
+        charts: crate::charts::charts(cache.as_deref()),
     }
 }
 

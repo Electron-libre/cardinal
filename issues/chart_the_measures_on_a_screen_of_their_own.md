@@ -76,6 +76,11 @@ q quit  r refresh  m measure  g panels
    the help line, the docs (`docs/usage.md`, `docs/architecture.md`, `README.md`); verified by `TestBackend` tests
    (internal: the charts screen is drawn only in the terminal); makes true SUC-1, SUC-2, SUC-5, SUC-H1. ~400 lines. (autonomous)
 
+3. [x] The fixes of the `high` review of the issue: a chart too tall keeps its newest rows, the status message before
+   the help, `Esc` back to the panels from the charts, `self:` left out of revision names only, an older
+   `revisions.json` not charted, the width of `-` counted, the cache directory resolved once per read, STU-2 and
+   STU-17 aligned; verified by unit tests; makes true the amended SUC-1, SUC-2, SUC-4. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: c5415c5de86310ebbae18a3cc07fc125fdc8b622
@@ -118,4 +123,24 @@ q quit  r refresh  m measure  g panels
 - Code review: no findings
 - not verified: the screen in a real terminal by hand (rendered once from the real cache in a `TestBackend` buffer:
   readable at 160 columns).
+- decisions needed: none.
+
+## Deliverable 3 summary
+- done: the eight findings of the `high` review of `c5415c5..15781a5` fixed (SUC-1, SUC-2, SUC-4 amended, STU-2 and
+  STU-17 aligned, `docs/usage.md`).
+
+| check | result |
+|---|---|
+| tests | pass (`cargo test -p cardinal-ui`) |
+| lint | pass (clippy -D warnings) |
+| specs | pass |
+| docs | `docs/usage.md` (`Esc`, the newest rows) |
+| code review | low, no findings |
+
+- red: SUC-1, SUC-2, SUC-3, SUC-4: `no variant named Back found for enum keys::Action` (the build of the tests).
+- Code review: no findings
+- High review of the issue: 8 findings, all fixed here (clipped charts, hidden status line, `-` width, `self:` in
+  names, a stale `revisions.json`, `Esc` quitting from the charts, extra git runs per read, STU-17 silent on the
+  third report).
+- not verified: the screen in a real terminal by hand.
 - decisions needed: none.

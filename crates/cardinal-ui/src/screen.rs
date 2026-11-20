@@ -77,7 +77,7 @@ pub(crate) fn styled<'a>(
 
 /// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the milestones, the worktrees and the
 /// measures at their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, the help
-/// line and `status` last.
+/// line after `status`.
 fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -135,15 +135,17 @@ pub(crate) fn draw_panel(
         .render(area, buf);
 }
 
-/// The help `help` in `muted`, then the status message in `text`, both on `surface`, over `area`.
+/// The status message in `text`, then the help `help` in `muted`, both on `surface`, over `area`: the status first, so
+/// a narrow terminal cuts the help, which never changes, rather than the message.
 pub(crate) fn help_line(help: &str, status: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
-    let mut spans = vec![Span::raw(help)];
+    let mut spans = Vec::new();
     if !status.is_empty() {
         spans.push(Span::styled(
-            format!("  {status}"),
+            format!("{status}  "),
             Style::new().fg(theme.color(Role::Text)),
         ));
     }
+    spans.push(Span::raw(help));
     buf.set_style(area, theme.status());
     Line::from(spans).render(area, buf);
 }
@@ -402,7 +404,7 @@ mod tests {
             panel("Worktrees", &["w"]),
             panel("Measures", &["x"]),
         ];
-        let area = Rect::new(0, 0, 140, 15);
+        let area = Rect::new(0, 0, 120, 15);
         let mut buf = Buffer::empty(area);
         render(
             area,
@@ -412,12 +414,12 @@ mod tests {
             "started a in /w",
             &Theme::default(),
         );
-        let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
-        assert!((0..15).any(|y| row(y).contains("g charts  started a in /w")));
+        assert!((0..15).any(|y| row(y).starts_with("started a in /w  q quit")));
     }
 
     // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
@@ -465,7 +467,12 @@ mod tests {
         assert_eq!(buf[(3, a)].bg, rgb(7));
         assert!(!buf[(3, a)].modifier.contains(Modifier::REVERSED));
         let status = find("theme: line 9 ignored");
-        assert_eq!((buf[(0, status)].fg, buf[(0, status)].bg), (rgb(5), rgb(2)));
+        let line = row(status);
+        let help = u16::try_from(line[..line.find("q quit").unwrap()].chars().count()).unwrap();
+        assert_eq!(
+            (buf[(help, status)].fg, buf[(help, status)].bg),
+            (rgb(5), rgb(2))
+        );
         assert_eq!(buf[(139, status)].bg, rgb(2), "the whole line");
         let message = u16::try_from(row(status).find("theme: line").unwrap()).unwrap();
         assert_eq!(

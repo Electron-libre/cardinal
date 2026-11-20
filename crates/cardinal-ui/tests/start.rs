@@ -37,9 +37,14 @@ fn script(path: &Path, body: &str) {
 impl Setup {
     /// The fake `cardinal`: the queue of `QUEUE`; `worktree open <stem>` logs its call, then runs `open`.
     fn cardinal(&self, open: &str) -> PathBuf {
+        self.cardinal_with(open, QUEUE)
+    }
+
+    /// The fake `cardinal` of `cardinal`, its queue `queue`.
+    fn cardinal_with(&self, open: &str, queue: &str) -> PathBuf {
         let path = self.root.path().join("cardinal");
         let body = format!(
-            "case \"$1 $2\" in\n  'run next-issue') printf '%s\\n' '{QUEUE}'; exit 0 ;;\n  'run worktree') echo \"cardinal $*\" >> '{log}'; {open} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "case \"$1 $2\" in\n  'run next-issue') printf '%s\\n' '{queue}'; exit 0 ;;\n  'run worktree') echo \"cardinal $*\" >> '{log}'; {open} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             log = self.log.display()
         );
         script(&path, &body);
@@ -181,4 +186,73 @@ fn start_without_a_stem_is_refused() {
     let (code, _, err) = s.ui(&cardinal, None, &["--start"]);
     assert_eq!(code, Some(2));
     assert!(err.contains("usage"), "{err}");
+}
+
+/// A queue of ready issues claimed by sessions that ended: `d` in `<root>/repo-d`, which exists, `e` in a worktree
+/// removed since, and `f` merge pending.
+fn ended_queue(s: &Setup) -> (String, PathBuf) {
+    let wt = s.root.path().join("repo-d");
+    std::fs::create_dir_all(&wt).unwrap();
+    let gone = s.root.path().join("repo-e");
+    let claim = |state: &str, w: &Path| {
+        format!(
+            r#"{{"by":"claim","state":"{state}","worktree":"{}","branch":"x","session_alive":false}}"#,
+            w.display()
+        )
+    };
+    let issue = |stem: &str, taken: String| {
+        format!(
+            r#"{{"stem":"{stem}","priority":"high","milestone":null,"state":"ready","taken":{taken}}}"#
+        )
+    };
+    let queue = format!(
+        r#"{{"version":1,"next":null,"issues":[{},{},{}]}}"#,
+        issue("d", claim("working", &wt)),
+        issue("e", claim("working", &gone)),
+        issue("f", claim("merge pending", &wt)),
+    );
+    (queue, wt)
+}
+
+// spec: STU-9, STU-11
+#[test]
+fn an_issue_whose_session_ended_resumes_in_the_worktree_of_its_claim() {
+    let s = setup();
+    let (queue, wt) = ended_queue(&s);
+    let cardinal = s.cardinal_with(&s.opened(), &queue);
+    let zellij = s.zellij(0, "");
+    let (code, out, err) = s.ui(&cardinal, Some(&zellij), &["--start", "d"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    let expected = format!(
+        "zellij\naction\nnew-tab\n--cwd\n{}\n--name\nd\n--\nclaude\n/issue-workflow issues/d.md\n",
+        wt.display()
+    );
+    assert_eq!(s.log(), expected, "no worktree open");
+    assert!(
+        out.contains(&format!("resumed d in {}", wt.display())),
+        "{out}"
+    );
+}
+
+// spec: STU-11
+#[test]
+fn a_claim_whose_worktree_is_gone_or_merge_pending_does_not_resume() {
+    let s = setup();
+    let (queue, _) = ended_queue(&s);
+    let cardinal = s.cardinal_with(&s.opened(), &queue);
+    let zellij = s.zellij(0, "");
+    let gone = s.root.path().join("repo-e");
+    let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "e"]);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains(&format!(
+            "e: worktree {} gone: cardinal run issue-claim --release e",
+            gone.display()
+        )),
+        "{err}"
+    );
+    let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "f"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("f: taken"), "{err}");
+    assert_eq!(s.log(), "");
 }

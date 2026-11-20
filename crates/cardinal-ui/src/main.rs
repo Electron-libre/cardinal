@@ -5,7 +5,7 @@
 //! the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its branch (`merge.rs`), or
 //! to end what a merged issue left (`end.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]`: with no argument the
-//! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue;
+//! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--release` starts the
 //! release session in the main worktree.
 

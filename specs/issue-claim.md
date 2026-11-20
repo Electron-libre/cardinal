@@ -1,6 +1,6 @@
 ---
 id: CLM
-status: draft
+status: accepted
 adrs: [0011, 0022]
 ---
 

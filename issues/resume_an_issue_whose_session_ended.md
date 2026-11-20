@@ -63,7 +63,7 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 ## Plan
 1. [x] `issue-claim --release <stem>`: deletes a `working` claim whose process ended (CAS), refuses a live, absent or `merge pending` one; verified by `tests/issue_claim.rs`; makes true CLM-10. (autonomous)
 2. [x] `next-issue` resume hint: the taken line of an ended claim says `resume: …` or `worktree gone`, then `give up: …`; verified by `tests/issue_claim.rs`; makes true CLM-5, CLM-H2. (autonomous)
-3. [ ] `cardinal-ui` resume: `s` / `--start` on a ready issue whose claim's session ended opens the tab in the claim's worktree without `worktree open`, refuses when that worktree is gone; verified by `crates/cardinal-ui/tests/start.rs`; makes true STU-9, STU-11.
+3. [x] `cardinal-ui` resume: `s` / `--start` on a ready issue whose claim's session ended opens the tab in the claim's worktree without `worktree open`, refuses when that worktree is gone; verified by `crates/cardinal-ui/tests/start.rs`; makes true STU-9, STU-11. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -103,4 +103,20 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 - red: CLM-5, CLM-H2: `Taken: a (claimed in <ws>, session ended)` printed with no `resume:` nor `give up:`
 - Code review: 1 findings: the doc comment of `next` was attached to `way_out` (nit), fixed.
 - not verified: none
+- decisions needed: none
+
+## Deliverable 3: summary
+- done: `cardinal-ui` `s` / `--start` on a ready issue whose `working` claim's session ended opens the tab in the claim's worktree with no `worktree open` (`resumed <stem> in <worktree>`); a removed worktree is refused naming `issue-claim --release`; `issue-claim.md` and `steering-ui.md` back to `accepted`.
+
+| check | result |
+|---|---|
+| tests | `cardinal-ui` all passed (start: 8) |
+| lint | clean (project-check) |
+| specs | STU-9, STU-11 traced; both specs `accepted` |
+| docs | `docs/usage.md`, `README.md`, `start.rs` and `main.rs` doc |
+| code review | see below |
+
+- red: STU-9, STU-11: `--start d` exited 1 with `d: taken` (left: Some(1), right: Some(0))
+- Code review: 1 findings: the `ready` check also applies to a resumed issue (important); not changed: STU-9 as validated resumes only a `ready` issue, and `state` (NXT-19) is ready, blocked or on hold whatever takes the issue, so a blocked or held issue is not resumed on purpose.
+- not verified: a real zellij tab and `claude` session (the tests use fakes)
 - decisions needed: none

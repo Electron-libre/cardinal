@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use crate::source::{self, Taken};
 
 /// Runs `git args` in `dir`: its stdout, or the failure line of STU-21.
-fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
+pub fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
     let name = format!("git {}", args.join(" "));
     let (out, err, code) = source::run(&name, Path::new("git"), args, dir)?;
     if code != 0 {
@@ -18,7 +18,7 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 }
 
 /// The main worktree of the repository of `dir` and its branch, `None` when detached.
-fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
+pub fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
     let list = git(dir, &["worktree", "list", "--porcelain"])?;
     let record = list.split("\n\n").next().unwrap_or_default();
     if record.lines().any(|l| l == "bare") {

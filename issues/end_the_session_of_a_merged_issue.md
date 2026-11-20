@@ -43,3 +43,51 @@ Merge back from the steering UI
 
 # Hints
 * A tab may hold other panes the user opened: close only what the UI can tie to the issue.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+After the merge (`f`) or on a key `e` for an issue merged by hand, the UI ends the issue's waiting session (closing
+the tab it opened, or the session's pane alone when the tab holds others, else `SIGHUP` to the lock's pid), then runs
+`cardinal run worktree close <stem>` from the main worktree. It refuses a session at work, a dirty worktree, a trunk
+without the close. Out of scope: `--force`, ending a session whose issue is not merged.
+
+## Plan
+1. [x] `cardinal-ui --end <stem>` (new `end.rs`): the refusals, then tab or pane close / `SIGHUP`, the wait of 10 s and
+   `worktree close`, each failure reported after what was done; verified by `tests/end.rs` (fake `zellij` and
+   `cardinal`, a `sleep` holding the lock); makes true STU-24, STU-25, STU-3. (autonomous)
+2. [ ] Chain the end after a merge whose `cardinal check` passed, and the `merged` mark of the worktrees panel;
+   verified by `tests/merge.rs` and `tests/print.rs`; makes true STU-23 and the chain of STU-22.
+3. [ ] Selection in the worktrees panel (`Tab`, arrows, kept by path across reads) and the key `e`, one task at a time;
+   verified by unit tests of `screen.rs` and the `--end` test; makes true STU-22, STU-15, STU-H6, STU-H7.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f457da664353674eacdc12a972bec6d37ea6d883
+- The worktree of an issue merged by hand is chosen by a selection in the worktrees panel (`Tab`), then `e`.
+- `specs/steering-ui.md` outgrows `spec_max_bytes`: its split goes to an issue of its own, not this one.
+- A session that ignores `SIGHUP` for 10 s stops the end with an error, the worktree kept (no `SIGKILL`: it would skip
+  the `SessionEnd` hooks).
+- Measured on zellij 0.46.0 and Claude Code 2.1.328: `zellij action close-tab-by-id` sends `SIGHUP` to the pane's
+  process; `claude` then runs its `SessionEnd` hooks (reason `other`) and exits. The lock's `pid` is the `claude`
+  process; its pane's `terminal_command` (`list-panes --json`) is the command STU-12 opened.
+
+## Summary of deliverable 1
+done: `cardinal-ui --end <stem>` (`end.rs`): refusals of STU-24, then tab or pane close or `SIGHUP`, wait, `worktree
+close` in the main worktree; docs (usage, architecture, README).
+
+| check | result |
+|---|---|
+| tests | `tests/end.rs` 11 passed; `project-check` exit 0 |
+| lint | clean |
+| specs | `check-specs`: STU-20 `fast` (fast-forward, false positive), spec over `spec_max_bytes` (split issue `split_the_steering_ui_spec`) |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md` |
+| code review | low, no findings |
+
+red: STU-24, STU-25, STU-3: `usage: cardinal-ui [--print | --start <stem> | --merge <stem>]` (exit 2, `--end` unknown)
+Code review: no findings
+not verified: the end against a real zellij and `claude` (measured by hand at step 1 only); the test of a session deaf
+to `SIGHUP` takes 10 s.
+decisions needed: none

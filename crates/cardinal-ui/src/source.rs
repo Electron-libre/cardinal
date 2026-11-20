@@ -55,6 +55,8 @@ pub struct Queue {
 /// The session that holds the lock of a worktree (STU-7).
 pub struct Session {
     pub id: String,
+    /// The process of the session, as the lock names it.
+    pub pid: String,
     pub alive: bool,
     /// Since when (seconds since the Unix epoch) and why it waits for the user, when it runs and the mark of the
     /// worktree names it (STU-13).
@@ -247,7 +249,7 @@ pub fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
 }
 
 /// Whether the process `pid` runs.
-fn alive(pid: &str) -> bool {
+pub fn alive(pid: &str) -> bool {
     pid.parse::<u32>().is_ok_and(|p| p > 0)
         && Command::new("kill")
             .args(["-0", pid])
@@ -279,18 +281,24 @@ fn field(text: &str, key: &str) -> Option<String> {
 pub fn session(path: &Path) -> Option<Session> {
     let text = git_file(path, "cardinal-session")?;
     let id = field(&text, "session")?;
-    let alive = alive(&field(&text, "pid")?);
+    let pid = field(&text, "pid")?;
+    let alive = alive(&pid);
     let waiting = git_file(path, "cardinal-waiting")
         .filter(|mark| alive && field(mark, "session").as_deref() == Some(id.as_str()))
         .and_then(|mark| {
             let since = field(&mark, "since")?.parse().ok()?;
             Some((since, field(&mark, "reason").unwrap_or_default()))
         });
-    Some(Session { id, alive, waiting })
+    Some(Session {
+        id,
+        pid,
+        alive,
+        waiting,
+    })
 }
 
 /// The worktrees of the repository of `dir`, in the order of `git worktree list --porcelain` (STU-7).
-fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
+pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
     let name = "git worktree list";
     let (out, err, code) = run(
         name,

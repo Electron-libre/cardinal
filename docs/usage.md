@@ -304,7 +304,18 @@ trunk is not an ancestor of the branch (rebase it in its worktree first). The st
 why nothing was; `s` and `f` start nothing while a start or a merge runs, and `q` then quits once it ended, printing the result of
 a merge. The next
 read drops the claim (CLM-6).
-Apart from a start, a merge and its cache of measures, it writes nothing.
+
+Once the trunk holds the close of an issue, `cardinal-ui --end <stem>` ends what it left, from any other worktree of
+the project: the session of the linked worktree on the branch `<stem>` and its tab, then the worktree and the branch
+(`cardinal run worktree close <stem>`, run in the main worktree). In a zellij session, the tab named `<stem>` whose
+pane runs `claude /issue-workflow issues/<stem>.md` (the one `s` opened, found with `zellij action list-panes --json
+--all`) is closed, or that pane alone when the tab holds others; a session with no such pane gets `SIGHUP`. Either
+way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 10 seconds for it. It ends nothing
+(exit 1, saying why) when no linked worktree is on that branch, the main worktree is detached, the trunk lacks
+`issues/done/<stem>.md`, the worktree has uncommitted changes or untracked files, the UI runs inside it, or its
+session is at work (it runs and does not wait for the user). A step that fails stops the end and names what the steps
+before it did.
+Apart from a start, a merge, an end and its cache of measures, it writes nothing.
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

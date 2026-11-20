@@ -240,7 +240,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 [`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
 of its pinned revision (NXT-19, RMP-8, REP-21), checked by their `version`, and through git. It drives zellij from outside to
 start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs
-`git merge --ff-only` in the main worktree to merge an issue closed on its branch (STU-20). It is not managed content and a
+`git merge --ff-only` in the main worktree to merge an issue closed on its branch (STU-20), then ends the session,
+the tab and the worktree that issue left (STU-24). It is not managed content and a
 consumer does not need it; the release workflow does not build it.
 
 ```mermaid
@@ -251,6 +252,7 @@ flowchart LR
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
   ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
   ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
+  ui -->|"list-panes, close-tab-by-id or SIGHUP,<br/>cardinal run worktree close (merged)"| ended["session, tab, worktree"]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
@@ -266,6 +268,7 @@ flowchart LR
 | `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts and the merges on threads of their own, renders `--print` into a buffer |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
+| `end.rs` | ends what a merged issue left: refuses a session at work, a dirty worktree, a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree |
 
 ## The cost of a turn
 

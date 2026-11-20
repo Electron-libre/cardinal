@@ -1,12 +1,13 @@
 //! `cardinal-ui`: the milestones, the queue of issues, the worktrees and the measures of the project of the current
 //! directory, in one terminal screen (`specs/steering-ui.md`, ADR 0030). It reads the project through
 //! `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
-//! changes the project only to start an issue session in a zellij tab (`start.rs`) or to merge into the trunk an issue
-//! closed on its branch (`merge.rs`).
-//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem>]`: with no argument the screen runs in the
-//! terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue; `--merge` merges
-//! it.
+//! changes the project only to start an issue session in a zellij tab (`start.rs`), to merge into the trunk an issue
+//! closed on its branch (`merge.rs`), or to end what a merged issue left (`end.rs`).
+//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem>]`: with no argument the screen runs
+//! in the terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue; `--merge`
+//! merges it; `--end` ends its session and removes its worktree once it is merged.
 
+mod end;
 mod measures;
 mod merge;
 mod panels;
@@ -16,7 +17,7 @@ mod start;
 
 use std::path::Path;
 
-const USAGE: &str = "usage: cardinal-ui [--print | --start <stem> | --merge <stem>]";
+const USAGE: &str = "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem>]";
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
@@ -108,6 +109,7 @@ fn main() {
         [a] if a == "--print" => print(),
         [a, stem] if a == "--start" => report(start_in_project(stem)),
         [a, stem] if a == "--merge" => report(merge_in_project(stem)),
+        [a, stem] if a == "--end" => report(end::end(&source::root(Path::new(".")), stem)),
         _ => {
             eprintln!("{USAGE}");
             2

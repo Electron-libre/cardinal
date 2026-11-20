@@ -50,6 +50,8 @@ key is read by the skill only, as `test_conventions` or `confidential`.
    pointer in `SKILL.md`), the commented key in `seed/.claude/cardinal.toml`, `docs/usage.md` and `docs/workflow.md`,
    `merge_back = "local"` in this repository's `.claude/cardinal.toml`, `just sync`; verified by `just check` (managed
    copies in sync) and a reread of the step. (autonomous)
+2. [x] Review fixes of the whole issue (`high` review): rebase proposal when the trunk moved, unknown value is a
+   stop, `docs/architecture.md` key table, the diagram of `docs/workflow.md`; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -72,5 +74,25 @@ red: none
 Code review: no findings
 
 not verified: a real close on a branch with `merge_back = "local"` (the next issue session exercises it).
+
+decisions needed: none
+
+## Deliverable 2
+done: the 5 findings of the `high` review of the issue fixed.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green |
+| specs | green |
+| docs | `docs/architecture.md`, `docs/workflow.md` |
+| code review | see below |
+
+red: none
+High review: 5 findings: fast-forward fails once the trunk moved (fixed: check the ancestry, propose a rebase on the
+user's go); `merge_back` missing from `docs/architecture.md` (fixed); a mistyped value pushes (fixed: a stop); the
+diagram drew the local merge on the host (fixed: `alt` block); the UI named as able to merge (fixed: removed).
+Code review: no findings
+
+not verified: none
 
 decisions needed: none

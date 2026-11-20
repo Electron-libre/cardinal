@@ -102,8 +102,13 @@ sequenceDiagram
   W->>W: issue-claim issues/NAME.md
   W->>W: issue-workflow, commits on the branch
   W->>W: user agrees to close: close-issue,<br/>claim merge pending, cardinal check
-  W->>H: push, open or update the pull request<br/>(merge_back = "local": print the merge command)
-  H->>H: merge into the trunk (or the user, git merge --ff-only)
+  alt merge_back = "pull-request" (default)
+    W->>H: push, open or update the pull request
+    H->>H: merge into the trunk
+  else merge_back = "local"
+    W->>U: print git merge --ff-only <branch>
+    U->>U: merge in the main worktree
+  end
   Note over U,H: next-issue drops the claim once the trunk holds the close
 ```
 

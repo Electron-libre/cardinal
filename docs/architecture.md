@@ -58,7 +58,7 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 | the hooks, `project-check` and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `check_command`, `release_version_command` |
 | `deliverable-size`, `file-size` | `deliverable_size_limit`, `issue_size_limit`, `file_size_limit` |
 | `cardinal` itself | `fixed_context_budget`, and `disabled` of the `[cardinal]` table |
-| the skills, through the agent | `roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language` |
+| the skills, through the agent | `roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language`, `merge_back` |
 
 The change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else
 project-specific (a quality benchmark, a smoke test, the language-specific recipes of the `justfile`) stays in the

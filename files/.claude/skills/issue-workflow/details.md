@@ -50,10 +50,14 @@ On a branch other than the trunk, once the user agreed to close the issue:
 2. Run `cardinal check`: when it names a hook the installed `cardinal` refuses (the branch adds a subcommand the
    hooks call), run the install it prints before going on. After the merge the hooks of the main worktree
    call it too, and one the installed `cardinal` refuses blocks every command, the install included.
-3. When the `merge_back` of `[project]` in `.claude/cardinal.toml` is `"local"`, push nothing and open no pull
-   request: stop and print the merge for the user to run in the main worktree, `git merge --ff-only <branch>` (the
-   steering UI may run it); never run it yourself from the linked worktree. Otherwise (`"pull-request"`, the default),
-   push the branch to the remote the trunk tracks (`git push -u <remote> <branch>`), then, with the host's CLI (`gh`
+3. Read the `merge_back` of `[project]` in `.claude/cardinal.toml`; a value other than `"local"` or
+   `"pull-request"` is a stop: report it to the user, push nothing.
+   `"local"`: push nothing and open no pull request. When the trunk is not an ancestor of the branch (`git merge-base
+   --is-ancestor <trunk> HEAD` fails: another issue was merged since), the fast-forward would fail: propose to rebase
+   the branch onto the trunk and, on the user's go, rebase it, run the project check and `cardinal check` again. Then
+   stop and print the merge for the user to run in the main worktree, `git merge --ff-only <branch>`; never run it
+   yourself from the linked worktree.
+   `"pull-request"` or no key: push the branch to the remote the trunk tracks (`git push -u <remote> <branch>`), then, with the host's CLI (`gh`
    on GitHub: `gh pr list --head <branch>`), open the pull request to the trunk when the branch has none, titled after
    the issue, its body the summary of the deliverables; with one, the push updated it. Report its URL. No remote or no
    CLI of the host: stop and print what is left to the user (the push, the pull request, or `git merge --ff-only

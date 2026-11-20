@@ -1,6 +1,7 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (STU-9), `f` merges it into the
-//! trunk (STU-20), and `m` takes the measures again (STU-17).
+//! trunk (STU-20); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (STU-22); `m`
+//! takes the measures again (STU-17).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -24,12 +25,59 @@ const TICK: Duration = Duration::from_millis(100);
 const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
-const HELP: &str = "q quit  r refresh  ↑↓ select  s start  f merge  m measure";
+const HELP: &str = "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  m measure";
 
-/// What a read gives: the panels, and the stems of the issues of the queue in the order of its lines.
+/// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
+/// the order of the lines of their panels.
 pub struct View {
     pub panels: [Panel; 4],
     pub stems: Vec<String>,
+    pub worktrees: Vec<(String, Option<String>)>,
+}
+
+/// The panel the selection is in (STU-22).
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum Focus {
+    Queue,
+    Worktrees,
+}
+
+/// The selected line of the queue and of the worktrees, and the panel the keys move it in (STU-9, STU-22).
+#[derive(Debug, Clone, Copy)]
+struct Selection {
+    focus: Focus,
+    issue: usize,
+    worktree: usize,
+}
+
+impl Selection {
+    /// Moves the selection on `action` in the view `v`: `Tab` to the other panel, the arrows within it.
+    fn apply(&mut self, action: &Action, v: &View) {
+        match (action, self.focus) {
+            (Action::Switch, Focus::Queue) => self.focus = Focus::Worktrees,
+            (Action::Switch, Focus::Worktrees) => self.focus = Focus::Queue,
+            (_, Focus::Queue) => self.issue = select(self.issue, v.stems.len(), action),
+            (_, Focus::Worktrees) => {
+                self.worktree = select(self.worktree, v.worktrees.len(), action);
+            }
+        }
+    }
+
+    /// Keeps the selection on the same issue and the same worktree path from the read `before` to the read `after`
+    /// (STU-14, STU-22).
+    fn reread(&mut self, before: &View, after: &View) {
+        self.issue = reselect(&before.stems, self.issue, &after.stems);
+        let paths = |v: &View| v.worktrees.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
+        self.worktree = reselect(&paths(before), self.worktree, &paths(after));
+    }
+
+    /// The panel and the line to highlight in `v`: none in an empty or failed panel.
+    fn line(&self, v: &View) -> Option<(usize, usize)> {
+        match self.focus {
+            Focus::Queue => (!v.stems.is_empty()).then_some((1, self.issue)),
+            Focus::Worktrees => (!v.worktrees.is_empty()).then_some((2, self.worktree)),
+        }
+    }
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -40,12 +88,12 @@ fn height(p: &Panel) -> u16 {
 }
 
 /// Renders the panels into `buf` over `area`: the milestones, the worktrees and the measures at their height, the
-/// queue in the rest with its line `selected` highlighted, the help line and `status` last.
+/// queue in the rest, the line `selected` (a panel and a line) highlighted, the help line and `status` last.
 fn render(
     area: Rect,
     buf: &mut Buffer,
     panels: &[Panel; 4],
-    selected: Option<usize>,
+    selected: Option<(usize, usize)>,
     status: &str,
 ) {
     let [milestones, queue, worktrees, measures] = panels;
@@ -59,7 +107,7 @@ fn render(
     .split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let scroll = match selected {
-            Some(line) if n == 1 => offset(line, area.height.saturating_sub(2)),
+            Some((1, line)) if n == 1 => offset(line, area.height.saturating_sub(2)),
             _ => 0,
         };
         let lines: Vec<Line> = p
@@ -68,7 +116,7 @@ fn render(
             .enumerate()
             .map(|(i, l)| {
                 let line = Line::raw(l.as_str());
-                if n == 1 && selected == Some(i) {
+                if selected == Some((n, i)) {
                     line.style(Style::new().add_modifier(Modifier::REVERSED))
                 } else {
                     line
@@ -128,8 +176,10 @@ pub enum Action {
     Refresh,
     Up,
     Down,
+    Switch,
     Start,
     Merge,
+    End,
     Measure,
     Nothing,
 }
@@ -139,6 +189,7 @@ pub enum Action {
 pub enum Task {
     Start,
     Merge,
+    End,
 }
 
 /// The task `action` runs on the issue `stem`, with the status line shown while it runs.
@@ -146,8 +197,35 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
     match action {
         Action::Start => Some((Task::Start, format!("starting {stem}…"))),
         Action::Merge => Some((Task::Merge, format!("merging {stem}…"))),
+        Action::End => Some((Task::End, format!("ending {stem}…"))),
         _ => None,
     }
+}
+
+/// The task `action` runs on what `sel` selects in `v`: the task, the status line while it runs and the stem;
+/// `None` for another key or an empty panel; why it runs none when the key belongs to the other panel or the worktree
+/// is detached (STU-9, STU-20, STU-22).
+fn job(
+    action: &Action,
+    sel: Selection,
+    v: &View,
+) -> Result<Option<(Task, String, String)>, String> {
+    let stem = match (action, sel.focus) {
+        (Action::Start | Action::Merge, Focus::Queue) => v.stems.get(sel.issue).cloned(),
+        (Action::Start | Action::Merge, Focus::Worktrees) => {
+            return Err("s and f act on the queue: Tab to it".to_string())
+        }
+        (Action::End, Focus::Worktrees) => match v.worktrees.get(sel.worktree) {
+            Some((path, None)) => return Err(format!("{path}: detached, no issue to end")),
+            Some((_, Some(branch))) => Some(branch.clone()),
+            None => None,
+        },
+        (Action::End, Focus::Queue) => {
+            return Err("e acts on a worktree: Tab to the worktrees".to_string())
+        }
+        _ => return Ok(None),
+    };
+    Ok(stem.and_then(|s| task(action, &s).map(|(t, shown)| (t, shown, s))))
 }
 
 /// The action of the key `key`.
@@ -161,8 +239,10 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('r') => Action::Refresh,
         KeyCode::Up | KeyCode::Char('k') => Action::Up,
         KeyCode::Down | KeyCode::Char('j') => Action::Down,
+        KeyCode::Tab => Action::Switch,
         KeyCode::Char('s') => Action::Start,
         KeyCode::Char('f') => Action::Merge,
+        KeyCode::Char('e') => Action::End,
         KeyCode::Char('m') => Action::Measure,
         _ => Action::Nothing,
     }
@@ -252,8 +332,8 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 }
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
-/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue
-/// (STU-9, STU-20), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
+/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, or
+/// of `e` on the selected worktree (STU-9, STU-20, STU-22), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
 /// which runs apart (STU-17). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (STU-15). The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
@@ -275,7 +355,11 @@ pub fn run(
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
-        let mut selected = 0;
+        let mut selected = Selection {
+            focus: Focus::Queue,
+            issue: 0,
+            worktree: 0,
+        };
         let mut status = String::new();
         let mut busy = false;
         let mut quitting = false;
@@ -285,8 +369,9 @@ pub fn run(
             }
             match read_panels.try_recv() {
                 Ok(read) => {
-                    let before = view.as_ref().map_or(&[][..], |v| v.stems.as_slice());
-                    selected = reselect(before, selected, &read.stems);
+                    if let Some(before) = &view {
+                        selected.reread(before, &read);
+                    }
                     view = Some(read);
                     schedule.ended(Instant::now());
                 }
@@ -305,16 +390,18 @@ pub fn run(
                 schedule.asked = true;
             }
             terminal.draw(|f| match &view {
-                // the queue panel holds one line per stem, in order: an empty or failed queue selects nothing
-                Some(v) => {
-                    let line = (!v.stems.is_empty()).then_some(selected);
-                    render(f.area(), f.buffer_mut(), &v.panels, line, &status);
-                }
+                // a panel holds one line per stem or worktree, in order: an empty or failed one selects nothing
+                Some(v) => render(
+                    f.area(),
+                    f.buffer_mut(),
+                    &v.panels,
+                    selected.line(v),
+                    &status,
+                ),
                 None => Line::raw("reading the project…").render(f.area(), f.buffer_mut()),
             })?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
-                    let len = view.as_ref().map_or(0, |v| v.stems.len());
                     let key = action(&key);
                     let (now, later) = quits(&key, busy, quitting);
                     if now {
@@ -331,17 +418,23 @@ pub fn run(
                             measure();
                             schedule.asked = true;
                         }
-                        Action::Start | Action::Merge => {
-                            let stem = view.as_ref().and_then(|v| v.stems.get(selected));
-                            let job = stem.and_then(|s| task(&key, s).map(|t| (t, s.clone())));
-                            if let (Some(((job, shown), stem)), false) = (job, busy) {
-                                busy = true;
-                                status = shown;
-                                let send = done.clone();
-                                std::thread::spawn(move || send.send(run_task(job, &stem)));
+                        Action::Start | Action::Merge | Action::End => {
+                            match view.as_ref().map(|v| job(&key, selected, v)) {
+                                Some(Ok(Some((job, shown, stem)))) if !busy => {
+                                    busy = true;
+                                    status = shown;
+                                    let send = done.clone();
+                                    std::thread::spawn(move || send.send(run_task(job, &stem)));
+                                }
+                                Some(Err(why)) if !busy => status = why,
+                                _ => {}
                             }
                         }
-                        a => selected = select(selected, len, &a),
+                        a => {
+                            if let Some(v) = &view {
+                                selected.apply(&a, v);
+                            }
+                        }
                     }
                 }
             }
@@ -424,10 +517,10 @@ mod tests {
             panel("Worktrees", &["w"]),
             panel("Measures", &["x"]),
         ];
-        let area = Rect::new(0, 0, 80, 15);
+        let area = Rect::new(0, 0, 120, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some(1), "started a in /w");
-        let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        render(area, &mut buf, &panels, Some((1, 1)), "started a in /w");
+        let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
@@ -468,7 +561,7 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 40, 22);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some(29), "");
+        render(area, &mut buf, &panels, Some((1, 29)), "");
         let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let y = (0..22)
             .find(|y| row(*y).contains("issue30"))
@@ -492,6 +585,117 @@ mod tests {
             Ended::Quit("merged; cardinal check: exit 1".into()),
             "printed once the terminal is given back"
         );
+    }
+
+    fn view(stems: &[&str], worktrees: &[(&str, Option<&str>)]) -> View {
+        let panel = |title| Panel {
+            title,
+            lines: Vec::new(),
+            failed: false,
+        };
+        View {
+            panels: [
+                panel("Milestones"),
+                panel("Queue"),
+                panel("Worktrees"),
+                panel("Measures"),
+            ],
+            stems: stems.iter().map(|s| (*s).to_string()).collect(),
+            worktrees: worktrees
+                .iter()
+                .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
+                .collect(),
+        }
+    }
+
+    // spec: STU-22 (internal: the keys and the selection of a screen that needs a real terminal)
+    #[test]
+    fn tab_moves_to_the_worktrees_where_e_ends_the_selected_one() {
+        assert_eq!(action(&press(KeyCode::Tab)), Action::Switch);
+        assert_eq!(action(&press(KeyCode::Char('e'))), Action::End);
+        assert!(
+            HELP.contains("tab panel") && HELP.contains("e end"),
+            "{HELP}"
+        );
+        let v = view(
+            &["bar"],
+            &[("/main", Some("trunk")), ("/ws", Some("foo")), ("/d", None)],
+        );
+        let on = |focus, worktree| Selection {
+            focus,
+            issue: 0,
+            worktree,
+        };
+        assert_eq!(
+            job(&Action::End, on(Focus::Worktrees, 1), &v),
+            Ok(Some((
+                Task::End,
+                "ending foo…".to_string(),
+                "foo".to_string()
+            )))
+        );
+        assert_eq!(
+            job(&Action::Start, on(Focus::Queue, 1), &v),
+            Ok(Some((
+                Task::Start,
+                "starting bar…".to_string(),
+                "bar".to_string()
+            )))
+        );
+        assert!(job(&Action::End, on(Focus::Queue, 1), &v).is_err_and(|e| e.contains("Tab")));
+        assert!(job(&Action::Merge, on(Focus::Worktrees, 1), &v).is_err_and(|e| e.contains("Tab")));
+        assert!(job(&Action::End, on(Focus::Worktrees, 2), &v)
+            .is_err_and(|e| e.contains("/d: detached")));
+        assert_eq!(job(&Action::Refresh, on(Focus::Queue, 0), &v), Ok(None));
+        let mut sel = on(Focus::Queue, 0);
+        sel.apply(&Action::Switch, &v);
+        assert_eq!(sel.focus, Focus::Worktrees);
+        sel.apply(&Action::Down, &v);
+        sel.apply(&Action::Down, &v);
+        sel.apply(&Action::Down, &v);
+        assert_eq!((sel.issue, sel.worktree), (0, 2), "kept in the worktrees");
+        sel.apply(&Action::Switch, &v);
+        assert_eq!(sel.focus, Focus::Queue);
+    }
+
+    // spec: STU-22 (internal: the selection of a screen that needs a real terminal)
+    #[test]
+    fn the_selected_worktree_follows_its_path_and_is_highlighted() {
+        let before = view(&[], &[("/main", Some("trunk")), ("/ws", Some("foo"))]);
+        let after = view(
+            &[],
+            &[
+                ("/main", Some("trunk")),
+                ("/a", Some("a")),
+                ("/ws", Some("foo")),
+            ],
+        );
+        let mut sel = Selection {
+            focus: Focus::Worktrees,
+            issue: 0,
+            worktree: 1,
+        };
+        sel.reread(&before, &after);
+        assert_eq!(sel.worktree, 2);
+        let panel = |title, lines: &[&str]| Panel {
+            title,
+            lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            failed: false,
+        };
+        let panels = [
+            panel("Milestones", &["m"]),
+            panel("Queue", &["> b"]),
+            panel("Worktrees", &["/main", "/ws"]),
+            panel("Measures", &["x"]),
+        ];
+        let area = Rect::new(0, 0, 80, 15);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &panels, Some((2, 1)), "");
+        let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let ws = (0..15).find(|y| row(*y).contains("/ws")).unwrap();
+        let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
+        assert!(buf[(3, ws)].modifier.contains(Modifier::REVERSED));
+        assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

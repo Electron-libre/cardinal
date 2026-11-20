@@ -301,12 +301,13 @@ the install it needs (exit 1). It merges nothing (exit 1, saying why) when the i
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
-why nothing was; `s` and `f` start nothing while a start or a merge runs, and `q` then quits once it ended, printing the result of
-a merge. The next
+why nothing was; `s`, `f` and `e` start nothing while a start, a merge or an end runs, and `q` then quits once it
+ended, printing the result of a merge or an end. The next
 read drops the claim (CLM-6).
 
-Once the trunk holds the close of an issue, `f` goes on once `cardinal check` passed, and `cardinal-ui --end <stem>`
-does alone (for an issue merged by hand), ending what it left, from any other worktree of
+Once the trunk holds the close of an issue, `f` goes on once `cardinal check` passed, and, for an issue merged by
+hand, `e` on its worktree (`Tab` moves the selection to the worktrees panel, the arrows within it; `s` and `f` act on
+the queue) or `cardinal-ui --end <stem>` does alone, ending what it left, from any other worktree of
 the project: the session of the linked worktree on the branch `<stem>` and its tab, then the worktree and the branch
 (`cardinal run worktree close <stem>`, run in the main worktree). In a zellij session, the tab named `<stem>` whose
 pane runs `claude /issue-workflow issues/<stem>.md` (the one `s` opened, found with `zellij action list-panes --json

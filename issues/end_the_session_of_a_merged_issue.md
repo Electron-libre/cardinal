@@ -60,8 +60,8 @@ without the close. Out of scope: `--force`, ending a session whose issue is not 
    `cardinal`, a `sleep` holding the lock); makes true STU-24, STU-25, STU-3. (autonomous)
 2. [x] Chain the end after a merge whose `cardinal check` passed, and the `merged` mark of the worktrees panel;
    verified by `tests/merge.rs` and `tests/print.rs`; makes true STU-23 and the chain of STU-22. (autonomous)
-3. [ ] Selection in the worktrees panel (`Tab`, arrows, kept by path across reads) and the key `e`, one task at a time;
-   verified by unit tests of `screen.rs` and the `--end` test; makes true STU-22, STU-15, STU-H6, STU-H7.
+3. [x] Selection in the worktrees panel (`Tab`, arrows, kept by path across reads) and the key `e`, one task at a time;
+   verified by unit tests of `screen.rs` and the `--end` test; makes true STU-22, STU-15, STU-H6, STU-H7. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -108,4 +108,21 @@ red: STU-23: the row of the merged worktree lacked `foo  merged`; STU-22: `unres
 Code review: 1 findings: `holds_close` hid a git that cannot run behind `false`: fixed, it returns `Result<bool, String>`
 not verified: the chain through the key `f` in a terminal (the loop has no binary test; the unit test covers the
 chain).
+decisions needed: none
+
+## Summary of deliverable 3
+done: `Tab` moves the selection between the queue and the worktrees (kept by path across reads), `e` ends the
+selected worktree's issue, `s`/`f` and `e` say which panel they need; spec `accepted`; docs (usage, README).
+
+| check | result |
+|---|---|
+| tests | 2 new unit tests of `screen.rs`, all `cardinal-ui` tests pass; `project-check` exit 0 |
+| lint | clean |
+| specs | `accepted`, every requirement traced; size warning (issue `split_the_steering_ui_spec`) |
+| docs | `docs/usage.md`, `README.md` |
+| code review | low, no findings |
+
+red: STU-22: `cannot find type Focus`, `no variant End`, `no field worktrees` (28 compile errors)
+Code review: no findings
+not verified: the keys in a real terminal; the help line, longer now, clips the status line under ~110 columns.
 decisions needed: none

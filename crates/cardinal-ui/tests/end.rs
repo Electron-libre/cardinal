@@ -218,7 +218,7 @@ fn ended(pid: u32) -> bool {
     !alive(pid)
 }
 
-// spec: STU-24, STU-25, STU-3
+// spec: STU-H6, STU-24, STU-25, STU-3
 #[test]
 fn a_waiting_session_alone_in_its_tab_ends_with_the_tab_then_the_worktree_closes() {
     let mut p = project(true);

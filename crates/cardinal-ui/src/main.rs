@@ -26,9 +26,18 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         |_| Vec::new(),
         |q| q.issues.iter().map(|i| i.stem.clone()).collect(),
     );
+    let worktrees = state.worktrees.as_ref().map_or_else(
+        |_| Vec::new(),
+        |ws| {
+            ws.iter()
+                .map(|w| (w.path.clone(), w.branch.clone()))
+                .collect()
+        },
+    );
     screen::View {
         panels: panels::panels(&state),
         stems,
+        worktrees,
     }
 }
 
@@ -75,11 +84,12 @@ fn print() -> i32 {
     i32::from(panels.iter().any(|p| p.failed))
 }
 
-/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20).
+/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20, STU-22).
 fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
     match task {
         screen::Task::Start => start_in_project(stem),
         screen::Task::Merge => merge_then_end(stem),
+        screen::Task::End => end::end(&source::root(Path::new(".")), stem),
     }
 }
 

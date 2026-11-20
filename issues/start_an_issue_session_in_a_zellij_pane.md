@@ -38,3 +38,45 @@ Steering UI
 
 # Hints
 * Never `EnterWorktree` nor `claude --worktree`: Claude Code isolates such a session (`docs/workflow.md`).
+
+# Specs
+* `specs/steering-ui.md` (STU-3 amended, STU-9 to STU-13)
+* `specs/session-wait.md` (SWT, new)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+From `cardinal-ui` in zellij, `s` on a ready free issue opens its worktree and a tab running `claude` on it; the queue
+marks the issues that have a tab and the worktrees panel the sessions waiting for the user. Out of scope: a zellij
+plugin, reusing a free worktree, stopping or entering a session. Means: the wait comes from a new managed hook
+(`session-wait`), not from zellij's attention state (ADR 0031).
+
+## Plan
+1. [x] Wait mark hook: `cardinal run session-wait wait|work`, its managed entries and a feature to turn it off; verified by tests of the tool and of the entries; makes true SWT-1, SWT-2, SWT-3, SWT-4, SWT-5. (autonomous)
+2. [ ] Follow in the UI: the worktrees panel shows `waiting since <HH:MM>: <reason>`, the queue shows `tab` from `zellij action list-tabs --json` (`CARDINAL_UI_ZELLIJ`); verified by `--print` tests with a fake zellij and marks; makes true STU-3, STU-10, STU-12, STU-13.
+3. [ ] Start from the UI: `cardinal-ui --start <stem>`, the selection in the queue, the key `s` and the status line, the refusal outside zellij; verified by `--start` tests with fake `cardinal` and `zellij`, internal tests of the keys; makes true STU-9, STU-11, STU-12.
+
+## Decisions
+- Mode: autonomous
+- Base commit: ced187fea23cbea7c6ef8df8ebaeca2e945b11cf
+- Wait signal: a managed hook `session-wait` (1 a); a tab per issue (2 a); a new worktree `<main>-<stem>` per issue through `worktree open` (3 a).
+
+## Deliverable 1: wait mark hook
+- done: `cardinal run session-wait wait|work` writes and removes `cardinal-waiting` in the git directory of the
+  worktree; declared at `Stop`, `Notification`, `UserPromptSubmit`, `PostToolUse`, `SessionEnd`; feature
+  `session-wait`; spec SWT accepted; ADR 0031 proposed.
+
+| check | result |
+|---|---|
+| tests | `just check` green, 8 tests in `tests/session_wait.rs` |
+| lint | clean |
+| specs | SWT traced, accepted |
+| docs | architecture hook table, usage features, README |
+| code review | see below |
+
+red: SWT-1, SWT-2, SWT-3, SWT-4, SWT-5: exit 3, `cardinal: unknown tool `session-wait``
+Code review: no findings
+- not verified: a real Claude Code session firing the hooks (the events are faked on stdin).
+- decisions needed: none.

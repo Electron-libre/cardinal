@@ -39,10 +39,15 @@ entry  {"event":"PreToolUse","matcher":"Bash|Edit|Write|NotebookEdit","hook":{"t
 entry  {"event":"PreToolUse","matcher":"Read","hook":{"type":"command","command":"cardinal run read-hint"}}
 entry  {"event":"PostToolUse","matcher":"Skill","hook":{"type":"command","command":"cardinal run review-gate record"}}
 entry  {"event":"PostToolUse","matcher":"Edit|Write","hook":{"type":"command","command":"cardinal run format-code"}}
+entry  {"event":"PostToolUse","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run lint-gate","timeout":600}}
 entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run language-hint","timeout":600}}
+entry  {"event":"Stop","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait wait"}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock start"}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run update-notice"}}
 entry  {"event":"SessionStart","matcher":null,"hook":{"type":"command","command":"cardinal run session-scratch start"}}
 entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run workspace-lock release"}}
 entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run session-scratch end"}}
+entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}
+entry  {"event":"Notification","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait wait"}}
+entry  {"event":"UserPromptSubmit","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}

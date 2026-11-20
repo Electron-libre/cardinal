@@ -64,6 +64,14 @@
             "command": "cardinal run format-code"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run session-wait work"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -78,6 +86,10 @@
             "type": "command",
             "command": "cardinal run language-hint",
             "timeout": 600
+          },
+          {
+            "type": "command",
+            "command": "cardinal run session-wait wait"
           }
         ]
       }
@@ -110,6 +122,30 @@
           {
             "type": "command",
             "command": "cardinal run session-scratch end"
+          },
+          {
+            "type": "command",
+            "command": "cardinal run session-wait work"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run session-wait wait"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run session-wait work"
           }
         ]
       }

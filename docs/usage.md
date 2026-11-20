@@ -106,6 +106,7 @@ names both, and turning both off is accepted.
 | `specs` | the specs and their tracing, for a project that writes no spec: `specs/README.md`, `specs/TEMPLATE.md`, the skill `write-spec` and the recipes of `cardinal/specs.just` (`check-specs`, `spec-coverage`); `issue-workflow` then skips its spec steps, the CI skips `check-specs` without `cardinal/specs.just` and `project-check` skips it. A `justfile` seeded with `check: check-specs` is the project's: drop the dependency before turning the feature off, or `just` refuses the whole file |
 | `update-notice` | the SessionStart hook that names to the user the latest release of the source the pin lacks, for a project that follows the releases another way: the source is then never queried at start |
 | `session-scratch` | the scratch directory of a session (its two hooks and the rule `.claude/rules/scratch-files.md`), for a user who removes the scratch files some other way: `TMPDIR` is left as it is; rule `scratch-outside-tmpdir` of `rule-breaches` skips the sessions that start once the change is committed on the default branch |
+| `session-wait` | the hooks that mark a worktree while its session waits for the user, for a user who never reads it: the hook call of each tool call goes, and `cardinal-ui` shows no session waiting |
 | `workspace-lock` | the three hooks of the worktree lock, for a user who never runs two sessions in one worktree: the hook call of each tool call goes; `issue-claim` stays, so `next-issue` still skips an issue another worktree works |
 
 ### The installed launcher

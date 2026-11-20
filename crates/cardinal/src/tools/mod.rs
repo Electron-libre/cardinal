@@ -35,6 +35,7 @@ mod rule_breaches;
 mod scratch_writes;
 mod session_metrics;
 mod session_scratch;
+mod session_wait;
 mod shell;
 mod spec_coverage;
 mod transcripts;
@@ -183,6 +184,11 @@ pub const TOOLS: &[Tool] = &[
         name: "session-scratch",
         about: "start | end: the hooks that give each Claude Code session a scratch directory it removes",
         main: session_scratch::main,
+    },
+    Tool {
+        name: "session-wait",
+        about: "wait | work: the hooks that mark the worktree of a session while it waits for the user",
+        main: session_wait::main,
     },
     Tool {
         name: "spec-coverage",

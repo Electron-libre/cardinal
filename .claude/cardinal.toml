@@ -20,6 +20,9 @@ check_command = "just check"
 # whose change makes a commit breaking: a raised format is one an older `cardinal` cannot read (ADR 0014).
 release_version_command = "just set-version"
 release_breaking_files = ["cardinal-format"]
+# How a closed issue branch reaches the trunk (issue-workflow, "Merge back"): merged locally in the main worktree,
+# never pushed nor proposed as a pull request.
+merge_back = "local"
 # Where the agent finds the context of the project (issue-workflow, create-issue, prioritize-issues).
 roadmap = ["ROADMAP.md", "ROADMAP-done.md"]
 # The roadmap document `release` moves the released milestones to (created when missing); listed in `roadmap` too.

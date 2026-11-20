@@ -308,7 +308,9 @@ and the `workspace-lock` hooks keep one session per worktree:
 | `cardinal run worktree open <name> [--path <dir>] [--branch <branch>]` | creates the worktree `../<repo>-<name>` next to the main one (or `<dir>`, relative to the current directory), on a new branch `<name>` (or `<branch>`) cut from the branch of the main worktree, or on that branch as it is when it exists and no worktree has it; refuses a path inside the main worktree; copies `.claude/cardinal.local.toml` into it. It takes no issue: the worktree serves issues in turn and keeps its build. Launch a plain `claude` in it. |
 | `cardinal run worktree close <name\|path> [--force]` | from outside the worktree, removes it and deletes the branch it has checked out once that branch is merged (fast-forward, rebase or squash); `--force` also drops work not on the main branch, never uncommitted changes nor the main worktree. A name designates `../<repo>-<name>`, then a worktree left under `.claude/worktrees/<name>`, then the worktree of the branch `<name>`, then that branch alone (a `Stale:` branch of `next-issue`); a name that designates both a worktree on another branch and a branch is refused: pass the path |
 
-The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues).
+The steps around them (merge, close) are in [workflow.md](workflow.md#parallel-issues). Once an issue is closed on
+its branch, the agent pushes it and opens its pull request; `merge_back = "local"` in the `[project]` table of
+`.claude/cardinal.toml` makes it stop instead on the `git merge --ff-only <branch>` the user runs in the main worktree.
 
 A worktree the former `start-issue` left under `.claude/worktrees/` is still inside the main one: remove it with
 `close-worktree <stem>` once its branch is merged.

@@ -34,3 +34,43 @@ Merge back from the steering UI
 
 # Hints
 * The skills are managed content: edit `files/`, then `just sync`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+A `[project]` key `merge_back` (`"pull-request"`, the default, or `"local"`) of `.claude/cardinal.toml` makes step 3
+of "Merge back" stop after the close commit and `cardinal check`, printing `git merge --ff-only <branch>` for the main
+worktree, with no push nor pull request. Out of scope: running the merge (next issues of the milestone). No spec: the
+key is read by the skill only, as `test_conventions` or `confidential`.
+
+## Plan
+1. [x] Merge back locally: `merge_back` read at step 3 of "Merge back" (`files/.claude/skills/issue-workflow/details.md`,
+   pointer in `SKILL.md`), the commented key in `seed/.claude/cardinal.toml`, `docs/usage.md` and `docs/workflow.md`,
+   `merge_back = "local"` in this repository's `.claude/cardinal.toml`, `just sync`; verified by `just check` (managed
+   copies in sync) and a reread of the step. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 07583e9d2be4bfe35112eeb4e5ddf7fde8db5a8e
+- Key: `merge_back = "pull-request"` (default) or `"local"` (1a).
+- The memory of the local merge is deleted once the key is committed (2a).
+
+## Deliverable 1
+done: `merge_back = "local"` makes step 3 of "Merge back" stop on the local merge command; seed, docs and this repository's config.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green |
+| lint | green |
+| specs | green (no spec: a key read by the skill only) |
+| docs | `docs/usage.md`, `docs/workflow.md` |
+| code review | see below |
+
+red: none
+Code review: no findings
+
+not verified: a real close on a branch with `merge_back = "local"` (the next issue session exercises it).
+
+decisions needed: none

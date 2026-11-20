@@ -34,6 +34,9 @@ skipped_dirs = []
 # the root with the version as last argument, and the files whose change makes a commit breaking (a major version).
 # release_version_command = "npm version --no-git-tag-version"
 # release_breaking_files = []
+# How a closed issue branch reaches the trunk (issue-workflow, "Merge back"): "pull-request" pushes the branch and
+# opens its pull request; "local" stops on the `git merge --ff-only <branch>` the user runs in the main worktree.
+# merge_back = "pull-request"
 # The size limit `deliverable-size` checks, in changed lines (issue-workflow): of a deliverable, and of a whole issue.
 # deliverable_size_limit = 1000
 # issue_size_limit = 3000

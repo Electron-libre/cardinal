@@ -166,8 +166,9 @@ then consult once more to reconcile. The advisor never replaces a review or a st
 ## Merge back
 
 On the trunk (the branch of the main worktree), the issue is closed as the Rules below say (`cardinal run close-issue`). On
-another branch the merge is the host's: on the user's agreement to close, follow [details.md](details.md), "Merge
-back" (close on the branch, push it, open or update its pull request).
+another branch the merge is the host's or the user's: on the user's agreement to close, follow [details.md](details.md), "Merge
+back" (close on the branch, then push it and open or update its pull request, or, with `merge_back = "local"`, stop
+on the local merge command).
 
 ## Rules
 

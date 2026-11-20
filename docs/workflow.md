@@ -23,7 +23,7 @@ flowchart LR
 | Prioritize it | agent proposes, user decides | `priority`, `depends_on` and `why` in the front matter of the issue (ADR 0021), `skill:prioritize-issues` to review them all; `on_hold: '<reason>'` (or `- On hold: <reason>` on its milestone) defers it |
 | Pick the next one | anyone | `cardinal run next-issue`: the first ready issue (by milestone, priority, age) no claim, branch or worktree has taken, then the blocked ones and those on hold |
 | Drive it to done | agent, with one validation stop | `skill:issue-workflow` |
-| Close it | agent, on the user's agreement | `cardinal run close-issue issues/NAME.md`: moves it to `issues/done/`, frees its claim (`merge pending` on a branch other than the trunk, until the pull request is merged), sets its milestone `done` when it was the last open issue of it (CLS-8), stages the close for a bare `git commit` (CLS-9) and prints the next issue |
+| Close it | agent, on the user's agreement | `cardinal run close-issue issues/NAME.md`: moves it to `issues/done/`, frees its claim (`merge pending` on a branch other than the trunk, until the branch is merged: by its pull request, or locally with `merge_back = "local"`), sets its milestone `done` when it was the last open issue of it (CLS-8), stages the close for a bare `git commit` (CLS-9) and prints the next issue |
 | Release | agent, on the user's validation of its proposal when `close-issue` sets a milestone `done` (each writing form asks the user's permission, auto mode included) | `cardinal run release <version>` writes the `CHANGELOG.md` section and marks the milestone `Released:`, moving it to the `roadmap_archive` when the project names one; the user rereads, the agent commits, `cardinal run release <version> --tag`; the user pushes the tag |
 
 ## Inside issue-workflow
@@ -102,8 +102,8 @@ sequenceDiagram
   W->>W: issue-claim issues/NAME.md
   W->>W: issue-workflow, commits on the branch
   W->>W: user agrees to close: close-issue,<br/>claim merge pending, cardinal check
-  W->>H: push, open or update the pull request
-  H->>H: merge into the trunk
+  W->>H: push, open or update the pull request<br/>(merge_back = "local": print the merge command)
+  H->>H: merge into the trunk (or the user, git merge --ff-only)
   Note over U,H: next-issue drops the claim once the trunk holds the close
 ```
 

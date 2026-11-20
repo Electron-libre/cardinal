@@ -41,6 +41,9 @@ milestone is `done`. Out of scope: preparing or tagging the release from the UI,
 1. [x] Awaiting release mark: `source.rs` reads `release --json` after `roadmap` when a milestone is `done`, `panels.rs`
    writes the mark, a failed `release` keeps the milestones with its error line under them; verified by
    `tests/print.rs` (fake `cardinal`); makes true STU-1, STU-3, STU-6 (amended). (autonomous)
+2. [x] Fixes of the `high` review: `release --json` run again only once `HEAD`, a tag or the roadmap changed, the
+   prepared-not-tagged gap a non-goal, two tests assert `release` ran, README reworded; verified by an internal test of
+   the memo; makes true STU-3 (amended). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -63,4 +66,23 @@ done: the milestones panel marks each milestone `release --json` lists `awaits r
 red: STU-1, STU-3, STU-6, STU-8: `no line with awaits release` / `the error goes under the milestones` (the fake `release` never ran)
 Code review: no findings
 not verified: the mark in the live terminal screen (only `--print` is tested; the panel code is shared).
+decisions needed: none
+
+## Deliverable 2: fixes of the `high` review
+done: `release --json` is memoized on `HEAD`, the tags and the roadmap document; spec non-goal and README fixed; two tests tightened.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui`: pass (1 new internal test) |
+| lint | clippy `-D warnings`: clean |
+| specs | STU-3 amended, a non-goal added, spec `accepted` |
+| docs | `README.md`, `docs/usage.md` |
+| code review | see below |
+
+red: STU-3: `assertion left == right failed: left: 2, right: 1` (the memo ran the read again under the same key)
+Code review: no findings
+`high` review of the issue: 5 findings: the cost of `release` every 2 s fixed (memo); prepared-not-tagged made a
+non-goal; two tests now assert `release` ran; README reworded; an older pinned `cardinal` without `release --json`
+not fixed: the UI reads the tools of its own pinned revision (ADR 0030).
+not verified: the memo in the live screen (only the internal test proves it).
 decisions needed: none

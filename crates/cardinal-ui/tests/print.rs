@@ -279,7 +279,9 @@ fn with_no_proposed_version_the_mark_has_no_version() {
     let p = project();
     let doc = release("null", "ROADMAP.md");
     let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(&doc)));
-    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(p.root.path().join("release-ran").exists(), "{out}");
     let new = line(&out, "New  ");
     assert!(new.contains("awaits release"), "{new}");
     assert!(!new.contains("awaits release v"), "{new}");
@@ -291,7 +293,9 @@ fn a_milestone_of_another_document_is_not_marked() {
     let p = project();
     let doc = release(r#""0.3.0""#, "docs/OTHER.md");
     let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(&doc)));
-    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(p.root.path().join("release-ran").exists(), "{out}");
     assert!(!line(&out, "New  ").contains("awaits release"), "{out}");
 }
 

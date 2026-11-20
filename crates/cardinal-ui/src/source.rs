@@ -201,6 +201,29 @@ fn array(v: &Value) -> &[Value] {
     v.as_array().map_or(&[], Vec::as_slice)
 }
 
+/// The document of `release --json` (REL-15), run again only once the commit of `HEAD`, a tag or the document
+/// `roadmap` printed changed since its last run (STU-3): it reads the commits since the last tag, too costly to run
+/// at each read of the screen.
+fn release(dir: &Path, roadmap: &Value) -> Result<Value, String> {
+    static LAST: std::sync::Mutex<Memo<Result<Value, String>>> = std::sync::Mutex::new(Memo::new());
+    let read = || document("release", &[], dir, false).map(|(doc, _)| doc);
+    let git = |args: &[&str]| match run("git", Path::new("git"), args, dir) {
+        Ok((out, _, 0)) => Some(out),
+        _ => None,
+    };
+    let key = git(&["rev-parse", "HEAD"]).zip(git(&["for-each-ref", "refs/tags"]));
+    match key {
+        Some((head, tags)) => {
+            let key = format!("{}\n{head}{tags}{roadmap}", dir.display());
+            LAST.lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .get(key, read)
+        }
+        // no commit nor tags to key it on: run it each time
+        None => read(),
+    }
+}
+
 /// The milestones of `roadmap --json` (RMP-8), each marked when `release --json` (REL-15), run only when one of
 /// them is `done`, lists it by its name and its document (STU-1, STU-3); a `release` that cannot be read leaves them
 /// unmarked with its error line (STU-6).
@@ -208,7 +231,7 @@ fn milestones(dir: &Path) -> Result<Milestones, String> {
     let (doc, _) = document("roadmap", &["--open"], dir, false)?;
     let listed = array(&doc["milestones"]);
     let release = if listed.iter().any(|m| m["state"] == "done") {
-        Some(document("release", &[], dir, false).map(|(doc, _)| doc))
+        Some(release(dir, &doc))
     } else {
         None
     };
@@ -407,5 +430,51 @@ pub fn read(dir: &Path, measuring: bool, measure_error: Option<String>) -> State
         measure: crate::measures::lines(crate::measures::directory(dir).as_deref()),
         measuring,
         measure_error,
+    }
+}
+
+/// The last result of a costly read and the key it was read under, so a read under the same key returns it again
+/// instead of running again (STU-3).
+pub struct Memo<T> {
+    last: Option<(String, T)>,
+}
+
+impl<T: Clone> Memo<T> {
+    pub const fn new() -> Self {
+        Self { last: None }
+    }
+
+    /// The result of `read` under `key`: the last one when `key` is the key it was read under.
+    pub fn get(&mut self, key: String, read: impl FnOnce() -> T) -> T {
+        if let Some((last, value)) = &self.last {
+            if *last == key {
+                return value.clone();
+            }
+        }
+        let value = read();
+        self.last = Some((key, value.clone()));
+        value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // spec: STU-3 (internal: only the reads of the terminal screen repeat, `--print` reads once)
+    #[test]
+    fn a_read_under_the_same_key_is_not_run_again() {
+        let mut memo = Memo::new();
+        let mut runs = 0;
+        let mut read = |memo: &mut Memo<u32>, key: &str| {
+            memo.get(key.to_string(), || {
+                runs += 1;
+                runs
+            })
+        };
+        assert_eq!(read(&mut memo, "a"), 1);
+        assert_eq!(read(&mut memo, "a"), 1);
+        assert_eq!(read(&mut memo, "b"), 2);
+        assert_eq!(read(&mut memo, "a"), 3);
     }
 }

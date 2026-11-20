@@ -1,5 +1,5 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
-//! (STU-4).
+//! (STU-4); in the terminal, an issue of the queue is selected and `s` starts its session (STU-9).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph, Widget};
 
@@ -22,7 +23,13 @@ const TICK: Duration = Duration::from_millis(100);
 const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
-const HELP: &str = "q quit  r refresh";
+const HELP: &str = "q quit  r refresh  ↑↓ select  s start";
+
+/// What a read gives: the panels, and the stems of the issues of the queue in the order of its lines.
+pub struct View {
+    pub panels: [Panel; 3],
+    pub stems: Vec<String>,
+}
 
 /// The rows a panel takes: its lines and its two borders.
 fn height(p: &Panel) -> u16 {
@@ -32,8 +39,14 @@ fn height(p: &Panel) -> u16 {
 }
 
 /// Renders the panels into `buf` over `area`: the milestones and the worktrees at their height, the queue in the
-/// rest, the help line last.
-fn render(area: Rect, buf: &mut Buffer, panels: &[Panel; 3]) {
+/// rest with its line `selected` highlighted, the help line and `status` last.
+fn render(
+    area: Rect,
+    buf: &mut Buffer,
+    panels: &[Panel; 3],
+    selected: Option<usize>,
+    status: &str,
+) {
     let [milestones, queue, worktrees] = panels;
     let areas = Layout::vertical([
         Constraint::Max(height(milestones)),
@@ -42,12 +55,29 @@ fn render(area: Rect, buf: &mut Buffer, panels: &[Panel; 3]) {
         Constraint::Length(1),
     ])
     .split(area);
-    for (p, area) in panels.iter().zip(areas.iter()) {
-        let lines: Vec<Line> = p.lines.iter().map(|l| Line::raw(l.as_str())).collect();
+    for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
+        let lines: Vec<Line> = p
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(i, l)| {
+                let line = Line::raw(l.as_str());
+                if n == 1 && selected == Some(i) {
+                    line.style(Style::new().add_modifier(Modifier::REVERSED))
+                } else {
+                    line
+                }
+            })
+            .collect();
         let block = Block::bordered().title(format!(" {} ", p.title));
         Paragraph::new(lines).block(block).render(*area, buf);
     }
-    Line::raw(HELP).render(areas[3], buf);
+    let help = if status.is_empty() {
+        HELP.to_string()
+    } else {
+        format!("{HELP}  {status}")
+    };
+    Line::raw(help).render(areas[3], buf);
 }
 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
@@ -64,7 +94,7 @@ pub fn text(panels: &[Panel; 3]) -> String {
     let rows = panels.iter().map(height).fold(1u16, u16::saturating_add);
     let area = Rect::new(0, 0, width, rows);
     let mut buf = Buffer::empty(area);
-    render(area, &mut buf, panels);
+    render(area, &mut buf, panels, None, "");
     let mut out = String::new();
     for y in 0..rows {
         let mut row = String::new();
@@ -87,6 +117,9 @@ pub fn text(panels: &[Panel; 3]) -> String {
 pub enum Action {
     Quit,
     Refresh,
+    Up,
+    Down,
+    Start,
     Nothing,
 }
 
@@ -99,6 +132,9 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
         KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
         KeyCode::Char('r') => Action::Refresh,
+        KeyCode::Up | KeyCode::Char('k') => Action::Up,
+        KeyCode::Down | KeyCode::Char('j') => Action::Down,
+        KeyCode::Char('s') => Action::Start,
         _ => Action::Nothing,
     }
 }
@@ -131,10 +167,21 @@ impl Schedule {
     }
 }
 
+/// The selection after `action` in a queue of `len` issues, kept in it (STU-9).
+fn select(selected: usize, len: usize, action: &Action) -> usize {
+    let moved = match action {
+        Action::Up => selected.saturating_sub(1),
+        Action::Down => selected.saturating_add(1),
+        _ => selected,
+    };
+    moved.min(len.saturating_sub(1))
+}
+
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
-/// own so the keys are answered during a slow read. The terminal is given back as it was, also on a panic
+/// own so the keys are answered during a slow read; `start` starts the session of the selected issue on `s`, on a
+/// thread too, its result on the status line (STU-9). The terminal is given back as it was, also on a panic
 /// (Ratatui's hook).
-pub fn run(read: fn() -> [Panel; 3]) -> std::io::Result<()> {
+pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std::io::Result<()> {
     let (ask, asked) = mpsc::channel::<()>();
     let (send, read_panels) = mpsc::channel();
     std::thread::spawn(move || {
@@ -144,17 +191,22 @@ pub fn run(read: fn() -> [Panel; 3]) -> std::io::Result<()> {
             }
         }
     });
+    let (started, start_result) = mpsc::channel::<Result<String, String>>();
     let mut terminal = ratatui::try_init()?;
     let result = (|| {
-        let mut panels: Option<[Panel; 3]> = None;
+        let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
+        let mut selected = 0;
+        let mut status = String::new();
+        let mut starting = false;
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
                 return Err(std::io::Error::other("the reading of the project failed"));
             }
             match read_panels.try_recv() {
                 Ok(read) => {
-                    panels = Some(read);
+                    selected = select(selected, read.stems.len(), &Action::Nothing);
+                    view = Some(read);
                     schedule.ended(Instant::now());
                 }
                 Err(mpsc::TryRecvError::Empty) => {}
@@ -163,16 +215,35 @@ pub fn run(read: fn() -> [Panel; 3]) -> std::io::Result<()> {
                     return Err(std::io::Error::other("the reading of the project failed"));
                 }
             }
-            terminal.draw(|f| match &panels {
-                Some(p) => render(f.area(), f.buffer_mut(), p),
+            if let Ok(done) = start_result.try_recv() {
+                status = done.unwrap_or_else(|e| e);
+                starting = false;
+                schedule.asked = true;
+            }
+            terminal.draw(|f| match &view {
+                // the queue panel holds one line per stem, in order: an empty or failed queue selects nothing
+                Some(v) => {
+                    let line = (!v.stems.is_empty()).then_some(selected);
+                    render(f.area(), f.buffer_mut(), &v.panels, line, &status);
+                }
                 None => Line::raw("reading the project…").render(f.area(), f.buffer_mut()),
             })?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
+                    let len = view.as_ref().map_or(0, |v| v.stems.len());
                     match action(&key) {
                         Action::Quit => return Ok(()),
                         Action::Refresh => schedule.asked = true,
-                        Action::Nothing => {}
+                        Action::Start => {
+                            let stem = view.as_ref().and_then(|v| v.stems.get(selected));
+                            if let (Some(stem), false) = (stem.cloned(), starting) {
+                                starting = true;
+                                status = format!("starting {stem}…");
+                                let send = started.clone();
+                                std::thread::spawn(move || send.send(start(&stem)));
+                            }
+                        }
+                        a => selected = select(selected, len, &a),
                     }
                 }
             }
@@ -203,6 +274,49 @@ mod tests {
         let mut release = press(KeyCode::Char('q'));
         release.kind = KeyEventKind::Release;
         assert_eq!(action(&release), Action::Nothing);
+    }
+
+    // spec: STU-9 (internal: the keys and the selection of a screen that needs a real terminal)
+    #[test]
+    fn the_arrows_and_j_k_move_the_selection_and_s_starts() {
+        assert_eq!(action(&press(KeyCode::Up)), Action::Up);
+        assert_eq!(action(&press(KeyCode::Char('k'))), Action::Up);
+        assert_eq!(action(&press(KeyCode::Down)), Action::Down);
+        assert_eq!(action(&press(KeyCode::Char('j'))), Action::Down);
+        assert_eq!(action(&press(KeyCode::Char('s'))), Action::Start);
+        assert_eq!(select(0, 3, &Action::Down), 1);
+        assert_eq!(select(2, 3, &Action::Down), 2, "kept on the last issue");
+        assert_eq!(select(0, 3, &Action::Up), 0, "kept on the first issue");
+        assert_eq!(
+            select(5, 2, &Action::Nothing),
+            1,
+            "a shorter queue moves it back"
+        );
+        assert_eq!(select(0, 0, &Action::Down), 0);
+    }
+
+    // spec: STU-9 (internal: the highlight of a screen that needs a real terminal)
+    #[test]
+    fn the_selected_issue_is_highlighted_and_the_status_shown() {
+        let panel = |title, lines: &[&str]| Panel {
+            title,
+            lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            failed: false,
+        };
+        let panels = [
+            panel("Milestones", &["m"]),
+            panel("Queue", &["> b", "  a"]),
+            panel("Worktrees", &["w"]),
+        ];
+        let area = Rect::new(0, 0, 60, 12);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &panels, Some(1), "started a in /w");
+        let row = |y: u16| (0..60).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let a = (0..12).find(|y| row(*y).contains("  a")).unwrap();
+        let b = (0..12).find(|y| row(*y).contains("> b")).unwrap();
+        assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
+        assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
+        assert!((0..12).any(|y| row(y).contains("s start  started a in /w")));
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

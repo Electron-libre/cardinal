@@ -77,13 +77,13 @@ pub struct State {
 }
 
 /// The `cardinal` to run: `CARDINAL_UI_CARDINAL`, else `cardinal` on the `PATH` (STU-5).
-fn cardinal() -> PathBuf {
+pub fn cardinal() -> PathBuf {
     std::env::var_os("CARDINAL_UI_CARDINAL")
         .map_or_else(|| PathBuf::from("cardinal"), PathBuf::from)
 }
 
 /// The `zellij` to run: `CARDINAL_UI_ZELLIJ`, else `zellij` on the `PATH` (STU-12).
-fn zellij() -> PathBuf {
+pub fn zellij() -> PathBuf {
     std::env::var_os("CARDINAL_UI_ZELLIJ").map_or_else(|| PathBuf::from("zellij"), PathBuf::from)
 }
 
@@ -109,7 +109,7 @@ fn tabs(dir: &Path) -> Vec<String> {
 }
 
 /// The output of `program args` in `dir`: stdout, stderr and exit code; the error line of STU-6 when it cannot run.
-fn run(
+pub fn run(
     name: &str,
     program: &Path,
     args: &[&str],
@@ -129,7 +129,7 @@ fn run(
 }
 
 /// The error line of a failed run: the exit code and the first line of stderr (STU-6).
-fn failure(name: &str, code: i32, err: &str) -> String {
+pub fn failure(name: &str, code: i32, err: &str) -> String {
     match err.lines().find(|l| !l.trim().is_empty()) {
         Some(first) => format!("{name}: exit {code}: {}", first.trim()),
         None => format!("{name}: exit {code}"),
@@ -214,7 +214,7 @@ fn taken(v: &Value) -> Option<Taken> {
 }
 
 /// The queue of `next-issue --json` (NXT-19).
-fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
+pub fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
     let (doc, err) = document("next-issue", &[], dir, true)?;
     Ok(Queue {
         next: string(&doc["next"]),

@@ -1,6 +1,6 @@
 # 0031. The steering UI drives zellij from outside, and a hook marks a waiting session
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-20
 
 ## Context

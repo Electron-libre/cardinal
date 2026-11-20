@@ -238,7 +238,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 `cardinal-ui` is the binary of its own crate, `crates/cardinal-ui`, which does not depend on the `cardinal` crate
 ([ADR 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec
 [`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
-of its pinned revision (NXT-19, RMP-8), checked by their `version`, and through git. It is not managed content and a
+of its pinned revision (NXT-19, RMP-8), checked by their `version`, and through git. It drives zellij from outside to
+start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)). It is not managed content and a
 consumer does not need it; the release workflow does not build it.
 
 ```mermaid
@@ -257,7 +258,8 @@ flowchart LR
 |---|---|
 | `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source |
-| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads on a thread of their own, renders `--print` into a buffer |
+| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads and the starts on threads of their own, renders `--print` into a buffer |
+| `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 
 ## The cost of a turn
 

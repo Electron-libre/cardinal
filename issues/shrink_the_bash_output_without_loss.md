@@ -1,5 +1,6 @@
 ---
 priority: low
+on_hold: 'held by the user at the plan stop on 2026-11-20, before the questions of the plan were answered'
 why: 'the lossless gain measured is about 2 to 3% of the tool output, a comfort rather than a need of a milestone'
 ---
 # Shrink the Bash output without loss before the model reads it
@@ -59,3 +60,28 @@ the repeated lines of a log), and `input_tokens` of `cardinal-report` that falls
   read again.
 * A diff larger than the Bash limit is saved by Claude Code under `tool-results/` before the hook may see it: check
   what the hook receives then.
+
+# Tracking
+
+Plan: proposed
+
+## Understanding
+A `PostToolUse` hook on `Bash` (`cardinal run shrink-output`, `updatedToolOutput`) that trims the context of the
+diffs git prints and folds the runs of repeated lines of the other commands, failing open. Out of scope: the code the
+agent reads (`cat`, `sed`, `grep`...), `Read` and the outputs Claude Code saves under `tool-results/`. Approach 3
+(rewriting `git diff` into `-U<N>`) is dropped: the hook covers `git show` and `git log -p` too.
+
+Measured 2026-11-20 on Claude Code 2.1.328 (approach step 1): the hook receives `tool_response` as `stdout`,
+`stderr`, `interrupted`, `isImage`, `noOutputExpected`; a replacement is what the model reads and what the transcript
+records (`toolUseResult` and the message content); on an output over 30,000 characters the hook receives only the
+first 30,000, the original is saved whole under `tool-results/` and the model reads a 2 KB preview of the
+replacement, hence SHR-8.
+
+## Plan
+1. [ ] Diff trimming: tool `shrink-output` rewriting the hunks of `git diff/show/log/stash`, fail-open, declared in `entries/` and `features.toml`; verified by `tests/shrink_output.rs`; makes true SHR-1, SHR-3, SHR-4, SHR-5, SHR-6, SHR-8, SHR-9.
+2. [ ] Repeated lines: fold the runs of repeated lines outside the commands that read files; verified by `tests/shrink_output.rs`; makes true SHR-2, SHR-7.
+
+## Decisions
+- Mode: autonomous
+- Base commit: <set at validation>
+- Commits that change the hook carry `Expected-effect: input_tokens down`.

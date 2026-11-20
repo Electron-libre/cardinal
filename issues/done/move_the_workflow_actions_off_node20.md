@@ -57,7 +57,7 @@ major on `node24`: checkout v7, upload-artifact v7, download-artifact v8. `Swati
   changes the path of a download by ID (we download by pattern with `merge-multiple`), v8 fails on a digest
   mismatch (wanted). upload-artifact v7 adds an opt-in `archive: false`.
 
-Status: done; left: the type of commit `2cd8acf` (see the summary of deliverable 2).
+Status: done; commit `2cd8acf` retyped `fix(files)` (now `59bf630`), as the user chose.
 
 ## Summary of deliverable 1
 done: the four workflows (and the synced copy) use `checkout@v7`, `upload-artifact@v7`, `download-artifact@v8`.

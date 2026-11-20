@@ -212,7 +212,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
   `CLAUDE_PID`, from any worktree and branch ([ADR 0022](adr/0022-a-session-claims-its-issue-and-locks-its-workspace.md),
   spec [`specs/issue-claim.md`](../specs/issue-claim.md)). `next-issue` lists a `working` claim as taken (with
   `session ended` once its process is gone) and a `merge pending` one until the trunk holds the closed issue, then
-  deletes it.
+  deletes it. `issue-claim --release <stem>` deletes, from anywhere, a `working` claim whose process is gone, for an
+  issue given up or whose worktree was removed (CLM-10).
 - **Personal configuration**: `open-worktree` copies the git-ignored `.claude/cardinal.local.toml` of the main
   worktree into the new one (PAR-17), so the person's `user_language` follows them.
 - **Nesting**: `open-worktree` puts the worktrees next to the main one; for those the former `start-issue` nested

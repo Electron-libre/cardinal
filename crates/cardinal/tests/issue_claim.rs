@@ -418,3 +418,37 @@ fn git_stdin(dir: &Path, args: &[&str], input: &str) -> String {
         .trim()
         .to_string()
 }
+
+// spec: CLM-10
+#[test]
+fn release_frees_only_a_working_claim_whose_process_ended() {
+    let r = repo();
+    let release = |cwd: &Path| tool(cwd, "", "", &["issue-claim", "--release", "a"]);
+    let (code, out) = release(&r.main);
+    assert_eq!(code, Some(1), "no claim: {out}");
+    assert!(out.contains("no claim"), "{out}");
+
+    claim(&r.ws, "s1", &live(), "a");
+    let before = claim_text(&r.main, "a");
+    let (code, out) = release(&r.main);
+    assert_eq!(code, Some(1), "live process: {out}");
+    assert!(out.contains(&top(&r.ws)) && out.contains("s1"), "{out}");
+    assert_eq!(claim_text(&r.main, "a"), before, "unchanged");
+
+    let pending = before.replace("state working", "state merge pending");
+    let blob = git_stdin(&r.main, &["hash-object", "-w", "--stdin"], &pending);
+    git(&r.main, &["update-ref", "refs/cardinal/claims/a", &blob]);
+    let (code, out) = release(&r.main);
+    assert_eq!(code, Some(1), "merge pending: {out}");
+    assert!(out.contains("merge pending"), "{out}");
+    assert_eq!(claim_text(&r.main, "a"), pending, "unchanged");
+
+    let ended = before.replace(&format!("pid {}", live()), &format!("pid {}", dead()));
+    let blob = git_stdin(&r.main, &["hash-object", "-w", "--stdin"], &ended);
+    git(&r.main, &["update-ref", "refs/cardinal/claims/a", &blob]);
+    let (code, out) = release(&r.main);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("released a"), "{out}");
+    assert!(claim_text(&r.main, "a").is_empty(), "deleted");
+    assert!(next(&r.main).contains("Next: issues/a.md"), "offered again");
+}

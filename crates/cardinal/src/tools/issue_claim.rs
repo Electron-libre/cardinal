@@ -2,7 +2,8 @@
 //! created by compare-and-swap, points at a blob naming the session (`CLAUDE_CODE_SESSION_ID`), its process
 //! (`CLAUDE_PID`), the worktree, the branch and the state of the claim. A ref is seen from every worktree of the clone
 //! and never pushed by the default refspecs. `next-issue` reads the claims, `close-issue` frees them.
-//! Usage: `cardinal run issue-claim issues/<stem>.md` (from a Claude Code session).
+//! Usage: `cardinal run issue-claim issues/<stem>.md` (from a Claude Code session), or `cardinal run issue-claim
+//! --release <stem>` to delete a `working` claim whose process no longer runs (CLM-10), from anywhere.
 
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -256,12 +257,41 @@ fn refused(stem: &str, theirs: Option<Claim>) -> String {
     }
 }
 
+/// Delete the claim of `stem` when it is `working` and its process no longer runs (CLM-10).
+fn release(stem: &str) -> Result<String, String> {
+    let here = Path::new(".");
+    let (old, c) = read(here, stem).ok_or_else(|| format!("{stem}: no claim to release"))?;
+    if c.state != "working" {
+        return Err(format!(
+            "{stem}: the claim is {}, not working: the merge of its branch frees it",
+            c.state
+        ));
+    }
+    if c.alive() {
+        return Err(format!(
+            "{stem}: session {} still runs in {}: end it first",
+            c.session, c.worktree
+        ));
+    }
+    if delete(here, stem, &old) {
+        Ok(format!("released {stem}"))
+    } else {
+        Err(format!(
+            "{stem}: the claim changed meanwhile, nothing released"
+        ))
+    }
+}
+
 pub(super) fn main(args: &[String]) -> u8 {
-    let [issue] = args else {
-        eprintln!("usage: issue-claim issues/<stem>.md");
-        return 2;
+    let done = match args {
+        [flag, stem] if flag == "--release" => release(stem),
+        [issue] => claim(issue),
+        _ => {
+            eprintln!("usage: issue-claim issues/<stem>.md | issue-claim --release <stem>");
+            return 2;
+        }
     };
-    match claim(issue) {
+    match done {
         Ok(line) => {
             println!("{line}");
             0

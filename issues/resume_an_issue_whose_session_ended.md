@@ -50,3 +50,41 @@ the UI, and `next-issue` should say how.
 * The process of a claim is `CLAUDE_PID`; a background fork runs under another pid with another session id, so
   neither CLM-2 nor WSL-2 sees it as the same session.
 * A resumed session must not lose work in progress: CLM-9 skips the dirty-tree check when a claim is taken back.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+An issue whose claiming session ended is resumed in one action: `cardinal-ui` `s` / `--start` opens the tab in the
+claim's worktree (fresh `claude "/issue-workflow …"`, CLM-2 takes the claim back), `next-issue` prints how to resume
+or give up, and `issue-claim --release` frees a dead claim. Out of scope: handing a claim to a fork of a live session.
+
+## Plan
+1. [x] `issue-claim --release <stem>`: deletes a `working` claim whose process ended (CAS), refuses a live, absent or `merge pending` one; verified by `tests/issue_claim.rs`; makes true CLM-10. (autonomous)
+2. [ ] `next-issue` resume hint: the taken line of an ended claim says `resume: …` or `worktree gone`, then `give up: …`; verified by `tests/issue_claim.rs`; makes true CLM-5, CLM-H2.
+3. [ ] `cardinal-ui` resume: `s` / `--start` on a ready issue whose claim's session ended opens the tab in the claim's worktree without `worktree open`, refuses when that worktree is gone; verified by `crates/cardinal-ui/tests/start.rs`; makes true STU-9, STU-11.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 473be06d5ea1ed679339d904ce28f4860cd3ed13
+- Resume command: a fresh `claude "/issue-workflow issues/<stem>.md"` in the claim's worktree, not `claude --resume` (robust when the transcript is gone; keeps the pane command STU-25 matches).
+- `issue-claim --release` is in scope (deliverable 1): the only way out when the claim's worktree was removed.
+- Fork of a live session: the lock keeps refusing it; it takes over once the original session ended (non-goal of CLM).
+- The split of `specs/steering-ui.md` (over `spec_max_bytes` before this issue) is a follow-up issue, not done here.
+
+## Deliverable 1: summary
+- done: `cardinal run issue-claim --release <stem>` deletes a `working` claim whose process ended (CAS), refuses a missing, `merge pending` or live one.
+
+| check | result |
+|---|---|
+| tests | `issue_claim` 13 passed |
+| lint | clean (project-check) |
+| specs | CLM-10 traced; `issue-claim.md`, `steering-ui.md` draft |
+| docs | `docs/architecture.md`, `issue-workflow/details.md` |
+| code review | see below |
+
+- red: CLM-10: `assertion left == right failed: no claim: usage: issue-claim issues/<stem>.md` (exit 2)
+- Code review: no findings
+- not verified: none
+- decisions needed: none

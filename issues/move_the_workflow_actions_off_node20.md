@@ -30,3 +30,40 @@ workflows refer to `actions/checkout@v4`, `actions/upload-artifact@v4` and `acti
 
 # Resources
 * `files/.github/workflows/cardinal.yml`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+Move every `node20` action of `files/.github/workflows/cardinal.yml` and of the three own workflows to its current
+major on `node24`: checkout v7, upload-artifact v7, download-artifact v8. `Swatinem/rust-cache@v2` already runs on
+`node24` and `taiki-e/install-action@v2` is composite: out of scope. No spec: CI configuration, no capability change.
+
+## Plan
+1. [x] Bump the actions: `checkout@v4` → `@v7` (4 workflow files), `upload-artifact@v4` → `@v7`,
+   `download-artifact@v4` → `@v8` (`release.yml`), then `just sync`; verified by `just check` (`check-cardinal`: the
+   copy matches `files/`) and `grep -rn 'uses:'` showing only `node24` or composite actions. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 5a13598d92b6e3caab3c1347bbb4f072a1434bf2
+- Pins: keep the major tag (`@v7`), as before; no SHA pin in the synced file.
+- Breaking changes read (Approach 1, 3): none applies. Checkout v6 persists the credentials to a separate file and
+  v7 refuses a fork's head under `pull_request_target`/`workflow_run`: no job uses those events, and `release.yml`
+  publishes with `GH_TOKEN`, not the checkout's credentials (its `publish` job has no checkout). download-artifact v5
+  changes the path of a download by ID (we download by pattern with `merge-multiple`), v8 fails on a digest
+  mismatch (wanted). upload-artifact v7 adds an opt-in `archive: false`.
+
+## Summary of deliverable 1
+done: the four workflows (and the synced copy) use `checkout@v7`, `upload-artifact@v7`, `download-artifact@v8`.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`just check`) | pass |
+| docs | nothing cites the action versions |
+| code review (`low`) | no findings |
+
+red: none (CI configuration, no test).
+Code review: no findings
+not verified: the workflows themselves only run on GitHub, after the push.

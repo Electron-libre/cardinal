@@ -27,7 +27,7 @@ jobs:
             os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the stable toolchain for the target
         run: |
           rustup toolchain install stable --profile minimal
@@ -41,7 +41,7 @@ jobs:
           if command -v sha256sum >/dev/null; then sum=sha256sum; else sum="shasum -a 256"; fi
           cp "../target/${{ matrix.target }}/release/cardinal" "cardinal-${{ matrix.target }}"
           $sum "cardinal-${{ matrix.target }}" > "cardinal-${{ matrix.target }}.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cardinal-${{ matrix.target }}
           path: dist/
@@ -50,7 +50,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true

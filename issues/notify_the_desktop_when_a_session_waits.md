@@ -54,6 +54,11 @@ read; a failing command shown once on the status line. Out of scope: `--print`, 
    of `screen.rs` calling it after each read; verified by internal tests of the comparison and of a fake command
    (the screen needs a real terminal); makes true STU-29, STU-30. (autonomous)
 
+2. [x] Fixes of the `high` review of the issue: a wait missed by one read no longer notified again (every mark
+   found is kept), the happy path renumbered STU-H9 (STU-H5 was retired), the notify failure shown beside the status
+   of a task, the fake program of the tests written through `cp` (ETXTBSY); verified by the extended test of
+   `notify.rs`; makes true STU-29. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Identity of a wait: the pair (session, `since`) of its mark, so a reason changed by the idle notification sends
@@ -77,4 +82,24 @@ done: `notify.rs` notifies each wait new since the last read (`CARDINAL_UI_NOTIF
 red: STU-29, STU-30, STU-H5: `assertion left == right failed, left: [], right: ["foo waits|stop"]` and `left: 0, right: 2` (a notifier that sent nothing)
 Code review: no findings
 not verified: a real `notify-send` on the desktop (the tests run a fake program).
+decisions needed: none.
+
+## Summary of deliverable 2
+done: the fixes of the `high` review (7 findings): 2 important and 3 nits fixed, 2 nits not fixed (below).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (STU-29, STU-30 reworded, STU-H9) |
+| docs | n/a (`docs/usage.md` already true) |
+| code review | low, clean |
+
+red: STU-29: `left: ["foo waits|stop", "foo waits|Claude needs your permission", "foo waits|idle"], right: ["foo waits|stop", "foo waits|Claude needs your permission"]`
+Code review: 7 findings (high review of the issue): fixed STU-H5 reused, wait notified twice after a missed read,
+notify failure hiding the task status, ETXTBSY of the test fake, the comment claiming a foreign-session case (the
+case is STU-13's, already proven in `source`); not fixed: markup or a leading `-` in the body of `notify-send` (the
+contract passes the reason as is to any program; the reasons are `stop` and Claude Code's messages), no timeout on a
+hung notifier (one thread per wait, `notify-send` ends on its D-Bus timeout).
+not verified: a real `notify-send` on the desktop.
 decisions needed: none.

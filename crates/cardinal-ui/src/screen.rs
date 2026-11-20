@@ -231,7 +231,12 @@ pub fn run(
                 schedule.ended(Instant::now());
             }
             if let Some(line) = notifier.failure() {
-                status = line;
+                // beside the line of a task, which it must not hide
+                status = if status.is_empty() {
+                    line
+                } else {
+                    format!("{status}  {line}")
+                };
             }
             if let Ok(result) = task_result.try_recv() {
                 match ended(result, quitting) {

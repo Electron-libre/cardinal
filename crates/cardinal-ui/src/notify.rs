@@ -1,5 +1,5 @@
-//! The desktop notification of a new wait (STU-29, STU-30): between two reads of the screen, a worktree that waits
-//! for the user with a mark (its session and its time) the read before did not show sends one notification, through
+//! The desktop notification of a new wait (STU-29, STU-30): a worktree that waits for the user with a mark (its
+//! session and its time) no read of the screen found before sends one notification, through
 //! `CARDINAL_UI_NOTIFY` or `notify-send`, run on a thread of its own; the first failure is kept for the status line.
 
 use std::path::{Path, PathBuf};
@@ -66,8 +66,9 @@ fn send(program: &Path, title: &str, body: &str) -> Result<(), String> {
 /// Sends the notifications of the new waits between the reads it is given (STU-29, STU-30).
 pub struct Notifier {
     program: PathBuf,
-    /// The waits of the last read the worktrees of which could be read; `None` before the first.
-    last: Option<Vec<Wait>>,
+    /// Every wait the reads found, so one a read missed is not new when it comes back; `None` before the first
+    /// read. A new wait has a new time, so it grows by one per wait, never pruned.
+    seen: Option<Vec<Wait>>,
     failures: mpsc::Sender<String>,
     failed: mpsc::Receiver<String>,
     /// Whether a failure was already given to the status line.
@@ -79,19 +80,25 @@ impl Notifier {
         let (failures, failed) = mpsc::channel();
         Self {
             program,
-            last: None,
+            seen: None,
             failures,
             failed,
             shown: false,
         }
     }
 
-    /// Takes the waits of a read, `None` when its worktrees could not be read (then the last ones are kept), and
-    /// notifies, each on a thread, those the last read did not show; none on the first read.
+    /// Takes the waits of a read, `None` when its worktrees could not be read, and notifies, each on a thread, those
+    /// no read found before; none on the first read.
     pub fn read(&mut self, waits: Option<&[Wait]>) {
         let Some(now) = waits else { return };
-        if let Some(last) = &self.last {
-            for wait in now.iter().filter(|w| !last.iter().any(|l| l.same(w))) {
+        let first = self.seen.is_none();
+        let seen = self.seen.get_or_insert_with(Vec::new);
+        for wait in now {
+            if seen.iter().any(|s| s.same(wait)) {
+                continue;
+            }
+            seen.push(wait.clone());
+            if !first {
                 let (title, body) = wait.notification();
                 let program = self.program.clone();
                 let failures = self.failures.clone();
@@ -102,7 +109,6 @@ impl Notifier {
                 });
             }
         }
-        self.last = Some(now.to_vec());
     }
 
     /// The line of the first failure of a notification, once (STU-30).
@@ -140,7 +146,15 @@ mod tests {
             "#!/bin/sh\nprintf '%s|%s\\n' \"$1\" \"$2\" >> '{}'\necho '{err}' >&2\nexit {code}\n",
             log.display()
         );
-        std::fs::write(&program, script).unwrap();
+        // written by a child, so no fork of a parallel test inherits an open write of it (ETXTBSY at its exec)
+        let draft = dir.join("notify.draft");
+        std::fs::write(&draft, script).unwrap();
+        let copied = std::process::Command::new("cp")
+            .arg(&draft)
+            .arg(&program)
+            .status()
+            .unwrap();
+        assert!(copied.success());
         std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
         (program, log)
     }
@@ -158,7 +172,7 @@ mod tests {
         }
     }
 
-    // spec: STU-H5 (internal: the screen of the flow needs a real terminal)
+    // spec: STU-H9 (internal: the screen of the flow needs a real terminal)
     // spec: STU-29 (internal: the reads of a screen that needs a real terminal)
     #[test]
     fn a_new_wait_is_notified_once_and_not_those_of_the_first_read() {
@@ -171,18 +185,15 @@ mod tests {
             wait("/foo", "b", 2, "stop"),
         ]));
         assert_eq!(lines(&log, 1), ["foo waits|stop"]);
-        // the reason changed by the idle notification, the worktrees unreadable, a mark of another session: nothing
-        n.read(Some(&[
-            wait("/old", "a", 1, "idle"),
-            wait("/foo", "b", 2, "idle"),
-        ]));
+        // the reason changed by the idle notification, the worktrees unreadable, the mark missed by one read: nothing
+        let both = [wait("/old", "a", 1, "idle"), wait("/foo", "b", 2, "idle")];
+        n.read(Some(&both));
         n.read(None);
-        n.read(Some(&[
-            wait("/old", "a", 1, "idle"),
-            wait("/foo", "b", 2, "idle"),
-        ]));
+        n.read(Some(&both));
+        n.read(Some(&both[..1]));
+        n.read(Some(&both));
         // the session worked, then waits anew
-        n.read(Some(&[wait("/old", "a", 1, "idle")]));
+        n.read(Some(&both[..1]));
         n.read(Some(&[
             wait("/old", "a", 1, "idle"),
             wait("/foo", "b", 9, "Claude needs your permission"),

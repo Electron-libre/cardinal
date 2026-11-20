@@ -38,11 +38,11 @@ The work done before this file existed is in `issues/done/`.
 - Why: once a session closes its issue on its branch, the user opens the main worktree to merge it by hand, then
   ends the session, closes the tab and runs `cardinal run worktree close`; the close also pushes and opens a pull
   request a project that merges locally does not want.
-- State: in issues
+- State: done
 - Issues:
   - [merge_back_locally_when_the_project_asks](issues/done/merge_back_locally_when_the_project_asks.md)
   - [merge_a_closed_issue_from_the_steering_ui](issues/done/merge_a_closed_issue_from_the_steering_ui.md)
-  - [end_the_session_of_a_merged_issue](issues/end_the_session_of_a_merged_issue.md)
+  - [end_the_session_of_a_merged_issue](issues/done/end_the_session_of_a_merged_issue.md)
 
 ## Releases from the steering UI
 

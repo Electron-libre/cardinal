@@ -40,7 +40,7 @@ The work done before this file existed is in `issues/done/`.
   request a project that merges locally does not want.
 - State: in issues
 - Issues:
-  - [merge_back_locally_when_the_project_asks](issues/merge_back_locally_when_the_project_asks.md)
+  - [merge_back_locally_when_the_project_asks](issues/done/merge_back_locally_when_the_project_asks.md)
   - [merge_a_closed_issue_from_the_steering_ui](issues/merge_a_closed_issue_from_the_steering_ui.md)
   - [end_the_session_of_a_merged_issue](issues/end_the_session_of_a_merged_issue.md)
 

@@ -1,6 +1,6 @@
 //! The theme of the screen (STU-31 to STU-33): the colors of its roles, read once from a file of
-//! `<role> = "#rrggbb"` lines a theme generator writes, never created nor written; a role the file does not set, or
-//! sets on a line it ignores, keeps its default, an ANSI color that follows the terminal's palette.
+//! `<role> = "#rrggbb"` lines a theme generator writes, never created nor written; a role the file does not set keeps
+//! its default, an ANSI color that follows the terminal's palette, and a line it ignores leaves its role as it was.
 
 use std::path::{Path, PathBuf};
 
@@ -87,12 +87,17 @@ impl Theme {
     }
 }
 
-/// The theme file: the one `CARDINAL_UI_THEME` names, else `<config>/cardinal-ui/theme.toml`, `<config>` the value of
-/// `XDG_CONFIG_HOME` when it is absolute, else `$HOME/.config`; `None` with neither (STU-32).
-pub fn path() -> Option<PathBuf> {
-    if let Some(file) = std::env::var_os("CARDINAL_UI_THEME") {
-        return Some(PathBuf::from(file));
+/// The theme of the user and the `theme:` lines of what it ignored (STU-32, STU-33).
+pub fn load() -> (Theme, Vec<String>) {
+    match std::env::var_os("CARDINAL_UI_THEME") {
+        Some(file) => read(Some(Path::new(&file)), true),
+        None => read(config().as_deref(), false),
     }
+}
+
+/// The theme file of the config directory: `<config>/cardinal-ui/theme.toml`, `<config>` the value of
+/// `XDG_CONFIG_HOME` when it is absolute, else `$HOME/.config`; `None` with neither (STU-32).
+fn config() -> Option<PathBuf> {
     let config = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
         .filter(|p| p.is_absolute())
@@ -100,15 +105,17 @@ pub fn path() -> Option<PathBuf> {
     Some(config.join("cardinal-ui").join("theme.toml"))
 }
 
-/// The theme of the file at `path` and the `theme:` lines of what it ignored: none for a missing file, the read
-/// error alone with every default for a file that cannot be read (STU-33).
-pub fn load(path: Option<&Path>) -> (Theme, Vec<String>) {
+/// The theme of the file at `path` and the `theme:` lines of what it ignored: none for a missing file unless the user
+/// `named` it, the read error alone with every default for a file that cannot be read (STU-33).
+fn read(path: Option<&Path>, named: bool) -> (Theme, Vec<String>) {
     let Some(path) = path else {
         return (Theme::default(), Vec::new());
     };
     match std::fs::read_to_string(path) {
         Ok(text) => parse(&text),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Theme::default(), Vec::new()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound && !named => {
+            (Theme::default(), Vec::new())
+        }
         Err(e) => (
             Theme::default(),
             vec![format!("theme: {}: {e}", path.display())],
@@ -121,6 +128,8 @@ pub fn load(path: Option<&Path>) -> (Theme, Vec<String>) {
 pub fn parse(text: &str) -> (Theme, Vec<String>) {
     let mut theme = Theme::default();
     let mut ignored = Vec::new();
+    // a byte order mark some editors write is no part of the first line
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     for (n, line) in text.lines().enumerate() {
         match setting(line) {
             Ok(Some((role, color))) => theme.set[role as usize] = Some(color),
@@ -216,7 +225,7 @@ mod tests {
 
     // spec: STU-33 (internal: the causes of every ignored line, the status line only a terminal shows)
     #[test]
-    fn an_ignored_line_keeps_its_default_and_is_named() {
+    fn an_ignored_line_leaves_its_role_and_is_named() {
         let (theme, ignored) = parse(
             "pass = \"#12345\"\npass = \"#1234567\"\nfail = #ff0000\nwarn = \"#gggggg\" \nx y = \"#000000\"\ninfo = \"#000000\" trailing\n= \"#000000\"\n",
         );
@@ -233,6 +242,16 @@ mod tests {
                 "theme: line 7 ignored: not a role = \"#rrggbb\" line",
             ]
         );
+        let (theme, once) = parse("accent = \"#111111\"\naccent = \"blue\"\n");
+        assert_eq!(once.len(), 1);
+        assert_eq!(
+            theme.color(Role::Accent),
+            Color::Rgb(0x11, 0x11, 0x11),
+            "as the lines before it set it"
+        );
+        let (theme, bom) = parse("\u{feff}background = \"#1e1e2e\"\n");
+        assert!(bom.is_empty(), "a byte order mark: {bom:?}");
+        assert_eq!(theme.color(Role::Background), Color::Rgb(0x1e, 0x1e, 0x2e));
         assert_eq!(status(&[]), "");
         assert_eq!(status(&ignored[..1]), ignored[0]);
         assert_eq!(status(&ignored[..3]), format!("{} (+2 more)", ignored[0]));

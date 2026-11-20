@@ -103,6 +103,9 @@ impl Project {
             .current_dir(&self.repo)
             .env("CARDINAL_UI_CARDINAL", cardinal)
             .env("XDG_CACHE_HOME", self.root.path().join("cache"))
+            // the theme of the user is never read (STU-32)
+            .env("XDG_CONFIG_HOME", "/nonexistent/config")
+            .env_remove("CARDINAL_UI_THEME")
             .env_remove("ZELLIJ")
             .output()
             .unwrap();

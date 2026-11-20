@@ -62,6 +62,10 @@ Means: a line-based reader instead of a TOML library, so each ignored line has i
 2. [x] Styled states: the lines of the panels carry the role of their words (`ready`, `blocked`, `on hold`, `merged`,
    `waiting since`, `awaits release`, `merge pending`, `measuring…`, errors, `free`, `ended`, the `>` offered),
    drawn by the screen, `--print` unchanged; verified by internal render tests; makes true STU-31 (spec `accepted`). (autonomous)
+3. [x] Fixes of the `high` review: the status message in `text` (not `muted`), an ignored line leaves its role as
+   set before it, a missing file `CARDINAL_UI_THEME` names is named, a byte order mark skipped, the first screen
+   drawn on `background`, the tests of `measures.rs` and `merge.rs` kept from the user's theme; spec and usage
+   amended; verified by the tests of `theme.rs`, `screen.rs` and `print.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -99,6 +103,25 @@ Means: a line-based reader instead of a TOML library, so each ignored line has i
 | code review | no findings |
 
 - red: STU-31: `left: []` against `[(">", Accent), ("ready", Pass)]`, then the cell of `ready` drawn `Reset` instead of `Rgb(0, 170, 0)`.
+- Code review: no findings
+- not verified: the colors in a real terminal.
+- decisions needed: none
+
+## Deliverable 3 summary
+- done: the findings of the `high` review fixed (see the plan line); STU-31 to STU-33 amended to match.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | usage amended |
+| code review | no findings |
+
+- red: STU-31, STU-32, STU-33: the status message drawn `Rgb(0, 0, 5)` (`muted`) instead of `text`; `theme: line 1
+  ignored` for a file opening on a byte order mark.
+- High review: 7 findings; 6 fixed here, 1 pre-existing (the selected line highlighted only under its text, as
+  before this issue) filed as `issues/highlight_the_selected_line_across_its_panel.md`.
 - Code review: no findings
 - not verified: the colors in a real terminal.
 - decisions needed: none

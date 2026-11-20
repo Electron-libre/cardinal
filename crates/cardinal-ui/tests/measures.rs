@@ -84,6 +84,9 @@ impl Project {
             .env("TZ", "UTC")
             .env("HOME", self.path("home"))
             .env("XDG_CACHE_HOME", xdg)
+            // the theme of the user is never read (STU-32)
+            .env("XDG_CONFIG_HOME", "/nonexistent/config")
+            .env_remove("CARDINAL_UI_THEME")
             .output()
             .unwrap();
         (
@@ -234,6 +237,9 @@ fn a_linked_worktree_measures_the_issues_of_the_main_one() {
         .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
         .env_remove("ZELLIJ")
         .env("XDG_CACHE_HOME", p.path("cache"))
+        // the theme of the user is never read (STU-32)
+        .env("XDG_CONFIG_HOME", "/nonexistent/config")
+        .env_remove("CARDINAL_UI_THEME")
         .output()
         .unwrap();
     let calls = p.calls();
@@ -324,6 +330,9 @@ fn two_projects_of_one_name_keep_their_own_cache() {
         .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
         .env_remove("ZELLIJ")
         .env("XDG_CACHE_HOME", &shared)
+        // the theme of the user is never read (STU-32)
+        .env("XDG_CONFIG_HOME", "/nonexistent/config")
+        .env_remove("CARDINAL_UI_THEME")
         .output()
         .unwrap();
     assert!(out.status.success());
@@ -396,6 +405,9 @@ fn a_separate_git_directory_is_its_own_project() {
         .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
         .env_remove("ZELLIJ")
         .env("XDG_CACHE_HOME", p.path("cache"))
+        // the theme of the user is never read (STU-32)
+        .env("XDG_CONFIG_HOME", "/nonexistent/config")
+        .env_remove("CARDINAL_UI_THEME")
         .output()
         .unwrap();
     let calls = p.calls();

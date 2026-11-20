@@ -310,17 +310,18 @@ accent = "#89b4fa"   # titles, the issue offered
 | Role | Default | Drawn on |
 |---|---|---|
 | `background`, `text` | the terminal's | the screen, the lines of the panels |
-| `surface` | the terminal's | the help and status line |
+| `surface` | the terminal's | the help and status line (its message in `text`) |
 | `border` | the terminal's | the borders of the panels |
-| `muted` | dark gray | the help and status line, `free`, `ended` |
+| `muted` | dark gray | the help, `free`, `ended` |
 | `accent` | cyan | the titles, the `>` of the issue offered |
 | `selection` | reversed video | the selected line (its background when set) |
 | `pass`, `fail`, `warn`, `info` | green, red, yellow, blue | `ready` and `merged`; `blocked` and the errors; `on hold` and the waits; `awaits release`, `merge pending`, `measuring…` |
 
 A role the file does not set keeps its default, an ANSI color that follows the palette of the terminal; with no
 file, it draws in those. A line it cannot read (not such a line, an unknown role, a color other than `#rrggbb`) is
-ignored and named `theme: line <n> ignored: <cause>`, on the status line of the screen (the first one, with `(+<k>
-more)`) and on the stderr of `--print`, which prints no color and whose exit code it leaves as it is.
+ignored, its role left as the lines before it set it, and named `theme: line <n> ignored: <cause>`; a file it cannot
+read, or a missing one `CARDINAL_UI_THEME` names, is named `theme: <path>: <error>`, every role at its default;
+both go on the status line of the screen (the first one, with `(+<k> more)`) and on the stderr of `--print`, which prints no color and whose exit code it leaves as it is.
 
 Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
 press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at

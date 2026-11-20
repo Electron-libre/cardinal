@@ -65,7 +65,7 @@ fn interactive() -> i32 {
         let (running, error) = reader.status();
         read(running, error)
     };
-    let (theme, ignored) = theme::load(theme::path().as_deref());
+    let (theme, ignored) = theme::load();
     let status = theme::status(&ignored);
     match screen::run(read, run_task, || measurer.start(), (theme, status)) {
         Ok(None) => 0,
@@ -85,7 +85,7 @@ fn interactive() -> i32 {
 /// when one shows an error (STU-4, STU-8, STU-17).
 fn print() -> i32 {
     // the lines of the theme file it ignored, the colors themselves never printed (STU-31, STU-33)
-    for line in theme::load(theme::path().as_deref()).1 {
+    for line in theme::load().1 {
         eprintln!("{line}");
     }
     let root = source::root(Path::new("."));

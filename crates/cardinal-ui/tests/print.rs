@@ -196,7 +196,8 @@ fn command(dir: &Path, cardinal: &Path, args: &[&str]) -> Command {
         // the measures go next to the fake `cardinal`, never to the cache of the user (STU-18)
         .env("XDG_CACHE_HOME", cardinal.parent().unwrap().join("cache"))
         // the theme of the user is never read (STU-32)
-        .env("CARDINAL_UI_THEME", "/nonexistent/theme.toml");
+        .env("XDG_CONFIG_HOME", "/nonexistent/config")
+        .env_remove("CARDINAL_UI_THEME");
     cmd
 }
 
@@ -535,6 +536,18 @@ fn from_a_subdirectory_the_tools_run_at_the_root() {
     let (code, out, err) = ui(&sub, &cardinal, &["--print"]);
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(out.contains("> b"), "{out}");
+    let missing = p.root.path().join("them.toml");
+    let (code, _, err) = ui_env(
+        &p.repo,
+        &cardinal,
+        &[("CARDINAL_UI_THEME", Some(&missing))],
+        &["--print"],
+    );
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        err.starts_with(&format!("theme: {}: ", missing.display())),
+        "a file the variable names is never missing in silence: {err}"
+    );
 }
 
 // spec: STU-7

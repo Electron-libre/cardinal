@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
@@ -112,13 +113,16 @@ fn render(
             .scroll((scroll, 0))
             .render(*area, buf);
     }
-    let help = if status.is_empty() {
-        HELP.to_string()
-    } else {
-        format!("{HELP}  {status}")
-    };
+    // the help in `muted`, the status message in `text`, both on `surface`
+    let mut help = vec![Span::raw(HELP)];
+    if !status.is_empty() {
+        help.push(Span::styled(
+            format!("  {status}"),
+            Style::new().fg(theme.color(Role::Text)),
+        ));
+    }
     buf.set_style(areas[4], theme.status());
-    Line::raw(help).render(areas[4], buf);
+    Line::from(help).render(areas[4], buf);
 }
 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
@@ -215,6 +219,32 @@ fn received(
     }
 }
 
+/// Draws `view` in the frame `f`, the line `selected` of [`Selection::line`] highlighted, or `reading the project…`
+/// before the first read, in the roles of `theme` (STU-31).
+fn draw(
+    f: &mut ratatui::Frame,
+    view: Option<&View>,
+    selected: Selection,
+    status: &str,
+    theme: &Theme,
+) {
+    let area = f.area();
+    // a panel holds one line per stem or worktree, in order: an empty or failed one selects nothing
+    if let Some(v) = view {
+        render(
+            area,
+            f.buffer_mut(),
+            &v.panels,
+            selected.line(v),
+            status,
+            theme,
+        );
+    } else {
+        f.buffer_mut().set_style(area, theme.screen());
+        Line::raw("reading the project…").render(area, f.buffer_mut());
+    }
+}
+
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUA-3, SUA-4, SUA-13), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
@@ -273,20 +303,7 @@ pub fn run(
                 busy = false;
                 schedule.asked = true;
             }
-            terminal.draw(|f| match &view {
-                // a panel holds one line per stem or worktree, in order: an empty or failed one selects nothing
-                Some(v) => render(
-                    f.area(),
-                    f.buffer_mut(),
-                    &v.panels,
-                    selected.line(v),
-                    &status,
-                    &theme,
-                ),
-                None => Line::raw("reading the project…")
-                    .style(theme.screen())
-                    .render(f.area(), f.buffer_mut()),
-            })?;
+            terminal.draw(|f| draw(f, view.as_ref(), selected, &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
                     let key = action(&key);
@@ -416,6 +433,12 @@ mod tests {
         let status = find("theme: line 9 ignored");
         assert_eq!((buf[(0, status)].fg, buf[(0, status)].bg), (rgb(5), rgb(2)));
         assert_eq!(buf[(139, status)].bg, rgb(2), "the whole line");
+        let message = u16::try_from(row(status).find("theme: line").unwrap()).unwrap();
+        assert_eq!(
+            (buf[(message, status)].fg, buf[(message, status)].bg),
+            (rgb(4), rgb(2)),
+            "the status message in text"
+        );
     }
 
     // spec: STU-31 (internal: the colors of a screen that needs a real terminal)

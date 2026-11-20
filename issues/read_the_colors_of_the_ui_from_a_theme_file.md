@@ -59,9 +59,9 @@ Means: a line-based reader instead of a TOML library, so each ignored line has i
    the borders, titles, lines, background, selection and help/status line, the `theme:` lines on the status line and
    the stderr of `--print`; verified by tests of `print.rs` (stderr, no escape sequence, exit code) and internal
    render tests of the buffer's colors; makes true STU-32, STU-33. (autonomous)
-2. [ ] Styled states: the lines of the panels carry the role of their words (`ready`, `blocked`, `on hold`, `merged`,
+2. [x] Styled states: the lines of the panels carry the role of their words (`ready`, `blocked`, `on hold`, `merged`,
    `waiting since`, `awaits release`, `merge pending`, `measuring…`, errors, `free`, `ended`, the `>` offered),
-   drawn by the screen, `--print` unchanged; verified by internal render tests; makes true STU-31 (spec `accepted`).
+   drawn by the screen, `--print` unchanged; verified by internal render tests; makes true STU-31 (spec `accepted`). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -84,4 +84,21 @@ Means: a line-based reader instead of a TOML library, so each ignored line has i
 - red: STU-32, STU-33: `left: []` against the expected `theme: line 3 ignored: invalid color "blue"` lines on stderr.
 - Code review: no findings
 - not verified: the colors in a real terminal (drawn into a buffer by the tests only).
+- decisions needed: none
+
+## Deliverable 2 summary
+- done: the lines of the panels carry the role of their state words (`Mark`), drawn by the screen over the
+  selection; `--print` unchanged; spec `accepted`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (`steering-ui` accepted) |
+| docs | architecture updated (usage written with deliverable 1) |
+| code review | no findings |
+
+- red: STU-31: `left: []` against `[(">", Accent), ("ready", Pass)]`, then the cell of `ready` drawn `Reset` instead of `Rgb(0, 170, 0)`.
+- Code review: no findings
+- not verified: the colors in a real terminal.
 - decisions needed: none

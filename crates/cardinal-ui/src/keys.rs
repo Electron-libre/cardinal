@@ -302,6 +302,7 @@ pub(crate) mod tests {
         let panel = |title| Panel {
             title,
             lines: Vec::new(),
+            marks: Vec::new(),
             failed: false,
         };
         View {

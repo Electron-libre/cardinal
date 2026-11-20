@@ -10,12 +10,12 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::keys::{action, ended, job, quits, task, Action, Ended, Focus, Selection, Task};
 use crate::notify::{self, Notifier, Wait};
-use crate::panels::Panel;
+use crate::panels::{Mark, Panel};
 use crate::theme::{Role, Theme};
 
 /// How often the screen reads the project again (STU-2).
@@ -45,6 +45,23 @@ fn height(p: &Panel) -> u16 {
     u16::try_from(p.lines.len())
         .unwrap_or(u16::MAX)
         .saturating_add(2)
+}
+
+/// The line `text` with the words of `marks` (in the order of the line) in their role (STU-31).
+fn styled<'a>(text: &'a str, marks: impl Iterator<Item = &'a Mark>, theme: &Theme) -> Line<'a> {
+    let mut spans = Vec::new();
+    let mut at = 0;
+    for m in marks {
+        let (Some(before), Some(word)) = (text.get(at..m.range.start), text.get(m.range.clone()))
+        else {
+            continue;
+        };
+        spans.push(Span::raw(before));
+        spans.push(Span::styled(word, theme.fg(m.role)));
+        at = m.range.end;
+    }
+    spans.push(Span::raw(text.get(at..).unwrap_or("")));
+    Line::from(spans)
 }
 
 /// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the milestones, the worktrees and the
@@ -78,7 +95,7 @@ fn render(
             .iter()
             .enumerate()
             .map(|(i, l)| {
-                let line = Line::raw(l.as_str());
+                let line = styled(l, p.marks.iter().filter(|m| m.line == i), theme);
                 if selected == Some((n, i)) {
                     line.style(theme.selected())
                 } else {
@@ -325,6 +342,7 @@ mod tests {
         let panel = |title, lines: &[&str]| Panel {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            marks: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -357,6 +375,7 @@ mod tests {
         let panel = |title, lines: &[&str]| Panel {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            marks: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -399,6 +418,46 @@ mod tests {
         assert_eq!(buf[(139, status)].bg, rgb(2), "the whole line");
     }
 
+    // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
+    #[test]
+    fn the_marked_words_are_drawn_in_their_role_also_when_selected() {
+        let panel = |title, lines: &[&str], marks| Panel {
+            title,
+            lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            marks,
+            failed: false,
+        };
+        let ready = |line| crate::panels::Mark {
+            line,
+            range: 5..10,
+            role: Role::Pass,
+        };
+        let panels = [
+            panel("Milestones", &["m"], Vec::new()),
+            panel(
+                "Queue",
+                &["  a  ready", "  b  ready"],
+                vec![ready(0), ready(1)],
+            ),
+            panel("Worktrees", &["w"], Vec::new()),
+            panel("Measures", &["x"], Vec::new()),
+        ];
+        let (theme, _) = crate::theme::parse("pass = \"#00aa00\"\nselection = \"#333333\"");
+        let area = Rect::new(0, 0, 140, 15);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &panels, Some((1, 1)), "", &theme);
+        let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let a = (0..15).find(|y| row(*y).contains("  a  ready")).unwrap();
+        let b = (0..15).find(|y| row(*y).contains("  b  ready")).unwrap();
+        let green = Color::Rgb(0, 0xaa, 0);
+        assert_eq!(buf[(6, a)].fg, green, "{}", row(a));
+        assert_eq!(buf[(3, a)].fg, Color::Reset, "the stem in text");
+        assert_eq!(
+            (buf[(6, b)].fg, buf[(6, b)].bg),
+            (green, Color::Rgb(0x33, 0x33, 0x33))
+        );
+    }
+
     // spec: STU-14 (internal: the selection of a screen that needs a real terminal)
     #[test]
     fn the_selection_follows_its_issue_and_stays_visible() {
@@ -421,6 +480,7 @@ mod tests {
         let panel = |title, lines: Vec<String>| Panel {
             title,
             lines,
+            marks: Vec::new(),
             failed: false,
         };
         let queue = (1..=40).map(|i| format!("  issue{i:02}")).collect();
@@ -469,6 +529,7 @@ mod tests {
         let panel = |title, lines: &[&str]| Panel {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            marks: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -493,6 +554,7 @@ mod tests {
         let panel = |title, lines: Vec<String>| Panel {
             title,
             lines,
+            marks: Vec::new(),
             failed: false,
         };
         let worktrees = (1..=20).map(|i| format!("/ws{i:02}")).collect();

@@ -72,7 +72,7 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 - Resume command: a fresh `claude "/issue-workflow issues/<stem>.md"` in the claim's worktree, not `claude --resume` (robust when the transcript is gone; keeps the pane command STU-25 matches).
 - `issue-claim --release` is in scope (deliverable 1): the only way out when the claim's worktree was removed.
 - Fork of a live session: the lock keeps refusing it; it takes over once the original session ended (non-goal of CLM).
-- The split of `specs/steering-ui.md` (over `spec_max_bytes` before this issue) is left to the existing `issues/split_the_steering_ui_spec.md`.
+- The split of `specs/steering-ui.md` (over `spec_max_bytes` before this issue) is left to the existing `issues/done/split_the_steering_ui_spec.md`.
 
 ## Deliverable 1: summary
 - done: `cardinal run issue-claim --release <stem>` deletes a `working` claim whose process ended (CAS), refuses a missing, `merge pending` or live one.

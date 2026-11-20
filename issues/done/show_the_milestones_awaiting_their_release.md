@@ -35,7 +35,7 @@ Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
 Mark in the milestones panel each milestone that `release --json` lists (matched on name and document) as
 `awaits release v<proposed>` (bare `awaits release` when `proposed` is `null`); run `release` only when a listed
 milestone is `done`. Out of scope: preparing or tagging the release from the UI, splitting the spec
-(`issues/split_the_steering_ui_spec.md`).
+(`issues/done/split_the_steering_ui_spec.md`).
 
 ## Plan
 1. [x] Awaiting release mark: `source.rs` reads `release --json` after `roadmap` when a milestone is `done`, `panels.rs`

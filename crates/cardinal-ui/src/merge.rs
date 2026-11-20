@@ -57,14 +57,7 @@ pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     let branch = pending_branch(root, stem)?;
     // the full name: a tag of the same name would win over the branch
     let head = format!("refs/heads/{branch}");
-    let close = format!("{head}:issues/done/{stem}.md");
-    let (_, _, code) = source::run(
-        "git cat-file",
-        Path::new("git"),
-        &["cat-file", "-e", &close],
-        root,
-    )?;
-    if code != 0 {
+    if !source::holds_close(root, &branch, stem)? {
         return Err(format!(
             "{branch} does not hold the close of {stem}: commit it first"
         ));

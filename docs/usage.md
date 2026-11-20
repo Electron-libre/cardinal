@@ -265,7 +265,7 @@ project of the current directory (the root of its work tree) in one terminal scr
 |---|---|---|
 | Milestones | `cardinal run roadmap --open --json`, the released ones left out | name, state (`(on hold)` after it), open issues over the listed ones |
 | Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem; the problems of the issue files under it, after `!` |
-| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
+| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch (`merged` after it when the trunk holds the close of the issue of that name), the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
 | Measures | the last measure of the project (below) | `measured <HH:MM>`; per group of the last four groups of revisions of the project, its sessions and the medians of input tokens (with the share read from cache), output tokens, peak context (with the sessions it rests on) and validations, or `too few`; per milestone, its done issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue (with the issues of known tokens) |
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
@@ -305,7 +305,8 @@ why nothing was; `s` and `f` start nothing while a start or a merge runs, and `q
 a merge. The next
 read drops the claim (CLM-6).
 
-Once the trunk holds the close of an issue, `cardinal-ui --end <stem>` ends what it left, from any other worktree of
+Once the trunk holds the close of an issue, `f` goes on once `cardinal check` passed, and `cardinal-ui --end <stem>`
+does alone (for an issue merged by hand), ending what it left, from any other worktree of
 the project: the session of the linked worktree on the branch `<stem>` and its tab, then the worktree and the branch
 (`cardinal run worktree close <stem>`, run in the main worktree). In a zellij session, the tab named `<stem>` whose
 pane runs `claude /issue-workflow issues/<stem>.md` (the one `s` opened, found with `zellij action list-panes --json

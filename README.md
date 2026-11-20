@@ -88,8 +88,8 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 holds each (and whether it waits for the user) and the trend of its measures (per group of revisions and per milestone), refreshed every 2 seconds (`r` now, `q` or `Ctrl+C` to quit); `--print`
 prints the screen once. It reads the project through `cardinal run next-issue --json` and `roadmap --json`. In a zellij
 session, `s` on a ready issue opens its worktree and a tab running `claude` on it; `f` on an issue `merge pending`
-fast-forwards the trunk of the main worktree to its branch; `--end <stem>` then ends its waiting session, closes its
-tab and removes its worktree and branch. No release binary yet:
+fast-forwards the trunk of the main worktree to its branch, then ends its waiting session, closes its tab and removes
+its worktree and branch (`--end <stem>` for an issue merged by hand). No release binary yet:
 `cargo install --git https://github.com/Electron-libre/cardinal.git cardinal-ui` (or `just install-ui` in a clone).
 Details: [docs/usage.md](docs/usage.md#steering-ui).
 

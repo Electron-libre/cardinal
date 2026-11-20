@@ -354,3 +354,28 @@ fn a_bare_repository_has_no_main_worktree_to_merge_in() {
     );
     assert_eq!(p.log(), "");
 }
+
+// spec: STU-23
+#[test]
+fn a_linked_worktree_whose_close_is_on_the_trunk_reads_merged() {
+    let p = project();
+    let cardinal = p.cardinal("exit 0");
+    let ws = p.ws.display().to_string();
+    let row = |shown: String| {
+        shown
+            .lines()
+            .find(|l| l.contains(&ws))
+            .unwrap_or_default()
+            .to_string()
+    };
+    let before = row(p.print(&cardinal));
+    assert!(
+        before.contains("foo") && !before.contains("merged"),
+        "{before}"
+    );
+    git(&p.repo, &["merge", "-q", "--ff-only", "foo"]);
+    let after = row(p.print(&cardinal));
+    assert!(after.contains("foo  merged"), "{after}");
+    let main = p.print(&cardinal);
+    assert!(!main.lines().any(|l| l.contains("trunk  merged")), "{main}");
+}

@@ -121,9 +121,10 @@ fn worktree(w: &Worktree) -> String {
         Some(s) => format!("session {} ended", s.id),
     };
     format!(
-        "{}  {}  {session}",
+        "{}  {}{}  {session}",
         w.path,
-        w.branch.as_deref().unwrap_or("detached")
+        w.branch.as_deref().unwrap_or("detached"),
+        if w.merged { "  merged" } else { "" }
     )
 }
 

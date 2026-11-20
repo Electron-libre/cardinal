@@ -96,14 +96,7 @@ pub fn end(root: &Path, stem: &str) -> Result<String, String> {
         .ok_or_else(|| format!("{stem}: no linked worktree on branch {stem}"))?;
     let path = Path::new(&target.path);
     let trunk = trunk.ok_or("main worktree not on a branch")?;
-    let close = format!("refs/heads/{trunk}:issues/done/{stem}.md");
-    let (_, _, code) = source::run(
-        "git cat-file",
-        Path::new("git"),
-        &["cat-file", "-e", &close],
-        &main,
-    )?;
-    if code != 0 {
+    if !source::holds_close(&main, &trunk, stem)? {
         return Err(format!(
             "{trunk} does not hold the close of {stem}: merge it first"
         ));
@@ -157,4 +150,39 @@ pub fn end(root: &Path, stem: &str) -> Result<String, String> {
         return Err(failed(&done, source::failure(name, code, &err)));
     }
     Ok(format!("ended {stem}"))
+}
+
+/// The result of the merge of STU-20 followed, once its `cardinal check` passed, by the end of its issue (STU-22).
+pub fn after_merge(
+    merged: Result<String, String>,
+    end: impl FnOnce() -> Result<String, String>,
+) -> Result<String, String> {
+    let merged = merged?;
+    end()
+        .map(|e| format!("{merged}; {e}"))
+        .map_err(|e| format!("{merged}; {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::after_merge;
+
+    // spec: STU-22 (internal: the key `f` runs in the terminal loop, which no binary test drives)
+    #[test]
+    fn a_merge_whose_check_passed_chains_the_end_and_a_failed_one_does_not() {
+        let merged = || Ok("merged foo (foo) into trunk".to_string());
+        assert_eq!(
+            after_merge(merged(), || Ok("ended foo".to_string())),
+            Ok("merged foo (foo) into trunk; ended foo".to_string())
+        );
+        assert_eq!(
+            after_merge(merged(), || Err("session s1 is at work in ws".to_string())),
+            Err("merged foo (foo) into trunk; session s1 is at work in ws".to_string())
+        );
+        let failed = Err("merged foo (foo) into trunk; cardinal check: exit 1".to_string());
+        assert_eq!(
+            after_merge(failed.clone(), || panic!("no end after a failed check")),
+            failed
+        );
+    }
 }

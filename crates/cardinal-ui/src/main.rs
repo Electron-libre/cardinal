@@ -79,13 +79,19 @@ fn print() -> i32 {
 fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
     match task {
         screen::Task::Start => start_in_project(stem),
-        screen::Task::Merge => merge_in_project(stem),
+        screen::Task::Merge => merge_then_end(stem),
     }
 }
 
-/// Merges the issue `stem` of the project of the current directory into its trunk (STU-20).
+/// Merges the issue `stem` of the project of the current directory into its trunk (STU-21).
 fn merge_in_project(stem: &str) -> Result<String, String> {
     merge::merge(&source::root(Path::new(".")), stem)
+}
+
+/// Merges the issue `stem`, then ends what it left once its check passed (STU-20, STU-22).
+fn merge_then_end(stem: &str) -> Result<String, String> {
+    let root = source::root(Path::new("."));
+    end::after_merge(merge::merge(&root, stem), || end::end(&root, stem))
 }
 
 /// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (STU-11, STU-21).

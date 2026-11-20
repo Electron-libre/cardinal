@@ -69,6 +69,8 @@ pub struct Worktree {
     /// Its branch, `None` when it is detached.
     pub branch: Option<String>,
     pub session: Option<Session>,
+    /// Whether it is a linked worktree whose branch has its close on the trunk (STU-23).
+    pub merged: bool,
 }
 
 /// Everything the screen shows; each panel holds its error line when it could not be read (STU-6).
@@ -297,6 +299,14 @@ pub fn session(path: &Path) -> Option<Session> {
     })
 }
 
+/// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (STU-21, STU-23,
+/// STU-24); the error line of STU-6 when git cannot run.
+pub fn holds_close(dir: &Path, trunk: &str, stem: &str) -> Result<bool, String> {
+    let close = format!("refs/heads/{trunk}:issues/done/{stem}.md");
+    let args = ["cat-file", "-e", &close];
+    Ok(run("git cat-file", Path::new("git"), &args, dir)?.2 == 0)
+}
+
 /// The worktrees of the repository of `dir`, in the order of `git worktree list --porcelain` (STU-7).
 pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
     let name = "git worktree list";
@@ -316,6 +326,7 @@ pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
                 path: path.to_string(),
                 branch: None,
                 session: None,
+                merged: false,
             });
         } else if let (Some(b), Some(w)) =
             (line.strip_prefix("branch refs/heads/"), list.last_mut())
@@ -325,6 +336,15 @@ pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
     }
     for w in &mut list {
         w.session = session(Path::new(&w.path));
+    }
+    let trunk = list.first().and_then(|m| m.branch.clone());
+    if let Some(trunk) = trunk {
+        for w in list.iter_mut().skip(1) {
+            w.merged = w
+                .branch
+                .as_deref()
+                .is_some_and(|b| holds_close(dir, &trunk, b) == Ok(true));
+        }
     }
     Ok(list)
 }

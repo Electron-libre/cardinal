@@ -58,8 +58,8 @@ without the close. Out of scope: `--force`, ending a session whose issue is not 
 1. [x] `cardinal-ui --end <stem>` (new `end.rs`): the refusals, then tab or pane close / `SIGHUP`, the wait of 10 s and
    `worktree close`, each failure reported after what was done; verified by `tests/end.rs` (fake `zellij` and
    `cardinal`, a `sleep` holding the lock); makes true STU-24, STU-25, STU-3. (autonomous)
-2. [ ] Chain the end after a merge whose `cardinal check` passed, and the `merged` mark of the worktrees panel;
-   verified by `tests/merge.rs` and `tests/print.rs`; makes true STU-23 and the chain of STU-22.
+2. [x] Chain the end after a merge whose `cardinal check` passed, and the `merged` mark of the worktrees panel;
+   verified by `tests/merge.rs` and `tests/print.rs`; makes true STU-23 and the chain of STU-22. (autonomous)
 3. [ ] Selection in the worktrees panel (`Tab`, arrows, kept by path across reads) and the key `e`, one task at a time;
    verified by unit tests of `screen.rs` and the `--end` test; makes true STU-22, STU-15, STU-H6, STU-H7.
 
@@ -90,4 +90,22 @@ red: STU-24, STU-25, STU-3: `usage: cardinal-ui [--print | --start <stem> | --me
 Code review: no findings
 not verified: the end against a real zellij and `claude` (measured by hand at step 1 only); the test of a session deaf
 to `SIGHUP` takes 10 s.
+decisions needed: none
+
+## Summary of deliverable 2
+done: the key `f` chains the end once `cardinal check` passed (`end::after_merge`); the worktrees panel shows
+`merged`; `source::holds_close` shared by the merge, the end and the mark; docs (usage, README).
+
+| check | result |
+|---|---|
+| tests | `tests/merge.rs` 12 passed, unit test of `after_merge`; `project-check` exit 0 |
+| lint | clean |
+| specs | unchanged warnings (STU-20 `fast`, spec size) |
+| docs | `docs/usage.md`, `README.md` |
+| code review | low, 1 finding (fixed) |
+
+red: STU-23: the row of the merged worktree lacked `foo  merged`; STU-22: `unresolved import super::after_merge`
+Code review: 1 findings: `holds_close` hid a git that cannot run behind `false`: fixed, it returns `Result<bool, String>`
+not verified: the chain through the key `f` in a terminal (the loop has no binary test; the unit test covers the
+chain).
 decisions needed: none

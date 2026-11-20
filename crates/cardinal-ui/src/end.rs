@@ -136,6 +136,17 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
             "{trunk} does not hold the close of {stem}: merge it first"
         ));
     }
+    let ancestor = [
+        "merge-base",
+        "--is-ancestor",
+        &format!("refs/heads/{branch}"),
+        &format!("refs/heads/{trunk}"),
+    ];
+    if source::run("git merge-base", Path::new("git"), &ancestor, &main)?.2 != 0 {
+        return Err(format!(
+            "{branch} has commits {trunk} lacks: merge them first"
+        ));
+    }
     if !git(path, &["status", "--porcelain"])?.trim().is_empty() {
         return Err(format!(
             "{} has uncommitted changes or untracked files",
@@ -215,6 +226,16 @@ pub fn end_merged(root: &Path) -> Result<(Vec<String>, bool), String> {
     Ok((lines, all_ended))
 }
 
+/// The status line of `E`: the lines of `end_merged` joined by ` | `, an error when it kept one (SUA-13).
+pub fn merged_status(lines: &[String], all_ended: bool) -> Result<String, String> {
+    let line = merged_lines(lines).join(" | ");
+    if all_ended {
+        Ok(line)
+    } else {
+        Err(line)
+    }
+}
+
 /// The lines of `end_merged`, `no merged worktree` when it has none (SUA-14).
 pub fn merged_lines(lines: &[String]) -> Vec<String> {
     if lines.is_empty() {
@@ -237,7 +258,31 @@ pub fn after_merge(
 
 #[cfg(test)]
 mod tests {
-    use super::after_merge;
+    use super::{after_merge, merged_status};
+
+    // spec: SUA-13, SUA-H6 (internal: the status line of the key `E`, drawn in the terminal loop)
+    #[test]
+    fn the_status_line_of_e_parts_each_worktree_and_fails_when_one_is_kept() {
+        let ended = |s: &str| s.to_string();
+        assert_eq!(
+            merged_status(&[ended("ended foo"), ended("ended bar")], true),
+            Ok("ended foo | ended bar".to_string())
+        );
+        assert_eq!(
+            merged_status(
+                &[
+                    ended("kept foo: closed tab foo; worktree close: exit 1: no"),
+                    ended("ended bar")
+                ],
+                false
+            ),
+            Err("kept foo: closed tab foo; worktree close: exit 1: no | ended bar".to_string())
+        );
+        assert_eq!(
+            merged_status(&[], true),
+            Ok("no merged worktree".to_string())
+        );
+    }
 
     // spec: SUA-3 (internal: the key `f` runs in the terminal loop, which no binary test drives)
     #[test]

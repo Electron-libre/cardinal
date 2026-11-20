@@ -105,12 +105,7 @@ fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
 /// kept one.
 fn end_merged_status() -> Result<String, String> {
     let (lines, all_ended) = end::end_merged(&source::root(Path::new(".")))?;
-    let line = end::merged_lines(&lines).join("; ");
-    if all_ended {
-        Ok(line)
-    } else {
-        Err(line)
-    }
+    end::merged_status(&lines, all_ended)
 }
 
 /// Prints one line per merged worktree on stdout, exit code 0 when it ended them all, 1 when it kept one; or why it

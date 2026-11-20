@@ -556,3 +556,28 @@ fn a_detached_main_worktree_ends_nothing() {
     assert!(err.contains("main worktree not on a branch"), "{err}");
     assert_eq!(p.log(), "");
 }
+
+// spec: SUA-8
+#[test]
+fn a_branch_with_commits_the_trunk_lacks_keeps_its_session() {
+    let mut p = project(true);
+    let pid = p.session(true, false);
+    p.tab(false);
+    std::fs::write(p.ws.join("fix"), "x").unwrap();
+    git(&p.ws, &["add", "fix"]);
+    git(&p.ws, &["commit", "-qm", "fix", "--no-verify"]);
+    let (code, _, err) = p.end(&p.repo, "foo", true);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains("foo has commits trunk lacks: merge them first"),
+        "{err}"
+    );
+    assert_eq!(p.log(), "", "no tab closed, no worktree close");
+    assert!(alive(pid), "the session still runs");
+    let (code, out, _) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(1));
+    assert_eq!(
+        out,
+        "kept foo: foo has commits trunk lacks: merge them first\n"
+    );
+}

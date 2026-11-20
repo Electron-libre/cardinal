@@ -56,7 +56,8 @@ each `merged` linked worktree and reports one line each (SUA-13, SUA-14). Out of
    and a unit test of the key in `screen.rs`; makes true SUA-13, SUA-14. (autonomous)
 2. [x] Split `crates/cardinal-ui/src/screen.rs` (812 lines, over 800): the keys, the selection and the tasks to a
    module `keys.rs`, no change of behaviour; verified by the unchanged tests. (autonomous)
-3. [ ] Docs of the whole issue and fixes of its `high` review.
+3. [x] Docs of the whole issue and fixes of its `high` review: the end refuses a branch with commits the trunk
+   lacks (SUA-8), the parts of `E` joined by ` | ` (SUA-13); verified by `tests/end.rs` and a unit test of the status line. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -109,3 +110,39 @@ file size: `screen.rs` 433 lines, `keys.rs` 396.
 not verified: none.
 
 decisions needed: none.
+
+## Deliverable 3: summary
+
+done: fixes of the `high` review: the end refuses a branch ahead of the trunk before any tab or signal (SUA-8), the
+status line of `E` parts its worktrees with ` | ` (SUA-13); docs of the whole issue reread.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green (1 binary test, 1 unit test added) |
+| lint | clippy -D warnings green |
+| specs | SUA-8 amended, SUA-13 reworded, spec `accepted` again |
+| docs | `docs/usage.md` |
+| code review | `/code-review low`: no findings |
+
+red: SUA-8: `--end foo` exited 0 on a branch with a commit after the merge; SUA-13, SUA-H6: `unresolved import super::merged_status`.
+
+High review (6 findings):
+- important, the end killed a session then kept its worktree when the branch was ahead of the trunk: fixed (SUA-8).
+- pre-existing, a merged worktree whose directory is gone is kept forever: filed as
+  [end_a_merged_worktree_whose_directory_is_gone](end_a_merged_worktree_whose_directory_is_gone.md).
+- nit, the `; ` of a part and of its steps mixed up: parts joined by ` | `.
+- nit, `end_merged` reads every worktree again per worktree: not fixed, a handful of worktrees, the read is cheap
+  next to the 10 s a session may take to end.
+- nit, Caps Lock turns `e` into `E`: not fixed, crossterm reports an uppercase letter with `SHIFT` whatever the
+  lock, so a modifier check cannot tell them apart.
+- nit, SUA-H6 and the status line untested: unit test of `merged_status` added; the busy guard of `E` is the one
+  `if !busy` of every task key, in the terminal loop no test drives.
+
+Code review: no findings
+
+not verified: `E` in a live zellij screen.
+
+decisions needed: none.
+
+Issue done: every deliverable committed; left: the 5 merged worktrees of this repository, for the user to end with
+`E` once `cardinal-ui` is rebuilt.

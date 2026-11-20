@@ -30,6 +30,7 @@ The work done before this file existed is in `issues/done/`.
   - [animate_the_issue_at_work](issues/animate_the_issue_at_work.md)
   - [chart_the_measures_on_a_screen_of_their_own](issues/chart_the_measures_on_a_screen_of_their_own.md)
   - [end_every_merged_worktree_in_one_go](issues/end_every_merged_worktree_in_one_go.md)
+  - [end_a_merged_worktree_whose_directory_is_gone](issues/end_a_merged_worktree_whose_directory_is_gone.md)
   - [notify_the_desktop_when_a_session_waits](issues/notify_the_desktop_when_a_session_waits.md)
 
 ## User control

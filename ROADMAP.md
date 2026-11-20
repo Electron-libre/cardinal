@@ -50,9 +50,9 @@ The work done before this file existed is in `issues/done/`.
   start it on the trunk (the version `cardinal run release` proposes, the section to reread and review, the tag).
 - Why: an issue session runs in a linked worktree and never enters the main one, so it cannot prepare the release
   its close proposes; today the user merges, opens a session in the main worktree and asks for the release by hand.
-- State: in issues
+- State: done
 - Issues:
   - [print_the_release_proposal_as_json](issues/done/print_the_release_proposal_as_json.md)
   - [show_the_milestones_awaiting_their_release](issues/done/show_the_milestones_awaiting_their_release.md)
   - [write_the_release_steps_in_a_skill](issues/done/write_the_release_steps_in_a_skill.md)
-  - [start_a_release_session_on_the_trunk](issues/start_a_release_session_on_the_trunk.md)
+  - [start_a_release_session_on_the_trunk](issues/done/start_a_release_session_on_the_trunk.md)

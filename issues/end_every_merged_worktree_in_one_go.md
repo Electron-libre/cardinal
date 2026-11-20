@@ -54,8 +54,8 @@ each `merged` linked worktree and reports one line each (SUA-13, SUA-14). Out of
    close on the trunk, going on after a refusal), the flag `--end-merged`, the key `E` and its help; verified by
    binary tests in `tests/end.rs` (two merged, one kept, none, detached main, a worktree now serving an open issue)
    and a unit test of the key in `screen.rs`; makes true SUA-13, SUA-14. (autonomous)
-2. [ ] Split `crates/cardinal-ui/src/screen.rs` (812 lines, over 800): the keys, the selection and the tasks to a
-   module `keys.rs`, no change of behaviour; verified by the unchanged tests.
+2. [x] Split `crates/cardinal-ui/src/screen.rs` (812 lines, over 800): the keys, the selection and the tasks to a
+   module `keys.rs`, no change of behaviour; verified by the unchanged tests. (autonomous)
 3. [ ] Docs of the whole issue and fixes of its `high` review.
 
 ## Decisions
@@ -85,5 +85,27 @@ worktrees (it would remove them: the user's call).
 file size: `screen.rs` 812 lines, split in deliverable 2 (a pure move, kept out of this one).
 
 Code review: no findings
+
+decisions needed: none.
+
+## Deliverable 2: summary
+
+done: the keys, the selection and the tasks of the screen moved from `screen.rs` to `keys.rs`, no change of behaviour.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green, the 15 unit tests of the screen unchanged |
+| lint | clippy -D warnings green |
+| specs | n/a (no change of behaviour) |
+| docs | `docs/architecture.md` (module table) |
+| code review | `/code-review low`: no findings |
+
+red: none (pure move).
+
+Code review: no findings
+
+file size: `screen.rs` 433 lines, `keys.rs` 396.
+
+not verified: none.
 
 decisions needed: none.

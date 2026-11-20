@@ -10,6 +10,7 @@
 //! merged worktree; `--release` starts the release session in the main worktree.
 
 mod end;
+mod keys;
 mod measures;
 mod merge;
 mod panels;
@@ -90,13 +91,13 @@ fn print() -> i32 {
 
 /// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUA-3), or
 /// starts its release session (SUA-4).
-fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
+fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
     match task {
-        screen::Task::Start => start_in_project(stem),
-        screen::Task::Merge => merge_then_end(stem),
-        screen::Task::End => end::end(&source::root(Path::new(".")), stem),
-        screen::Task::Release => release::start(&source::root(Path::new("."))),
-        screen::Task::EndMerged => end_merged_status(),
+        keys::Task::Start => start_in_project(stem),
+        keys::Task::Merge => merge_then_end(stem),
+        keys::Task::End => end::end(&source::root(Path::new(".")), stem),
+        keys::Task::Release => release::start(&source::root(Path::new("."))),
+        keys::Task::EndMerged => end_merged_status(),
     }
 }
 

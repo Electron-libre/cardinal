@@ -268,7 +268,8 @@ flowchart LR
 | `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source; the measures panel |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
-| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, the selection in the queue or the worktrees, renders `--print` into a buffer |
+| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, renders `--print` into a buffer |
+| `keys.rs` | the action of each key, the selection in the queue or the worktrees it moves, the task a key runs on what is selected |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
 | `release.rs` | starts a release session: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), nothing to release (no milestone listed, no release `prepared`), a project without `skill:release`, a `release` tab still running `claude /release`, then `zellij action new-tab` running `claude /release` in the main worktree |

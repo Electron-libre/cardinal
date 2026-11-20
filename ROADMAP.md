@@ -25,7 +25,7 @@ The work done before this file existed is in `issues/done/`.
   ended in one go.
 - State: in issues
 - Issues:
-  - [read_the_colors_of_the_ui_from_a_theme_file](issues/read_the_colors_of_the_ui_from_a_theme_file.md)
+  - [read_the_colors_of_the_ui_from_a_theme_file](issues/done/read_the_colors_of_the_ui_from_a_theme_file.md)
   - [show_the_issues_as_a_tree_of_their_dependencies](issues/show_the_issues_as_a_tree_of_their_dependencies.md)
   - [animate_the_issue_at_work](issues/animate_the_issue_at_work.md)
   - [chart_the_measures_on_a_screen_of_their_own](issues/chart_the_measures_on_a_screen_of_their_own.md)

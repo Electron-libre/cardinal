@@ -10,7 +10,7 @@ not across the inner width of its panel. With the `selection` background of a th
 stands out; the expected outcome is a highlight that spans the whole inner row of the panel.
 
 # Findings
-* Found by the `high` review of `issues/read_the_colors_of_the_ui_from_a_theme_file.md`; the reversed video
+* Found by the `high` review of `issues/done/read_the_colors_of_the_ui_from_a_theme_file.md`; the reversed video
   highlight before that issue had the same limit.
 * The `Paragraph` of `ratatui` 0.29 applies the style of a line to each grapheme only: the cells after the text keep
   the background of the screen.

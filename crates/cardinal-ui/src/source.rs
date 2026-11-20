@@ -106,8 +106,19 @@ fn failure(name: &str, code: i32, err: &str) -> String {
 
 /// The document `cardinal run <tool> --json` prints in `dir`, checked (STU-6), and its stderr; exit code 1 is
 /// accepted when `problems` is set (the problems of the issue files of `next-issue`).
-fn document(tool: &str, dir: &Path, problems: bool) -> Result<(Value, String), String> {
-    let (out, err, code) = run(tool, &cardinal(), &["run", tool, "--json"], dir)?;
+fn document(
+    tool: &str,
+    options: &[&str],
+    dir: &Path,
+    problems: bool,
+) -> Result<(Value, String), String> {
+    let args: Vec<&str> = ["run", tool]
+        .iter()
+        .chain(options)
+        .chain(&["--json"])
+        .copied()
+        .collect();
+    let (out, err, code) = run(tool, &cardinal(), &args, dir)?;
     if code != 0 && !(problems && code == 1) {
         return Err(failure(tool, code, &err));
     }
@@ -139,7 +150,7 @@ fn array(v: &Value) -> &[Value] {
 
 /// The milestones of `roadmap --json` (RMP-8).
 fn milestones(dir: &Path) -> Result<Vec<Milestone>, String> {
-    let (doc, _) = document("roadmap", dir, false)?;
+    let (doc, _) = document("roadmap", &["--open"], dir, false)?;
     Ok(array(&doc["milestones"])
         .iter()
         .map(|m| {
@@ -172,7 +183,7 @@ fn taken(v: &Value) -> Option<Taken> {
 
 /// The queue of `next-issue --json` (NXT-19).
 fn queue(dir: &Path) -> Result<Queue, String> {
-    let (doc, err) = document("next-issue", dir, true)?;
+    let (doc, err) = document("next-issue", &[], dir, true)?;
     Ok(Queue {
         next: string(&doc["next"]),
         issues: array(&doc["issues"])
@@ -225,7 +236,7 @@ fn session(path: &Path) -> Option<Session> {
     };
     Some(Session {
         id: field("session")?,
-        alive: alive(&field("pid").unwrap_or_default()),
+        alive: alive(&field("pid")?),
     })
 }
 
@@ -261,7 +272,16 @@ fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
     Ok(list)
 }
 
-/// Reads the project of `dir`.
+/// The root of the work tree of `dir`, `dir` itself outside a git repository (STU-5).
+pub fn root(dir: &Path) -> PathBuf {
+    let args = ["rev-parse", "--show-toplevel"];
+    match run("git", Path::new("git"), &args, dir) {
+        Ok((out, _, 0)) if !out.trim().is_empty() => PathBuf::from(out.trim()),
+        _ => dir.to_path_buf(),
+    }
+}
+
+/// Reads the project of `dir`, the root of its work tree (STU-5).
 pub fn read(dir: &Path) -> State {
     State {
         milestones: milestones(dir),

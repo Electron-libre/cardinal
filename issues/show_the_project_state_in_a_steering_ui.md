@@ -63,8 +63,8 @@ as text for scripts and the tests, which run a fake `cardinal` named by `CARDINA
 4. [x] Fix of the `high` review (important 1): with `cardinal-ui` in the repository, a `cargo install --git` that
    names no package fails; the launcher (BIN-5), the install it prints (BIN-20) and the CI installer (BIN-22) name
    `cardinal`, else `harness`; verified by `run_cli.rs`, `launcher_cli.rs`, `install_script.rs`. (autonomous)
-5. [ ] Fixes of the `high` review of the UI (important 2 and 3, nits 4 to 10); verified by `tests/print.rs` and unit
-   tests.
+5. [x] Fixes of the `high` review of the UI (important 2 and 3, nits 4 to 10); verified by `tests/print.rs` and unit
+   tests. (autonomous)
 
 ## Deliverable 1
 done: crate `cardinal-ui` (workspace member), its reading of the tools, the worktrees and their locks, and a
@@ -157,6 +157,46 @@ Code review: no findings
 not verified: the CI of a consumer on a pushed commit
 
 decisions needed: none
+
+## Deliverable 5
+done: the UI fixes of the `high` review: `--print` renders into a buffer (whole past 65,535 cells), width in
+display columns, reads on a thread of their own (one at a time, 2 s after the last), `Ctrl+C` quits, the tools run
+at the root of the work tree, released milestones left out (`roadmap --open`), a lock without `pid` reads `free`, a
+closed output is no panic; STU-1 to STU-7 amended.
+
+| check | result |
+|---|---|
+| tests | `tests/print.rs` 15/15, unit tests 2/2, `just check` green |
+| lint | clean |
+| specs | `check-specs` clean, STU accepted again |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md` |
+| smoke | pseudo-terminal: `r` then `Ctrl+C`, exit 0, alternate screen left; `--print` from `crates/` and into `head` |
+| code review | `low`, 2 findings |
+
+red: STU-4: `the last issue` missing past 65,535 cells and the CJK line cut; STU-5: `not at the root` from a
+subdirectory and `bad call: run roadmap --json` without `--open`; STU-7: `session s1 ended` for a lock without
+`pid`; STU-8: `failed printing to stdout: Broken pipe`. STU-2: the unit tests were written with the schedule.
+
+Code review: 2 findings
+1. fixed: a panic of the thread of the reads froze the screen on its last panels; the loop now ends with an error
+   when that thread is gone. No test: it needs a real terminal and a panic.
+2. not fixed: a lock without a `pid` now hides its session: STU-7 wants it `free`, as `workspace-lock` reads it.
+
+not verified: the screen in a real terminal other than the pseudo-terminal of `script`
+
+decisions needed: none
+
+High review findings of the issue:
+1. fixed in deliverable 4: `cargo install --git` naming no package.
+2. fixed: `--print` garbled past 65,535 cells.
+3. fixed: the screen froze during a read.
+4. fixed: run from a subdirectory.
+5. fixed in part: released milestones left out; the queue keeps no scroll (a later issue if it is missed).
+6. fixed: width in display columns.
+7. fixed: STU-6 reworded, exit 1 accepted from `next-issue` only.
+8. fixed: `Ctrl+C` quits.
+9. fixed: a lock without `pid` is `free`.
+10. fixed: a closed output is no panic.
 
 ## Decisions
 - Mode: autonomous

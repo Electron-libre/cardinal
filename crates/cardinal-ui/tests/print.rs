@@ -82,7 +82,7 @@ impl Project {
             )
         };
         let script = format!(
-            "#!/bin/sh\n[ \"$1 $3\" = 'run --json' ] || {{ echo \"bad call: $*\" >&2; exit 9; }}\ncase \"$2\" in\n  next-issue) {} ;;\n  roadmap) {} ;;\nesac\nexit 9\n",
+            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             arm(queue),
             arm(roadmap)
         );
@@ -299,4 +299,89 @@ fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
     let width = out.lines().next().unwrap().chars().count();
     assert!(width >= 100, "{width}: {out}");
     assert!(out.lines().all(|l| l.chars().count() <= width), "{out}");
+}
+
+// spec: STU-4
+#[test]
+fn a_long_queue_is_printed_whole() {
+    let p = project();
+    let issues: Vec<String> = (0..700)
+        .map(|i| format!(r#"{{"stem":"issue{i}","title":"t","priority":"low","why":"","milestone":null,"depends_on":[],"state":"ready","blocked_by":[],"hold":null,"taken":null,"stale":false}}"#))
+        .collect();
+    let queue = format!(
+        r#"{{"version":1,"next":"issue0","issues":[{}]}}"#,
+        issues.join(",")
+    );
+    let cardinal = p.cardinal(&ok(&queue), &ok(ROADMAP));
+    let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("> issue0  low"), "the first issue");
+    assert!(out.contains("  issue699  low"), "the last issue");
+    assert!(
+        out.lines().last().unwrap().contains("q quit"),
+        "the help line last"
+    );
+}
+
+// spec: STU-4
+#[test]
+fn a_line_of_wide_characters_is_printed_whole() {
+    let p = project();
+    let name = "里程碑".repeat(30);
+    let roadmap = ROADMAP.replace("\"name\":\"One\"", &format!("\"name\":\"{name}\""));
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(&roadmap));
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(line(&out, &name).contains("2/2 open"), "{out}");
+}
+
+// spec: STU-5
+#[test]
+fn from_a_subdirectory_the_tools_run_at_the_root() {
+    let p = project();
+    let sub = p.repo.join("sub");
+    std::fs::create_dir_all(&sub).unwrap();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let (code, out, err) = ui(&sub, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(out.contains("> b"), "{out}");
+}
+
+// spec: STU-7
+#[test]
+fn a_lock_without_a_pid_is_free() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let path = git(
+        &p.ws,
+        &[
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "cardinal-session",
+        ],
+    );
+    std::fs::write(path, "session s1\n").unwrap();
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(
+        line(&out, &format!("{}  ", p.ws.display())).contains("free"),
+        "{out}"
+    );
+}
+
+// spec: STU-8
+#[test]
+fn a_closed_output_is_no_panic() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let mut child = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
+        .arg("--print")
+        .current_dir(&p.repo)
+        .env("CARDINAL_UI_CARDINAL", &cardinal)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    drop(child.stdout.take());
+    let out = child.wait_with_output().unwrap();
+    assert!(matches!(out.status.code(), Some(0 | 1)), "{out:?}");
 }

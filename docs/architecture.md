@@ -253,7 +253,7 @@ flowchart LR
 |---|---|
 | `source.rs` | runs the tools and git, checks the documents, reads the lock of each worktree |
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source |
-| `screen.rs` | draws the panels (Ratatui), runs the terminal loop, renders `--print` |
+| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads on a thread of their own, renders `--print` into a buffer |
 
 ## The cost of a turn
 

@@ -13,7 +13,7 @@ use std::path::Path;
 const USAGE: &str = "usage: cardinal-ui [--print]";
 
 fn read() -> [panels::Panel; 3] {
-    panels::panels(&source::read(Path::new(".")))
+    panels::panels(&source::read(&source::root(Path::new("."))))
 }
 
 /// Runs the screen in the terminal (STU-2).
@@ -30,7 +30,8 @@ fn interactive() -> i32 {
 /// Prints the panels once as text; exit code 1 when one shows an error (STU-4, STU-8).
 fn print() -> i32 {
     let panels = read();
-    print!("{}", screen::text(&panels));
+    // a reader that closed the output early (`| head`) is no failure
+    let _ = std::io::Write::write_all(&mut std::io::stdout(), screen::text(&panels).as_bytes());
     i32::from(panels.iter().any(|p| p.failed))
 }
 

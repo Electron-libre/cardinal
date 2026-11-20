@@ -16,16 +16,16 @@ open each worktree to know it. It reads the project and changes nothing.
 
 ### Behaviour
 
-- **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels: the milestones (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
-- **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, and quit on `q` or `Esc`, giving the terminal back as it found it.
-- **STU-3** (deterministic) `cardinal-ui` must write no file and no git ref of its own: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --json` and git commands that read.
-- **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, 100 columns wide or as wide as its longest line needs, and exit, so a script or a test reads what the user would see.
+- **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels: the milestones not yet released (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
+- **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, one read at a time and apart from the keys, so a slow read never keeps a key from being answered, and quit on `q`, `Esc` or `Ctrl+C`, giving the terminal back as it found it.
+- **STU-3** (deterministic) `cardinal-ui` must write no file and no git ref of its own: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json` and git commands that read.
+- **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
 
-- **STU-5** (deterministic) The `cardinal` it runs must be the program named by the environment variable `CARDINAL_UI_CARDINAL`, else `cardinal` found on the `PATH`, run in the current directory.
-- **STU-6** (deterministic) A tool of STU-3 that cannot be run, exits with a code other than 0 and 1, prints no JSON object, or one whose `version` is not `1`, must leave its panel showing one line naming the tool and the cause (the exit code and the first line of its stderr, `not JSON`, or `version <n> unsupported`), the other panels shown as usual; the exit code 1 of `next-issue` (a problem of the issue files, NXT-2) is no such error: the queue is shown with the lines of its stderr under it.
-- **STU-7** (deterministic) The worktrees must be those `git worktree list --porcelain` lists, in its order, each with its branch (`detached` when it has none); the session of a worktree is the `session` and `pid` of the file `cardinal-session` of its git directory (WSL-9), ended when no process of that `pid` runs, `free` when the file is missing or holds no `session`.
+- **STU-5** (deterministic) The `cardinal` it runs must be the program named by the environment variable `CARDINAL_UI_CARDINAL`, else `cardinal` found on the `PATH`, run in the root of the work tree of the current directory (the current directory outside a git repository), as are the git commands.
+- **STU-6** (deterministic) A tool of STU-3 that cannot be run, exits with a code other than 0 (other than 0 and 1 for `next-issue`), prints no JSON object, or one whose `version` is not `1`, must leave its panel showing one line naming the tool and the cause (the exit code and the first line of its stderr, `not JSON`, or `version <n> unsupported`), the other panels shown as usual; the exit code 1 of `next-issue` (a problem of the issue files, NXT-2) is no such error: the queue is shown with the lines of its stderr under it.
+- **STU-7** (deterministic) The worktrees must be those `git worktree list --porcelain` lists, in its order, each with its branch (`detached` when it has none); the session of a worktree is the `session` and `pid` of the file `cardinal-session` of its git directory (WSL-9), ended when no process of that `pid` runs, `free` when the file is missing or lacks the `session` or the `pid` (as `workspace-lock` reads it).
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
 ## Scenarios
@@ -42,6 +42,10 @@ open each worktree to know it. It reads the project and changes nothing.
 - (STU-6) Given issue files of which one has no priority, when `cardinal-ui --print` runs, then the queue is shown with the line `issue without a priority: <stem>` under it, and it exits 0.
 - (STU-7) Given a worktree with no `cardinal-session` file, when `cardinal-ui --print` runs, then its row reads `free`.
 - (STU-8) Given a directory outside any git repository, when `cardinal-ui --print` runs, then the worktrees panel shows an error and it exits 1.
+- (STU-4) Given 700 open issues, when `cardinal-ui --print` runs, then the first and the last issues are both printed.
+- (STU-5) Given the user in a subdirectory of the project, when `cardinal-ui --print` runs, then the tools run at the root and the panels are those of the project.
+- (STU-7) Given a lock file that holds a `session` and no `pid`, when `cardinal-ui --print` runs, then the worktree reads `free`.
+- (STU-8) Given `cardinal-ui --print | head -1`, then it exits 0 or 1, never on a panic.
 - (STU-8) Given `cardinal-ui --prnt`, then it prints a usage line on stderr and exits 2.
 
 ## Non-goals

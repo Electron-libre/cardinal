@@ -1,6 +1,6 @@
 ---
 id: REP
-status: accepted
+status: draft
 adrs: [0002, 0006, 0010]
 ---
 
@@ -40,6 +40,8 @@ it. It reports trends, never a pass or a fail.
 - **REP-17** (deterministic) `cardinal-report` must accept `--last <n>`, a whole number from 1 to 1000, and refuse any other value, or none, with an error and a non-zero exit, as it refuses with `--by setup` (its groups have no order in time). With it, each table prints only the rows of the last `n` groups of REP-4 (all of them when there are fewer); the groups are still cut over every revision and the verdicts (VRD-5) still read every group, so a change before the last `n` groups keeps its verdict.
 - **REP-18** (deterministic) `cardinal-report` must accept `--project <name>` and refuse it with no value, or a value starting with `-`, as REP-3 refuses an option with none, and warn on stderr naming `<name>` when no session has that project. With it, every table and the verdicts read only the sessions whose `project` (EVA-7) is `<name>` and the `fixed-context` rows of that project, the groups of REP-4 being cut over those sessions alone, so a verdict compares two groups of one project; the summaries of `--breaches` and `--quality` are read as given, the caller giving those of that project (BRE-23, the `delivered-quality` of its repository).
 - **REP-19** (deterministic) The quality table must give, after the ratios of REP-6, `bytes_per_spec` and `intent_chars_per_spec`, the ratios of `spec_bytes` and of `spec_intent_chars` (QUA-18) to `specs`, rounded half up to the unit, then `requirements_per_spec` and `happy_paths_per_spec`, the ratios of `spec_requirements` and of `spec_happy_paths` to `specs`, with two decimals, each empty when a term is empty or `specs` is 0; its sums of REP-6 include the five columns of QUA-18.
+- **REP-20** (deterministic) `cardinal-report` must accept `--by milestone`, refused with `--last` as REP-17 refuses `--by setup`. With it, the groups are the values of the `milestone` column (QUA-19) of the quality summaries, in the order of their first row over the files given, one group per milestone named after it (`(no milestone)` for the empty value), and only the quality table is printed, its sums and ratios those of REP-6 and REP-19 over the rows of that milestone, whatever their revision; no group is `too few` (its `issues` is its sample); the other files are still read and checked as REP-3 says, and `--quality` is required, refused with an error and a non-zero exit when missing.
+- **REP-21** (deterministic) With `--json`, `cardinal-report` must print instead of the Markdown one JSON document on one line, for a program: an object with the fields `version` (the integer `1`, raised when a later revision removes or renames a field or changes the type of its value) and `tables`, one object per table it would print, in the same order, with the fields `title` (its heading without `## `), `columns` (every column name, `group` and `sessions` first as REP-3 says, the verdicts' own for `Verdicts`) and `rows` (one array of strings per row, the cells as the Markdown writes them, `too few` included); its warnings stay on stderr.
 
 ## Scenarios
 
@@ -75,6 +77,13 @@ it. It reports trends, never a pass or a fail.
 - (REP-18) Given 30 sessions of project `a` on revisions `r1` then `r2` and 130 of a new project `b` on `r2`, when
   `cardinal-report --project a --min-sessions 10` runs, then its groups hold the sessions of `a` only and `r2` counts 15
   sessions.
+- (REP-20) Given quality summaries whose rows read the milestones `One` (3 issues over two revisions), `` (1 issue)
+  and `Two` (2 issues), in that order, when `cardinal-report --by milestone` runs, then its quality table holds the
+  groups `One` (3 issues), `(no milestone)` (1) and `Two` (2), and no efficiency table.
+- (REP-20) Given `--by milestone` with no `--quality`, or with `--last 2`, then it exits non-zero with an error.
+- (REP-21) Given the sessions of two groups, the second `too few`, when `cardinal-report --json` runs, then it prints
+  one line whose `tables` holds `Efficiency` and `Skills` with two rows each, the second row's cells after
+  `sessions` reading `too few`.
 
 ## Non-goals
 

@@ -543,8 +543,8 @@ fn quality_ratio(metric: &str) -> Option<&'static QualityRatio> {
 }
 
 fn quality(groups: &[Group], files: &[Vec<Row>]) -> Table {
-    // the columns of the `delivered-quality` summary after `revision` and `setup`, in its order
-    let summed: Vec<&str> = QUALITY.split('\t').skip(2).collect();
+    // the columns of the `delivered-quality` summary after `revision`, `setup` and `milestone`, in its order
+    let summed: Vec<&str> = QUALITY.split('\t').skip(3).collect();
     let mut columns: Vec<&str> = summed
         .iter()
         .map(|c| {

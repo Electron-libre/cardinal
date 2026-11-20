@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -10,7 +10,7 @@ adrs: [0011, 0022, 0023, 0030, 0031]
 
 `cardinal-ui` shows the user, in one terminal screen kept up to date, where a project driven by Cardinal stands: its
 milestones, its queue of issues, and which worktree each session works in, so they need not run several commands and
-open each worktree to know it, and starts an interactive Claude Code session on a ready issue in a zellij tab of its own. It
+open each worktree to know it, with the trend of the measures of its sessions and of the issues it delivered, and starts an interactive Claude Code session on a ready issue in a zellij tab of its own. It
 changes the project only when the user starts a session.
 
 ## Requirements
@@ -19,10 +19,12 @@ changes the project only when the user starts a session.
 
 - **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels: the milestones not yet released (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
 - **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, one read at a time and apart from the keys, so a slow read never keeps a key from being answered, and quit on `q`, `Esc` or `Ctrl+C`, giving the terminal back as it found it.
-- **STU-3** (deterministic) `cardinal-ui` must write no file and no git ref of its own: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, git commands that read and, in a zellij session, `zellij action list-tabs --json`, and changes it only through the start of STU-9 and STU-11.
+- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json`, and changes it only through the start of STU-9 and STU-11.
 - **STU-9** (deterministic) In a zellij session, the key `s` on the issue selected in the queue (moved with the arrow keys, `j` and `k`), when its state is `ready` and nothing takes it, must open a worktree for it with `cardinal run worktree open <stem>` and start in it, in a new zellij tab named after its stem, an interactive `claude` whose first message hands `issues/<stem>.md` to `issue-workflow`; on another issue it starts nothing and says why on the status line.
 - **STU-10** (deterministic) The queue must show, after an issue, `tab` when a tab of the current zellij session is named after its stem.
 - **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time, its date `<YYYY-MM-DD>` before it when it is not today) when that session runs and the mark of SWT-3 of the worktree names it.
+- **STU-16** (deterministic) `cardinal-ui` must show a fourth panel, `Measures`, from the last measure of STU-17: a line `measured <HH:MM>` (its date before it when it is not today, as STU-13), then, for each group of the efficiency table of `cardinal-report --project <project> --last 4 --json` (REP-17, REP-18, REP-21), its `group`, `sessions` and the medians `input_tokens` with `cache_read_share`, `output_tokens`, `main_context_peak` with `peak_sessions`, and `validations`, or `too few` after its `sessions`; then, for each group of the quality table of `cardinal-report --by milestone --json` (REP-20), its milestone, `issues`, `fixes_after_per_issue`, `findings_per_review` with `counted_reviews`, and `input_tokens_per_issue` with `token_issues`, each sample size written next to the number it bears on; `<project>` is the name of the directory that holds the git common directory of the root (as EVA-7 names a project).
+- **STU-17** (deterministic) A measure must run `cardinal run session-metrics` and `cardinal run delivered-quality <root> --summary` into the files `sessions.tsv` and `quality.tsv` of the cache directory, then the two `cardinal-report` of STU-16 with `--sessions` and `--quality` naming them, into `efficiency.json` and `milestones.json` beside them; `cardinal-ui` starts one when it starts and the last measure is missing or more than one hour old, and on the key `m`, one at a time and apart from the keys and the reads of STU-2, the panel showing the last measure with `measuring` on its first line while one runs; `cardinal-ui --print` measures first when the last measure is missing or more than one hour old.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -36,6 +38,8 @@ changes the project only when the user starts a session.
 - **STU-14** (deterministic) The selection of STU-9 must stay on the same issue when a read changes the order of the queue, move to the line it had when its issue left the queue, and stay visible however long the queue, so `s` never starts an issue the user did not see selected.
 - **STU-15** (deterministic) `q`, `Esc` or `Ctrl+C` pressed during a start must quit once the start has ended, so a start never stops between the worktree and the tab.
 - **STU-12** (deterministic) The `zellij` it runs must be the program named by `CARDINAL_UI_ZELLIJ`, else `zellij` found on the `PATH`, the tab opened with `zellij action new-tab --cwd <worktree path> --name <stem> -- claude "/issue-workflow issues/<stem>.md"`; outside a zellij session, or when `list-tabs` fails, the queue shows no `tab` and no error.
+- **STU-18** (deterministic) The cache directory must be `<cache>/cardinal-ui/<project>`, `<cache>` the value of `XDG_CACHE_HOME` when it is an absolute path, else `$HOME/.cache`; a measure writes each file whole (a temporary file of that directory renamed over it), so a reader never sees half a file, and the age of the last measure is the modification time of `efficiency.json`.
+- **STU-19** (deterministic) A step of a measure that cannot be run or exits with a code other than 0, or a report that prints no JSON object or one whose `version` is not `1`, must end the measure, keep the files of the last one it did not reach, and leave the `Measures` panel showing the line of STU-6 naming the step (`session-metrics`, `delivered-quality`, `cardinal-report`) above the last measure, the panel counting as failed for STU-8.
 
 ## Scenarios
 
@@ -48,6 +52,10 @@ changes the project only when the user starts a session.
   runs `claude` on `issues/foo.md` there; the next read shows `foo` taken with `tab`.
 - **STU-H3** (happy; STU-13) Given a session whose turn ended in a linked worktree, when the UI reads the project,
   then the row of that worktree reads `waiting since <HH:MM>: stop`.
+- **STU-H4** (happy; STU-16, STU-17, STU-18) Given a project whose sessions span two groups of revisions and whose
+  done issues belong to a milestone, when the user runs `cardinal-ui` with no measure cached, then the `Measures`
+  panel reads `measuring`, and once the measure ends it shows the two groups with their sessions and medians and the
+  milestone with its issues and ratios; run again within the hour, it shows that measure at once without measuring.
 - (STU-1) Given an issue claimed by a session whose process ended, when `cardinal-ui --print` runs, then the queue shows its claim as ended.
 - (STU-1) Given a milestone with `- On hold: later`, when `cardinal-ui --print` runs, then its row says `on hold`.
 - (STU-6) Given a `cardinal` that exits 3 with `cannot run the tool` on stderr for `roadmap`, when `cardinal-ui --print` runs, then the milestones panel reads `roadmap: exit 3: cannot run the tool`, the queue and the worktrees are shown, and it exits 1.
@@ -79,6 +87,14 @@ changes the project only when the user starts a session.
   shown.
 - (STU-12) Given no zellij session, when `cardinal-ui --print` runs, then no issue shows `tab` and it exits 0.
 - (STU-8) Given `cardinal-ui --prnt`, then it prints a usage line on stderr and exits 2.
+- (STU-17) Given a measure 30 minutes old, when `cardinal-ui --print` runs, then it runs no `session-metrics` and
+  shows that measure; given one two hours old, it measures first.
+- (STU-18) Given `XDG_CACHE_HOME` set to `cache` (a relative path), then the measure is written under
+  `$HOME/.cache/cardinal-ui/<project>`.
+- (STU-19) Given a `cardinal` whose `session-metrics` exits 3 with `cannot read` on stderr and a measure cached, when
+  `cardinal-ui --print` measures, then the `Measures` panel reads `session-metrics: exit 3: cannot read` above the
+  cached groups, its `efficiency.json` is unchanged and it exits 1.
+- (STU-16) Given a last group of 4 sessions, then its line reads its `sessions` and `too few`, no median.
 
 ## Non-goals
 
@@ -86,7 +102,9 @@ changes the project only when the user starts a session.
   a milestone: later issues of the milestone "Steering UI".
 - Running as a zellij plugin, or starting a session in another terminal multiplexer.
 - Telling a question from a validation stop: SWT marks every end of a turn.
-- The measures of `cardinal-report`: a later view.
+- The other tables of `cardinal-report` (rules, skills, fixed context, verdicts), its reports by setup and the
+  verdict of a trend: `skill:evaluate-harness` reads them; the panel never turns a number into a pass or a fail.
+- A faster reading of the transcripts: the measure takes the time of the readers, the cache hides it.
 - Following the changes of the files as they happen: the interval of STU-2 bounds how stale the screen is.
 - Pruning what `next-issue` prunes on its own (CLM-6): `cardinal-ui` runs the tool, which may delete the claims of
   issues the trunk closed, as it does for the agent.

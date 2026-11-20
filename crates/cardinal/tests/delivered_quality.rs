@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+const COLUMNS: &str = "issue\trevision\tsetup\tmilestone\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 fn sh(dir: &Path, args: &[&str]) {
     let ok = Command::new("git")
@@ -1251,7 +1251,11 @@ fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (_, summed) = run(dir, &repo, &["--projects", projects_arg, "--summary"]);
     let heads: Vec<String> = summed
         .lines()
-        .map(|l| l.split('\t').take(3).collect::<Vec<_>>().join("|"))
+        .map(|l| {
+            let cells: Vec<&str> = l.split('\t').collect();
+            // revision, setup and issues: no issue of this fixture is in a milestone
+            [cells[0], cells[1], cells[3]].join("|")
+        })
         .collect();
     let (_, none) = run(dir, &repo, &[]);
     vec![
@@ -1333,10 +1337,10 @@ fn summary_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     );
     let (ok, out) = run(dir, &repo, &["--summary"]);
     let expected = [
-        "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
-        "r1\t\t1\t2\t3\t1\t2\t3\t3\t3\t7\t0\t0\t0\t1\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
-        "r2\t\t2\t3\t2\t0\t0\t0\t3\t2\t4\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
-        "a0\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "revision\tsetup\tmilestone\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues",
+        "r1\t\t\t1\t2\t3\t1\t2\t3\t3\t3\t7\t0\t0\t0\t1\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "r2\t\t\t2\t3\t2\t0\t0\t0\t3\t2\t4\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
+        "a0\t\t\t1\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t\t\t\t\t0\t0\t0\t0",
     ];
     let lines: Vec<&str> = out.lines().collect();
     if lines != expected {

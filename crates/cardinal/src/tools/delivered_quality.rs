@@ -2,7 +2,7 @@
 //! tab-separated row per file of `issues/done/`, with the commits of the issue, the fixes inside it, and the fixes
 //! of the lines it wrote (of a later issue, only the fix that starts it) and the reverts of its files on the default branch after its close. Signals, not verdicts: a fix after a feature may
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
-//! span, the tokens of its messages, and the lines it changed in the specs and in the docs, and the shape of the specs it changed as of its close (QUA-18). With `--summary`, the columns are summed per Cardinal revision and setup (the main model, alone or advised). No text of a commit, an issue or a message
+//! span, the tokens of its messages, and the lines it changed in the specs and in the docs, and the shape of the specs it changed as of its close (QUA-18). With `--summary`, the columns are summed per Cardinal revision, setup (the main model, alone or advised) and milestone of the `roadmap` documents (QUA-19). No text of a commit, an issue or a message
 //! is printed.
 //! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` (default the
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
@@ -11,6 +11,8 @@ use super::check_specs::{
     citation, citation_list, config_names, is_cited_id, markers, name_matches, shape, spec_patterns,
 };
 use super::transcripts;
+
+mod milestone;
 
 use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::Value;
@@ -22,8 +24,8 @@ use transcripts::{
     repository, revision, session_of, sessions, sorted_entries, subagents, typed_text, Place, Span,
 };
 
-pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
-const HEADER: &str = "issue\trevision\tsetup\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tmilestone\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
+const HEADER: &str = "issue\trevision\tsetup\tmilestone\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
 const UNRELATED_PREFIXES: &[&str] = &["issues/", "docs/"];
@@ -1035,22 +1037,24 @@ const SHAPES: usize = 5;
 /// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
 const TOKENS: usize = 4;
 
-/// Per revision and setup: its count of issues, the sum of each numeric column and the count of issues of known tokens.
-type SetupSums = (usize, Vec<Option<u64>>, u64);
+/// Per revision, setup and milestone: its count of issues, the sum of each numeric column and the count of issues of
+/// known tokens.
+type Sums = (usize, Vec<Option<u64>>, u64);
 
-/// The rows summed per revision and setup (QUA-9, QUA-17), in the order the revisions were first used, then by setup:
-/// the count of issues, then the sum of each numeric column, empty when one of its values is, but the token columns,
-/// summed over the issues whose tokens are known and followed by the count of those issues.
+/// The rows summed per revision, setup and milestone (QUA-9, QUA-17, QUA-19), in the order the revisions were first
+/// used, then by setup and milestone: the count of issues, then the sum of each numeric column, empty when one of its
+/// values is, but the token columns, summed over the issues whose tokens are known and followed by the count of those
+/// issues.
 fn summary(rows: &[Row]) -> Vec<String> {
     let mut first_use: HashMap<&str, DateTime<FixedOffset>> = HashMap::new();
-    let mut by_pair: BTreeMap<(&str, &str), SetupSums> = BTreeMap::new();
+    let mut by_key: BTreeMap<(&str, &str, &str), Sums> = BTreeMap::new();
     for row in rows {
-        let values: Vec<Option<u64>> = row.cells[3..].iter().map(|v| v.parse().ok()).collect();
+        let values: Vec<Option<u64>> = row.cells[4..].iter().map(|v| v.parse().ok()).collect();
         let tokens = values.len() - 3;
         let first = first_use.entry(&row.cells[0]).or_insert(row.first);
         *first = (*first).min(row.first);
-        let (count, sums, known) = by_pair
-            .entry((&row.cells[0], &row.cells[1]))
+        let (count, sums, known) = by_key
+            .entry((&row.cells[0], &row.cells[1], &row.cells[2]))
             .or_insert_with(|| (0, vec![Some(0); values.len()], 0));
         *count += 1;
         *known += u64::from(values[tokens].is_some());
@@ -1062,16 +1066,19 @@ fn summary(rows: &[Row]) -> Vec<String> {
             };
         }
     }
-    let mut ordered: Vec<_> = by_pair.into_iter().collect();
-    ordered.sort_by_key(|((revision, setup), _)| (first_use[revision], *revision, *setup));
+    let mut ordered: Vec<_> = by_key.into_iter().collect();
+    ordered.sort_by_key(|(key, _)| (first_use[key.0], *key));
     ordered
         .into_iter()
-        .map(|((revision, setup), (count, sums, known))| {
+        .map(|((revision, setup, milestone), (count, sums, known))| {
             let sums: Vec<String> = sums
                 .iter()
                 .map(|s| s.map_or_default(|n| n.to_string()))
                 .collect();
-            format!("{revision}\t{setup}\t{count}\t{}\t{known}", sums.join("\t"))
+            format!(
+                "{revision}\t{setup}\t{milestone}\t{count}\t{}\t{known}",
+                sums.join("\t")
+            )
         })
         .collect()
 }
@@ -1135,6 +1142,11 @@ pub(super) fn main(args: &[String]) -> u8 {
         })
         .collect();
     rows.sort_by(|a, b| a.closed.cmp(&b.closed).then_with(|| a.issue.cmp(&b.issue)));
+    let milestones = milestone::milestones(&repo);
+    for row in &mut rows {
+        let name = milestones.get(&row.issue).cloned().unwrap_or_default();
+        row.cells.insert(2, name);
+    }
     if summed {
         println!("{SUMMARY_HEADER}");
         for line in summary(&rows) {

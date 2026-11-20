@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 const SESSIONS: &str = "session\tproject\tissues\trevision\tmodels\tversions\tstart\tduration_s\tturns\ttool_calls\tinput_tokens\toutput_tokens\tthinking_tokens\tcache_read_tokens\tcache_creation_tokens\tmain_context_peak\tadvisor_models\tadvisor_calls\tadvisor_input_tokens\tadvisor_output_tokens\thook_refusals\tskills\tvalidations\tother_messages\tunreadable_lines\tunknown_lines\tmissing_fields";
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
-const QUALITY: &str = "revision\tsetup\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
+const QUALITY: &str = "revision\tsetup\tmilestone\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
 const CHANGES: &str = "change\tmetric\tdirection\trevisions";
@@ -394,15 +394,15 @@ fn axes_inputs(tmp: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
         &tmp.join("quality-a.tsv"),
         QUALITY,
         &[
-            format!("{SELF}\t\t2\t4\t6\t1\t1\t0\t2\t2\t3\t5\t2\t150\t30\t0\t0\t0\t0\t0\t2\t1\t3\t4\t3000000\t2000000\t10000\t1"),
-            "zzz\t\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9".into(),
+            format!("{SELF}\t\t\t2\t4\t6\t1\t1\t0\t2\t2\t3\t5\t2\t150\t30\t0\t0\t0\t0\t0\t2\t1\t3\t4\t3000000\t2000000\t10000\t1"),
+            "zzz\t\t\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9\t9".into(),
         ],
     );
     let quality_b = write(
         &tmp.join("quality-b.tsv"),
         QUALITY,
         &[
-            "r-b\t\t1\t1\t2\t0\t0\t0\t1\t\t\t1\t1\t50\t20\t0\t0\t0\t0\t0\t1\t0\t1\t0\t1\t0\t2\t1"
+            "r-b\t\t\t1\t1\t2\t0\t0\t0\t1\t\t\t1\t1\t50\t20\t0\t0\t0\t0\t0\t1\t0\t1\t0\t1\t0\t2\t1"
                 .into(),
         ],
     );
@@ -555,7 +555,7 @@ fn token_quality_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 fn shape_row(revision: &str, issues: u64, shape: [u64; 5]) -> String {
     let shape: Vec<String> = shape.iter().map(u64::to_string).collect();
     format!(
-        "{revision}\t\t{issues}{}\t{}{}",
+        "{revision}\t\t\t{issues}{}\t{}{}",
         "\t0".repeat(12),
         shape.join("\t"),
         "\t0".repeat(8)
@@ -668,7 +668,7 @@ fn axes_threshold_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         &tmp.join("quality-no-spec.tsv"),
         QUALITY,
         &[format!(
-            "{SELF}\t\t1\t1\t1\t0\t0\t0\t1\t1\t0\t0\t0\t0\t9\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"
+            "{SELF}\t\t\t1\t1\t1\t0\t0\t0\t1\t1\t0\t0\t0\t0\t9\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"
         )],
     );
     let (_, docs_only, _) = run(
@@ -768,10 +768,10 @@ fn setup_inputs(tmp: &Path) -> [PathBuf; 5] {
         &tmp.join("setup-quality.tsv"),
         QUALITY,
         &[
-            format!("r1\tclaude-opus-5-5 solo\t2{zeros}\t0"),
-            format!("r2\tclaude-opus-5-5 solo\t1{zeros}\t0"),
-            format!("r1\tmixed\t4{zeros}\t0"),
-            format!("\tclaude-opus-5-5 solo\t5{zeros}\t0"),
+            format!("r1\tclaude-opus-5-5 solo\t\t2{zeros}\t0"),
+            format!("r2\tclaude-opus-5-5 solo\t\t1{zeros}\t0"),
+            format!("r1\tmixed\t\t4{zeros}\t0"),
+            format!("\tclaude-opus-5-5 solo\t\t5{zeros}\t0"),
         ],
     );
     let changes = write(
@@ -1210,8 +1210,8 @@ fn token_verdict_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         &tmp.join("v-quality.tsv"),
         QUALITY,
         &[
-            "ra\t\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
-            "rb\t\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t2".into(),
+            "ra\t\t\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
+            "rb\t\t\t2\t1\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t2".into(),
         ],
     );
     let tokens = verdicts(
@@ -1309,8 +1309,8 @@ fn issue_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
         &tmp.join("f-quality.tsv"),
         QUALITY,
         &[
-            "ra\t\t6\t1\t1\t0\t3\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
-            "rb\t\t8\t1\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t6".into(),
+            "ra\t\t\t6\t1\t1\t0\t3\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t1000\t0\t10\t2".into(),
+            "rb\t\t\t8\t1\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t1\t0\t0\t0\t600\t0\t30\t6".into(),
         ],
     );
     let quality = quality.to_str().unwrap();
@@ -1351,9 +1351,9 @@ fn ratio_floor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
             &tmp.join("r-quality.tsv"),
             QUALITY,
             &[
-                format!("ra\t\t6\t1\t1\t0\t0\t0\t12\t{ra_reviews}\t24\t0\t0\t100\t200\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"),
+                format!("ra\t\t\t6\t1\t1\t0\t0\t0\t12\t{ra_reviews}\t24\t0\t0\t100\t200\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"),
                 format!(
-                    "rb\t\t{rb_issues}\t1\t1\t0\t0\t0\t12\t12\t6\t0\t0\t100\t100\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"
+                    "rb\t\t\t{rb_issues}\t1\t1\t0\t0\t0\t12\t12\t6\t0\t0\t100\t100\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t0\t0\t0"
                 ),
             ],
         );

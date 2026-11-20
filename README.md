@@ -85,7 +85,7 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 ## Steering UI
 
 `cardinal-ui`, run in a project, shows its milestones, its queue of issues, its worktrees with the session that
-holds each (and whether it waits for the user, with a desktop notification when one starts to wait) and the trend of its measures (per group of revisions and per milestone), refreshed every 2 seconds (`r` now, `q` or `Ctrl+C` to quit); `--print`
+holds each (and whether it waits for the user, with a desktop notification when one starts to wait) and the trend of its measures (per group of revisions and per milestone, charted on `g`), refreshed every 2 seconds (`r` now, `q` or `Ctrl+C` to quit); `--print`
 prints the screen once; it draws in the colors of a theme file a theme generator can write (`~/.config/cardinal-ui/theme.toml`). It reads the project through `cardinal run next-issue --json`, `roadmap --json` and `release --json`, marking a milestone `release` would list `awaits release v<version>` (bare when it proposes none). In a zellij
 session, `s` on a ready issue opens its worktree and a tab running `claude` on it (or resumes one whose session ended, in its worktree); `f` on an issue `merge pending`
 fast-forwards the trunk of the main worktree to its branch, then ends its waiting session, closes its tab and removes

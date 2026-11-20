@@ -238,7 +238,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 
 `cardinal-ui` is the binary of its own crate, `crates/cardinal-ui`, which does not depend on the `cardinal` crate ([ADR
 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec [`specs/steering-ui.md`](../specs/steering-ui.md), its
-actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md)): it reads a project only through the JSON
+actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), its charts in
+[`specs/steering-ui-charts.md`](../specs/steering-ui-charts.md)): it reads a project only through the JSON
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to

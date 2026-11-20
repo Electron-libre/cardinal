@@ -1,6 +1,6 @@
 ---
 id: SUC
-status: draft
+status: accepted
 adrs: [0030]
 ---
 

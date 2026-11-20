@@ -1,14 +1,21 @@
 //! The charts of the measures (SUC-2 to SUC-4): four series read from the last measure, the groups of revisions of
 //! `revisions.json` (those of `efficiency.json` for a measure taken before it) and the milestones of
 //! `milestones.json` but `(no milestone)`, each laid out as rows of a name, a bar from zero, the number as the report
-//! writes it and its sample.
+//! writes it and its sample, drawn on a screen of their own behind `g` (SUC-1).
 
 use std::fmt::Write;
 use std::path::Path;
 
+use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::text::Line;
+use ratatui::widgets::{Paragraph, Widget};
+
 use crate::measures::table;
 use crate::panels::{Mark, Panel};
+use crate::screen::{draw_panel, height, help_line, styled};
 use crate::theme::Role;
+use crate::theme::Theme;
 
 /// The group of the milestone report that holds the issues of no milestone, left out of the charts (SUC-2).
 const NO_MILESTONE: &str = "(no milestone)";
@@ -72,14 +79,16 @@ fn row(r: &[(String, String)], column: &str, sample: &str, unit: &str) -> Row {
     }
 }
 
-/// The four charts of the last measure of `dir` (SUC-2): by revision, then by milestone.
-pub fn charts(dir: &Path) -> [Chart; 4] {
-    let mut revisions = table(&dir.join("revisions.json"), "Efficiency");
-    if !dir.join("revisions.json").is_file() {
-        // a measure taken before the charts (SUC-4)
-        revisions = table(&dir.join("efficiency.json"), "Efficiency");
-    }
-    let milestones: Vec<_> = table(&dir.join("milestones.json"), "Quality")
+/// The four charts of the last measure of `dir` (SUC-2), by revision then by milestone; empty with no directory.
+pub fn charts(dir: Option<&Path>) -> [Chart; 4] {
+    let read = |name: &str, title| dir.map_or_else(Vec::new, |d| table(&d.join(name), title));
+    // a measure taken before the charts has no `revisions.json` (SUC-4)
+    let revisions = if dir.is_some_and(|d| !d.join("revisions.json").is_file()) {
+        read("efficiency.json", "Efficiency")
+    } else {
+        read("revisions.json", "Efficiency")
+    };
+    let milestones: Vec<_> = read("milestones.json", "Quality")
         .into_iter()
         .filter(|r| cell(r, "group") != NO_MILESTONE)
         .collect();
@@ -204,9 +213,67 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
     }
 }
 
+/// The help line under the charts (SUC-1).
+const CHARTS_HELP: &str = "q quit  r refresh  m measure  g panels";
+
+/// The lines of the `Measures` panel `p` before its groups: the error of the last measure, `measured` or `measuring…`
+/// (SUC-2).
+pub(crate) fn head(p: &Panel) -> Panel {
+    let n = p
+        .lines
+        .iter()
+        .position(|l| l == "by revision:")
+        .unwrap_or(p.lines.len());
+    Panel {
+        title: p.title,
+        lines: p.lines[..n].to_vec(),
+        marks: p.marks.iter().filter(|m| m.line < n).cloned().collect(),
+        failed: p.failed,
+    }
+}
+
+/// Renders the charts screen into `buf` over `area` (SUC-2): the lines of `head`, the charts by revision on the left
+/// and by milestone on the right, each at its height, then the help line and `status`, in the roles of `theme`.
+pub(crate) fn render_charts(
+    area: Rect,
+    buf: &mut Buffer,
+    head: &Panel,
+    charts: &[Chart; 4],
+    status: &str,
+    theme: &Theme,
+) {
+    buf.set_style(area, theme.screen());
+    let rows = u16::try_from(head.lines.len()).unwrap_or(u16::MAX);
+    let [top, middle, bottom] = Layout::vertical([
+        Constraint::Length(rows),
+        Constraint::Min(0),
+        Constraint::Length(1),
+    ])
+    .areas(area);
+    let lines: Vec<Line> = head
+        .lines
+        .iter()
+        .enumerate()
+        .map(|(i, l)| styled(l, head.marks.iter().filter(|m| m.line == i), theme))
+        .collect();
+    Paragraph::new(lines).render(top, buf);
+    let columns = Layout::horizontal([Constraint::Percentage(50); 2]).split(middle);
+    for (column, pair) in columns.iter().zip(charts.chunks(2)) {
+        let width = usize::from(column.width.saturating_sub(2));
+        let panels: Vec<Panel> = pair.iter().map(|c| panel(c, width)).collect();
+        let areas =
+            Layout::vertical(panels.iter().map(|p| Constraint::Max(height(p)))).split(*column);
+        for (p, area) in panels.iter().zip(areas.iter()) {
+            draw_panel(p, *area, buf, None, theme);
+        }
+    }
+    help_line(CHARTS_HELP, status, bottom, buf, theme);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ratatui::style::Color;
 
     const EFFICIENCY: &str = r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa..self:bbbbbbb","10","5000000","96%"],["self:ccccccc","12","10000000","97%"],["self:ddddddd","6","too few","too few"]]}]}"#;
     const MILESTONES: &str = r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["(no milestone)","","149","1.17","1.15","358"],["One","","2","1.50","1.71","7"],["Two","","1","0.00","","0"]]}]}"#;
@@ -230,7 +297,7 @@ mod tests {
             ("revisions.json", EFFICIENCY),
             ("milestones.json", MILESTONES),
         ]);
-        let [input, share, fixes, findings] = charts(dir.path());
+        let [input, share, fixes, findings] = charts(Some(dir.path()));
         assert_eq!(names(&input), ["aaaaaaa..bbbbbbb", "ccccccc", "ddddddd"]);
         assert_eq!(share.rows[0].shown, "96%");
         assert_eq!(share.rows[0].value, Some(96.0));
@@ -244,13 +311,16 @@ mod tests {
     #[test]
     fn a_measure_without_revisions_json_charts_the_efficiency_groups() {
         let dir = measure(&[("efficiency.json", EFFICIENCY)]);
-        let [input, ..] = charts(dir.path());
+        let [input, ..] = charts(Some(dir.path()));
         assert_eq!(names(&input), ["aaaaaaa..bbbbbbb", "ccccccc", "ddddddd"]);
         let dir = measure(&[
             ("efficiency.json", EFFICIENCY),
             ("revisions.json", r#"{"version":1,"tables":[]}"#),
         ]);
-        assert!(charts(dir.path())[0].rows.is_empty(), "revisions.json wins");
+        assert!(
+            charts(Some(dir.path()))[0].rows.is_empty(),
+            "revisions.json wins"
+        );
     }
 
     // spec: SUC-3 (internal: the charts are drawn only in the terminal, never by `--print`)
@@ -270,7 +340,7 @@ mod tests {
             ("revisions.json", EFFICIENCY),
             ("milestones.json", MILESTONES),
         ]);
-        let [input, _, _, findings] = charts(dir.path());
+        let [input, _, _, findings] = charts(Some(dir.path()));
         let p = panel(&input, 60);
         assert!(p.lines[2].starts_with("ddddddd"), "{:?}", p.lines);
         assert!(p.lines[2].ends_with("too few  6 sessions"), "{:?}", p.lines);
@@ -288,7 +358,7 @@ mod tests {
     #[test]
     fn the_bars_are_in_accent_and_too_few_and_the_samples_in_muted() {
         let dir = measure(&[("revisions.json", EFFICIENCY)]);
-        let p = panel(&charts(dir.path())[0], 60);
+        let p = panel(&charts(Some(dir.path()))[0], 60);
         let word = |m: &Mark| &p.lines[m.line][m.range.clone()];
         let roles: Vec<(&str, Role)> = p.marks.iter().map(|m| (word(m), m.role)).collect();
         assert!(roles.contains(&("10 sessions", Role::Muted)), "{roles:?}");
@@ -296,5 +366,114 @@ mod tests {
         assert!(roles
             .iter()
             .any(|(w, r)| w.starts_with('█') && *r == Role::Accent));
+    }
+
+    /// A measure of three groups of revisions, the last `too few`, and two milestones besides `(no milestone)`.
+    fn screen_measure() -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("revisions.json"), r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa","10","5000000","96%"],["self:bbbbbbb","10","10000000","97%"],["self:ccccccc","6","too few","too few"]]}]}"#).unwrap();
+        std::fs::write(dir.path().join("milestones.json"), r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["(no milestone)","","149","1.17","1.15","358"],["One","","2","1.50","1.71","7"],["Two","","1","0.00","","0"]]}]}"#).unwrap();
+        dir
+    }
+
+    /// The charts of `measure()` rendered in 140 by 30 cells under the head `head`.
+    fn charts_screen(head: &[&str], theme: &Theme) -> Buffer {
+        let dir = screen_measure();
+        let head = Panel {
+            title: "Measures",
+            lines: head.iter().map(|l| (*l).to_string()).collect(),
+            marks: Vec::new(),
+            failed: false,
+        };
+        let area = Rect::new(0, 0, 140, 30);
+        let mut buf = Buffer::empty(area);
+        let charts = charts(Some(dir.path()));
+        render_charts(area, &mut buf, &head, &charts, "", theme);
+        buf
+    }
+
+    fn rows(buf: &Buffer) -> Vec<String> {
+        (0..buf.area.height)
+            .map(|y| (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect())
+            .collect()
+    }
+
+    // spec: SUC-H1, SUC-2 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn the_charts_show_each_group_with_its_bar_and_its_sample() {
+        let buf = charts_screen(&["measured 19:23"], &Theme::default());
+        let rows = rows(&buf);
+        let screen = rows.join("\n");
+        assert!(rows[0].starts_with("measured 19:23"), "{screen}");
+        for title in [
+            "input per session",
+            "cached share",
+            "fixes after per issue",
+            "findings per review",
+        ] {
+            assert!(screen.contains(title), "{title} in {screen}");
+        }
+        let bbb = rows
+            .iter()
+            .find(|r| r.contains("bbbbbbb") && r.contains("10000000"))
+            .expect("the median");
+        assert!(bbb.contains('█') && bbb.contains("10 sessions"), "{bbb}");
+        assert!(screen.contains("ccccccc too few  6 sessions"), "{screen}");
+        assert!(!screen.contains("(no milestone)"), "{screen}");
+        let one = rows
+            .iter()
+            .find(|r| r.contains("One") && r.contains("1.50"))
+            .expect("the milestone");
+        assert!(one.contains("2 issues"), "{one}");
+        assert!(screen.contains("1.71 7 reviews"), "{screen}");
+        assert!(rows.last().unwrap().contains("g panels"), "{screen}");
+    }
+
+    // spec: SUC-2 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn the_charts_open_on_the_line_of_a_running_or_failed_measure() {
+        let buf = charts_screen(
+            &[
+                "session-metrics: exit 3: cannot read",
+                "measuring…  last measured 09:05",
+            ],
+            &Theme::default(),
+        );
+        let rows = rows(&buf);
+        assert!(rows[0].starts_with("session-metrics: exit 3"), "{rows:?}");
+        assert!(rows[1].starts_with("measuring…"), "{rows:?}");
+        let panel = Panel {
+            title: "Measures",
+            lines: ["measured 09:05", "by revision:", "r1  12 sessions"]
+                .map(String::from)
+                .to_vec(),
+            marks: Vec::new(),
+            failed: false,
+        };
+        assert_eq!(head(&panel).lines, ["measured 09:05"]);
+    }
+
+    // spec: SUC-5 (internal: the colors of a screen that needs a real terminal)
+    #[test]
+    fn the_bars_are_drawn_in_accent_and_the_samples_in_muted() {
+        let (theme, ignored) = crate::theme::parse(
+            "accent = \"#112233\"\nmuted = \"#445566\"\nborder = \"#778899\"\n",
+        );
+        assert!(ignored.is_empty(), "{ignored:?}");
+        let buf = charts_screen(&["measured 19:23"], &theme);
+        let rows = rows(&buf);
+        let cell = |needle: &str| {
+            let (y, row) = rows
+                .iter()
+                .enumerate()
+                .find(|(_, r)| r.contains(needle))
+                .unwrap();
+            let at = row[..row.find(needle).unwrap()].chars().count();
+            &buf[(u16::try_from(at).unwrap(), u16::try_from(y).unwrap())]
+        };
+        assert_eq!(cell("█").fg, Color::Rgb(0x11, 0x22, 0x33));
+        assert_eq!(cell("10 sessions").fg, Color::Rgb(0x44, 0x55, 0x66));
+        assert_eq!(cell("too few").fg, Color::Rgb(0x44, 0x55, 0x66));
+        assert_eq!(cell("┌").fg, Color::Rgb(0x77, 0x88, 0x99));
     }
 }

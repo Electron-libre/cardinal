@@ -72,9 +72,9 @@ q quit  r refresh  m measure  g panels
    (`--last 12`), a new module `charts.rs` reads the four series and lays out each row (name, bar in eighths, number,
    sample); verified by the `--print` measure test (five files, a failing third report) and unit tests of the rows;
    makes true SUC-3, SUC-4. ~400 lines. (autonomous)
-2. [ ] The charts screen behind `g`: `Action::Charts`, the SUA keys idle on it, the drawing in the roles of the theme,
+2. [x] The charts screen behind `g`: `Action::Charts`, the SUA keys idle on it, the drawing in the roles of the theme,
    the help line, the docs (`docs/usage.md`, `docs/architecture.md`, `README.md`); verified by `TestBackend` tests
-   (internal: the charts screen is drawn only in the terminal); makes true SUC-1, SUC-2, SUC-5, SUC-H1. ~400 lines.
+   (internal: the charts screen is drawn only in the terminal); makes true SUC-1, SUC-2, SUC-5, SUC-H1. ~400 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -99,4 +99,23 @@ q quit  r refresh  m measure  g panels
 - Code review: 1 findings
   - `charts.rs`: a milestone `too few` would show an empty `sessions`: not fixed, REP-20 makes no milestone `too few`.
 - not verified: the layout on a real terminal (deliverable 2).
+- decisions needed: none.
+
+## Deliverable 2 summary
+- done: `g` switches to the charts screen and back (`charts_key`), the reads' keys act there and the others wait; the
+  four charts drawn under the head of the measure, the bars in `accent`, the samples and `too few` in `muted`; the
+  drawing of the charts moved to `charts.rs` so `screen.rs` stays under 800 lines; SUC accepted.
+
+| check | result |
+|---|---|
+| tests | pass (`cargo test -p cardinal-ui`) |
+| lint | pass (clippy -D warnings) |
+| specs | pass, `steering-ui-charts.md` accepted |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md`, `.claude/update-docs-map.md` |
+| code review | low, no findings |
+
+- red: SUC-1, SUC-2, SUC-5, SUC-H1: `no variant named Charts found for enum keys::Action`, `cannot find function render_charts`.
+- Code review: no findings
+- not verified: the screen in a real terminal by hand (rendered once from the real cache in a `TestBackend` buffer:
+  readable at 160 columns).
 - decisions needed: none.

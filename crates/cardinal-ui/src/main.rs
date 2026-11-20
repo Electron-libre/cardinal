@@ -4,14 +4,12 @@
 //! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
 //! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
-//! to wait for the user (`notify.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
+//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
 //! merged worktree; `--release` starts the release session in the main worktree.
 
-// drawn by the charts screen of the next commit, built and tested until then
-#[cfg_attr(not(test), allow(dead_code))]
 mod charts;
 mod end;
 mod keys;
@@ -32,7 +30,8 @@ const USAGE: &str =
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
-    let state = source::read(&source::root(Path::new(".")), measuring, measure_error);
+    let root = source::root(Path::new("."));
+    let state = source::read(&root, measuring, measure_error);
     let stems = state.queue.as_ref().map_or_else(
         |_| Vec::new(),
         |q| q.issues.iter().map(|i| i.stem.clone()).collect(),
@@ -51,6 +50,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         stems,
         worktrees,
         waits,
+        charts: charts::charts(measures::directory(&root).as_deref()),
     }
 }
 

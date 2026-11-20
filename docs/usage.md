@@ -295,8 +295,12 @@ for the charts (`revisions.json`) and `cardinal-report --by milestone --json` be
 transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts
 and the last one is over an hour old, and on `m`: `measuring…` heads the panel meanwhile, and a failed step shows its
 error above the last measure, whose files stay as they were. `--print` measures first when the measure is over an
-hour old. The numbers are trends with their sample, never a pass or a fail: `skill:evaluate-harness` reads the rest
-of the report.
+hour old. `g` switches the screen to four bar charts of the last measure and back
+([specs/steering-ui-charts.md](../specs/steering-ui-charts.md)): the median input per session and the cached share over
+the last twelve groups of revisions, the fixes after per issue and the findings per review per milestone (the issues
+of no milestone left out), each bar from zero with its number and its sample, a group `too few` unbarred; there `q`,
+`r` and `m` work and the other keys wait. The numbers are trends with their sample, never a pass or a fail:
+`skill:evaluate-harness` reads the rest of the report.
 
 It draws in the colors of a theme file, read once when it starts and never written: the file
 `CARDINAL_UI_THEME` names, else `$XDG_CONFIG_HOME/cardinal-ui/theme.toml` (`~/.config/...` when unset or relative),

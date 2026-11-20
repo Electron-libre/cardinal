@@ -2,7 +2,8 @@
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `E`
 //! ends it on every merged worktree (SUA-13); `m` takes the measures again (STU-17); `v` starts the release session
-//! (SUA-4); a worktree that starts to wait for the user notifies the desktop (STU-29).
+//! (SUA-4); a worktree that starts to wait for the user notifies the desktop (STU-29); `g` switches to the charts of
+//! the measures and back (SUC-1).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -14,7 +15,10 @@ use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
-use crate::keys::{action, ended, job, quits, task, Action, Ended, Focus, Selection, Task};
+use crate::charts::{head, render_charts, Chart};
+use crate::keys::{
+    action, charts_key, ended, job, quits, task, Action, Ended, Focus, Selection, Task,
+};
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::{Mark, Panel};
 use crate::theme::{Role, Theme};
@@ -30,7 +34,7 @@ const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
 pub(crate) const HELP: &str =
-    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  m measure";
+    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  m measure  g charts";
 
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
 /// the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
@@ -39,17 +43,23 @@ pub struct View {
     pub stems: Vec<String>,
     pub worktrees: Vec<(String, Option<String>)>,
     pub waits: Option<Vec<Wait>>,
+    /// The charts of the last measure (SUC-2).
+    pub charts: [Chart; 4],
 }
 
 /// The rows a panel takes: its lines and its two borders.
-fn height(p: &Panel) -> u16 {
+pub(crate) fn height(p: &Panel) -> u16 {
     u16::try_from(p.lines.len())
         .unwrap_or(u16::MAX)
         .saturating_add(2)
 }
 
 /// The line `text` with the words of `marks` (in the order of the line) in their role (STU-31).
-fn styled<'a>(text: &'a str, marks: impl Iterator<Item = &'a Mark>, theme: &Theme) -> Line<'a> {
+pub(crate) fn styled<'a>(
+    text: &'a str,
+    marks: impl Iterator<Item = &'a Mark>,
+    theme: &Theme,
+) -> Line<'a> {
     let mut spans = Vec::new();
     let mut at = 0;
     for m in marks {
@@ -87,42 +97,55 @@ fn render(
     ])
     .split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
-        let scroll = match selected {
-            Some((panel, line)) if panel == n => offset(line, area.height.saturating_sub(2)),
-            _ => 0,
-        };
-        let lines: Vec<Line> = p
-            .lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| {
-                let line = styled(l, p.marks.iter().filter(|m| m.line == i), theme);
-                if selected == Some((n, i)) {
-                    line.style(theme.selected())
-                } else {
-                    line
-                }
-            })
-            .collect();
-        let block = Block::bordered()
-            .border_style(theme.fg(Role::Border))
-            .title(format!(" {} ", p.title))
-            .title_style(theme.fg(Role::Accent));
-        Paragraph::new(lines)
-            .block(block)
-            .scroll((scroll, 0))
-            .render(*area, buf);
+        let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
+        draw_panel(p, *area, buf, line, theme);
     }
-    // the help in `muted`, the status message in `text`, both on `surface`
-    let mut help = vec![Span::raw(HELP)];
+    help_line(HELP, status, areas[4], buf, theme);
+}
+
+/// Draws `p` bordered over `area`, its line `selected` highlighted and kept visible, in the roles of `theme` (STU-31).
+pub(crate) fn draw_panel(
+    p: &Panel,
+    area: Rect,
+    buf: &mut Buffer,
+    selected: Option<usize>,
+    theme: &Theme,
+) {
+    let scroll = selected.map_or(0, |line| offset(line, area.height.saturating_sub(2)));
+    let lines: Vec<Line> = p
+        .lines
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            let line = styled(l, p.marks.iter().filter(|m| m.line == i), theme);
+            if selected == Some(i) {
+                line.style(theme.selected())
+            } else {
+                line
+            }
+        })
+        .collect();
+    let block = Block::bordered()
+        .border_style(theme.fg(Role::Border))
+        .title(format!(" {} ", p.title))
+        .title_style(theme.fg(Role::Accent));
+    Paragraph::new(lines)
+        .block(block)
+        .scroll((scroll, 0))
+        .render(area, buf);
+}
+
+/// The help `help` in `muted`, then the status message in `text`, both on `surface`, over `area`.
+pub(crate) fn help_line(help: &str, status: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
+    let mut spans = vec![Span::raw(help)];
     if !status.is_empty() {
-        help.push(Span::styled(
+        spans.push(Span::styled(
             format!("  {status}"),
             Style::new().fg(theme.color(Role::Text)),
         ));
     }
-    buf.set_style(areas[4], theme.status());
-    Line::from(help).render(areas[4], buf);
+    buf.set_style(area, theme.status());
+    Line::from(spans).render(area, buf);
 }
 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
@@ -219,18 +242,27 @@ fn received(
     }
 }
 
-/// Draws `view` in the frame `f`, the line `selected` of [`Selection::line`] highlighted, or `reading the project…`
-/// before the first read, in the roles of `theme` (STU-31).
+/// Draws `view` in the frame `f`, its charts when `charts` (SUC-1), else its panels with the line `selected` of
+/// [`Selection::line`] highlighted, or `reading the project…` before the first read, in the roles of `theme` (STU-31).
 fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    selected: Selection,
+    (selected, charts): (Selection, bool),
     status: &str,
     theme: &Theme,
 ) {
     let area = f.area();
     // a panel holds one line per stem or worktree, in order: an empty or failed one selects nothing
-    if let Some(v) = view {
+    if let Some(v) = view.filter(|_| charts) {
+        render_charts(
+            area,
+            f.buffer_mut(),
+            &head(&v.panels[3]),
+            &v.charts,
+            status,
+            theme,
+        );
+    } else if let Some(v) = view {
         render(
             area,
             f.buffer_mut(),
@@ -280,6 +312,7 @@ pub fn run(
         let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
         let mut quitting = false;
+        let mut charts = false;
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
                 return Err(std::io::Error::other("the reading of the project failed"));
@@ -303,10 +336,11 @@ pub fn run(
                 busy = false;
                 schedule.asked = true;
             }
-            terminal.draw(|f| draw(f, view.as_ref(), selected, &status, &theme))?;
+            terminal.draw(|f| draw(f, view.as_ref(), (selected, charts), &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
-                    let key = action(&key);
+                    let (shown, key) = charts_key(charts, action(&key));
+                    charts = shown;
                     let (now, later) = quits(&key, busy, quitting);
                     if now {
                         return Ok(None);
@@ -316,7 +350,7 @@ pub fn run(
                     }
                     quitting = later;
                     match key {
-                        Action::Quit => {}
+                        Action::Quit | Action::Charts => {}
                         Action::Refresh => schedule.asked = true,
                         Action::Measure => {
                             measure();
@@ -368,7 +402,7 @@ mod tests {
             panel("Worktrees", &["w"]),
             panel("Measures", &["x"]),
         ];
-        let area = Rect::new(0, 0, 120, 15);
+        let area = Rect::new(0, 0, 140, 15);
         let mut buf = Buffer::empty(area);
         render(
             area,
@@ -378,12 +412,12 @@ mod tests {
             "started a in /w",
             &Theme::default(),
         );
-        let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
-        assert!((0..15).any(|y| row(y).contains("m measure  started a in /w")));
+        assert!((0..15).any(|y| row(y).contains("g charts  started a in /w")));
     }
 
     // spec: STU-31 (internal: the colors of a screen that needs a real terminal)

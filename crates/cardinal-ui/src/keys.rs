@@ -52,7 +52,7 @@ impl Selection {
 }
 
 /// What a key does in the screen (STU-2).
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Action {
     Quit,
     Refresh,
@@ -65,6 +65,7 @@ pub enum Action {
     EndMerged,
     Release,
     Measure,
+    Charts,
     Nothing,
 }
 
@@ -140,7 +141,19 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('E') => Action::EndMerged,
         KeyCode::Char('v') => Action::Release,
         KeyCode::Char('m') => Action::Measure,
+        KeyCode::Char('g') => Action::Charts,
         _ => Action::Nothing,
+    }
+}
+
+/// Whether the charts are shown after `action`, and what it then does (SUC-1): `g` switches between the panels and
+/// the charts, where only the keys of the reads and of the measures act, so the selection and the tasks wait.
+pub(crate) fn charts_key(charts: bool, action: Action) -> (bool, Action) {
+    match action {
+        Action::Charts => (!charts, Action::Nothing),
+        Action::Quit | Action::Refresh | Action::Measure => (charts, action),
+        _ if charts => (charts, Action::Nothing),
+        a => (charts, a),
     }
 }
 
@@ -318,7 +331,37 @@ pub(crate) mod tests {
                 .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
                 .collect(),
             waits: Some(Vec::new()),
+            charts: crate::charts::charts(None),
         }
+    }
+
+    // spec: SUC-1 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn g_switches_to_the_charts_where_only_the_keys_of_the_reads_act() {
+        assert_eq!(action(&press(KeyCode::Char('g'))), Action::Charts);
+        assert_eq!(charts_key(false, Action::Charts), (true, Action::Nothing));
+        for idle in [
+            Action::Start,
+            Action::Merge,
+            Action::End,
+            Action::EndMerged,
+            Action::Release,
+        ] {
+            assert_eq!(charts_key(true, idle), (true, Action::Nothing));
+        }
+        for idle in [Action::Up, Action::Down, Action::Switch] {
+            assert_eq!(
+                charts_key(true, idle),
+                (true, Action::Nothing),
+                "the selection kept"
+            );
+        }
+        for acts in [Action::Quit, Action::Refresh, Action::Measure] {
+            assert_eq!(charts_key(true, acts.clone()), (true, acts));
+        }
+        assert_eq!(charts_key(true, Action::Charts), (false, Action::Nothing));
+        assert_eq!(charts_key(false, Action::Start), (false, Action::Start));
+        assert!(HELP.contains("g charts"), "{HELP}");
     }
 
     // spec: SUA-13 (internal: the keys of a screen that needs a real terminal)

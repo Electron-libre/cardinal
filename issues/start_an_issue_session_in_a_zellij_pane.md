@@ -57,6 +57,7 @@ plugin, reusing a free worktree, stopping or entering a session. Means: the wait
 1. [x] Wait mark hook: `cardinal run session-wait wait|work`, its managed entries and a feature to turn it off; verified by tests of the tool and of the entries; makes true SWT-1, SWT-2, SWT-3, SWT-4, SWT-5. (autonomous)
 2. [x] Follow in the UI: the worktrees panel shows `waiting since <HH:MM>: <reason>`, the queue shows `tab` from `zellij action list-tabs --json` (`CARDINAL_UI_ZELLIJ`); verified by `--print` tests with a fake zellij and marks; makes true STU-3, STU-10, STU-12, STU-13. (autonomous)
 3. [x] Start from the UI: `cardinal-ui --start <stem>`, the selection in the queue, the key `s` and the status line, the refusal outside zellij; verified by `--start` tests with fake `cardinal` and `zellij`, internal tests of the keys; makes true STU-9, STU-11, STU-12. (autonomous)
+4. [x] Docs of the issue and settlement of its `high` review: 7 findings fixed, 2 stated as non-goals; makes true SWT-1, SWT-2, SWT-5, STU-13, STU-14, STU-15. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -118,4 +119,25 @@ Code review: 1 findings
 - nit, highlight of line 0 when the queue is empty or failed: fixed, an empty list of stems highlights nothing (the
   queue panel holds one line per stem, in order, so the index matches otherwise).
 - not verified: a real zellij tab running `claude` (billed and interactive; `new-tab` faked, its arguments checked).
+- decisions needed: none.
+
+## Deliverable 4: docs of the issue and settlement of the high review
+- done: `docs/usage.md` Steering UI rewritten whole; the 9 findings of the `high` review settled: the wait mark
+  keeps the time its wait began (SWT-1), ignores the events of a subagent and clears at `PostToolUseFailure` too
+  (SWT-2, SWT-5); the selection follows its issue across reads and scrolls into view (STU-14), `q` during a start
+  waits for it (STU-15), a wait of another day shows its date (STU-13). Not fixed, stated as SWT non-goals: a stop
+  another `Stop` hook refuses is marked until the next tool call (a hook cannot know); a second session refused by
+  the lock overwrites the holder's mark (the reader ignores a mark of another session).
+
+| check | result |
+|---|---|
+| tests | `just check` green; 2 new hook tests, 1 new `--print` test, 2 new internal screen tests |
+| lint | clean |
+| specs | SWT-1, SWT-2, SWT-5, STU-13, STU-14, STU-15 amended or added, traced; both specs accepted |
+| docs | `docs/usage.md`, `docs/architecture.md` hook table |
+| code review | see below |
+
+red: SWT-1, SWT-2, SWT-5: the mark read `since <now>` instead of `since 1000`, and the subagent event removed it; STU-13, STU-14, STU-15: not captured (tests written with the code)
+Code review: no findings
+- not verified: a real Claude Code session in a real zellij tab (billed, interactive).
 - decisions needed: none.

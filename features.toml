@@ -61,6 +61,7 @@ entries = [
 entries = [
     "hook Notification cardinal run session-wait wait",
     "hook PostToolUse cardinal run session-wait work",
+    "hook PostToolUseFailure cardinal run session-wait work",
     "hook SessionEnd cardinal run session-wait work",
     "hook Stop cardinal run session-wait wait",
     "hook UserPromptSubmit cardinal run session-wait work",

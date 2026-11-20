@@ -160,7 +160,7 @@ nothing: it only names a commit a consumer can pin (`cardinal update --rev v0.2.
 | `Stop` | | `lint-gate` | blocks the end of a turn while the project's lint (else clippy) reports a problem | [`lint-gate.md`](../specs/lint-gate.md) |
 | `Stop` | | `language-hint` | sends the agent back once when its last reply is not in the `user_language`, judged as rule `user-language` of `rule-breaches` (`tools/language.rs`) | [`language-hint.md`](../specs/language-hint.md) |
 | `Stop`, `Notification` | | `session-wait wait` | marks the worktree as waiting for the user (`cardinal-waiting` of its git directory: session, since, reason), for `cardinal-ui` | [`session-wait.md`](../specs/session-wait.md) |
-| `UserPromptSubmit`, `PostToolUse`, `SessionEnd` | | `session-wait work` | removes the wait mark of the session | [`session-wait.md`](../specs/session-wait.md) SWT-2 |
+| `UserPromptSubmit`, `PostToolUse`, `PostToolUseFailure`, `SessionEnd` | | `session-wait work` | removes the wait mark of the session, but on the event of a subagent | [`session-wait.md`](../specs/session-wait.md) SWT-2 |
 | git `pre-commit` | | `review-gate native` | refuses a commit whose diff the review never saw | [`review-gate.md`](../specs/review-gate.md) REV-9 |
 
 How each works: [gates.md](gates.md). `format-code`, `lint-gate`, `language-hint`, `read-hint`, `update-notice`, the `review-gate` hooks, the

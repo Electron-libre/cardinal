@@ -93,12 +93,18 @@ fn queue(q: &Queue) -> Vec<String> {
     lines
 }
 
-/// The local time `HH:MM` of `seconds` since the Unix epoch (STU-13).
+/// The local time `HH:MM` of `seconds` since the Unix epoch, its date before it when it is not today (STU-13).
 fn clock(seconds: i64) -> String {
-    chrono::DateTime::from_timestamp(seconds, 0).map_or_else(
-        || "?".to_string(),
-        |t| t.with_timezone(&chrono::Local).format("%H:%M").to_string(),
-    )
+    let Some(t) = chrono::DateTime::from_timestamp(seconds, 0) else {
+        return "?".to_string();
+    };
+    let t = t.with_timezone(&chrono::Local);
+    let format = if t.date_naive() == chrono::Local::now().date_naive() {
+        "%H:%M"
+    } else {
+        "%Y-%m-%d %H:%M"
+    };
+    t.format(format).to_string()
 }
 
 fn worktree(w: &Worktree) -> String {

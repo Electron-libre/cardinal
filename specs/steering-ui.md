@@ -22,7 +22,7 @@ changes the project only when the user starts a session.
 - **STU-3** (deterministic) `cardinal-ui` must write no file and no git ref of its own: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, git commands that read and, in a zellij session, `zellij action list-tabs --json`, and changes it only through the start of STU-9 and STU-11.
 - **STU-9** (deterministic) In a zellij session, the key `s` on the issue selected in the queue (moved with the arrow keys, `j` and `k`), when its state is `ready` and nothing takes it, must open a worktree for it with `cardinal run worktree open <stem>` and start in it, in a new zellij tab named after its stem, an interactive `claude` whose first message hands `issues/<stem>.md` to `issue-workflow`; on another issue it starts nothing and says why on the status line.
 - **STU-10** (deterministic) The queue must show, after an issue, `tab` when a tab of the current zellij session is named after its stem.
-- **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time) when that session runs and the mark of SWT-3 of the worktree names it.
+- **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time, its date `<YYYY-MM-DD>` before it when it is not today) when that session runs and the mark of SWT-3 of the worktree names it.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -33,6 +33,8 @@ changes the project only when the user starts a session.
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and `cardinal-ui` 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
 - **STU-11** (deterministic) `cardinal-ui --start <stem>` must start the session of STU-9 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1: outside a zellij session (no `ZELLIJ` variable: `start needs zellij: run cardinal-ui in a zellij session`), an issue that is not open, not `ready` or taken, or a step that fails (its command, its exit code and the first line of its stderr), running no step after a failed one; the key `s` shows the same message on the status line.
+- **STU-14** (deterministic) The selection of STU-9 must stay on the same issue when a read changes the order of the queue, move to the line it had when its issue left the queue, and stay visible however long the queue, so `s` never starts an issue the user did not see selected.
+- **STU-15** (deterministic) `q`, `Esc` or `Ctrl+C` pressed during a start must quit once the start has ended, so a start never stops between the worktree and the tab.
 - **STU-12** (deterministic) The `zellij` it runs must be the program named by `CARDINAL_UI_ZELLIJ`, else `zellij` found on the `PATH`, the tab opened with `zellij action new-tab --cwd <worktree path> --name <stem> -- claude "/issue-workflow issues/<stem>.md"`; outside a zellij session, or when `list-tabs` fails, the queue shows no `tab` and no error.
 
 ## Scenarios
@@ -66,6 +68,11 @@ changes the project only when the user starts a session.
   foo` runs, then it exits 1 with that line and runs no `zellij`.
 - (STU-11) Given a `zellij` that fails, when `cardinal-ui --start foo` runs, then it exits 1 naming `zellij` and the
   worktree stays open.
+- (STU-13) Given a session waiting since the day before, when the UI reads the project, then the worktree reads
+  `waiting since <YYYY-MM-DD> <HH:MM>`.
+- (STU-14) Given `foo` selected on the second line, when the next read puts `foo` first, then `foo` is still selected.
+- (STU-14) Given 40 issues in a queue panel of 15 rows, when the user moves the selection to the 30th, then it is
+  shown.
 - (STU-13) Given a mark naming a session whose process ended, when the UI reads the project, then the worktree reads
   `ended` with no `waiting`.
 - (STU-13) Given a mark naming another session than the lock's, when the UI reads the project, then no `waiting` is

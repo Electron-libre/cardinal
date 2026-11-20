@@ -426,8 +426,8 @@ fn a_closed_output_is_no_panic() {
     assert!(matches!(out.status.code(), Some(0 | 1)), "{out:?}");
 }
 
-/// 2026-11-20 09:05:00 UTC.
-const NINE_O_FIVE: u64 = 1_795_165_500;
+/// 2025-01-02 09:05:00 UTC.
+const NINE_O_FIVE: u64 = 1_735_808_700;
 
 // spec: STU-H3, STU-13
 #[test]
@@ -439,8 +439,29 @@ fn a_session_that_waits_for_the_user_is_flagged() {
     let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(code, Some(0), "{out}{err}");
     let ws = line(&out, &format!("{}  ", p.ws.display()));
-    assert!(ws.contains("session s1  waiting since 09:05: stop"), "{ws}");
+    assert!(
+        ws.contains("session s1  waiting since 2025-01-02 09:05: stop"),
+        "a day other than today shows its date: {ws}"
+    );
     assert!(!line(&out, &format!("{}  ", p.repo.display())).contains("waiting"));
+}
+
+// spec: STU-13
+#[test]
+fn a_session_waiting_since_today_shows_the_time_alone() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    Project::lock(&p.ws, "s1", &std::process::id().to_string());
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    Project::waiting(&p.ws, "s1", now, "stop");
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    let at = ws.find("waiting since ").expect(ws) + "waiting since ".len();
+    assert_eq!(&ws[at + 2..at + 3], ":", "HH:MM alone: {ws}");
+    assert_eq!(&ws[at + 5..at + 7], ": ", "{ws}");
 }
 
 // spec: STU-13

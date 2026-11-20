@@ -1,11 +1,12 @@
 //! The wait mark of a session (spec `specs/session-wait.md`, ADR 0031): `wait`, at `Stop` and `Notification`, writes
 //! the file `cardinal-waiting` of the git directory of the worktree of the event's `cwd`, naming the session, when it
-//! began to wait and why; `work`, at `UserPromptSubmit`, `PostToolUse` and `SessionEnd`, removes it when it names the
-//! session. A program such as `cardinal-ui` reads it to show the sessions that wait for the user. The hooks never block
-//! nor speak: any failure leaves things as they are, prints nothing, exits 0.
+//! began to wait and why (a mark of the same session keeps its time); `work`, at `UserPromptSubmit`, `PostToolUse`,
+//! `PostToolUseFailure` and `SessionEnd`, removes it when it names the session, unless a subagent sent the event. A
+//! program such as `cardinal-ui` reads it to show the sessions that wait for the user. The hooks never block nor
+//! speak: any failure leaves things as they are, prints nothing, exits 0.
 //!
 //! Usage: hooks `cardinal run session-wait wait` (`Stop`, `Notification`), `work` (`UserPromptSubmit`, `PostToolUse`,
-//! `SessionEnd`).
+//! `PostToolUseFailure`, `SessionEnd`).
 
 use std::fs;
 use std::io::Read;
@@ -34,7 +35,8 @@ pub(super) fn main(args: &[String]) -> u8 {
     };
     if mode == Some("wait") {
         wait(&mark, session, &reason(&event));
-    } else {
+    } else if event.get("agent_id").is_none() {
+        // a subagent works while the main thread may wait for the user (SWT-2)
         work(&mark, session);
     }
     0
@@ -70,12 +72,23 @@ fn named(text: &str) -> Option<&str> {
     text.lines().find_map(|l| l.strip_prefix("session "))
 }
 
-/// Writes the mark whole: a temporary file beside it, renamed over it (SWT-3).
+/// Writes the mark whole: a temporary file beside it, renamed over it (SWT-3); a mark of the same session keeps the
+/// time its wait began (SWT-1).
 fn wait(mark: &Path, session: &str, reason: &str) {
-    let since = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs());
     let session = session.replace('\n', " ");
+    let earlier = fs::read_to_string(mark).ok().and_then(|text| {
+        (named(&text) == Some(session.as_str()))
+            .then(|| {
+                text.lines()
+                    .find_map(|l| l.strip_prefix("since ")?.parse::<u64>().ok())
+            })
+            .flatten()
+    });
+    let since = earlier.unwrap_or_else(|| {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs())
+    });
     let text = format!("session {session}\nsince {since}\nreason {reason}\n");
     let tmp = mark.with_extension(format!("{}.tmp", std::process::id()));
     if fs::write(&tmp, text).is_ok() && fs::rename(&tmp, mark).is_err() {

@@ -51,3 +51,4 @@ entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"
 entry  {"event":"SessionEnd","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}
 entry  {"event":"Notification","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait wait"}}
 entry  {"event":"UserPromptSubmit","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}
+entry  {"event":"PostToolUseFailure","matcher":null,"hook":{"type":"command","command":"cardinal run session-wait work"}}

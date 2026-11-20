@@ -56,6 +56,10 @@ fn render(
     ])
     .split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
+        let scroll = match selected {
+            Some(line) if n == 1 => offset(line, area.height.saturating_sub(2)),
+            _ => 0,
+        };
         let lines: Vec<Line> = p
             .lines
             .iter()
@@ -70,7 +74,10 @@ fn render(
             })
             .collect();
         let block = Block::bordered().title(format!(" {} ", p.title));
-        Paragraph::new(lines).block(block).render(*area, buf);
+        Paragraph::new(lines)
+            .block(block)
+            .scroll((scroll, 0))
+            .render(*area, buf);
     }
     let help = if status.is_empty() {
         HELP.to_string()
@@ -167,6 +174,32 @@ impl Schedule {
     }
 }
 
+/// The first line of the queue shown in `rows` rows, so the line `selected` is visible (STU-14).
+fn offset(selected: usize, rows: u16) -> u16 {
+    let first = selected
+        .saturating_add(1)
+        .saturating_sub(usize::from(rows.max(1)));
+    u16::try_from(first).unwrap_or(u16::MAX)
+}
+
+/// The selection in the queue `stems` of a new read, given the one `selected` in the queue `before`: the line of the
+/// same issue, else the same line kept in the queue (STU-14).
+fn reselect(before: &[String], selected: usize, stems: &[String]) -> usize {
+    before
+        .get(selected)
+        .and_then(|stem| stems.iter().position(|s| s == stem))
+        .unwrap_or_else(|| select(selected, stems.len(), &Action::Nothing))
+}
+
+/// Whether the screen quits now on `action`, and whether it quits once the start running (`starting`) ends (STU-15).
+fn quits(action: &Action, starting: bool, quitting: bool) -> (bool, bool) {
+    match action {
+        Action::Quit if starting => (false, true),
+        Action::Quit => (true, quitting),
+        _ => (false, quitting),
+    }
+}
+
 /// The selection after `action` in a queue of `len` issues, kept in it (STU-9).
 fn select(selected: usize, len: usize, action: &Action) -> usize {
     let moved = match action {
@@ -199,13 +232,15 @@ pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std
         let mut selected = 0;
         let mut status = String::new();
         let mut starting = false;
+        let mut quitting = false;
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
                 return Err(std::io::Error::other("the reading of the project failed"));
             }
             match read_panels.try_recv() {
                 Ok(read) => {
-                    selected = select(selected, read.stems.len(), &Action::Nothing);
+                    let before = view.as_ref().map_or(&[][..], |v| v.stems.as_slice());
+                    selected = reselect(before, selected, &read.stems);
                     view = Some(read);
                     schedule.ended(Instant::now());
                 }
@@ -216,6 +251,9 @@ pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std
                 }
             }
             if let Ok(done) = start_result.try_recv() {
+                if quitting {
+                    return Ok(());
+                }
                 status = done.unwrap_or_else(|e| e);
                 starting = false;
                 schedule.asked = true;
@@ -231,8 +269,17 @@ pub fn run(read: fn() -> View, start: fn(&str) -> Result<String, String>) -> std
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
                     let len = view.as_ref().map_or(0, |v| v.stems.len());
-                    match action(&key) {
-                        Action::Quit => return Ok(()),
+                    let key = action(&key);
+                    let (now, later) = quits(&key, starting, quitting);
+                    if now {
+                        return Ok(());
+                    }
+                    if later && !quitting {
+                        status = "quitting once the start ends…".to_string();
+                    }
+                    quitting = later;
+                    match key {
+                        Action::Quit => {}
                         Action::Refresh => schedule.asked = true,
                         Action::Start => {
                             let stem = view.as_ref().and_then(|v| v.stems.get(selected));
@@ -317,6 +364,55 @@ mod tests {
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
         assert!((0..12).any(|y| row(y).contains("s start  started a in /w")));
+    }
+
+    // spec: STU-14 (internal: the selection of a screen that needs a real terminal)
+    #[test]
+    fn the_selection_follows_its_issue_and_stays_visible() {
+        let v = |s: &[&str]| s.iter().map(|x| (*x).to_string()).collect::<Vec<_>>();
+        assert_eq!(reselect(&v(&["b", "foo", "c"]), 1, &v(&["foo", "c"])), 0);
+        assert_eq!(
+            reselect(&v(&["b", "foo", "c"]), 1, &v(&["b", "c"])),
+            1,
+            "gone: same line"
+        );
+        assert_eq!(
+            reselect(&v(&["b", "foo"]), 1, &v(&["b"])),
+            0,
+            "gone: kept in the queue"
+        );
+        assert_eq!(reselect(&[], 0, &v(&["a"])), 0);
+        assert_eq!(offset(5, 15), 0);
+        assert_eq!(offset(29, 15), 15);
+        assert_eq!(offset(3, 0), 3);
+        let panel = |title, lines: Vec<String>| Panel {
+            title,
+            lines,
+            failed: false,
+        };
+        let queue = (1..=40).map(|i| format!("  issue{i:02}")).collect();
+        let panels = [
+            panel("Milestones", vec!["m".to_string()]),
+            panel("Queue", queue),
+            panel("Worktrees", vec!["w".to_string()]),
+        ];
+        let area = Rect::new(0, 0, 40, 22);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &panels, Some(29), "");
+        let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let y = (0..22)
+            .find(|y| row(*y).contains("issue30"))
+            .expect("the selected issue is shown");
+        assert!(buf[(3, y)].modifier.contains(Modifier::REVERSED));
+    }
+
+    // spec: STU-15 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn quit_during_a_start_waits_for_it() {
+        assert_eq!(quits(&Action::Quit, false, false), (true, false));
+        assert_eq!(quits(&Action::Quit, true, false), (false, true));
+        assert_eq!(quits(&Action::Refresh, true, true), (false, true));
+        assert_eq!(quits(&Action::Down, false, false), (false, false));
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

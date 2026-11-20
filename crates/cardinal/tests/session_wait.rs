@@ -224,7 +224,46 @@ fn the_shipped_settings_entries_declare_the_hooks() {
     for event in ["Stop", "Notification"] {
         assert!(declared(event, "cardinal run session-wait wait"), "{event}");
     }
-    for event in ["UserPromptSubmit", "PostToolUse", "SessionEnd"] {
+    for event in [
+        "UserPromptSubmit",
+        "PostToolUse",
+        "PostToolUseFailure",
+        "SessionEnd",
+    ] {
         assert!(declared(event, "cardinal run session-wait work"), "{event}");
     }
+}
+
+// spec: SWT-1
+#[test]
+fn a_later_notification_keeps_the_time_the_wait_began() {
+    let r = repo();
+    std::fs::write(mark_path(&r.main), "session a\nsince 1000\nreason stop\n").unwrap();
+    let mut e = event("Notification", "a", &r.main);
+    e["message"] = "Claude is waiting for your input".into();
+    run("wait", &e.to_string());
+    assert_eq!(
+        mark(&r.main).unwrap(),
+        "session a\nsince 1000\nreason Claude is waiting for your input\n"
+    );
+    std::fs::write(mark_path(&r.main), "session b\nsince 1000\nreason stop\n").unwrap();
+    hook("wait", "Stop", "a", &r.main);
+    let text = mark(&r.main).unwrap();
+    assert!(
+        text.starts_with("session a\n") && !text.contains("since 1000"),
+        "{text}"
+    );
+}
+
+// spec: SWT-2
+#[test]
+fn the_tool_calls_of_a_subagent_leave_the_mark() {
+    let r = repo();
+    hook("wait", "Stop", "a", &r.main);
+    let mut e = event("PostToolUse", "a", &r.main);
+    e["agent_id"] = "sub1".into();
+    run("work", &e.to_string());
+    assert!(mark(&r.main).is_some());
+    hook("work", "PostToolUseFailure", "a", &r.main);
+    assert!(mark(&r.main).is_none());
 }

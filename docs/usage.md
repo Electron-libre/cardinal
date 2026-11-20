@@ -254,30 +254,32 @@ projects directory given, they read the `projects/` of the configuration directo
 
 ## Steering UI
 
-`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030, [specs/steering-ui.md](../specs/steering-ui.md)) shows the
+`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md)) shows the
 project of the current directory (the root of its work tree) in one terminal screen, in three panels:
 
 | Panel | Read from | Each line |
 |---|---|---|
 | Milestones | `cardinal run roadmap --open --json`, the released ones left out | name, state (`(on hold)` after it), open issues over the listed ones |
 | Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem; the problems of the issue files under it, after `!` |
-| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` while that session waits for the user (the mark of the `session-wait` hooks) |
+| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
-a local source) never keeps a key from being answered, and quits on `q`, `Esc` or `Ctrl+C`.
+a local source) never keeps a key from being answered, and quits on `q`, `Esc` or `Ctrl+C`. `cardinal-ui --print`
+prints the screen once as text (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
+`version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
+it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
+the issues the trunk closed, as it does for the agent.
 
-Run in a zellij session, it starts the work of an issue: select it in the queue (arrows, `j`, `k`) and press `s`. A
-ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at `<main worktree>-<stem>` on a
-branch `<stem>`) and a zellij tab named after it, running `claude "/issue-workflow issues/<stem>.md"`; the session
-claims the issue at step 0 of `issue-workflow` and its validation stops stay in Claude Code. The status line says
-what started or why nothing did (outside zellij, an issue taken or not ready, the failed step).
-`cardinal-ui --start <stem>` does the same from a shell of the zellij session (exit 1 when nothing started). `cardinal-ui --print` prints the
-screen once as text (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a `version` other
-than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal` it runs is the
-one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; in a zellij session it lists the tabs with
-`zellij action list-tabs --json`, through the `zellij` on the `PATH` or the program `CARDINAL_UI_ZELLIJ` names. It writes nothing but the worktree of a start;
-`next-issue` still drops the claims of the issues the trunk closed, as it does for the agent. Install it with `cargo install` (`just install-ui`
-in a clone): no release binary is published for it.
+Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
+press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
+`<main worktree>-<stem>` on a branch `<stem>`) and a zellij tab named after it, running
+`claude "/issue-workflow issues/<stem>.md"`; the session claims the issue at step 0 of `issue-workflow` and its
+validation stops stay in Claude Code. The status line says what started or why nothing did (outside zellij, an issue
+taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same from a shell of the zellij session
+(exit 1 when nothing started). It lists the tabs with `zellij action list-tabs --json`, through the `zellij` on the
+`PATH` or the program `CARDINAL_UI_ZELLIJ` names. Apart from a start, it writes nothing.
+
+Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 
 ## Parallel issues in worktrees
 

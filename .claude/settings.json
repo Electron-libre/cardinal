@@ -177,6 +177,16 @@
           }
         ]
       }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cardinal run session-wait work"
+          }
+        ]
+      }
     ]
   }
 }

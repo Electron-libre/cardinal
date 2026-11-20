@@ -4,6 +4,57 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [6.1.0] - 2026-11-20
+
+### Milestones
+
+- Steering UI
+- Merge back from the steering UI
+- Releases from the steering UI
+
+### Added
+
+- print the queue of next-issue as JSON for a program
+- print the milestones of roadmap as JSON for a program
+- read the milestones, queue and worktrees of a project
+- draw the panels and run the screen in the terminal
+- mark the worktree of a session that waits for the user
+- show the sessions that wait and the tabs of the issues
+- start an issue session in a zellij tab
+- give the milestone of each issue in delivered-quality
+- print cardinal-report by milestone and as JSON
+- show the measures of the project in the steering UI
+- let a project merge its issue branches locally
+- merge a merge-pending issue into the trunk with --merge
+- merge the selected issue with the key f
+- end what a merged issue left with --end
+- end a merged issue after f and mark merged worktrees
+- end the selected worktree of a merged issue with the key e
+- print the release proposal as JSON for a program
+- mark the milestones awaiting their release
+- write the release steps in a skill of their own
+- let a project that never releases turn its skill off
+- start a release session on the trunk
+- release a claim whose session ended
+- say how to resume an issue whose session ended
+- resume an issue whose session ended
+
+### Fixed
+
+- settle the review of the JSON of next-issue and roadmap
+- name the package in each cargo install of a git source
+- settle the review of the steering UI
+- settle the review of the start of an issue session
+- settle the review of the measures in the steering UI
+- check that a local merge can fast-forward
+- merge only a committed close, by the full branch name
+- end the claimed worktree and never signal a recycled pid
+- say when the release proposal is prepared or already tagged
+- resume an interrupted release, fall back without its skill
+- resume a prepared release and find its tab by its pane
+- resume only a free worktree of the repository
+- move the workflow actions off the node20 runtime
+
 ## [6.0.0] - 2026-11-20
 
 ### Breaking

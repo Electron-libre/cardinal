@@ -142,3 +142,45 @@ The released milestones, moved out of the roadmap by `release`, oldest first.
   - [measure_the_shape_of_the_specs](issues/done/measure_the_shape_of_the_specs.md)
   - [write_the_happy_paths_of_the_cardinal_specs](issues/done/write_the_happy_paths_of_the_cardinal_specs.md)
   - [count_the_happy_paths_in_delivered_quality](issues/done/count_the_happy_paths_in_delivered_quality.md)
+
+## Steering UI
+
+- Goal: steer a project driven by Cardinal from a terminal UI: see the milestones, the queue, the claims, the
+  sessions at work and the measures, and start an issue session in its own worktree in a zellij pane.
+- Why: today the user opens each worktree, launches `claude` and hands it the issue by hand, then reads the state
+  through several `cardinal run` commands and `skill:evaluate-harness`.
+- State: done
+- Released: v6.1.0
+- Issues:
+  - [print_the_queue_and_the_roadmap_as_json](issues/done/print_the_queue_and_the_roadmap_as_json.md)
+  - [show_the_project_state_in_a_steering_ui](issues/done/show_the_project_state_in_a_steering_ui.md)
+  - [start_an_issue_session_in_a_zellij_pane](issues/done/start_an_issue_session_in_a_zellij_pane.md)
+  - [show_the_measures_in_the_steering_ui](issues/done/show_the_measures_in_the_steering_ui.md)
+
+## Merge back from the steering UI
+
+- Goal: give the user a path, from the steering UI, from a closed issue to a clean trunk: merge its branch into the
+  trunk locally, then end its `claude` session, close its zellij tab and remove its worktree and branch.
+- Why: once a session closes its issue on its branch, the user opens the main worktree to merge it by hand, then
+  ends the session, closes the tab and runs `cardinal run worktree close`; the close also pushes and opens a pull
+  request a project that merges locally does not want.
+- State: done
+- Released: v6.1.0
+- Issues:
+  - [merge_back_locally_when_the_project_asks](issues/done/merge_back_locally_when_the_project_asks.md)
+  - [merge_a_closed_issue_from_the_steering_ui](issues/done/merge_a_closed_issue_from_the_steering_ui.md)
+  - [end_the_session_of_a_merged_issue](issues/done/end_the_session_of_a_merged_issue.md)
+
+## Releases from the steering UI
+
+- Goal: give the user a path to release from the steering UI: see which `done` milestone awaits its release, then
+  start it on the trunk (the version `cardinal run release` proposes, the section to reread and review, the tag).
+- Why: an issue session runs in a linked worktree and never enters the main one, so it cannot prepare the release
+  its close proposes; today the user merges, opens a session in the main worktree and asks for the release by hand.
+- State: done
+- Released: v6.1.0
+- Issues:
+  - [print_the_release_proposal_as_json](issues/done/print_the_release_proposal_as_json.md)
+  - [show_the_milestones_awaiting_their_release](issues/done/show_the_milestones_awaiting_their_release.md)
+  - [write_the_release_steps_in_a_skill](issues/done/write_the_release_steps_in_a_skill.md)
+  - [start_a_release_session_on_the_trunk](issues/done/start_a_release_session_on_the_trunk.md)

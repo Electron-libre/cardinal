@@ -58,8 +58,8 @@ as text for scripts and the tests, which run a fake `cardinal` named by `CARDINA
 2. [x] Screen: the three panels drawn with Ratatui, `--print` rendering them through its test backend (100 columns),
    the interactive loop (alternate screen, refresh every 2 s, `r`, `q`, `Esc`); verified by `tests/print.rs`
    (panels) and a unit test of the key handling; makes true STU-1, STU-2, STU-4, STU-H1. ~600 lines. (autonomous)
-3. [ ] Install and docs: `just install-ui`, `README.md`, `docs/architecture.md` (a section on the UI),
-   `docs/usage.md`, `commit_scopes` gains `ui`; verified by `just check`. ~100 lines.
+3. [x] Install and docs: `just install-ui`, `README.md`, `docs/architecture.md` (a section on the UI),
+   `docs/usage.md`, `commit_scopes` gains `ui`; verified by `just check`. ~100 lines. (autonomous)
 
 ## Deliverable 1
 done: crate `cardinal-ui` (workspace member), its reading of the tools, the worktrees and their locks, and a
@@ -108,6 +108,26 @@ Code review: 1 finding
    needs a real terminal.
 
 not verified: the screen in a terminal other than the pseudo-terminal of `script` (colours, resize by hand)
+
+decisions needed: none
+
+## Deliverable 3
+done: `just install-ui`; the UI in `README.md`, `docs/usage.md` and `docs/architecture.md` (its section and flow);
+a row of the docs map; ADR 0030 and `specs/steering-ui.md` accepted.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | `check-specs` clean, STU accepted |
+| docs | the pages above |
+| code review | `low`, clean |
+
+red: none: docs and a recipe, no test.
+
+Code review: no findings
+
+not verified: `cargo install --git` of the README, which needs the push
 
 decisions needed: none
 

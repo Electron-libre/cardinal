@@ -230,6 +230,30 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 - **Cost**: each worktree has its own `target/` (measured once, on this repository and a 24-core machine: 239 MB and a
   cold build in 4 s; a larger project may want a shared `CARGO_TARGET_DIR`, which is then the project's choice).
 
+## The steering UI
+
+`cardinal-ui` is the binary of its own crate, `crates/cardinal-ui`, which does not depend on the `cardinal` crate
+([ADR 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec
+[`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
+of its pinned revision (NXT-19, RMP-8), checked by their `version`, and through git. It is not managed content and a
+consumer does not need it; the release workflow does not build it.
+
+```mermaid
+flowchart LR
+  ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims"]
+  ui -->|"cardinal run roadmap --json"| milestones["milestones"]
+  ui -->|"git worktree list,<br/>git-path cardinal-session"| worktrees["worktrees, locks"]
+  queue --> screen["one screen, read again every 2 s"]
+  milestones --> screen
+  worktrees --> screen
+```
+
+| Module | Does |
+|---|---|
+| `source.rs` | runs the tools and git, checks the documents, reads the lock of each worktree |
+| `panels.rs` | one line per milestone, issue and worktree, or the error of a source |
+| `screen.rs` | draws the panels (Ratatui), runs the terminal loop, renders `--print` |
+
 ## The cost of a turn
 
 Everything a check prints is read by the agent and billed as tokens, every turn it runs. Measured on this repository

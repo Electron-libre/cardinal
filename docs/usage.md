@@ -251,6 +251,24 @@ projects directory given, they read the `projects/` of the configuration directo
   fewer reviews whose findings are known (`counted_reviews`) than it; for a ratio per spec (`bytes_per_spec`,
   `happy_paths_per_spec`…), a group measured fewer specs than it.
 
+## Steering UI
+
+`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030, [specs/steering-ui.md](../specs/steering-ui.md)) shows the
+project of the current directory in one terminal screen, in three panels:
+
+| Panel | Read from | Each line |
+|---|---|---|
+| Milestones | `cardinal run roadmap --json` | name, state (`(on hold)` after it), open issues over the listed ones |
+| Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch); the problems of the issue files under it, after `!` |
+| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free` |
+
+It reads the project again every 2 seconds and on `r`, and quits on `q` or `Esc`. `cardinal-ui --print` prints the
+screen once as text (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a `version` other
+than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal` it runs is the
+one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names. It writes nothing; `next-issue` still drops the
+claims of the issues the trunk closed, as it does for the agent. Install it with `cargo install` (`just install-ui`
+in a clone): no release binary is published for it.
+
 ## Parallel issues in worktrees
 
 For an issue run in parallel, the user opens a worktree (with `git worktree add`, or the recipe below) and hands it

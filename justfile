@@ -26,6 +26,10 @@ test:
 install:
     cargo install --force --path crates/cardinal --locked
 
+# Install the steering UI `cardinal-ui` to ~/.cargo/bin (ADR 0030: no release binary yet).
+install-ui:
+    cargo install --force --path crates/cardinal-ui --locked
+
 # This repository is its own first consumer: check it with the binary just built.
 check-cardinal:
     cargo run -q -p cardinal -- check

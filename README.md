@@ -82,6 +82,14 @@ Then keep the Claude Code transcripts a year, the evaluation reads them:
 | `cardinal upgrade <source> <commit>` | replaces the installed `cardinal` with the one of a commit: its release binary, checked against its SHA-256, else built with `cargo` |
 | `cardinal run [<tool>]` | runs a tool of the pinned revision (hooks, checks, transcript readers); alone, lists them |
 
+## Steering UI
+
+`cardinal-ui`, run in a project, shows its milestones, its queue of issues and its worktrees with the session that
+holds each, refreshed every 2 seconds (`r` now, `q` to quit); `--print` prints the screen once. It reads the
+project through `cardinal run next-issue --json` and `roadmap --json` and changes nothing. No release binary yet:
+`cargo install --git https://github.com/Electron-libre/cardinal.git cardinal-ui` (or `just install-ui` in a clone).
+Details: [docs/usage.md](docs/usage.md#steering-ui).
+
 ## Daily flow
 
 ```mermaid
@@ -113,6 +121,7 @@ For who changes Cardinal itself, not for a project that uses it. This repository
 ```sh
 git clone https://github.com/Electron-libre/cardinal.git && cd cardinal
 just install          # cargo install --force --path crates/cardinal --locked
+just install-ui       # the steering UI, crates/cardinal-ui
 just check            # fmt, clippy -D warnings, tests, spec traceability: before each commit
 just sync             # after a change of files/: refresh the copies of this repository
 just check-cardinal   # fails when a copy drifted

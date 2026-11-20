@@ -59,4 +59,4 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0027. Any uncommitted change keeps the worktree lock](0027-any-uncommitted-change-keeps-the-worktree-lock.md) | Accepted |
 | [0028. A consumer needs only `cardinal`](0028-a-consumer-needs-only-cardinal.md) | Accepted |
 | [0029. A spec states its behaviour before its contract](0029-a-spec-states-its-behaviour-before-its-contract.md) | Accepted |
-| [0030. The steering UI is a crate of its own](0030-the-steering-ui-is-a-crate-of-its-own.md) | Proposed |
+| [0030. The steering UI is a crate of its own](0030-the-steering-ui-is-a-crate-of-its-own.md) | Accepted |

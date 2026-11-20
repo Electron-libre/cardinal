@@ -1,6 +1,6 @@
 ---
 id: STU
-status: draft
+status: accepted
 adrs: [0011, 0022, 0030]
 ---
 

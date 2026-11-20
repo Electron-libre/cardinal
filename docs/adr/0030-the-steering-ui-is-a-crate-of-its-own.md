@@ -1,6 +1,6 @@
 # 0030. The steering UI is a crate of its own
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-20
 
 ## Context

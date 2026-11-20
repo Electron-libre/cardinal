@@ -4,10 +4,13 @@
 //! transcripts; it reports trends, never a pass or a fail.
 //! Usage: `cardinal run cardinal-report --sessions <session-metrics rows> [--breaches <rule-breaches --summary>]
 //! [--quality <delivered-quality --summary>]... [--context <fixed-context rows>] [--changes <cardinal-changes rows>]
-//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--project <name>] [--anonymous]`. With `--last <n>`, the
+//! [--min-sessions <n>] [--min-issues <n>] [--by revision|setup|milestone] [--last <n>] [--project <name>] [--anonymous]
+//! [--json]`. With `--last <n>`, the
 //! tables print only the last `n` groups, the verdicts still reading them all. With `--project <name>`, the report
 //! reads the sessions and fixed context of that project alone, so a verdict compares two groups of one project. With `--by setup`, a group is a
-//! setup (the main model, alone or advised by another) instead of revisions. With `--changes`, a last table gives
+//! setup (the main model, alone or advised by another) instead of revisions; with `--by milestone`, a milestone of the
+//! quality summaries, the quality table alone. With `--json`, the tables are one JSON document for a program
+//! (`output.rs`). With `--changes`, a last table gives
 //! each recorded change of Cardinal a verdict from the groups before and after it (`specs/cardinal-verdicts.md`).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -16,13 +19,29 @@ use super::cardinal_changes::{HEADER as CHANGES, RULE_METRIC, WASTE_METRIC};
 use super::delivered_quality::{setup_name, SUMMARY_HEADER as QUALITY, SYNTHETIC};
 use super::session_metrics::HEADER as SESSIONS;
 
+mod output;
+
+use output::Printed;
+
 const BREACHES: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
 const CONTEXT: &str =
     "project\trevision\tcommit\tclaude_md_bytes\tagents_md_bytes\tskill_description_bytes\tskills";
-const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup] [--last <n>] [--project <name>] [--anonymous]";
+const USAGE: &str = "usage: cardinal run cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision|setup|milestone] [--last <n>] [--project <name>] [--anonymous] [--json]";
 const TOO_FEW: &str = "too few";
 
 type Row = HashMap<String, String>;
+
+/// The name of the group of the issues that no milestone lists (REP-20).
+const NO_MILESTONE: &str = "(no milestone)";
+
+/// What a group gathers: consecutive revisions (REP-4), the sessions of a setup (REP-14) or the issues of a milestone
+/// (REP-20).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum By {
+    Revision,
+    Setup,
+    Milestone,
+}
 
 /// The rows of a TSV file whose header must be `header`, each a map from column to value.
 fn read(path: &str, header: &str) -> Result<Vec<Row>, String> {
@@ -74,7 +93,7 @@ struct Group<'a> {
     revisions: HashSet<&'a str>,
     sessions: Vec<&'a Row>,
     too_few: bool,
-    by_setup: bool,
+    by: By,
     /// Before the last groups `--last` prints: computed for the verdicts, not printed (REP-17).
     hidden: bool,
 }
@@ -92,7 +111,7 @@ fn close<'a>(open: Vec<(&'a str, Vec<&'a Row>)>, too_few: bool) -> Group<'a> {
         revisions: open.iter().map(|(r, _)| *r).collect(),
         sessions: open.into_iter().flat_map(|(_, s)| s).collect(),
         too_few,
-        by_setup: false,
+        by: By::Revision,
         hidden: false,
     }
 }
@@ -123,7 +142,29 @@ fn setup_groups(sessions: &[Row], min: usize) -> Vec<Group<'_>> {
             revisions: HashSet::new(),
             too_few: sessions.len() < min,
             sessions,
-            by_setup: true,
+            by: By::Setup,
+            hidden: false,
+        })
+        .collect()
+}
+
+/// The milestones of the quality summaries, in the order of their first row, each a group of no session (REP-20).
+fn milestone_groups(files: &[Vec<Row>]) -> Vec<Group<'static>> {
+    let mut names: Vec<&str> = Vec::new();
+    for row in files.iter().flatten() {
+        let name = value(row, "milestone");
+        if !names.contains(&name) {
+            names.push(name);
+        }
+    }
+    names
+        .into_iter()
+        .map(|name| Group {
+            name: if name.is_empty() { NO_MILESTONE } else { name }.to_string(),
+            revisions: HashSet::new(),
+            sessions: Vec::new(),
+            too_few: false,
+            by: By::Milestone,
             hidden: false,
         })
         .collect()
@@ -197,11 +238,13 @@ fn sorted_pairs(counts: BTreeMap<&str, u64>) -> String {
         .join(", ")
 }
 
-/// The cells of a printed table: its columns, and per group its rows, computed for a `too few` group too.
+/// The cells of a printed table: its columns, and per group its rows, computed for a `too few` group too; and the
+/// table as printed.
 struct Table {
     title: &'static str,
     columns: Vec<String>,
     rows: Vec<Vec<Vec<String>>>,
+    printed: Printed,
 }
 
 impl Table {
@@ -222,35 +265,47 @@ impl Table {
     }
 }
 
-/// A markdown table under `## <title>`: `group`, `sessions`, then `columns`, one row or more per group; a group with
-/// too few sessions is one row showing only its size. Returns the cells, for the verdicts.
+/// A table under `## <title>`: `group`, `sessions`, then `columns`, one row or more per group; a group with too few
+/// sessions is one row showing only its size, a group of a milestone no size (REP-20). Returns the cells, for the
+/// verdicts.
 fn table(
     title: &'static str,
     columns: &[&str],
     groups: &[Group],
     cells: impl Fn(&Group) -> Vec<Vec<String>>,
 ) -> Table {
-    println!("## {title}\n");
-    println!("| group | sessions | {} |", columns.join(" | "));
-    println!("|{}", "---|".repeat(columns.len() + 2));
     let computed: Vec<Vec<Vec<String>>> = groups.iter().map(&cells).collect();
     let too_few = vec![vec![TOO_FEW.to_string(); columns.len()]];
+    let mut printed = Vec::new();
     for (group, cells) in groups.iter().zip(&computed).filter(|(g, _)| !g.hidden) {
         let rows = if group.too_few { &too_few } else { cells };
+        let sessions = if group.by == By::Milestone {
+            String::new()
+        } else {
+            group.sessions.len().to_string()
+        };
         for row in rows {
-            println!(
-                "| {} | {} | {} |",
-                group.name,
-                group.sessions.len(),
-                row.join(" | ")
+            printed.push(
+                [group.name.clone(), sessions.clone()]
+                    .into_iter()
+                    .chain(row.iter().cloned())
+                    .collect(),
             );
         }
     }
-    println!();
+    let names = || columns.iter().map(|c| (*c).to_string());
     Table {
         title,
-        columns: columns.iter().map(|c| (*c).to_string()).collect(),
+        columns: names().collect(),
         rows: computed,
+        printed: Printed {
+            title: title.to_string(),
+            columns: ["group".to_string(), "sessions".to_string()]
+                .into_iter()
+                .chain(names())
+                .collect(),
+            rows: printed,
+        },
     }
 }
 
@@ -275,7 +330,7 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
         "validations",
         "other_messages",
     ];
-    if groups.iter().any(|g| g.by_setup) {
+    if groups.iter().any(|g| g.by == By::Setup) {
         columns.insert(4, "revisions");
     }
     table("Efficiency", &columns, groups, |g| {
@@ -326,7 +381,7 @@ fn efficiency(groups: &[Group], anonymous: bool) -> Table {
             column("validations"),
             column("other_messages"),
         ];
-        if g.by_setup {
+        if g.by == By::Setup {
             row.insert(4, revision_mix(&g.sessions));
         }
         vec![row]
@@ -448,15 +503,21 @@ fn of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec
 }
 
 /// The quality rows of `group`: those of its revisions, or, by setup, those of its setup over every non-empty revision,
-/// as its sessions (REP-16); a `mixed` row matches no setup.
+/// as its sessions (REP-16), a `mixed` row matching no setup; or, by milestone, those of its milestone (REP-20).
 fn quality_of_group<'a>(inputs: impl IntoIterator<Item = &'a Row>, group: &Group) -> Vec<&'a Row> {
-    if group.by_setup {
-        inputs
+    match group.by {
+        By::Setup => inputs
             .into_iter()
             .filter(|r| !value(r, "revision").is_empty() && value(r, "setup") == group.name)
-            .collect()
-    } else {
-        of_group(inputs, group)
+            .collect(),
+        By::Milestone => {
+            let name = Some(group.name.as_str()).filter(|n| *n != NO_MILESTONE);
+            inputs
+                .into_iter()
+                .filter(|r| value(r, "milestone") == name.unwrap_or_default())
+                .collect()
+        }
+        By::Revision => of_group(inputs, group),
     }
 }
 
@@ -757,7 +818,7 @@ fn too_few_values(
 
 /// The verdict of each expectation of `changes` (VRD-5, VRD-6, VRD-9, VRD-10, VRD-11, VRD-12), from the groups before
 /// and after its change.
-fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors) {
+fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors) -> Printed {
     // Per row: the revisions holding its change, and the index of its after group.
     let placed: Vec<(HashSet<&str>, Option<usize>)> = changes
         .iter()
@@ -782,9 +843,7 @@ fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors)
         "after_value",
         "verdict",
     ];
-    println!("## Verdicts\n");
-    println!("| {} |", columns.join(" | "));
-    println!("|{}", "---|".repeat(columns.len()));
+    let mut rows = Vec::new();
     for (row, (held, after_index)) in changes.iter().zip(&placed) {
         let change = value(row, "change");
         let (metric, direction) = (value(row, "metric"), value(row, "direction"));
@@ -823,16 +882,22 @@ fn verdicts(groups: &[Group], tables: &[Table], changes: &[Row], floors: Floors)
             }
             _ => "no data",
         };
-        let short_change: String = change.chars().take(7).collect();
-        println!(
-            "| {short_change} | {metric} | {direction} | {} | {} | {} | {} | {verdict} |",
+        rows.push(vec![
+            change.chars().take(7).collect(),
+            metric.to_string(),
+            direction.to_string(),
             name(before_index),
             name(*after_index),
             before_value.map_or_default(|(printed, _)| printed),
             after_value.map_or_default(|(printed, _)| printed),
-        );
+            verdict.to_string(),
+        ]);
     }
-    println!();
+    Printed {
+        title: "Verdicts".to_string(),
+        columns: columns.iter().map(|c| (*c).to_string()).collect(),
+        rows,
+    }
 }
 
 struct Options {
@@ -843,8 +908,9 @@ struct Options {
     changes: Option<String>,
     min_sessions: usize,
     min_issues: usize,
-    by_setup: bool,
+    by: By,
     anonymous: bool,
+    json: bool,
     last: Option<usize>,
     project: Option<String>,
 }
@@ -867,8 +933,9 @@ fn options(args: &[String]) -> Result<Options, String> {
         changes: None,
         min_sessions: 10,
         min_issues: 5,
-        by_setup: false,
+        by: By::Revision,
         anonymous: false,
+        json: false,
         last: None,
         project: None,
     };
@@ -883,13 +950,15 @@ fn options(args: &[String]) -> Result<Options, String> {
             "--min-sessions" => options.min_sessions = floor(&mut args, &arg)?,
             "--min-issues" => options.min_issues = floor(&mut args, &arg)?,
             "--by" => {
-                options.by_setup = match args.next().as_deref() {
-                    Some("revision") => false,
-                    Some("setup") => true,
-                    _ => return Err("--by needs revision or setup".to_string()),
+                options.by = match args.next().as_deref() {
+                    Some("revision") => By::Revision,
+                    Some("setup") => By::Setup,
+                    Some("milestone") => By::Milestone,
+                    _ => return Err("--by needs revision, setup or milestone".to_string()),
                 }
             }
             "--anonymous" => options.anonymous = true,
+            "--json" => options.json = true,
             "--last" => options.last = Some(floor(&mut args, &arg)?),
             "--project" => {
                 let name = args.next().filter(|n| !n.starts_with('-'));
@@ -898,10 +967,14 @@ fn options(args: &[String]) -> Result<Options, String> {
             other => return Err(format!("unknown argument {other}")),
         }
     }
-    if options.by_setup && options.last.is_some() {
+    if options.by != By::Revision && options.last.is_some() {
         return Err(
-            "--last needs groups of revisions: the setups have no order in time".to_string(),
+            "--last needs groups of revisions: the setups and milestones have no order in time"
+                .to_string(),
         );
+    }
+    if options.by == By::Milestone && options.quality.is_empty() {
+        return Err("--by milestone needs --quality".to_string());
     }
     Ok(options)
 }
@@ -952,10 +1025,36 @@ pub(super) fn main(args: &[String]) -> u8 {
         .map(|f| read(f, CHANGES))
         .transpose()
         .unwrap_or_else(|e| fail(e));
-    let mut groups = if options.by_setup {
-        setup_groups(&sessions, options.min_sessions)
+    let printed = if options.by == By::Milestone {
+        // only the quality is kept per milestone (REP-20)
+        vec![quality(&milestone_groups(&quality_files), &quality_files).printed]
     } else {
-        groups(&sessions, options.min_sessions)
+        tables_of(
+            &options,
+            &sessions,
+            &quality_files,
+            breaches.as_deref(),
+            context.as_deref(),
+            changes.as_deref(),
+        )
+    };
+    print!("{}", output::render(&printed, options.json));
+    0
+}
+
+/// The tables of the groups of revisions or of setups, in the order they are printed.
+fn tables_of(
+    options: &Options,
+    sessions: &[Row],
+    quality_files: &[Vec<Row>],
+    breaches: Option<&[Row]>,
+    context: Option<&[Row]>,
+    changes: Option<&[Row]>,
+) -> Vec<Printed> {
+    let mut groups = if options.by == By::Setup {
+        setup_groups(sessions, options.min_sessions)
+    } else {
+        groups(sessions, options.min_sessions)
     };
     if let Some(last) = options.last {
         let shown_from = groups.len().saturating_sub(last);
@@ -965,22 +1064,27 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     let mut tables = vec![efficiency(&groups, options.anonymous)];
     if !quality_files.is_empty() {
-        tables.push(quality(&groups, &quality_files));
+        tables.push(quality(&groups, quality_files));
     }
-    if options.by_setup {
+    if options.by == By::Setup {
         // The rules, the fixed context and the verdicts are kept per revision: no setup reads them (REP-16).
-        skills(&groups, None);
-        return 0;
+        let mut printed: Vec<Printed> = tables.into_iter().map(|t| t.printed).collect();
+        printed.push(skills(&groups, None).printed);
+        return printed;
     }
-    if let Some(breaches) = &breaches {
+    if let Some(breaches) = breaches {
         tables.push(rules(&groups, breaches));
     }
-    skills(&groups, context.as_deref());
-    if let Some(context) = &context {
-        tables.push(fixed_context(&groups, context));
+    let skills = skills(&groups, context).printed;
+    let mut printed: Vec<Printed> = tables.iter().map(|t| t.printed.clone()).collect();
+    printed.push(skills);
+    if let Some(context) = context {
+        let table = fixed_context(&groups, context);
+        printed.push(table.printed.clone());
+        tables.push(table);
     }
-    if let Some(changes) = &changes {
-        verdicts(
+    if let Some(changes) = changes {
+        printed.push(verdicts(
             &groups,
             &tables,
             changes,
@@ -988,9 +1092,9 @@ pub(super) fn main(args: &[String]) -> u8 {
                 sessions: options.min_sessions,
                 issues: options.min_issues,
             },
-        );
+        ));
     }
-    0
+    printed
 }
 
 /// The verdict of a value that went from `before` to `after` when the change expected it to go `direction` (VRD-6).
@@ -1028,6 +1132,11 @@ mod tests {
             title: "Efficiency",
             columns: vec!["turns".to_string()],
             rows: vec![vec![vec![cell.to_string()]]],
+            printed: Printed {
+                title: String::new(),
+                columns: Vec::new(),
+                rows: Vec::new(),
+            },
         };
         let at = |cell: &str| metric_value(&[table(cell)], 0, "turns");
         assert_eq!(at("NaN"), None);

@@ -233,7 +233,7 @@ projects directory given, they read the `projects/` of the configuration directo
 | `delivered-quality [repo] [--summary]` | one row per done issue: its commits and deliverables, the fixes inside it, the fixes of the lines it wrote (a later issue counting only the fix that starts it) and the reverts of its files in the 30 days after its close, its reviews and their findings, the lines it changed in the specs and in the docs, the shape of the specs it changed as of its close (bytes, live requirements, Intent characters, happy paths), the setup (main model, alone or advised; `mixed` when its sessions differ), the milestone of the `roadmap` documents that lists it, failed checks, typed messages and tokens of the sessions that made it; `--summary` sums them per Cardinal revision, setup and milestone |
 | `fixed-context` | per project and Cardinal revision, the bytes of the memory files (`AGENTS.md` apart, counted only when loaded) and the skill descriptions that every session pays, and the skills the revision ships |
 | `cardinal-changes [repo] --sessions <file>` | one row per `Expected-effect: <metric> <up\|down>` line of a commit of the Cardinal source that changes `files/`, with the revisions of the sessions that hold the change |
-| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup] [--last <n>] [--project <name>] [--anonymous]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), and with `--changes` a verdict per expected effect; see below |
+| `cardinal-report --sessions <file> [--breaches <file>] [--quality <file>]... [--context <file>] [--changes <file>] [--min-sessions <n>] [--min-issues <n>] [--by revision\|setup\|milestone] [--last <n>] [--project <name>] [--anonymous] [--json]` | one markdown table per axis (efficiency, quality, rules with the waste bytes per session, skills, fixed context), and with `--changes` a verdict per expected effect; see below |
 
 `cardinal-report` in detail:
 
@@ -246,6 +246,10 @@ projects directory given, they read the `projects/` of the configuration directo
 - **`--by setup`**: groups the sessions by setup (`<model> solo` or `<model> advised by <advisor>`) instead, with
   their revision mix and the quality of each setup, and leaves out the tables kept per revision (rules, fixed
   context, verdicts).
+- **`--by milestone`**: the quality table alone, one row per milestone of the `delivered-quality` summaries
+  (`(no milestone)` for the issues no milestone lists), whatever the revision; refused without `--quality`.
+- **`--json`**: the same tables as one JSON document on one line (`version`, then `tables`, each with its `title`,
+  `columns` and `rows` of cells), for a program such as `cardinal-ui`.
 - **Verdicts** (`--changes`): `helped`, `hurt`, `no observed effect`, `no data`, or `confounded` when something else
   changed too, a group is too small, or, for a ratio of the quality table, a group closed fewer issues than
   `--min-issues` (5) (only those of known tokens count for the tokens) or, for the findings per review, also held

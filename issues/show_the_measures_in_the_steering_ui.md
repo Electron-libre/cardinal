@@ -42,7 +42,7 @@ outside the project and re-measures when it is over an hour old or on `m`.
 
 ## Plan
 1. [x] Milestone of a done issue: the `milestone` column of `delivered-quality` rows and summary, from the `roadmap` documents (new module `delivered_quality/milestone.rs`, the file is over the size limit); verified by `tests/delivered_quality_milestone.rs`; makes true QUA-19. (autonomous)
-2. [ ] Report by milestone and as JSON: `cardinal-report --by milestone` (quality table per milestone) and `--json` (new module `cardinal_report/json.rs`, the file is over the size limit); verified by `tests/cardinal_report_json.rs`; makes true REP-20, REP-21.
+2. [x] Report by milestone and as JSON: `cardinal-report --by milestone` (quality table per milestone) and `--json` (new module `cardinal_report/json.rs`, the file is over the size limit); verified by `tests/cardinal_report_json.rs`; makes true REP-20, REP-21. (autonomous)
 3. [ ] Measures panel: the measure in the background into the cache directory, the key `m`, the panel, `--print` measuring when stale (new module `crates/cardinal-ui/src/measures.rs`); verified by `--print` tests with a fake `cardinal` and `XDG_CACHE_HOME`; makes true STU-3, STU-16, STU-17, STU-18, STU-19.
 4. [ ] Docs of the issue and settlement of its `high` review.
 
@@ -68,5 +68,27 @@ red: QUA-19: the header read `issue, revision, setup, closed` instead of `issue,
 Code review: no findings
 - file size: `delivered_quality.rs` (+12) and its test (+4) stay over the limit: the new code is in
   `delivered_quality/milestone.rs`, the lines added are the column's wiring.
+- not verified: none.
+- decisions needed: none.
+
+## Deliverable 2: report by milestone and as JSON
+- done: `cardinal-report --by milestone` prints the quality table alone, one group per milestone of the summaries
+  (`(no milestone)` for none, `sessions` empty), refused without `--quality` or with `--last`; `--json` prints the
+  tables as one JSON document (`version`, `tables` of `title`, `columns`, `rows`), the Markdown now rendered from the
+  same printed rows (`cardinal_report/output.rs`).
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green, 5 tests in `tests/cardinal_report_json.rs`, the Markdown tests unchanged |
+| lint | clean (one `format_push_string` fixed) |
+| specs | REP-20, REP-21 traced; specs stay `draft` until deliverable 3 |
+| docs | `docs/usage.md`, `docs/evaluation.md` |
+| code review | see below |
+
+red: REP-20, REP-21: exit 2, `unknown argument --json` and `--by needs revision or setup`
+Code review: no findings
+- file size: `cardinal_report.rs` grows from 1046 to 1155 lines: the rendering went to `output.rs`, the rest is the
+  milestone groups and the split of `main` into `tables_of`; moving the verdicts out is a move of its own, left to a
+  later split.
 - not verified: none.
 - decisions needed: none.

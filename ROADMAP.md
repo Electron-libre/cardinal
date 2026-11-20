@@ -17,3 +17,16 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
   - [ask_the_user_through_the_question_tool](issues/done/ask_the_user_through_the_question_tool.md)
+
+## Steering UI
+
+- Goal: steer a project driven by Cardinal from a terminal UI: see the milestones, the queue, the claims, the
+  sessions at work and the measures, and start an issue session in its own worktree in a zellij pane.
+- Why: today the user opens each worktree, launches `claude` and hands it the issue by hand, then reads the state
+  through several `cardinal run` commands and `skill:evaluate-harness`.
+- State: in issues
+- Issues:
+  - [print_the_queue_and_the_roadmap_as_json](issues/print_the_queue_and_the_roadmap_as_json.md)
+  - [show_the_project_state_in_a_steering_ui](issues/show_the_project_state_in_a_steering_ui.md)
+  - [start_an_issue_session_in_a_zellij_pane](issues/start_an_issue_session_in_a_zellij_pane.md)
+  - [show_the_measures_in_the_steering_ui](issues/show_the_measures_in_the_steering_ui.md)

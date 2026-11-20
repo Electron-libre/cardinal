@@ -152,7 +152,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "release",
-        about: "[<version> [--tag]]: propose the version, write its CHANGELOG.md section, then tag it locally",
+        about: "[<version> [--tag] | --json]: propose the version, write its CHANGELOG.md section, then tag it locally",
         main: release::main,
     },
     Tool {

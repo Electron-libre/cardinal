@@ -1,9 +1,10 @@
-//! `release [<version> [--tag]]`: a numbered release of the project from its Conventional Commits, or from its
+//! `release [<version> [--tag] | --json]`: a numbered release of the project from its Conventional Commits, or from its
 //! `release_breaking_files` only for the commits written while it turned off `conventional-commits`
 //! (`specs/release.md`). With no version, print the version proposed from the commits since the last `vX.Y.Z` tag.
 //! With one, write its section of `CHANGELOG.md` and run the project's `release_version_command`, for the user to
 //! reread and commit; with `--tag` too, once that commit is made, create the annotated tag `v<version>` on `HEAD`.
-//! Never commits nor pushes: it prints the push command.
+//! Never commits nor pushes: it prints the push command. With `--json` alone, print the proposal as one JSON document
+//! for a program (REL-14).
 
 use std::collections::HashMap;
 use std::fmt::{self, Write as _};
@@ -91,14 +92,25 @@ fn run(args: &[String]) -> Result<(), String> {
     let root = super::repo_root()?;
     let root = Path::new(&root);
     let tag = args.iter().any(|a| a == "--tag");
-    let versions: Vec<&String> = args.iter().filter(|a| *a != "--tag").collect();
+    let json = args.iter().any(|a| a == "--json");
+    let versions: Vec<&String> = args
+        .iter()
+        .filter(|a| *a != "--tag" && *a != "--json")
+        .collect();
+    if json {
+        if tag || !versions.is_empty() {
+            return Err("usage: release --json, with no version nor --tag".into());
+        }
+        println!("{}", document(root)?);
+        return Ok(());
+    }
     let version = match versions[..] {
         [] if !tag => {
             println!("{}", proposed(root)?.0);
             return Ok(());
         }
         [v] => Version::parse(v).ok_or_else(|| format!("`{v}` is not a version X.Y.Z"))?,
-        _ => return Err("usage: release [<version> [--tag]]".into()),
+        _ => return Err("usage: release [<version> [--tag] | --json]".into()),
     };
     if git(
         root,
@@ -120,6 +132,32 @@ fn run(args: &[String]) -> Result<(), String> {
     }
 }
 
+/// The proposal of REL-15: the version to number, `null` when no commit follows the last tag, the last tag, the commits
+/// since it, and the milestones REL-9 would list. Writes nothing.
+fn document(root: &Path) -> Result<serde_json::Value, String> {
+    let (proposal, last, commits) = proposed(root)?;
+    let count = match last {
+        Some(_) => commits.len(),
+        None => git(root, &["rev-list", "--count", "--no-merges", "HEAD"])?
+            .trim()
+            .parse()
+            .map_err(|e| format!("cannot count the commits of HEAD: {e}"))?,
+    };
+    // The version only names the marker line REL-9 would add, which the document leaves out.
+    let (_, milestones) = roadmap_writes(root, proposal)?;
+    let milestones: Vec<serde_json::Value> = milestones
+        .into_iter()
+        .map(|(document, name)| serde_json::json!({"name": name, "document": document}))
+        .collect();
+    Ok(serde_json::json!({
+        "version": 1,
+        "proposed": (last.is_none() || count > 0).then(|| proposal.to_string()),
+        "last": last.map(|l| l.to_string()),
+        "commits": count,
+        "milestones": milestones,
+    }))
+}
+
 /// Write the section of `version`, mark the milestones it delivers, move the released ones to the archive and run the
 /// version command (REL-3 to REL-6, REL-9, REL-13); on a failure, the files written are put back.
 fn prepare(root: &Path, version: Version) -> Result<(), String> {
@@ -138,7 +176,10 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
     let today = chrono::Local::now().format("%Y-%m-%d");
     let mut new = format!("## [{version}] - {today}\n");
     if !milestones.is_empty() {
-        let _ = write!(new, "\n### Milestones\n\n{milestones}");
+        let _ = write!(new, "\n### Milestones\n\n");
+        for (_, name) in &milestones {
+            let _ = writeln!(new, "- {name}");
+        }
     }
     if let Some(last) = last {
         if commits.is_empty() {
@@ -198,8 +239,12 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
 }
 
 /// The new texts of the `roadmap` documents once the milestones `version` delivers are marked (REL-9) and the released
-/// ones moved to the `roadmap_archive` (REL-13), as `(path, text before, new text)`, and the list of the marked names.
-fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), String> {
+/// ones moved to the `roadmap_archive` (REL-13), as `(path, text before, new text)`, and the marked milestones as
+/// `(document as the roadmap names it, name)`, in order.
+fn roadmap_writes(
+    root: &Path,
+    version: Version,
+) -> Result<(Writes, Vec<(String, String)>), String> {
     let mut documents: Vec<(String, Vec<String>)> = Vec::new();
     for (rel, at) in super::close_issue::roadmap_documents(root, &[]) {
         if !documents.iter().any(|(_, seen)| *seen == at) {
@@ -217,7 +262,7 @@ fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), Str
         None => None,
     };
     let mut roadmaps = Vec::new();
-    let mut milestones = String::new();
+    let mut milestones = Vec::new();
     // The released sections moved to the archive (REL-13), each opened by a blank line.
     let mut moved = String::new();
     // The archive as read and as marked, when it exists.
@@ -231,9 +276,7 @@ fn roadmap_writes(root: &Path, version: Version) -> Result<(Writes, String), Str
             Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
         };
         let (mut marked, names) = mark_released(&text, version);
-        for name in names {
-            let _ = writeln!(milestones, "- {name}");
-        }
+        milestones.extend(names.into_iter().map(|name| (rel.clone(), name)));
         if archive.as_ref() == Some(at) {
             archived = Some((path, Some(text), marked));
             continue;

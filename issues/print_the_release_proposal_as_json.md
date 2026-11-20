@@ -30,3 +30,48 @@ Releases from the steering UI
 # Resources
 * `specs/release.md`, `specs/roadmap.md` (RMP-7, RMP-8), `specs/next-issue.md` (NXT-18, NXT-19)
 * `crates/cardinal/src/tools/release.rs`, ADR 0030
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+`cardinal run release --json` prints one versioned JSON object (REL-14, REL-15): the proposed version (`null` when
+nothing follows the last tag), the last tag, the commit count since it and the milestones REL-9 would list; refused
+with a version or `--tag` (REL-16). Out of scope: previewing the changelog section; the UI reading it.
+
+## Plan
+1. [x] `release --json`: the document built from `proposed` and the milestone listing of `roadmap_writes` (which then
+   returns names with their document), no write; tests in a new `crates/cardinal/tests/release_json.rs`
+   (`tests/release.rs` is 750 lines, the limit 800); verified by those tests on temporary repositories; makes true
+   REL-14, REL-15, REL-16. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: e1228571d61777550202da1ae23a0f9446888651
+- `commits` with no version tag: every non-merge commit of `HEAD` (answer 1 a).
+- `--json` refuses a `roadmap_archive` REL-13 refuses, as `release <version>` would (answer 2 a).
+- The spec moves its requirements under `### Behaviour` and `### Contract` (ids unchanged) at this amendment.
+
+## Summary of deliverable 1
+
+done: `release --json` prints the proposal as one JSON object (`proposed`, `last`, `commits`, `milestones`) and
+writes nothing; refused with a version, `--tag` or a refused `roadmap_archive`; `specs/release.md` accepted, its
+requirements under Behaviour and Contract.
+
+| check | result |
+|---|---|
+| tests | `release_json` 4/4, `release` 25/25, `just check` green |
+| lint | clippy -D warnings clean |
+| specs | `check-specs`: REL traced, no warning on `specs/release.md` |
+| docs | `docs/usage.md` (Releases row), the tool's `about` |
+| code review | low, no findings |
+
+red: REL-14, REL-15: `release: `--json` is not a version X.Y.Z` (exit 1); REL-16's test passed before the code, the
+flag being then refused as a malformed version.
+
+Code review: no findings
+
+not verified: the steering UI reading the document (not in this issue).
+
+decisions needed: none

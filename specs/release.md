@@ -1,7 +1,7 @@
 ---
 id: REL
 status: accepted
-adrs: []
+adrs: [0030]
 ---
 
 # Releasing a version
@@ -15,19 +15,35 @@ reads in the changelog what changed since its last pin.
 
 ## Requirements
 
+### Behaviour
+
 - **REL-1** (deterministic) `release` with no version must print the proposed version: from the last tag `vX.Y.Z` reachable from `HEAD`, its major raised when a commit since it is breaking (REL-2), else its minor when one is a `feat`, else its patch; with no such tag, `0.1.0`.
+- **REL-6** (deterministic) `release <version>` must not commit, tag nor push, and prints the next steps: reread the section, commit, then `release <version> --tag`.
+- **REL-7** (deterministic) `release <version> --tag` must create the annotated tag `v<version>` on `HEAD`, its message the changelog section of the version, and print the command that pushes it.
+- **REL-8** (deterministic) `release` must never push.
+- **REL-9** (deterministic) `release <version>` must list under `### Milestones`, first in the section, every milestone (a `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them), its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` whose `State:` is `done` and that has no `Released:` line, and add to each of them the line `- Released: v<version>` after its `State:` line.
+- **REL-14** (deterministic) With `--json` and no version, `release` must print instead of the version one JSON document (REL-15) that a program reads: the version it would number, or none when nothing awaits a release, the last version tag, the number of commits since it and the milestones it would list, so a tool shows them without parsing text; it changes no file and prints the warnings of REL-11 on stderr.
+
+### Contract
+
 - **REL-2** (deterministic) A commit must count as breaking when its subject marks it (`<type>!:` or `<type>(<scope>)!:`), when its message has a footer line starting `BREAKING CHANGE:` or `BREAKING-CHANGE:`, or when it changes a file named in the list `release_breaking_files` of `.claude/cardinal.toml`.
 - **REL-3** (deterministic) `release <version>` must refuse, with a non-zero exit and no file changed, a version that is not `X.Y.Z` (numbers without a leading zero, an optional leading `v`), one whose tag `v<version>` exists, one that `CHANGELOG.md` already has a section for, and, once a version tag exists, one lower than the version REL-1 proposes, and any version when no commit follows that tag.
 - **REL-4** (deterministic) `release <version>` must write in `CHANGELOG.md`, above its first `## ` section other than `## [Unreleased]` (at its end when it has none), a section `## [<version>] - <YYYY-MM-DD>` (today's date) holding, in this order and each only when not empty, `### Breaking`, `### Added` and `### Fixed`: one line `- <description>` per non-merge commit since the last version tag, the breaking ones under Breaking, the other `feat` under Added, the other `fix` under Fixed; the commits of the other types are not listed. With no version tag yet, the section holds the single line `First numbered release.` instead of these subsections. A missing `CHANGELOG.md` is created with the header of the seeded one.
 - **REL-5** (deterministic) When `.claude/cardinal.toml` names a `release_version_command`, `release <version>` must run it (`sh -c`, from the root of the work tree) with the version as last argument after writing the changelog, and when it fails exit non-zero with `CHANGELOG.md` and the `roadmap` documents (the archive of REL-13 included, removed when this release created it) as they were before.
-- **REL-6** (deterministic) `release <version>` must not commit, tag nor push, and prints the next steps: reread the section, commit, then `release <version> --tag`.
-- **REL-7** (deterministic) `release <version> --tag` must create the annotated tag `v<version>` on `HEAD`, its message the changelog section of the version, and print the command that pushes it.
 - **REL-10** (deterministic) `release <version> --tag` must refuse, with a non-zero exit and no tag, when the work tree has uncommitted changes or untracked files, when `CHANGELOG.md` of `HEAD` has no section for the version, or when the tag exists.
-- **REL-8** (deterministic) `release` must never push.
 - **REL-11** (deterministic) `release` must read each commit since the last version tag with the convention of its own revision: a commit whose `.claude/cardinal.toml` (`.claude/harness.toml` before its rename, ADR 0015), as of that commit, turns off the feature `conventional-commits` counts as breaking only when it changes a file of `release_breaking_files`, with no commit type nor `BREAKING CHANGE:` footer read, and is otherwise neither a `feat` nor a `fix`; a commit with no readable configuration follows the convention. When it proposes a version (no argument) or prepares one (`release <version>`) and a commit since the last tag is read without the convention, it prints to stderr the warning `release: conventional-commits is off: the version is proposed from release_breaking_files only`, followed, when `release_breaking_files` lists no file, by the line `release: release_breaking_files lists no file: the commits written with conventional-commits off are a patch`; its stdout with no version stays the version alone.
 - **REL-12** (deterministic) `release <version>` must list each non-merge commit since the last version tag read without the convention (REL-11) that is not breaking under a subsection `### Changed`, after `### Fixed`, one line `- <subject>` (the whole subject) per commit, oldest first; the lines of `### Breaking` for such commits hold the whole subject too. The commits read with the convention stay listed as REL-4 says.
-- **REL-9** (deterministic) `release <version>` must list under `### Milestones`, first in the section, every milestone (a `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them), its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` whose `State:` is `done` and that has no `Released:` line, and add to each of them the line `- Released: v<version>` after its `State:` line.
 - **REL-13** (deterministic) When `.claude/cardinal.toml` names a `roadmap_archive` (a path from the root of the work tree), `release <version>` must, after REL-9, move each milestone of the other `roadmap` documents that has a `Released:` line, its whole section (from its heading to the next milestone heading, REL-9's grammar), to the end of the archive, in the order of those documents, leaving the other milestones and their order unchanged; it creates a missing archive with a short header, and rewrites the relative link targets of a moved section when the archive is in another directory. A `roadmap_archive` that `roadmap` does not list is refused, with a non-zero exit and no file changed. With no `roadmap_archive`, no milestone moves.
+- **REL-15** (deterministic) The document of REL-14 must be one object on one line with the fields of the table below, `version` raised when a later revision removes or renames a field or changes the type of its value.
+
+| Field | Value |
+|---|---|
+| `version` | the integer `1` |
+| `proposed` | the version REL-1 proposes, `"X.Y.Z"`; `null` when a version tag exists and no commit follows it (REL-3) |
+| `last` | the last version tag reachable from `HEAD` (REL-1) without its `v`, `"X.Y.Z"`; `null` when there is none |
+| `commits` | the number of non-merge commits since that tag, of all the non-merge commits of `HEAD` when there is none |
+| `milestones` | one object per milestone REL-9 would list, in the order of the `roadmap` documents then of their headings, with the fields `name` (its name) and `document` (the path of its document as `roadmap` of `.claude/cardinal.toml` names it); `[]` when none |
+- **REL-16** (deterministic) `release --json` must be refused, with a non-zero exit, nothing on stdout and no file changed, when it is given a version or `--tag`, or when `.claude/cardinal.toml` names a `roadmap_archive` that REL-13 refuses.
 
 ## Scenarios
 
@@ -35,6 +51,10 @@ reads in the changelog what changed since its last pin.
   it, when the user runs `release`, then it proposes the next minor version; when they run `release <version>`,
   then the changelog gets the section of that version and nothing is committed; once they commit it and run
   `release <version> --tag`, then the annotated tag is created locally and nothing is pushed.
+
+- **REL-H2** (happy; REL-14, REL-15) Given a project with a `done` milestone not released yet and a `feat` commit
+  since its last version tag, when the steering UI runs `release --json`, then it reads that a release awaits, the
+  version it would number, the milestone it would list and the number of commits, and no file changed.
 
 - (REL-1) Given the tag `v0.2.0` and since it the commits `fix: a` and `feat(x): b`, when `release` runs, then it prints `0.3.0`.
 - (REL-1) Given the tag `v1.4.2` and since it only `docs: a` and `fix: b`, when `release` runs, then it prints `1.4.3`.
@@ -57,9 +77,15 @@ reads in the changelog what changed since its last pin.
 - (REL-13) Given `roadmap_archive = "docs/done.md"` and a released milestone of `ROADMAP.md` linking `issues/done/a.md`, when `release` moves it, then its link in the archive is `../issues/done/a.md`.
 - (REL-10) Given `release 0.3.0` ran and its changes are not committed yet, when `release 0.3.0 --tag` runs, then it is refused and no tag exists.
 
+- (REL-15) Given the tag `v0.2.0`, since it the commits `fix: a` and `feat: b`, and `ROADMAP.md` holding `Old` (`done`, released `v0.2.0`) and `New` (`done`), when `release --json` runs, then it prints `{"version":1,"proposed":"0.3.0","last":"0.2.0","commits":2,"milestones":[{"name":"New","document":"ROADMAP.md"}]}` and `ROADMAP.md` is unchanged.
+- (REL-15) Given the tag `v0.3.0` on `HEAD`, when `release --json` runs, then it prints `"proposed":null`, `"last":"0.3.0"` and `"commits":0`, and exits 0.
+- (REL-15) Given no version tag and two commits, when `release --json` runs, then it prints `"proposed":"0.1.0"`, `"last":null` and `"commits":2`.
+- (REL-16) Given a `feat` since the last tag, when `release --json 0.3.0` or `release --json --tag` runs, then it exits non-zero, prints nothing on stdout and `CHANGELOG.md` is not created.
+
 ## Non-goals
 
 - Pushing the tag or the branch, or creating a GitHub release: the user pushes.
 - Rewording the commit subjects for the consumers: the user rereads and edits the section before the tag.
 - Writing the version into a manifest itself: the project's `release_version_command` does it.
 - Pre-release and build suffixes (`1.0.0-rc.1`).
+- Previewing the changelog section in the JSON document: `release <version>` writes it for the user to reread.

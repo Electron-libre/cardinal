@@ -27,6 +27,6 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [print_the_queue_and_the_roadmap_as_json](issues/done/print_the_queue_and_the_roadmap_as_json.md)
-  - [show_the_project_state_in_a_steering_ui](issues/show_the_project_state_in_a_steering_ui.md)
+  - [show_the_project_state_in_a_steering_ui](issues/done/show_the_project_state_in_a_steering_ui.md)
   - [start_an_issue_session_in_a_zellij_pane](issues/start_an_issue_session_in_a_zellij_pane.md)
   - [show_the_measures_in_the_steering_ui](issues/show_the_measures_in_the_steering_ui.md)

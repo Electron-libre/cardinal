@@ -1,7 +1,7 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (STU-9), `f` merges it into the
 //! trunk (STU-20); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (STU-22); `m`
-//! takes the measures again (STU-17).
+//! takes the measures again (STU-17); `v` starts the release session (STU-26).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -25,7 +25,8 @@ const TICK: Duration = Duration::from_millis(100);
 const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
-const HELP: &str = "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  m measure";
+const HELP: &str =
+    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  v release  m measure";
 
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
 /// the order of the lines of their panels.
@@ -180,6 +181,7 @@ pub enum Action {
     Start,
     Merge,
     End,
+    Release,
     Measure,
     Nothing,
 }
@@ -190,6 +192,7 @@ pub enum Task {
     Start,
     Merge,
     End,
+    Release,
 }
 
 /// The task `action` runs on the issue `stem`, with the status line shown while it runs.
@@ -198,6 +201,7 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
         Action::Start => Some((Task::Start, format!("starting {stem}…"))),
         Action::Merge => Some((Task::Merge, format!("merging {stem}…"))),
         Action::End => Some((Task::End, format!("ending {stem}…"))),
+        Action::Release => Some((Task::Release, "starting the release…".to_string())),
         _ => None,
     }
 }
@@ -211,6 +215,8 @@ fn job(
     v: &View,
 ) -> Result<Option<(Task, String, String)>, String> {
     let stem = match (action, sel.focus) {
+        // the release covers every milestone awaiting it: no selection
+        (Action::Release, _) => Some(String::new()),
         (Action::Start | Action::Merge, Focus::Queue) => v.stems.get(sel.issue).cloned(),
         (Action::Start | Action::Merge, Focus::Worktrees) => {
             return Err("s and f act on the queue: Tab to it".to_string())
@@ -243,6 +249,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('s') => Action::Start,
         KeyCode::Char('f') => Action::Merge,
         KeyCode::Char('e') => Action::End,
+        KeyCode::Char('v') => Action::Release,
         KeyCode::Char('m') => Action::Measure,
         _ => Action::Nothing,
     }
@@ -418,7 +425,7 @@ pub fn run(
                             measure();
                             schedule.asked = true;
                         }
-                        Action::Start | Action::Merge | Action::End => {
+                        Action::Start | Action::Merge | Action::End | Action::Release => {
                             match view.as_ref().map(|v| job(&key, selected, v)) {
                                 Some(Ok(Some((job, shown, stem)))) if !busy => {
                                     busy = true;
@@ -501,6 +508,30 @@ mod tests {
             Some("starting foo…".to_string())
         );
         assert!(task(&Action::Refresh, "foo").is_none());
+    }
+
+    // spec: STU-26, STU-15 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn v_starts_the_release_from_either_panel() {
+        assert_eq!(action(&press(KeyCode::Char('v'))), Action::Release);
+        assert!(HELP.contains("v release"), "{HELP}");
+        let v = view(&["bar"], &[("/main", Some("trunk"))]);
+        for focus in [Focus::Queue, Focus::Worktrees] {
+            let sel = Selection {
+                focus,
+                issue: 0,
+                worktree: 0,
+            };
+            assert_eq!(
+                job(&Action::Release, sel, &v),
+                Ok(Some((
+                    Task::Release,
+                    "starting the release…".to_string(),
+                    String::new()
+                )))
+            );
+        }
+        assert_eq!(quits(&Action::Quit, true, false), (false, true));
     }
 
     // spec: STU-9 (internal: the highlight of a screen that needs a real terminal)

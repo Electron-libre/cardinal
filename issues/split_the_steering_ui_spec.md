@@ -1,6 +1,6 @@
 ---
 priority: low
-depends_on: [end_the_session_of_a_merged_issue]
+depends_on: [end_the_session_of_a_merged_issue, start_a_release_session_on_the_trunk]
 why: 'a warning of check-specs to clear, no behaviour depends on it'
 ---
 # Split the steering UI spec
@@ -13,8 +13,9 @@ why: 'a warning of check-specs to clear, no behaviour depends on it'
 # Findings
 * `check-specs` on 2026-11-20: `specs/steering-ui.md: outgrows its capability: 26168 bytes over 25000
   (spec_max_bytes)`.
-* The actions are STU-9, STU-11, STU-12, STU-15, STU-20, STU-21, STU-22, STU-24, STU-25 and their scenarios
-  (STU-H2, STU-H5, STU-H6, STU-H7); the rest reads and shows the project.
+* The actions are STU-9, STU-11, STU-12, STU-15, STU-20, STU-21, STU-22, STU-24, STU-25, STU-26, STU-27, STU-28
+  and their scenarios (STU-H2, STU-H5, STU-H6, STU-H7, STU-H8); the rest reads and shows the project.
+* With the start of a release (STU-26 to STU-28), `check-specs` on 2026-11-20: 32894 bytes over 25000.
 
 # Approach
 1. Move the action requirements into a new spec (a free three-letter id), each taking the next number there; the

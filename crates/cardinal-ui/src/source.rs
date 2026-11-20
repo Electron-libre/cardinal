@@ -111,7 +111,7 @@ pub fn in_zellij() -> bool {
 }
 
 /// The names of the tabs of the current zellij session; none outside zellij or when they cannot be listed (STU-12).
-fn tabs(dir: &Path) -> Vec<String> {
+pub fn tabs(dir: &Path) -> Vec<String> {
     if !in_zellij() {
         return Vec::new();
     }
@@ -156,7 +156,7 @@ pub fn failure(name: &str, code: i32, err: &str) -> String {
 
 /// The document `cardinal run <tool> --json` prints in `dir`, checked (STU-6), and its stderr; exit code 1 is
 /// accepted when `problems` is set (the problems of the issue files of `next-issue`).
-fn document(
+pub fn document(
     tool: &str,
     options: &[&str],
     dir: &Path,
@@ -197,7 +197,7 @@ fn string(v: &Value) -> Option<String> {
     v.as_str().map(str::to_string)
 }
 
-fn array(v: &Value) -> &[Value] {
+pub fn array(v: &Value) -> &[Value] {
     v.as_array().map_or(&[], Vec::as_slice)
 }
 

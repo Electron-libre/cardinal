@@ -35,6 +35,20 @@ pub fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
     Ok((PathBuf::from(path), branch))
 }
 
+/// The main worktree of the repository of `dir` and its trunk, once it is on a branch, clean and held by no running
+/// session; else why not (STU-21, STU-27).
+pub fn free_main_worktree(dir: &Path) -> Result<(PathBuf, String), String> {
+    let (main, trunk) = main_worktree(dir)?;
+    let trunk = trunk.ok_or("main worktree not on a branch")?;
+    if !git(&main, &["status", "--porcelain"])?.trim().is_empty() {
+        return Err("main worktree has uncommitted changes or untracked files".to_string());
+    }
+    if let Some(s) = source::session(&main).filter(|s| s.alive) {
+        return Err(format!("session {} works in the main worktree", s.id));
+    }
+    Ok((main, trunk))
+}
+
 /// The branch of the claim `merge pending` of the issue `stem` of the queue of `root`.
 fn pending_branch(root: &Path, stem: &str) -> Result<String, String> {
     let queue = source::queue(root, &[])?;
@@ -67,14 +81,7 @@ pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String>
             "{branch} does not hold the close of {stem}: commit it first"
         ));
     }
-    let (main, trunk) = main_worktree(root)?;
-    let trunk = trunk.ok_or("main worktree not on a branch")?;
-    if !git(&main, &["status", "--porcelain"])?.trim().is_empty() {
-        return Err("main worktree has uncommitted changes or untracked files".to_string());
-    }
-    if let Some(s) = source::session(&main).filter(|s| s.alive) {
-        return Err(format!("session {} works in the main worktree", s.id));
-    }
+    let (main, trunk) = free_main_worktree(root)?;
     let ancestor = "git merge-base --is-ancestor";
     let (_, err, code) = source::run(
         ancestor,

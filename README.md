@@ -89,7 +89,8 @@ holds each (and whether it waits for the user) and the trend of its measures (pe
 prints the screen once. It reads the project through `cardinal run next-issue --json`, `roadmap --json` and `release --json`, marking a milestone `release` would list `awaits release v<version>` (bare when it proposes none). In a zellij
 session, `s` on a ready issue opens its worktree and a tab running `claude` on it; `f` on an issue `merge pending`
 fast-forwards the trunk of the main worktree to its branch, then ends its waiting session, closes its tab and removes
-its worktree and branch (`e` on its worktree, after `Tab`, for an issue merged by hand). No release binary yet:
+its worktree and branch (`e` on its worktree, after `Tab`, for an issue merged by hand); `v`, once a milestone awaits
+its release, opens a tab `release` in the main worktree running `claude /release`. No release binary yet:
 `cargo install --git https://github.com/Electron-libre/cardinal.git cardinal-ui` (or `just install-ui` in a clone).
 Details: [docs/usage.md](docs/usage.md#steering-ui).
 

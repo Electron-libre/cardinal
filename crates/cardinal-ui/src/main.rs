@@ -1,23 +1,27 @@
 //! `cardinal-ui`: the milestones, the queue of issues, the worktrees and the measures of the project of the current
 //! directory, in one terminal screen (`specs/steering-ui.md`, ADR 0030). It reads the project through
 //! `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
-//! changes the project only to start an issue session in a zellij tab (`start.rs`), to merge into the trunk an issue
-//! closed on its branch (`merge.rs`), or to end what a merged issue left (`end.rs`).
-//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem>]`: with no argument the screen runs
-//! in the terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue; `--merge`
-//! merges it; `--end` ends its session and removes its worktree once it is merged.
+//! changes the project only to start an issue session in a zellij tab (`start.rs`), to start the release session of
+//! the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its branch (`merge.rs`), or
+//! to end what a merged issue left (`end.rs`).
+//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]`: with no argument the
+//! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue;
+//! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--release` starts the
+//! release session in the main worktree.
 
 mod end;
 mod measures;
 mod merge;
 mod panels;
+mod release;
 mod screen;
 mod source;
 mod start;
 
 use std::path::Path;
 
-const USAGE: &str = "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem>]";
+const USAGE: &str =
+    "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]";
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
@@ -84,12 +88,14 @@ fn print() -> i32 {
     i32::from(panels.iter().any(|p| p.failed))
 }
 
-/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20, STU-22).
+/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20, STU-22), or
+/// starts its release session (STU-26).
 fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
     match task {
         screen::Task::Start => start_in_project(stem),
         screen::Task::Merge => merge_then_end(stem),
         screen::Task::End => end::end(&source::root(Path::new(".")), stem),
+        screen::Task::Release => release::start(&source::root(Path::new("."))),
     }
 }
 
@@ -125,6 +131,7 @@ fn main() {
     let code = match args.as_slice() {
         [] => interactive(),
         [a] if a == "--print" => print(),
+        [a] if a == "--release" => report(release::start(&source::root(Path::new(".")))),
         [a, stem] if a == "--start" => report(start_in_project(stem)),
         [a, stem] if a == "--merge" => report(merge_in_project(stem)),
         [a, stem] if a == "--end" => report(end::end(&source::root(Path::new(".")), stem)),

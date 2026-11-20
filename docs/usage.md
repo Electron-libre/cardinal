@@ -308,7 +308,7 @@ the install it needs (exit 1). It merges nothing (exit 1, saying why) when the i
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
-why nothing was; `s`, `f` and `e` start nothing while a start, a merge or an end runs, and `q` then quits once it
+why nothing was; `s`, `f`, `e` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
 ended, printing the result of a merge or an end. The next
 read drops the claim (CLM-6).
 
@@ -326,6 +326,14 @@ way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 
 `issues/done/<stem>.md`, the worktree has uncommitted changes or untracked files, the UI runs inside it, or its
 session is at work (it runs and does not wait for the user). A step that fails stops the end and names what the steps
 before it did.
+Once a milestone awaits its release (`awaits release` in the milestones panel), `v`, or `cardinal-ui --release`,
+starts the release from any worktree of the project: a zellij tab named `release` in the main worktree running
+`claude /release`, so `skill:release` keeps the version, its reread, its review and the tag, its stops included. One
+release covers every milestone awaiting it: `v` needs no selection. It opens nothing (exit 1, saying why) outside
+zellij, when the repository is bare, the main worktree is detached, has uncommitted changes or untracked files or a
+live session holds its lock, the project turned the skill `release` off (run the steps `cardinal run release`
+prints), a tab `release` is already open, or `cardinal run release --json`, run in the main worktree, lists no
+milestone or fails.
 Apart from a start, a merge, an end and its cache of measures, it writes nothing.
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.

@@ -54,5 +54,5 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [print_the_release_proposal_as_json](issues/done/print_the_release_proposal_as_json.md)
   - [show_the_milestones_awaiting_their_release](issues/done/show_the_milestones_awaiting_their_release.md)
-  - [write_the_release_steps_in_a_skill](issues/write_the_release_steps_in_a_skill.md)
+  - [write_the_release_steps_in_a_skill](issues/done/write_the_release_steps_in_a_skill.md)
   - [start_a_release_session_on_the_trunk](issues/start_a_release_session_on_the_trunk.md)

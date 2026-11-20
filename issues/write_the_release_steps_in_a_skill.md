@@ -52,8 +52,8 @@ key of `cardinal-ui` that starts the session (`start_a_release_session_on_the_tr
    the `low` review, `chore: release v<version>`, `release <version> --tag`, the push left to the user), the Rules of
    `issue-workflow` reduced to a pointer; verified by `REQUIRED_PASSAGES` of `crates/cardinal/tests/skills.rs`
    (passages of `release` and of `issue-workflow`); ~120 lines. (autonomous)
-2. [ ] Feature `release` in `features.toml`; verified by `the_file_only_features_are_their_files`; makes true FEA-27
-   (amended); ~20 lines.
+2. [x] Feature `release` in `features.toml`; verified by `the_file_only_features_are_their_files`; makes true FEA-27
+   (amended); ~20 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -83,4 +83,21 @@ key of `cardinal-ui` that starts the session (`start_a_release_session_on_the_tr
 - `crates/cardinal/tests/skills.rs` is over `file_size_limit` (1211, was 1181 before this issue): not split here, the
   added lines are table rows of `REQUIRED_PASSAGES`; a split of the file is its own refactor.
 - not verified: a real `/release` session on the trunk (the steps depend on what the model does).
+- decisions needed: none
+
+### Deliverable 2
+- done: feature `release` (the skill alone) in `features.toml`; `specs/features.md` back to `accepted`; README and
+  `docs/usage.md` list the feature, `docs/usage.md` (Releases) says what `/release` runs.
+
+| check | result |
+|---|---|
+| tests | `cargo test --test skills`: 16 passed |
+| lint | `project-check` passes |
+| specs | FEA-27 traced, spec `accepted` |
+| docs | README (Optional features), `docs/usage.md` (features, Releases) |
+| code review | low, no findings |
+
+- red: FEA-27: `features.toml declares no release`
+- Code review: no findings
+- not verified: none
 - decisions needed: none

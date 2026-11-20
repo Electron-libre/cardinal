@@ -844,6 +844,7 @@ fn the_file_only_features_are_their_files() {
             vec![".claude/rules/reports-to-the-user.md".to_string()],
         ),
         ("github-ci", under(&[".github"])),
+        ("release", under(&[".claude/skills/release"])),
         (
             "issue-files",
             [

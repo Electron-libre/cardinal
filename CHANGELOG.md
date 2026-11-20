@@ -4,6 +4,23 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [6.0.0] - 2026-11-20
+
+### Breaking
+
+- the format 11: the managed recipes move under `cardinal/` (`cardinal/cardinal.just` and the `cardinal/<part>.just`
+  it imports); `sync` rewrites the `justfile` line `import 'cardinal.just'` and removes the five root `.just` files,
+  so a project needs a `cardinal` that reads the format 11
+
+### Added
+
+- each session gets a scratch directory, `<tmp>/claude-scratch-<session id>/`, exported as `TMPDIR` to its `Bash`
+  commands by the `SessionStart` hook `session-scratch start` and removed by `session-scratch end` unless it holds
+  `cardinal-keep`; the start also removes the directories of dead sessions unchanged for a day; the rule
+  `.claude/rules/scratch-files.md` asks for `$TMPDIR` over a literal `/tmp/<name>`; the feature `session-scratch`
+  turns it off
+- rule `scratch-outside-tmpdir` of `rule-breaches` counts the literal `/tmp/<name>` paths a `Bash` command writes to
+
 ## [5.2.0] - 2026-11-13
 
 ### Added

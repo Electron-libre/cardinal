@@ -54,6 +54,7 @@ key of `cardinal-ui` that starts the session (`start_a_release_session_on_the_tr
    (passages of `release` and of `issue-workflow`); ~120 lines. (autonomous)
 2. [x] Feature `release` in `features.toml`; verified by `the_file_only_features_are_their_files`; makes true FEA-27
    (amended); ~20 lines. (autonomous)
+3. [x] Docs and review of the whole issue: `docs/workflow.md` (Release row) names the skill; `high` review fixes. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -100,4 +101,25 @@ key of `cardinal-ui` that starts the session (`start_a_release_session_on_the_tr
 - red: FEA-27: `features.toml declares no release`
 - Code review: no findings
 - not verified: none
+- decisions needed: none
+
+### Deliverable 3
+- done: `docs/workflow.md` names `skill:release` in its Release row (update-docs of `base..HEAD`); `high` review of the
+  issue.
+- red: none (docs only)
+- High review: 7 findings, all fixed: worktree check on absolute paths; `issue-workflow` falls back on the steps
+  `release <version>` prints when the skill is off, and commits the close first; the skill resumes a release left
+  before its commit (dirty tree of the release files only) or before its tag with a version above the proposal, and
+  marks the files `release` created intent-to-add for `review-target`; `docs/workflow.md` and `docs/usage.md` name
+  the review and the resume.
+
+| check | result |
+|---|---|
+| tests | `project-check` passes |
+| docs | `docs/workflow.md`, `docs/usage.md`, README |
+| code review | high on `base..HEAD`, 7 findings; low on the fixes below |
+
+- red: none (docs and skill text)
+- Code review: 7 findings (high), all fixed as above; low on the fixes: no findings
+- not verified: a real `/release` session (the steps depend on what the model does).
 - decisions needed: none

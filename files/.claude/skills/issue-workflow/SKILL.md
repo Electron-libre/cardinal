@@ -183,9 +183,10 @@ on the local merge command).
   one named `not staged:` held changes of yours and stays out). Never move it unasked. When it was the last open issue of its milestone,
   `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
   `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
-  the user: on the trunk, `skill:release` (its stops included) once they agree; on another branch, the release waits
-  for the merge, prepared on the trunk by a session in the main worktree (the steering UI marks the milestone
-  awaiting its release).
+  the user: on the trunk, once they agree and the close is committed, `skill:release` (its stops included), or, in a
+  project that turned that skill off, the steps `cardinal run release <version>` prints; on another branch, the
+  release waits for the merge, prepared on the trunk by a session in the main worktree (the steering UI marks the
+  milestone awaiting its release).
   The report of the close ends on a Markdown link to the next issue `close-issue` printed
   (`[<title>](issues/<stem>.md)`), or on its line saying there is none.
 - To know which issue comes next, run `cardinal run next-issue` (the first ready issue, its `depends_on` all done, that

@@ -201,7 +201,8 @@ ask rules `Bash(cardinal run release *.*)` and `Bash(just release *.*)`, auto mo
 
 In a session, `/release` (the skill `release`) runs these steps in order in the main worktree, on the trunk with a
 clean tree: it reads `--json`, stops for the version, then for the reread, reviews the section (`low`) before its
-commit `chore: release v<version>`, tags, and leaves the push to the user.
+commit (`chore: release v<version>` under Conventional Commits), resumes a release left before its commit or its
+tag, tags, and leaves the push to the user.
 
 A consumer of Cardinal pins a version with `cardinal update --rev v<version>` and reads in `CHANGELOG.md` what
 changed since its last pin. At the start of a session in a clean main worktree, the hook `update-notice` names the latest

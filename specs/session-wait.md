@@ -55,4 +55,5 @@ waits for the user, and clears the mark when it works again, so a program such a
 - A second session in a worktree another one holds (WSL-3): its wait overwrites the mark of the holder, which the
   reader then ignores as it names a session other than the lock's.
 - Clearing the mark of a permission prompt before the approved tool ends.
-- Notifying the user (a sound, a desktop notification): the terminal and Claude Code do it.
+- Notifying the user (a sound, a desktop notification): the hooks only write the mark; `cardinal-ui` notifies the
+  desktop when it reads a new one (STU-29).

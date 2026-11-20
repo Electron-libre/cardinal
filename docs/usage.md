@@ -283,6 +283,11 @@ prints the screen once as text (exit 1 when a panel could not be read). A tool t
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
 the issues the trunk closed, as it does for the agent.
 
+While the screen runs, a worktree that starts to wait for the user (a new mark, or one of another session or time)
+sends one desktop notification, `<branch> waits` with the reason as its body, through `notify-send` or the program
+`CARDINAL_UI_NOTIFY` names, run with these two arguments; the waits found by the first read send nothing, and a
+program that fails shows `notify: <cause>` on the status line the first time only. `--print` notifies nothing.
+
 A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to) into
 `$XDG_CACHE_HOME/cardinal-ui/<project>-<hash of its path>` (under `~/.cache` when unset), outside the project since the
 rows name projects and issues, then `cardinal-report --project <project> --last 4 --json` and

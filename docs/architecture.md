@@ -252,6 +252,7 @@ flowchart LR
   ui -->|"cardinal run roadmap --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
+  ui -->|"notify-send or CARDINAL_UI_NOTIFY<br/>(a new wait)"| desktop["desktop notification"]
   ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
   ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
   ui -->|"list-panes, close-tab-by-id or SIGHUP,<br/>cardinal run worktree close (merged)"| ended["session, tab, worktree"]
@@ -269,6 +270,7 @@ flowchart LR
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source; the measures panel |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, renders `--print` into a buffer |
+| `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |
 | `keys.rs` | the action of each key, the selection in the queue or the worktrees it moves, the task a key runs on what is selected |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |

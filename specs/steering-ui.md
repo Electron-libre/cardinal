@@ -27,6 +27,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-20** (deterministic) withdrawn: moved to SUA-2.
 - **STU-22** (deterministic) withdrawn: moved to SUA-3.
 - **STU-26** (deterministic) withdrawn: moved to SUA-4.
+- **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) that the read before did not find waiting with the same mark (its session and its time), titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
@@ -44,6 +45,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-24** (deterministic) withdrawn: moved to SUA-8.
 - **STU-25** (deterministic) withdrawn: moved to SUA-9.
 - **STU-12** (deterministic) withdrawn: moved to SUA-10.
+- **STU-30** (deterministic) The notification of STU-29 must run the program named by the environment variable `CARDINAL_UI_NOTIFY`, else `notify-send` found on the `PATH`, with the title and the body as its two arguments, apart from the keys and the reads of STU-2; a program that cannot be run or exits with a code other than 0 leaves the screen as it was but for its status line, which shows `notify: ` and the cause (as STU-6 words it) the first time only.
 - **STU-18** (deterministic) The cache directory must be `<cache>/cardinal-ui/<project>-<hash>`, `<cache>` the value of `XDG_CACHE_HOME` when it is an absolute path, else `$HOME/.cache`, and `<hash>` the 64-bit FNV-1a hash of the path of `<main>` in 16 hexadecimal digits, so two projects of one name keep their own; a measure writes each file whole (a temporary file of that directory, named after its process so two measures at once never share one, renamed over it, `efficiency.json` last), removes the temporary files of the directory over an hour old when it starts, and the age of the last measure is the modification time of `efficiency.json`.
 - **STU-19** (deterministic) A step of a measure that cannot be run or exits with a code other than 0, or a report that prints no JSON object or one whose `version` is not `1`, must end the measure, leave the four files of the last measure unchanged (a measure renames its files into place only once every step succeeded), and leave the `Measures` panel showing the line of STU-6 naming the step (`session-metrics`, `delivered-quality`, `cardinal-report`) above the last measure, the panel counting as failed for STU-8.
 
@@ -64,6 +66,9 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
   done issues belong to a milestone, when the user runs `cardinal-ui` with no measure cached, then the `Measures`
   panel reads `measuring`, and once the measure ends it shows the two groups with their sessions and medians and the
   milestone with its issues and ratios; run again within the hour, it shows that measure at once without measuring.
+- **STU-H5** (happy; STU-29, STU-30) Given `cardinal-ui` running and a session in the worktree of branch `foo`, when
+  its turn ends, then within one read the desktop shows `foo waits` with the body `stop`, once, however many reads
+  follow while it waits.
 - (STU-1) Given an issue claimed by a session whose process ended, when `cardinal-ui --print` runs, then the queue shows its claim as ended.
 - (STU-1) Given a milestone with `- On hold: later`, when `cardinal-ui --print` runs, then its row says `on hold`.
 - (STU-6) Given a `cardinal` that exits 3 with `cannot run the tool` on stderr for `roadmap`, when `cardinal-ui --print` runs, then the milestones panel reads `roadmap: exit 3: cannot run the tool`, the queue and the worktrees are shown, and it exits 1.
@@ -115,12 +120,21 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
   cached groups, its `efficiency.json` is unchanged and it exits 1.
 - (STU-16) Given a last group of 4 sessions, then its line reads its `sessions` and `too few`, no median.
 - (STU-23) Given a linked worktree whose branch has no close on the trunk, then its row shows no `merged`.
+- (STU-29) Given a worktree already waiting when `cardinal-ui` starts, then no notification is sent for it.
+- (STU-29) Given a waiting session whose idle notification changes the reason of its mark, then no second
+  notification is sent.
+- (STU-29) Given a session that waited, worked again, then waits anew, then a second notification is sent.
+- (STU-29) Given a mark naming another session than the lock's, then no notification is sent.
+- (STU-30) Given a `CARDINAL_UI_NOTIFY` that exits 3 with `no bus` on stderr, when two waits are notified, then the
+  status line reads `notify: exit 3: no bus` after the first only.
 
 ## Non-goals
 
 - Entering a session, ending a session whose issue is not merged, reusing a free worktree for a new issue, or editing
   an issue or a milestone: later issues of the milestone "Steering UI".
 - Running as a zellij plugin, or starting a session in another terminal multiplexer.
+- Notifying without the screen running (`--print`, a hook), grouping several waits into one notification, a sound,
+  or a notification when a wait ends.
 - Telling a question from a validation stop: SWT marks every end of a turn.
 - The other tables of `cardinal-report` (rules, skills, fixed context, verdicts), its reports by setup and the
   verdict of a trend: `skill:evaluate-harness` reads them; the panel never turns a number into a pass or a fail.

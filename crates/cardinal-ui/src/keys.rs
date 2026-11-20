@@ -316,6 +316,7 @@ pub(crate) mod tests {
                 .iter()
                 .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
                 .collect(),
+            waits: Some(Vec::new()),
         }
     }
 

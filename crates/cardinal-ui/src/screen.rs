@@ -2,7 +2,7 @@
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `E`
 //! ends it on every merged worktree (SUA-13); `m` takes the measures again (STU-17); `v` starts the release session
-//! (SUA-4).
+//! (SUA-4); a worktree that starts to wait for the user notifies the desktop (STU-29).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -15,6 +15,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::keys::{action, ended, job, quits, task, Action, Ended, Focus, Selection, Task};
+use crate::notify::{self, Notifier, Wait};
 use crate::panels::Panel;
 
 /// How often the screen reads the project again (STU-2).
@@ -31,11 +32,12 @@ pub(crate) const HELP: &str =
     "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  m measure";
 
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
-/// the order of the lines of their panels.
+/// the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
 pub struct View {
     pub panels: [Panel; 4],
     pub stems: Vec<String>,
     pub worktrees: Vec<(String, Option<String>)>,
+    pub waits: Option<Vec<Wait>>,
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -163,10 +165,35 @@ fn offset(selected: usize, rows: u16) -> u16 {
     u16::try_from(first).unwrap_or(u16::MAX)
 }
 
+/// Takes the read `reads` finished, if any, into `view`: the selection follows it (STU-14) and its new waits are
+/// notified (STU-29). Whether one was taken; an error when the thread of the reads died (a panic), as no read would
+/// ever come again.
+fn received(
+    reads: &mpsc::Receiver<View>,
+    view: &mut Option<View>,
+    selected: &mut Selection,
+    notifier: &mut Notifier,
+) -> std::io::Result<bool> {
+    match reads.try_recv() {
+        Ok(read) => {
+            if let Some(before) = view.as_ref() {
+                selected.reread(before, &read);
+            }
+            notifier.read(read.waits.as_deref());
+            *view = Some(read);
+            Ok(true)
+        }
+        Err(mpsc::TryRecvError::Empty) => Ok(false),
+        Err(mpsc::TryRecvError::Disconnected) => {
+            Err(std::io::Error::other("the reading of the project failed"))
+        }
+    }
+}
+
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUA-3, SUA-4, SUA-13), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
-/// which runs apart (STU-17). Gives the result of a task the user quit during, to print once the terminal is given
+/// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
@@ -193,25 +220,18 @@ pub fn run(
             worktree: 0,
         };
         let mut status = String::new();
+        let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
         let mut quitting = false;
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
                 return Err(std::io::Error::other("the reading of the project failed"));
             }
-            match read_panels.try_recv() {
-                Ok(read) => {
-                    if let Some(before) = &view {
-                        selected.reread(before, &read);
-                    }
-                    view = Some(read);
-                    schedule.ended(Instant::now());
-                }
-                Err(mpsc::TryRecvError::Empty) => {}
-                // the thread of the reads died (a panic): no read would ever come again
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    return Err(std::io::Error::other("the reading of the project failed"));
-                }
+            if received(&read_panels, &mut view, &mut selected, &mut notifier)? {
+                schedule.ended(Instant::now());
+            }
+            if let Some(line) = notifier.failure() {
+                status = line;
             }
             if let Ok(result) = task_result.try_recv() {
                 match ended(result, quitting) {

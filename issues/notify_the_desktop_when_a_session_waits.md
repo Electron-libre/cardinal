@@ -38,3 +38,43 @@ A steering UI to watch
 
 # Hints
 * Tests run a fake command named by the environment variable, as `CARDINAL_UI_ZELLIJ` does.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+When a read of the `cardinal-ui` screen finds a worktree waiting (STU-13) with a mark (session, time) the read before
+did not show, run `CARDINAL_UI_NOTIFY` else `notify-send` with `<branch> waits` and the reason; nothing on the first
+read; a failing command shown once on the status line. Out of scope: `--print`, the hooks, grouping, sounds.
+
+## Plan
+1. [x] Notify the desktop of a new wait: a module `notify.rs` (the new waits between two reads, the run of the
+   command on a thread, its failure kept for the status line), the waits carried by the `View` of `main.rs`, the loop
+   of `screen.rs` calling it after each read; verified by internal tests of the comparison and of a fake command
+   (the screen needs a real terminal); makes true STU-29, STU-30. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Identity of a wait: the pair (session, `since`) of its mark, so a reason changed by the idle notification sends
+  nothing, and a new wait of the same session after it worked sends again.
+- First read: no notification at all (not one grouped one).
+- Command: `CARDINAL_UI_NOTIFY` only, no key of a theme file (the UI has none).
+- Base commit: 5fd15b58e5c0699b3507a3eff2467aa1ee25c1c2
+- Answers at validation: `ok` (1 a, 2 a, 3 a).
+
+## Summary of deliverable 1
+done: `notify.rs` notifies each wait new since the last read (`CARDINAL_UI_NOTIFY` else `notify-send`), first failure on the status line; `run` of `screen.rs` split (`received`) for the line limit of clippy.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass, `steering-ui.md` back to `accepted` |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md` |
+| code review | low, clean |
+
+red: STU-29, STU-30, STU-H5: `assertion left == right failed, left: [], right: ["foo waits|stop"]` and `left: 0, right: 2` (a notifier that sent nothing)
+Code review: no findings
+not verified: a real `notify-send` on the desktop (the tests run a fake program).
+decisions needed: none.

@@ -1,7 +1,8 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
-//! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `m`
-//! takes the measures again (STU-17); `v` starts the release session (SUA-4).
+//! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `E`
+//! ends it on every merged worktree (SUA-13); `m` takes the measures again (STU-17); `v` starts the release session
+//! (SUA-4).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -26,7 +27,7 @@ const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
 const HELP: &str =
-    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  v release  m measure";
+    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  m measure";
 
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
 /// the order of the lines of their panels.
@@ -181,6 +182,7 @@ pub enum Action {
     Start,
     Merge,
     End,
+    EndMerged,
     Release,
     Measure,
     Nothing,
@@ -192,6 +194,7 @@ pub enum Task {
     Start,
     Merge,
     End,
+    EndMerged,
     Release,
 }
 
@@ -201,6 +204,7 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
         Action::Start => Some((Task::Start, format!("starting {stem}…"))),
         Action::Merge => Some((Task::Merge, format!("merging {stem}…"))),
         Action::End => Some((Task::End, format!("ending {stem}…"))),
+        Action::EndMerged => Some((Task::EndMerged, "ending the merged worktrees…".to_string())),
         Action::Release => Some((Task::Release, "starting the release…".to_string())),
         _ => None,
     }
@@ -209,13 +213,14 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
 /// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUA-3). The release covers every
-/// milestone awaiting it: it needs no selection nor read (SUA-4).
+/// milestone awaiting it, the end of the merged worktrees every one of them: they need no selection nor read (SUA-4,
+/// SUA-13).
 fn job(
     action: &Action,
     sel: Selection,
     v: Option<&View>,
 ) -> Result<Option<(Task, String, String)>, String> {
-    if *action == Action::Release {
+    if matches!(action, Action::Release | Action::EndMerged) {
         return Ok(task(action, "").map(|(t, shown)| (t, shown, String::new())));
     }
     let Some(v) = v else { return Ok(None) };
@@ -252,6 +257,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('s') => Action::Start,
         KeyCode::Char('f') => Action::Merge,
         KeyCode::Char('e') => Action::End,
+        KeyCode::Char('E') => Action::EndMerged,
         KeyCode::Char('v') => Action::Release,
         KeyCode::Char('m') => Action::Measure,
         _ => Action::Nothing,
@@ -342,8 +348,8 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 }
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
-/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, or
-/// of `e` on the selected worktree (SUA-1, SUA-2, SUA-3), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
+/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
+/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUA-3, SUA-4, SUA-13), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
 /// which runs apart (STU-17). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
@@ -428,18 +434,16 @@ pub fn run(
                             measure();
                             schedule.asked = true;
                         }
-                        Action::Start | Action::Merge | Action::End | Action::Release => {
-                            match job(&key, selected, view.as_ref()) {
-                                Ok(Some((job, shown, stem))) if !busy => {
-                                    busy = true;
-                                    status = shown;
-                                    let send = done.clone();
-                                    std::thread::spawn(move || send.send(run_task(job, &stem)));
-                                }
-                                Err(why) if !busy => status = why,
-                                _ => {}
+                        k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
+                            Ok(Some((job, shown, stem))) if !busy => {
+                                busy = true;
+                                status = shown;
+                                let send = done.clone();
+                                std::thread::spawn(move || send.send(run_task(job, &stem)));
                             }
-                        }
+                            Err(why) if !busy => status = why,
+                            _ => {}
+                        },
                         a => {
                             if let Some(v) = &view {
                                 selected.apply(&a, v);
@@ -644,6 +648,27 @@ mod tests {
                 .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
                 .collect(),
         }
+    }
+
+    // spec: SUA-13 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn shift_e_ends_every_merged_worktree_whatever_the_selection() {
+        let shift_e = KeyEvent::new(KeyCode::Char('E'), KeyModifiers::SHIFT);
+        assert_eq!(action(&shift_e), Action::EndMerged);
+        assert!(HELP.contains("E end merged"), "{HELP}");
+        let ending = Ok(Some((
+            Task::EndMerged,
+            "ending the merged worktrees…".to_string(),
+            String::new(),
+        )));
+        let sel = Selection {
+            focus: Focus::Queue,
+            issue: 0,
+            worktree: 0,
+        };
+        assert_eq!(job(&Action::EndMerged, sel, None), ending);
+        let v = view(&["bar"], &[("/main", Some("trunk"))]);
+        assert_eq!(job(&Action::EndMerged, sel, Some(&v)), ending);
     }
 
     // spec: SUA-3 (internal: the keys and the selection of a screen that needs a real terminal)

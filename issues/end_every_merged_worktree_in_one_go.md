@@ -37,3 +37,53 @@ A steering UI to watch
 
 # Hints
 * A worktree may serve several issues in turn (ADR 0023): end only the one whose branch is the merged issue.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+Measured (trunk reflog): the 5 worktrees were merged before an end existed to chain (14:16 and 15:30, by hand or by
+the first `f`), or at 16:04, 16:19 and 16:44 by a `cardinal-ui` not rebuilt after the end chain reached the trunk
+(16:04); every merge from 17:01 on, by a rebuilt UI, left no worktree. None would be refused today (all clean, no live
+session). So no fix of the chain: one action, the key `E` and `cardinal-ui --end-merged`, runs the end of SUA-8 on
+each `merged` linked worktree and reports one line each (SUA-13, SUA-14). Out of scope: ending on read (option 3).
+
+## Plan
+1. [x] End every merged worktree: `end::end_merged` (the end of SUA-8 on each linked worktree whose branch has its
+   close on the trunk, going on after a refusal), the flag `--end-merged`, the key `E` and its help; verified by
+   binary tests in `tests/end.rs` (two merged, one kept, none, detached main, a worktree now serving an open issue)
+   and a unit test of the key in `screen.rs`; makes true SUA-13, SUA-14. (autonomous)
+2. [ ] Split `crates/cardinal-ui/src/screen.rs` (812 lines, over 800): the keys, the selection and the tasks to a
+   module `keys.rs`, no change of behaviour; verified by the unchanged tests.
+3. [ ] Docs of the whole issue and fixes of its `high` review.
+
+## Decisions
+- Mode: autonomous
+- Base commit: d1ea05de54c9a136d66aad79895f70f361e6f881
+- Deliverable 2 added during deliverable 1: its `E` pushed `screen.rs` from 787 to 812 lines, the plan had not
+  foreseen it; the split is a pure move, a deliverable of its own (a move counts twice).
+- Trigger: the key `E` and `--end-merged` only, no end on read (user, question 1 a).
+
+## Deliverable 1: summary
+
+done: `E` and `cardinal-ui --end-merged` run the end of SUA-8 on each merged linked worktree, one line each.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui` green (6 new binary tests, 1 unit test) |
+| lint | `cardinal run project-check` green (clippy -D warnings) |
+| specs | SUA-13, SUA-14, SUA-H6 traced, spec `accepted` |
+| docs | `docs/usage.md`, `README.md`, `docs/architecture.md` |
+| code review | `/code-review low`: no findings |
+
+red: SUA-14, SUA-H6: `--end-merged` exited 2 with the usage line; SUA-13: `no variant EndMerged found for enum screen::Action`.
+
+not verified: `E` in a live zellij screen (the loop needs a real terminal); not run on this repository's 5 merged
+worktrees (it would remove them: the user's call).
+
+file size: `screen.rs` 812 lines, split in deliverable 2 (a pure move, kept out of this one).
+
+Code review: no findings
+
+decisions needed: none.

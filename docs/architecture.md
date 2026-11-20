@@ -272,7 +272,7 @@ flowchart LR
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
 | `release.rs` | starts a release session: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), nothing to release (no milestone listed, no release `prepared`), a project without `skill:release`, a `release` tab still running `claude /release`, then `zellij action new-tab` running `claude /release` in the main worktree |
-| `end.rs` | ends what a merged issue left: refuses a session at work, a dirty worktree, a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree |
+| `end.rs` | ends what a merged issue left: refuses a session at work, a dirty worktree, a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree; `E` and `--end-merged` run it on every merged worktree in turn |
 
 ## The cost of a turn
 

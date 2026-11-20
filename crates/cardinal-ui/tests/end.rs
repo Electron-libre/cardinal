@@ -182,8 +182,45 @@ impl Project {
 
     /// `cardinal-ui --end <stem>` run in `dir`, in a zellij session when `zellij`: exit code, stdout, stderr.
     fn end(&self, dir: &Path, stem: &str, zellij: bool) -> (Option<i32>, String, String) {
+        self.ui(dir, &["--end", stem], zellij)
+    }
+
+    /// `cardinal-ui --end-merged` run in `dir`, in a zellij session: exit code, stdout, stderr.
+    fn end_merged(&self, dir: &Path) -> (Option<i32>, String, String) {
+        self.ui(dir, &["--end-merged"], true)
+    }
+
+    /// The linked worktree `ws-<name>` on the branch `<name>`, holding the close of `<name>`, merged into `trunk` when
+    /// `merged`.
+    fn worktree(&self, name: &str, merged: bool) -> PathBuf {
+        let ws = self.path(&format!("ws-{name}"));
+        git(
+            &self.repo,
+            &[
+                "worktree",
+                "add",
+                "-q",
+                "-b",
+                name,
+                ws.to_str().unwrap(),
+                "trunk",
+            ],
+        );
+        std::fs::create_dir_all(ws.join("issues/done")).unwrap();
+        let close = format!("issues/done/{name}.md");
+        std::fs::write(ws.join(&close), "closed\n").unwrap();
+        git(&ws, &["add", &close]);
+        git(&ws, &["commit", "-qm", "close", "--no-verify"]);
+        if merged {
+            git(&self.repo, &["merge", "-q", "--ff-only", name]);
+        }
+        std::fs::canonicalize(ws).unwrap()
+    }
+
+    /// `cardinal-ui args` run in `dir`, in a zellij session when `zellij`: exit code, stdout, stderr.
+    fn ui(&self, dir: &Path, args: &[&str], zellij: bool) -> (Option<i32>, String, String) {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"));
-        cmd.args(["--end", stem])
+        cmd.args(args)
             .current_dir(dir)
             .env("CARDINAL_UI_CARDINAL", self.path("cardinal"))
             .env("CARDINAL_UI_ZELLIJ", self.path("zellij"));
@@ -204,10 +241,23 @@ impl Project {
         std::fs::read_to_string(&self.log).unwrap()
     }
 
+    /// The `worktree close` lines of the log.
+    fn closes(&self) -> String {
+        self.log()
+            .lines()
+            .filter(|l| l.starts_with("worktree close"))
+            .flat_map(|l| [l, "\n"])
+            .collect()
+    }
+
     fn closed(&self) -> String {
+        self.closed_at(&self.ws)
+    }
+
+    fn closed_at(&self, ws: &Path) -> String {
         format!(
             "worktree close {} in {}\n",
-            self.ws.display(),
+            ws.display(),
             self.repo.display()
         )
     }
@@ -426,4 +476,83 @@ fn a_pid_started_after_the_lock_is_another_process_and_gets_no_signal() {
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(alive(pid), "the process that took the number lives");
     assert_eq!(p.log(), p.closed());
+}
+
+// spec: SUA-H6, SUA-14
+#[test]
+fn every_merged_worktree_ends_and_an_open_issue_keeps_its_worktree() {
+    let p = project(true);
+    let bar = p.worktree("bar", true);
+    p.worktree("baz", false);
+    let (code, out, err) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(out, "ended foo\nended bar\n");
+    assert_eq!(p.closes(), format!("{}{}", p.closed(), p.closed_at(&bar)));
+}
+
+// spec: SUA-14
+#[test]
+fn a_refused_worktree_is_kept_with_its_reason_and_the_others_end() {
+    let p = project(true);
+    let bar = p.worktree("bar", true);
+    std::fs::write(p.ws.join("new"), "x").unwrap();
+    let (code, out, _) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(1));
+    assert_eq!(
+        out,
+        format!(
+            "kept foo: {} has uncommitted changes or untracked files\nended bar\n",
+            p.ws.display()
+        )
+    );
+    assert_eq!(p.closes(), p.closed_at(&bar));
+}
+
+// spec: SUA-14
+#[test]
+fn the_worktree_the_ui_runs_in_is_kept() {
+    let p = project(true);
+    let bar = p.worktree("bar", true);
+    let (code, out, _) = p.end_merged(&p.ws.join("issues"));
+    assert_eq!(code, Some(1));
+    assert!(
+        out.starts_with(&format!(
+            "kept foo: cardinal-ui runs in {}: run it from another worktree\n",
+            p.ws.display()
+        )),
+        "{out}"
+    );
+    assert!(out.ends_with("ended bar\n"), "{out}");
+    assert_eq!(p.closes(), p.closed_at(&bar));
+}
+
+// spec: SUA-14
+#[test]
+fn no_merged_worktree_ends_nothing() {
+    let p = project(false);
+    let (code, out, err) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(out, "no merged worktree\n");
+    assert_eq!(p.log(), "");
+}
+
+// spec: SUA-14
+#[test]
+fn a_worktree_now_serving_an_open_issue_is_left_as_it_is() {
+    let p = project(true);
+    git(&p.ws, &["checkout", "-q", "-b", "bar"]);
+    let (code, out, _) = p.end_merged(&p.repo);
+    assert_eq!((code, out.as_str()), (Some(0), "no merged worktree\n"));
+    assert_eq!(p.log(), "");
+}
+
+// spec: SUA-14
+#[test]
+fn a_detached_main_worktree_ends_nothing() {
+    let p = project(true);
+    git(&p.repo, &["checkout", "-q", "--detach"]);
+    let (code, out, err) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(1), "{out}");
+    assert!(err.contains("main worktree not on a branch"), "{err}");
+    assert_eq!(p.log(), "");
 }

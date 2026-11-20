@@ -19,6 +19,7 @@ and end what a merged issue left, each refused with its reason when the project 
 - **SUA-1** (deterministic) In a zellij session, the key `s` on the issue selected in the queue (moved with the arrow keys, `j` and `k`), when its state is `ready` and nothing takes it, must open a worktree for it with `cardinal run worktree open <stem>` and start in it, in a new zellij tab named after its stem, an interactive `claude` whose first message hands `issues/<stem>.md` to `issue-workflow`; when its state is `ready` and it is taken only by a claim in the state `working` whose session ended (CLM-5), it resumes it: open no worktree and start that tab in the worktree of the claim, so the new session takes the claim back (CLM-2); on another issue it starts nothing and says why on the status line.
 - **SUA-2** (deterministic) The key `f` on the issue selected in the queue, when a claim in the state `merge pending` takes it (CLM-7), must fast-forward the trunk (the branch of the main worktree, the first one `git worktree list --porcelain` lists) to the branch of that claim with `git merge --ff-only refs/heads/<branch>` run in the main worktree, then run `cardinal check` there, and say on the status line `merged <stem> (<branch>) into <trunk>`; on another issue, or when SUA-7 refuses, it merges nothing and says why on the status line.
 - **SUA-3** (deterministic) The key `e` on the worktree selected in the worktrees panel (`Tab` moves the selection between the queue and the worktrees, the arrow keys, `j` and `k` within the panel, kept on the same path across reads and visible as STU-14 keeps an issue), when it is a linked worktree whose branch `<stem>` has its close on the trunk, must end its session, close the zellij tab the UI opened for it, and remove the worktree with its branch through `cardinal run worktree close`, and say on the status line `ended <stem>`; the merge of SUA-2 chains the same end on its issue, on the linked worktree of the branch of its claim, once its `cardinal check` passed, its status line `merged <stem> (<branch>) into <trunk>; ended <stem>`; on another worktree, or when SUA-8 refuses, it ends nothing and says why on the status line.
+- **SUA-13** (deterministic) The key `E`, whatever the selection, must run the end of SUA-3 on each linked worktree whose row reads `merged` (STU-23), in the order of the worktrees panel, going on after one it refuses or fails on, and say on the status line one part per such worktree, `ended <stem>` or `kept <stem>: <why>` (the line of SUA-8 or SUA-9), joined by `; `, or `no merged worktree`; like `s`, `f`, `e` and `v`, it starts nothing while another task runs, and `q`, `Esc` or `Ctrl+C` pressed during it quit once it has ended (SUA-6).
 - **SUA-4** (deterministic) In a zellij session, the key `v`, when a milestone awaits its release (STU-1) or a release prepared is not tagged yet (an interrupted release that `skill:release` resumes), must start in the main worktree, in a new zellij tab named `release`, an interactive `claude` whose first message is `/release`, so the version, its reread, its review and its tag stay with `skill:release`; when SUA-11 refuses, it starts nothing and says why on the status line.
 
 ### Contract
@@ -31,6 +32,7 @@ and end what a merged issue left, each refused with its reason when the project 
 - **SUA-10** (deterministic) The `zellij` it runs must be the program named by `CARDINAL_UI_ZELLIJ`, else `zellij` found on the `PATH`, the tab opened with `zellij action new-tab --cwd <worktree path> --name <stem> -- claude "/issue-workflow issues/<stem>.md"`; outside a zellij session, or when `list-tabs` fails, the queue shows no `tab` and no error.
 - **SUA-11** (deterministic) `cardinal-ui --release` must start the session of SUA-4 and exit 0, or print on stderr why it does not and exit 1, opening no tab when: outside a zellij session (`release needs zellij: run cardinal-ui in a zellij session`); the repository is bare (`no main worktree: the repository is bare`); the main worktree has no branch checked out (`main worktree not on a branch`); `git status --porcelain` lists anything there (`main worktree has uncommitted changes or untracked files`); its lock (STU-7) names a session whose process runs (`session <id> works in the main worktree`); a tab named `release` holds a terminal pane whose command is `claude /release` and has not `exited` (read from `list-panes`, one that fails counting as no such pane) (`a release tab is already open`); `cardinal run release --json`, run in the main worktree, lists no milestone and is not `prepared` (REL-15) (`no milestone awaits its release`), or cannot be read (the line of STU-6); the main worktree has no `.claude/skills/release/SKILL.md`, the project having turned the skill off (`the skill release is turned off: run the steps cardinal run release prints`), checked once `release --json` found a release to start; a step that fails (its command, its exit code and the first line of its stderr). The key `v` shows the same message on the status line.
 - **SUA-12** (deterministic) The tab of SUA-4 must be opened with `zellij action new-tab --cwd <main worktree path> --name release -- claude /release`, the `zellij` of SUA-10, run once every check of SUA-11 passed.
+- **SUA-14** (deterministic) `cardinal-ui --end-merged` must run the end of SUA-13 and print on stdout one line per linked worktree whose branch `<branch>` has `issues/done/<branch>.md` on the trunk, in the order `git worktree list` gives, `ended <branch>` or `kept <branch>: <why>`, or the single line `no merged worktree`, and exit 0 when it kept none, 1 when it kept one; it ends nothing, prints on stderr why and exits 1 when the repository is bare (`no main worktree: the repository is bare`), the main worktree has no branch checked out (`main worktree not on a branch`) or `git worktree list` fails (its command, its exit code and the first line of its stderr). A linked worktree that is detached, or whose branch has no close on the trunk, gets no line and is left as it is.
 
 ## Scenarios
 
@@ -51,6 +53,10 @@ and end what a merged issue left, each refused with its reason when the project 
 - **SUA-H5** (happy; SUA-4, SUA-11, SUA-12) Given the UI in a zellij session in a linked worktree, a milestone that
   reads `awaits release v0.3.0`, and a clean main worktree on `trunk` with no live session, when the user presses
   `v`, then a tab `release` runs `claude /release` in the main worktree, and the linked worktree is unchanged.
+- **SUA-H6** (happy; SUA-13, SUA-14, SUA-8, SUA-9) Given the issues `foo` and `bar` merged into the trunk by hand,
+  their worktrees still open with no live session, and a linked worktree on `baz` whose issue is still open, when the
+  user presses `E`, then the worktrees and the branches `foo` and `bar` are removed, the status line reads
+  `ended foo; ended bar`, and the worktree of `baz` is unchanged.
 - (SUA-5) Given no `ZELLIJ` variable, when `cardinal-ui --start foo` runs, then it prints `start needs zellij` on
   stderr, exits 1 and runs neither `cardinal run worktree open` nor `zellij`.
 - (SUA-5) Given an issue `foo` claimed by a live session, when `cardinal-ui --start foo` runs, then it exits 1 saying
@@ -136,9 +142,22 @@ and end what a merged issue left, each refused with its reason when the project 
 - (SUA-11) Given a `zellij new-tab` that fails, when `cardinal-ui --release` runs, then it exits 1 naming `zellij
   action new-tab`.
 - (SUA-6) Given a release start running, when the user presses `q`, then the screen quits once it has ended.
+- (SUA-14) Given `foo` merged with an untracked file in its worktree and `bar` merged and clean, when
+  `cardinal-ui --end-merged` runs, then it prints `kept foo: <path> has uncommitted changes or untracked files` and
+  `ended bar`, removes the worktree of `bar` only, and exits 1.
+- (SUA-14) Given `cardinal-ui --end-merged` run in the merged worktree of `foo`, when it runs, then it keeps `foo`
+  with `cardinal-ui runs in <path>: run it from another worktree` and ends the other merged worktrees.
+- (SUA-14) Given no linked worktree whose branch has its close on the trunk, when `cardinal-ui --end-merged` runs,
+  then it prints `no merged worktree`, runs no `worktree close` and exits 0.
+- (SUA-14) Given the main worktree detached, when `cardinal-ui --end-merged` runs, then it exits 1 with `main
+  worktree not on a branch` and ends nothing.
+- (SUA-14) Given a worktree that served the issue `foo`, merged, and now serves the open issue `bar` on the branch
+  `bar` (ADR 0023), when `cardinal-ui --end-merged` runs, then it leaves that worktree as it is.
+- (SUA-13) Given a merge running, when the user presses `E`, then it starts nothing.
 
 ## Non-goals
 
+- Ending a merged worktree on the read that first sees it merged, without a key: the user ends them with `E`.
 - Ending a session at work, removing a branch `worktree close` refuses (`--force`), or closing a tab or a pane the
   UI cannot tie to the issue by its name and its command: the user does it by hand.
 - Preparing or tagging a release in the UI itself (the session of SUA-4 runs `skill:release`, its stops included),

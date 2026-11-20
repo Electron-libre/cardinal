@@ -4,10 +4,10 @@
 //! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
 //! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`).
-//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]`: with no argument the
+//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
-//! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--release` starts the
-//! release session in the main worktree.
+//! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
+//! merged worktree; `--release` starts the release session in the main worktree.
 
 mod end;
 mod measures;
@@ -21,7 +21,7 @@ mod start;
 use std::path::Path;
 
 const USAGE: &str =
-    "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]";
+    "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]";
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
@@ -96,6 +96,36 @@ fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
         screen::Task::Merge => merge_then_end(stem),
         screen::Task::End => end::end(&source::root(Path::new(".")), stem),
         screen::Task::Release => release::start(&source::root(Path::new("."))),
+        screen::Task::EndMerged => end_merged_status(),
+    }
+}
+
+/// Ends every merged worktree of the project of the current directory: the status line of SUA-13, an error when it
+/// kept one.
+fn end_merged_status() -> Result<String, String> {
+    let (lines, all_ended) = end::end_merged(&source::root(Path::new(".")))?;
+    let line = end::merged_lines(&lines).join("; ");
+    if all_ended {
+        Ok(line)
+    } else {
+        Err(line)
+    }
+}
+
+/// Prints one line per merged worktree on stdout, exit code 0 when it ended them all, 1 when it kept one; or why it
+/// ends nothing on stderr, exit code 1 (SUA-14).
+fn end_merged() -> i32 {
+    match end::end_merged(&source::root(Path::new("."))) {
+        Ok((lines, all_ended)) => {
+            for line in end::merged_lines(&lines) {
+                println!("{line}");
+            }
+            i32::from(!all_ended)
+        }
+        Err(e) => {
+            eprintln!("cardinal-ui: {e}");
+            1
+        }
     }
 }
 
@@ -131,6 +161,7 @@ fn main() {
     let code = match args.as_slice() {
         [] => interactive(),
         [a] if a == "--print" => print(),
+        [a] if a == "--end-merged" => end_merged(),
         [a] if a == "--release" => report(release::start(&source::root(Path::new(".")))),
         [a, stem] if a == "--start" => report(start_in_project(stem)),
         [a, stem] if a == "--merge" => report(merge_in_project(stem)),

@@ -313,7 +313,7 @@ the install it needs (exit 1). It merges nothing (exit 1, saying why) when the i
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
-why nothing was; `s`, `f`, `e` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
+why nothing was; `s`, `f`, `e`, `E` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
 ended, printing the result of a merge, an end or a release start. The next
 read drops the claim (CLM-6).
 
@@ -331,6 +331,10 @@ way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 
 `issues/done/<stem>.md`, the worktree has uncommitted changes or untracked files, the UI runs inside it, or its
 session is at work (it runs and does not wait for the user). A step that fails stops the end and names what the steps
 before it did.
+`E`, whatever is selected, or `cardinal-ui --end-merged`, runs that end on every linked worktree marked `merged`
+(the trunk holds the close of its branch), one after the other, going on after one it refuses: it says `ended
+<branch>` or `kept <branch>: <why>` for each (on the status line, or one line each on stdout, exit 1 when it kept
+one), or `no merged worktree`. A worktree that now serves another, open issue is not `merged` and stays.
 Once a milestone awaits its release (`awaits release` in the milestones panel), `v`, or `cardinal-ui --release`,
 (or once a release committed but not tagged waits for its tag) starts the release from any worktree of the project: a zellij tab named `release` in the main worktree running
 `claude /release`, so `skill:release` keeps the version, its reread, its review and the tag, its stops included. One

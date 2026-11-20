@@ -191,6 +191,39 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     Ok(format!("ended {stem}"))
 }
 
+/// Ends what each merged issue left, on every linked worktree whose branch has its close on the trunk, going on
+/// after one it refuses or fails on: one line per such worktree, `ended <branch>` or `kept <branch>: <why>`, and
+/// whether it kept none; why it ends nothing when the main worktree cannot be read or is not on a branch (SUA-13,
+/// SUA-14).
+pub fn end_merged(root: &Path) -> Result<(Vec<String>, bool), String> {
+    let (_, trunk) = main_worktree(root)?;
+    trunk.ok_or("main worktree not on a branch")?;
+    let mut all_ended = true;
+    let lines = source::worktrees(root)?
+        .iter()
+        .skip(1)
+        .filter(|w| w.merged)
+        .filter_map(|w| w.branch.as_deref())
+        .map(|branch| match end_on(root, branch, branch) {
+            Ok(line) => line,
+            Err(why) => {
+                all_ended = false;
+                format!("kept {branch}: {why}")
+            }
+        })
+        .collect();
+    Ok((lines, all_ended))
+}
+
+/// The lines of `end_merged`, `no merged worktree` when it has none (SUA-14).
+pub fn merged_lines(lines: &[String]) -> Vec<String> {
+    if lines.is_empty() {
+        vec!["no merged worktree".to_string()]
+    } else {
+        lines.to_vec()
+    }
+}
+
 /// The result of the merge of SUA-2 followed, once its `cardinal check` passed, by the end of its issue (SUA-3).
 pub fn after_merge(
     merged: Result<(String, String), String>,

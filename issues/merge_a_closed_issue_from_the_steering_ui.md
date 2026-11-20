@@ -61,6 +61,11 @@ worktree and a diverged branch. Out of scope: the rebase, the push, closing the 
    `f merge` on the help line; the local merge of "Merge back" (`details.md`) names the key; verified by the unit
    tests of `screen.rs`; makes true STU-20, STU-15, STU-H5. ~150 lines. (autonomous)
 
+3. [x] Fixes of the `high` review of the issue: the close committed on the branch before a merge, `refs/heads/<branch>`,
+   the bare repository, the result of a merge printed after a deferred quit, the trace of STU-H5 and STU-3, a pid that
+   no process can hold; verified by `crates/cardinal-ui/tests/merge.rs` and the unit tests of `screen.rs`; makes true
+   STU-15, STU-20, STU-21. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 6f68dda0b00a1d43221f03b5a007934ce8f191df
@@ -102,5 +107,30 @@ red: STU-20: `Action::Merge` and `task` not found (compile error of the unit tes
 Code review: no findings
 
 not verified: the key in a real terminal (the screen needs one; its parts are unit-tested).
+
+decisions needed: none
+
+## Deliverable 3
+done: the 6 findings of the `high` review of the issue fixed; STU-15, STU-20 and STU-21 amended (spec `accepted`,
+every new refusal traced); `docs/usage.md`.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green, 11 tests in `crates/cardinal-ui/tests/merge.rs` |
+| lint | green |
+| specs | green |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: STU-21, STU-20, STU-H5: the merge of a branch without its close exited 0; a tag `foo` was merged instead of the
+branch; the queue listed `foo` after the merge (an assertion too broad, narrowed to the queue line). The bare
+repository test was written after its code.
+High review: 6 findings: merge before the close is committed (fixed: refused); a tag of the branch's name (fixed:
+`refs/heads/`); the result lost on a quit during a merge (fixed: printed on stderr); a misleading refusal on a bare
+repository (fixed); STU-H5 and STU-3 not proven by the test (fixed: a queue that drops `foo` once the trunk holds its
+close, the refs compared); a reused pid (fixed: a pid above `pid_max`).
+Code review: no findings
+
+not verified: the key `f` and the deferred quit in a real terminal.
 
 decisions needed: none

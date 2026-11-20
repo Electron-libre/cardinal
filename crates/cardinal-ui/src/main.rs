@@ -46,7 +46,12 @@ fn interactive() -> i32 {
         read(running, error)
     };
     match screen::run(read, run_task, || measurer.start()) {
-        Ok(()) => 0,
+        Ok(None) => 0,
+        // the result of a task the user quit during (STU-15)
+        Ok(Some(line)) => {
+            eprintln!("cardinal-ui: {line}");
+            0
+        }
         Err(e) => {
             eprintln!("cardinal-ui: {e}");
             1

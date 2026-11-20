@@ -21,6 +21,9 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
     let list = git(dir, &["worktree", "list", "--porcelain"])?;
     let record = list.split("\n\n").next().unwrap_or_default();
+    if record.lines().any(|l| l == "bare") {
+        return Err("no main worktree: the repository is bare".to_string());
+    }
     let path = record
         .lines()
         .find_map(|l| l.strip_prefix("worktree "))
@@ -52,6 +55,20 @@ fn pending_branch(root: &Path, stem: &str) -> Result<String, String> {
 /// check after the merge failed (STU-20, STU-21).
 pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     let branch = pending_branch(root, stem)?;
+    // the full name: a tag of the same name would win over the branch
+    let head = format!("refs/heads/{branch}");
+    let close = format!("{head}:issues/done/{stem}.md");
+    let (_, _, code) = source::run(
+        "git cat-file",
+        Path::new("git"),
+        &["cat-file", "-e", &close],
+        root,
+    )?;
+    if code != 0 {
+        return Err(format!(
+            "{branch} does not hold the close of {stem}: commit it first"
+        ));
+    }
     let (main, trunk) = main_worktree(root)?;
     let trunk = trunk.ok_or("main worktree not on a branch")?;
     if !git(&main, &["status", "--porcelain"])?.trim().is_empty() {
@@ -64,7 +81,7 @@ pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     let (_, err, code) = source::run(
         ancestor,
         Path::new("git"),
-        &["merge-base", "--is-ancestor", "HEAD", &branch],
+        &["merge-base", "--is-ancestor", "HEAD", &head],
         &main,
     )?;
     match code {
@@ -76,7 +93,7 @@ pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
         }
         _ => return Err(source::failure(ancestor, code, &err)),
     }
-    git(&main, &["merge", "--ff-only", "--quiet", &branch])?;
+    git(&main, &["merge", "--ff-only", "--quiet", &head])?;
     let merged = format!("merged {stem} ({branch}) into {trunk}");
     let check = "cardinal check";
     match source::run(check, &source::cardinal(), &["check"], &main) {

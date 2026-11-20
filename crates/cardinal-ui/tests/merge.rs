@@ -23,7 +23,9 @@ fn git(dir: &Path, args: &[&str]) -> String {
     String::from_utf8_lossy(&out.stdout).trim_end().to_string()
 }
 
-const QUEUE: &str = r#"{"version":1,"next":"bar","issues":[{"stem":"bar","priority":"high","milestone":null,"state":"ready","taken":null},{"stem":"foo","priority":"high","milestone":null,"state":"ready","taken":{"by":"claim","state":"merge pending","worktree":"WS","branch":"foo","session_alive":false}}]}"#;
+const BAR: &str =
+    r#"{"stem":"bar","priority":"high","milestone":null,"state":"ready","taken":null}"#;
+const FOO: &str = r#"{"stem":"foo","priority":"high","milestone":null,"state":"ready","taken":{"by":"claim","state":"merge pending","worktree":"WS","branch":"foo","session_alive":false}}"#;
 
 /// The main worktree `repo` on `trunk`, the linked worktree `ws` on `foo` one commit ahead, the fake `cardinal` and
 /// the log of its calls.
@@ -48,8 +50,9 @@ fn project() -> Project {
         &repo,
         &["worktree", "add", "-q", "-b", "foo", ws.to_str().unwrap()],
     );
-    std::fs::write(ws.join("done.md"), "closed\n").unwrap();
-    git(&ws, &["add", "done.md"]);
+    std::fs::create_dir_all(ws.join("issues/done")).unwrap();
+    std::fs::write(ws.join("issues/done/foo.md"), "closed\n").unwrap();
+    git(&ws, &["add", "issues/done/foo.md"]);
     git(&ws, &["commit", "-qm", "close foo", "--no-verify"]);
     let log = root.path().join("log");
     std::fs::write(&log, "").unwrap();
@@ -64,11 +67,12 @@ fn project() -> Project {
 }
 
 impl Project {
-    /// The fake `cardinal`: the queue of `QUEUE`; `check` logs its directory, then runs `check`.
+    /// The fake `cardinal`: a queue of `bar` and, while the trunk does not hold its close, `foo` `merge pending`, as
+    /// CLM-6 prunes it; `check` logs its directory, then runs `check`; `roadmap` lists no milestone.
     fn cardinal(&self, check: &str) -> PathBuf {
         let path = self.root.path().join("cardinal");
         let body = format!(
-            "#!/bin/sh\ncase \"$1 $2\" in\n  'run next-issue') printf '%s\\n' '{QUEUE}'; exit 0 ;;\n  'check ') echo \"check in $(pwd)\" >> '{log}'; {check} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\ncase \"$1 $2\" in\n  'run next-issue') if git cat-file -e trunk:issues/done/foo.md 2>/dev/null; then printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR}]}}'; else printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR},{FOO}]}}'; fi; exit 0 ;;\n  'run roadmap') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics'|'run delivered-quality') exit 3 ;;\n  'check ') echo \"check in $(pwd)\" >> '{log}'; {check} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             log = self.log.display()
         );
         std::fs::write(&path, body).unwrap();
@@ -90,6 +94,19 @@ impl Project {
             String::from_utf8_lossy(&out.stdout).into_owned(),
             String::from_utf8_lossy(&out.stderr).into_owned(),
         )
+    }
+
+    /// The screen of `cardinal-ui --print` run in the main worktree.
+    fn print(&self, cardinal: &Path) -> String {
+        let out = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
+            .arg("--print")
+            .current_dir(&self.repo)
+            .env("CARDINAL_UI_CARDINAL", cardinal)
+            .env("XDG_CACHE_HOME", self.root.path().join("cache"))
+            .env_remove("ZELLIJ")
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).into_owned()
     }
 
     fn trunk(&self) -> String {
@@ -119,13 +136,8 @@ impl Project {
     }
 }
 
-/// The pid of a process that ended.
-fn ended_pid() -> u32 {
-    let mut child = Command::new("true").spawn().unwrap();
-    let pid = child.id();
-    child.wait().unwrap();
-    pid
-}
+/// A pid no process can have: above the largest `pid_max` of Linux (2^22).
+const ENDED_PID: u32 = 99_999_999;
 
 // spec: STU-H5, STU-20, STU-21, STU-3
 #[test]
@@ -133,14 +145,57 @@ fn a_merge_pending_issue_fast_forwards_the_trunk_then_checks() {
     let p = project();
     let cardinal = p.cardinal("exit 0");
     let ws_head = git(&p.ws, &["rev-parse", "HEAD"]);
+    let refs = || git(&p.repo, &["for-each-ref", "--format=%(refname)", "refs/"]);
+    let before = refs();
     let (code, out, err) = p.merge(&cardinal, "foo");
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(out.contains("merged foo (foo) into trunk"), "{out}");
     assert_eq!(p.trunk(), p.foo(), "the trunk moved to the branch");
-    assert!(p.repo.join("done.md").is_file(), "the main worktree too");
+    assert!(
+        p.repo.join("issues/done/foo.md").is_file(),
+        "the main worktree too"
+    );
+    assert_eq!(refs(), before, "no ref of its own");
     assert_eq!(p.log(), format!("check in {}\n", p.repo.display()));
     assert_eq!(git(&p.ws, &["rev-parse", "HEAD"]), ws_head);
     assert_eq!(git(&p.repo, &["status", "--porcelain"]), "");
+    let shown = p.print(&cardinal);
+    assert!(
+        shown.contains("> bar") && !shown.contains("foo  high"),
+        "{shown}"
+    );
+}
+
+// spec: STU-21
+#[test]
+fn a_branch_without_its_close_committed_is_refused() {
+    let p = project();
+    let cardinal = p.cardinal("exit 0");
+    git(&p.ws, &["reset", "-q", "--soft", "HEAD~1"]);
+    let before = p.trunk();
+    let (code, _, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains("foo does not hold the close of foo: commit it first"),
+        "{err}"
+    );
+    assert_eq!(p.trunk(), before);
+    assert_eq!(p.log(), "");
+}
+
+// spec: STU-20
+#[test]
+fn a_tag_named_as_the_branch_is_not_merged() {
+    let p = project();
+    let cardinal = p.cardinal("exit 0");
+    git(&p.ws, &["tag", "foo", "HEAD"]);
+    git(
+        &p.ws,
+        &["commit", "-qm", "more", "--allow-empty", "--no-verify"],
+    );
+    let (code, out, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(p.trunk(), git(&p.repo, &["rev-parse", "refs/heads/foo"]));
 }
 
 // spec: STU-21
@@ -207,7 +262,7 @@ fn a_live_session_in_the_main_worktree_is_refused_an_ended_one_is_not() {
         "{err}"
     );
     assert_eq!(p.trunk(), before);
-    p.lock(ended_pid());
+    p.lock(ENDED_PID);
     let (code, out, err) = p.merge(&cardinal, "foo");
     assert_eq!(code, Some(0), "{out}{err}");
     assert_eq!(p.trunk(), p.foo());
@@ -262,4 +317,40 @@ fn merge_without_a_stem_is_refused() {
         .output()
         .unwrap();
     assert_eq!(out.status.code(), Some(2));
+}
+
+// spec: STU-21
+#[test]
+fn a_bare_repository_has_no_main_worktree_to_merge_in() {
+    let p = project();
+    let cardinal = p.cardinal("exit 0");
+    let bare = p.root.path().join("bare.git");
+    let w = p.root.path().join("w");
+    git(
+        p.root.path(),
+        &[
+            "clone",
+            "-q",
+            "--bare",
+            p.repo.to_str().unwrap(),
+            bare.to_str().unwrap(),
+        ],
+    );
+    git(
+        &bare,
+        &["worktree", "add", "-q", w.to_str().unwrap(), "trunk"],
+    );
+    let out = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
+        .args(["--merge", "foo"])
+        .current_dir(&w)
+        .env("CARDINAL_UI_CARDINAL", cardinal)
+        .output()
+        .unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(1), "{err}");
+    assert!(
+        err.contains("no main worktree: the repository is bare"),
+        "{err}"
+    );
+    assert_eq!(p.log(), "");
 }

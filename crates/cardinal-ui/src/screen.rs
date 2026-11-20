@@ -222,6 +222,25 @@ fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool) {
     }
 }
 
+/// What the end of a task gives (STU-15).
+#[derive(Debug, PartialEq)]
+enum Ended {
+    /// The line the status line shows.
+    Show(String),
+    /// The user quit during the task: the screen quits, and this line is printed once the terminal is given back.
+    Quit(String),
+}
+
+/// The end of a task with `result`, the user having quit during it or not (STU-15).
+fn ended(result: Result<String, String>, quitting: bool) -> Ended {
+    let line = result.unwrap_or_else(|e| e);
+    if quitting {
+        Ended::Quit(line)
+    } else {
+        Ended::Show(line)
+    }
+}
+
 /// The selection after `action` in a queue of `len` issues, kept in it (STU-9).
 fn select(selected: usize, len: usize, action: &Action) -> usize {
     let moved = match action {
@@ -235,13 +254,13 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue
 /// (STU-9, STU-20), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
-/// which runs apart (STU-17).
-/// The terminal is given back as it was, also on a panic (Ratatui's hook).
+/// which runs apart (STU-17). Gives the result of a task the user quit during, to print once the terminal is given
+/// back (STU-15). The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
     measure: impl Fn(),
-) -> std::io::Result<()> {
+) -> std::io::Result<Option<String>> {
     let (ask, asked) = mpsc::channel::<()>();
     let (send, read_panels) = mpsc::channel();
     std::thread::spawn(move || {
@@ -278,10 +297,10 @@ pub fn run(
                 }
             }
             if let Ok(result) = task_result.try_recv() {
-                if quitting {
-                    return Ok(());
+                match ended(result, quitting) {
+                    Ended::Quit(line) => return Ok(Some(line)),
+                    Ended::Show(line) => status = line,
                 }
-                status = result.unwrap_or_else(|e| e);
                 busy = false;
                 schedule.asked = true;
             }
@@ -299,7 +318,7 @@ pub fn run(
                     let key = action(&key);
                     let (now, later) = quits(&key, busy, quitting);
                     if now {
-                        return Ok(());
+                        return Ok(None);
                     }
                     if later && !quitting {
                         status = "quitting once the task ends…".to_string();
@@ -464,6 +483,15 @@ mod tests {
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
         assert_eq!(quits(&Action::Refresh, true, true), (false, true));
         assert_eq!(quits(&Action::Down, false, false), (false, false));
+        assert_eq!(
+            ended(Ok("merged".into()), false),
+            Ended::Show("merged".into())
+        );
+        assert_eq!(
+            ended(Err("merged; cardinal check: exit 1".into()), true),
+            Ended::Quit("merged; cardinal check: exit 1".into()),
+            "printed once the terminal is given back"
+        );
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

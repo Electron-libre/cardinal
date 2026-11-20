@@ -52,6 +52,8 @@ run several commands nor open each worktree. It changes the project only through
 
 ## Scenarios
 
+The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/steering-ui-actions.md`.
+
 - **STU-H1** (happy; STU-1, STU-4, STU-7) Given a project with a milestone of two issues, one of them claimed by a
   live session in a second worktree, when the user runs `cardinal-ui --print`, then they read the milestone with
   `2/2 open`, the queue with the free issue marked next and the other one taken in that worktree, and the two
@@ -112,8 +114,7 @@ run several commands nor open each worktree. It changes the project only through
   `cardinal-ui --print` measures, then the `Measures` panel reads `session-metrics: exit 3: cannot read` above the
   cached groups, its `efficiency.json` is unchanged and it exits 1.
 - (STU-16) Given a last group of 4 sessions, then its line reads its `sessions` and `too few`, no median.
-- (STU-23) Given a linked worktree whose branch has no close on the trunk, then its row shows no `merged`, and `e` on
-  it ends nothing and says why.
+- (STU-23) Given a linked worktree whose branch has no close on the trunk, then its row shows no `merged`.
 
 ## Non-goals
 
@@ -127,4 +128,4 @@ run several commands nor open each worktree. It changes the project only through
 - Following the changes of the files as they happen: the interval of STU-2 bounds how stale the screen is.
 - Pruning what `next-issue` prunes on its own (CLM-6): `cardinal-ui` runs the tool, which may delete the claims of
   issues the trunk closed, as it does for the agent.
-- The layout, the colours and the keys beyond those of STU-2: they may change without a requirement.
+- The layout, the colours and the keys beyond those of STU-2, STU-17 and SUA: they may change without a requirement.

@@ -48,6 +48,10 @@ Move the requirements of the steering UI that change the project (start, merge, 
    `docs/architecture.md` re-cited, both specs `accepted`; verified by `cardinal run check-specs` (no warning on
    either spec but the `fast` of fast-forward, a false positive) and `cardinal run project-check`; makes true every
    SUA requirement (traced, no new test). (autonomous)
+2. [x] Fixes of the `high` review: a line under the scenarios of STU saying where the moved happy paths went, the
+   `e` half of the STU-23 scenario moved to SUA (SUA-8), the non-goal on keys naming STU-17 and SUA, the module doc
+   of `main.rs` and the paragraph of `docs/architecture.md` rewrapped at 120; verified by `check-specs` and
+   `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -65,6 +69,17 @@ Move the requirements of the steering UI that change the project (start, merge, 
 - checks: `cardinal run project-check` passes; `check-specs` warns of neither spec (steering-ui.md 16 KB,
   steering-ui-actions.md 20 KB); `deliverable-size` within.
 - red: none (no new test: the existing tests re-cite the moved ids).
+- Code review: no findings
+- not verified: nothing.
+- decisions needed: none.
+
+## Summary of deliverable 2
+- done: the three fixes of the `high` review listed in the plan.
+- not fixed: SUA-10 keeps the clause on the `tab` mark outside zellij (decision 1 a of the validation, the issue lists
+  STU-12 with the actions); the STU non-goal `ending a session whose issue is not merged` stays in its line of later
+  work of the milestone "Steering UI", which names the issues to come, not an action of SUA.
+- checks: `cardinal run project-check` passes; `check-specs` warns of neither spec.
+- red: none (no test: wording of the specs and docs).
 - Code review: no findings
 - not verified: nothing.
 - decisions needed: none.

@@ -95,6 +95,8 @@ and end what a merged issue left, each refused with its reason when the project 
   worktree and ends nothing.
 - (SUA-8) Given no linked worktree on the branch `foo` (the main worktree is on it, or none is), when
   `cardinal-ui --end foo` runs, then it exits 1 with `foo: no linked worktree on branch foo`.
+- (SUA-8) Given a linked worktree whose branch has no close on the trunk, when the user presses `e` on it, then it
+  ends nothing and says why on the status line.
 - (SUA-9) Given the tab `foo` holding the session's pane and a shell the user opened, when the end runs, then only
   the session's pane is closed and the tab stays.
 - (SUA-9) Given a waiting session started by hand, with no tab of the UI, when the end runs, then its process gets

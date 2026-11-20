@@ -1,9 +1,9 @@
 //! `cardinal-ui`: the milestones, the queue of issues, the worktrees and the measures of the project of the current
-//! directory, in one terminal screen (`specs/steering-ui.md`, its actions in `specs/steering-ui-actions.md`, ADR
-//! 0030). It reads the project through `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
-//! changes the project only to start an issue session in a zellij tab (`start.rs`), to start the release session of
-//! the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its branch (`merge.rs`), or
-//! to end what a merged issue left (`end.rs`).
+//! directory, in one terminal screen (`specs/steering-ui.md`, its actions in `specs/steering-ui-actions.md`, ADR 0030).
+//! It reads the project through `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the
+//! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
+//! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
+//! branch (`merge.rs`), or to end what a merged issue left (`end.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --release]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--release` starts the

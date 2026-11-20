@@ -30,7 +30,7 @@ Several issues may share a worktree, one after the other; the worktree outlives 
 
 - **Claim**: `issue-claim` writes the ref `refs/cardinal/claims/<stem>` for the session (`CLAUDE_CODE_SESSION_ID`);
   `cardinal run next-issue` then skips the issue in every worktree. It takes back a claim of the same session, or of the same
-  worktree whose session ended. A new claim needs the worktree clean outside `issues/`. `cardinal run issue-claim
+  worktree whose session ended; `next-issue` prints the command that resumes it there. A new claim needs the worktree clean outside `issues/`. `cardinal run issue-claim
   --release <stem>` deletes a `working` claim whose process is gone, only when the user gives the issue up.
 - **Lock**: the `workspace-lock` hooks keep one live session per worktree; a second one has its edits and commands
   refused. A crashed session's lock is freed when its process is gone, and the lock of a session with no work in

@@ -62,7 +62,7 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 
 ## Plan
 1. [x] `issue-claim --release <stem>`: deletes a `working` claim whose process ended (CAS), refuses a live, absent or `merge pending` one; verified by `tests/issue_claim.rs`; makes true CLM-10. (autonomous)
-2. [ ] `next-issue` resume hint: the taken line of an ended claim says `resume: …` or `worktree gone`, then `give up: …`; verified by `tests/issue_claim.rs`; makes true CLM-5, CLM-H2.
+2. [x] `next-issue` resume hint: the taken line of an ended claim says `resume: …` or `worktree gone`, then `give up: …`; verified by `tests/issue_claim.rs`; makes true CLM-5, CLM-H2. (autonomous)
 3. [ ] `cardinal-ui` resume: `s` / `--start` on a ready issue whose claim's session ended opens the tab in the claim's worktree without `worktree open`, refuses when that worktree is gone; verified by `crates/cardinal-ui/tests/start.rs`; makes true STU-9, STU-11.
 
 ## Decisions
@@ -86,5 +86,21 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 
 - red: CLM-10: `assertion left == right failed: no claim: usage: issue-claim issues/<stem>.md` (exit 2)
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2: summary
+- done: the taken line of a `working` claim whose session ended says `resume: claude "/issue-workflow issues/<stem>.md" in <worktree>`, or `worktree gone`, then `give up: cardinal run issue-claim --release <stem>`.
+
+| check | result |
+|---|---|
+| tests | `issue_claim` 14, `next_issue` 19, `next_issue_json` 9 passed |
+| lint | clean (project-check) |
+| specs | CLM-5, CLM-H2 traced |
+| docs | `docs/architecture.md`, `issue-workflow/details.md`, `next_issue.rs` module doc |
+| code review | see below |
+
+- red: CLM-5, CLM-H2: `Taken: a (claimed in <ws>, session ended)` printed with no `resume:` nor `give up:`
+- Code review: 1 findings: the doc comment of `next` was attached to `way_out` (nit), fixed.
 - not verified: none
 - decisions needed: none

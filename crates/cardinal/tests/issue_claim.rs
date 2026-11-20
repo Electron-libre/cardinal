@@ -240,15 +240,47 @@ fn next_issue_skips_a_working_claim_and_says_when_its_session_ended() {
         out.contains(&format!("Taken: a (claimed in {ws})\n")),
         "{out}"
     );
+    assert!(
+        !out.contains("resume:") && !out.contains("give up:"),
+        "{out}"
+    );
     claim(&r.ws, "s1", &dead(), "a");
     let out = next(&r.main);
     assert!(
-        out.contains(&format!("Taken: a (claimed in {ws}, session ended)\n")),
+        out.contains(&format!("Taken: a (claimed in {ws}, session ended; resume: claude \"/issue-workflow issues/a.md\" in {ws}; give up: cardinal run issue-claim --release a)\n")),
+        "{out}"
+    );
+    git(&r.main, &["worktree", "remove", "--force", &ws]);
+    let out = next(&r.main);
+    assert!(
+        out.contains(&format!("Taken: a (claimed in {ws}, session ended, worktree gone; give up: cardinal run issue-claim --release a)\n")),
         "{out}"
     );
     claim(&r.main, "s2", &live(), "b");
-    let out = next(&r.ws);
+    let out = next(&r.main);
     assert!(out.contains("Every open issue is taken."), "{out}");
+}
+
+// spec: CLM-H2
+#[test]
+fn a_claim_whose_session_ended_says_how_to_resume_it_and_is_taken_back_there() {
+    let r = repo();
+    claim(&r.ws, "s1", &live(), "a");
+    claim(&r.ws, "s1", &dead(), "a");
+    let ws = top(&r.ws);
+    let out = next(&r.main);
+    assert!(
+        out.contains(&format!(
+            "resume: claude \"/issue-workflow issues/a.md\" in {ws}"
+        )),
+        "{out}"
+    );
+    let (code, out) = claim(&r.ws, "s2", &live(), "a");
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        claim_text(&r.main, "a").contains("session s2\n"),
+        "taken back"
+    );
 }
 
 // spec: CLM-H1

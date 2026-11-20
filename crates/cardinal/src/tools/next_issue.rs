@@ -7,7 +7,8 @@
 //! a branch holds work that is not on the branch of the main worktree (patch-equivalent commits and a squash of any
 //! number of commits count as on it: merging the branch would change no file). A branch with neither (left over after a merge, empty) is reported `Stale:` and takes nothing. The mark
 //! comes from git alone, so every worktree sees it.
-//! An issue is also taken by its claim (`issue_claim.rs`, ADR 0022): `working`, listed with its worktree, or `merge
+//! An issue is also taken by its claim (`issue_claim.rs`, ADR 0022): `working`, listed with its worktree (and, once its
+//! session ended, how to resume or give it up), or `merge
 //! pending`, listed with its branch until the trunk holds the closed issue, when the claim is dropped.
 //! Usage: `cardinal run next-issue [--json]` (from the repo root, or pass the `issues` directory as argument);
 //! `--json` prints the queue as one JSON object for a program instead of the text (NXT-18, NXT-19).
@@ -614,6 +615,23 @@ impl Queue {
     }
 }
 
+/// What follows the worktree of a `working` claim on its taken line: nothing while its session runs, else
+/// `session ended` and how to resume it in its worktree, when that still exists, or to give it up (CLM-5).
+fn way_out(stem: &str, c: &Claim) -> String {
+    if c.alive() {
+        return String::new();
+    }
+    let give_up = format!("give up: cardinal run issue-claim --release {stem}");
+    if Path::new(&c.worktree).is_dir() {
+        format!(
+            ", session ended; resume: claude \"/issue-workflow issues/{stem}.md\" in {}; {give_up}",
+            c.worktree
+        )
+    } else {
+        format!(", session ended, worktree gone; {give_up}")
+    }
+}
+
 /// The issue `next-issue` offers first in `dir` (CLS-7: `close-issue` prints it after a close).
 pub(super) fn next(dir: &Path) -> String {
     let queue = Queue::read(dir);
@@ -672,8 +690,12 @@ pub(super) fn main(args: &[String]) -> u8 {
                 continue;
             }
             Some(c) => {
-                let ended = if c.alive() { "" } else { ", session ended" };
-                println!("Taken: {} (claimed in {}{ended})", e.stem, c.worktree);
+                println!(
+                    "Taken: {} (claimed in {}{})",
+                    e.stem,
+                    c.worktree,
+                    way_out(&e.stem, c)
+                );
                 continue;
             }
             None => {}

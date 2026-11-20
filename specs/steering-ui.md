@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -11,7 +11,7 @@ adrs: [0011, 0022, 0023, 0030, 0031]
 `cardinal-ui` shows the user, in one terminal screen kept up to date, where a project driven by Cardinal stands: its
 milestones, its queue of issues, and which worktree each session works in, so they need not run several commands and
 open each worktree to know it, with the trend of the measures of its sessions and of the issues it delivered, and starts an interactive Claude Code session on a ready issue in a zellij tab of its own. It
-changes the project only when the user starts a session.
+changes the project only when the user starts a session or merges into the trunk an issue closed on its branch.
 
 ## Requirements
 
@@ -19,12 +19,13 @@ changes the project only when the user starts a session.
 
 - **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels, above the measures of STU-16: the milestones not yet released (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
 - **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, one read at a time and apart from the keys, so a slow read never keeps a key from being answered, and quit on `q`, `Esc` or `Ctrl+C`, giving the terminal back as it found it.
-- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json`, and changes it only through the start of STU-9 and STU-11.
+- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json`, and changes it only through the start of STU-9 and STU-11 and the merge of STU-20 and STU-21.
 - **STU-9** (deterministic) In a zellij session, the key `s` on the issue selected in the queue (moved with the arrow keys, `j` and `k`), when its state is `ready` and nothing takes it, must open a worktree for it with `cardinal run worktree open <stem>` and start in it, in a new zellij tab named after its stem, an interactive `claude` whose first message hands `issues/<stem>.md` to `issue-workflow`; on another issue it starts nothing and says why on the status line.
 - **STU-10** (deterministic) The queue must show, after an issue, `tab` when a tab of the current zellij session is named after its stem.
 - **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time, its date `<YYYY-MM-DD>` before it when it is not today) when that session runs and the mark of SWT-3 of the worktree names it.
 - **STU-16** (deterministic) `cardinal-ui` must show a fourth panel, `Measures`, from the last measure of STU-17: a line `measured <HH:MM>` (its date before it when it is not today, as STU-13), then, for each group of the efficiency table of `cardinal-report --project <project> --last 4 --json` (REP-17, REP-18, REP-21), its `group`, `sessions` and the medians `input_tokens` with `cache_read_share`, `output_tokens`, `main_context_peak` with `peak_sessions`, and `validations`, or `too few` after its `sessions`; then, for each group of the quality table of `cardinal-report --by milestone --json` (REP-20), its milestone, `issues`, `fixes_after_per_issue`, `findings_per_review` with `counted_reviews`, and `input_tokens_per_issue` with `token_issues`, each sample size written next to the number it bears on; `<project>` is the last component of `<main>` (STU-17), as EVA-7 names a project.
 - **STU-17** (deterministic) A measure must run `cardinal run session-metrics` and `cardinal run delivered-quality <main> --summary`, `<main>` the repository its sessions resolve to (EVA-7: the directory that holds its git common directory when that is a `.git`, else the top level of the root), into the files `sessions.tsv` and `quality.tsv` of the cache directory, then the two `cardinal-report` of STU-16 with `--sessions` and `--quality` naming them, into `efficiency.json` and `milestones.json` beside them (each file written first under a temporary name, the reports reading the new `sessions.tsv` and `quality.tsv` under theirs); `cardinal-ui` starts one when it starts and the last measure is missing or more than one hour old, and on the key `m`, one at a time and apart from the keys and the reads of STU-2, the panel showing the last measure with `measuring` on its first line while one runs; `cardinal-ui --print` measures first when the last measure is missing or more than one hour old.
+- **STU-20** (deterministic) The key `f` on the issue selected in the queue, when a claim in the state `merge pending` takes it (CLM-7), must fast-forward the trunk (the branch of the main worktree, the first one `git worktree list --porcelain` lists) to the branch of that claim with `git merge --ff-only <branch>` run in the main worktree, then run `cardinal check` there, and say on the status line `merged <stem> (<branch>) into <trunk>`; on another issue, or when STU-21 refuses, it merges nothing and says why on the status line.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -36,13 +37,18 @@ changes the project only when the user starts a session.
 
 - **STU-11** (deterministic) `cardinal-ui --start <stem>` must start the session of STU-9 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1: outside a zellij session (no `ZELLIJ` variable: `start needs zellij: run cardinal-ui in a zellij session`), an issue that is not open, not `ready` or taken, or a step that fails (its command, its exit code and the first line of its stderr), running no step after a failed one; the key `s` shows the same message on the status line.
 - **STU-14** (deterministic) The selection of STU-9 must stay on the same issue when a read changes the order of the queue, move to the line it had when its issue left the queue, and stay visible however long the queue, so `s` never starts an issue the user did not see selected.
-- **STU-15** (deterministic) `q`, `Esc` or `Ctrl+C` pressed during a start must quit once the start has ended, so a start never stops between the worktree and the tab.
+- **STU-15** (deterministic) `q`, `Esc` or `Ctrl+C` pressed during a start or a merge must quit once it has ended, so a start never stops between the worktree and the tab nor a merge before its `cardinal check`; `s` and `f` start nothing while one runs.
+- **STU-21** (deterministic) `cardinal-ui --merge <stem>` must do the merge of STU-20 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1, running no `git merge` when: `<stem>` is not open or no claim in the state `merge pending` takes it (`<stem>: not merge pending`); the main worktree has no branch checked out (`main worktree not on a branch`); `git status --porcelain` lists anything there (`main worktree has uncommitted changes or untracked files`); its lock (STU-7) names a session whose process runs (`session <id> works in the main worktree`); the trunk is not an ancestor of `<branch>` (`<branch> diverged from <trunk>: rebase it in its worktree`); a git command it runs fails (its command, its exit code and the first line of its stderr). A `cardinal check` that fails after the merge keeps the merge, exits 1 and prints `merged <stem> (<branch>) into <trunk>; cardinal check: exit <n>: <first line of its stderr>`, the line that names the install it needs. The key `f` shows the same message on the status line.
 - **STU-12** (deterministic) The `zellij` it runs must be the program named by `CARDINAL_UI_ZELLIJ`, else `zellij` found on the `PATH`, the tab opened with `zellij action new-tab --cwd <worktree path> --name <stem> -- claude "/issue-workflow issues/<stem>.md"`; outside a zellij session, or when `list-tabs` fails, the queue shows no `tab` and no error.
 - **STU-18** (deterministic) The cache directory must be `<cache>/cardinal-ui/<project>-<hash>`, `<cache>` the value of `XDG_CACHE_HOME` when it is an absolute path, else `$HOME/.cache`, and `<hash>` the 64-bit FNV-1a hash of the path of `<main>` in 16 hexadecimal digits, so two projects of one name keep their own; a measure writes each file whole (a temporary file of that directory, named after its process so two measures at once never share one, renamed over it, `efficiency.json` last), removes the temporary files of the directory over an hour old when it starts, and the age of the last measure is the modification time of `efficiency.json`.
 - **STU-19** (deterministic) A step of a measure that cannot be run or exits with a code other than 0, or a report that prints no JSON object or one whose `version` is not `1`, must end the measure, leave the four files of the last measure unchanged (a measure renames its files into place only once every step succeeded), and leave the `Measures` panel showing the line of STU-6 naming the step (`session-metrics`, `delivered-quality`, `cardinal-report`) above the last measure, the panel counting as failed for STU-8.
 
 ## Scenarios
 
+- **STU-H5** (happy; STU-20, STU-21) Given an issue `foo` closed on branch `foo` of a linked worktree, its claim
+  `merge pending`, and a clean main worktree on `trunk` with no live session, when the user selects `foo` and presses
+  `f`, then `trunk` points at the commit of `foo`, `cardinal check` ran in the main worktree, the status line reads
+  `merged foo (foo) into trunk`, and the next read no longer lists `foo` (CLM-6).
 - **STU-H1** (happy; STU-1, STU-4, STU-7) Given a project with a milestone of two issues, one of them claimed by a
   live session in a second worktree, when the user runs `cardinal-ui --print`, then they read the milestone with
   `2/2 open`, the queue with the free issue marked next and the other one taken in that worktree, and the two
@@ -102,6 +108,22 @@ changes the project only when the user starts a session.
   `cardinal-ui --print` measures, then the `Measures` panel reads `session-metrics: exit 3: cannot read` above the
   cached groups, its `efficiency.json` is unchanged and it exits 1.
 - (STU-16) Given a last group of 4 sessions, then its line reads its `sessions` and `too few`, no median.
+- (STU-21) Given a ready issue `bar` nothing takes, when `cardinal-ui --merge bar` runs, then it exits 1 with `bar:
+  not merge pending` and the trunk is unchanged.
+- (STU-21) Given a tracked file modified, or an untracked file, in the main worktree, when `cardinal-ui --merge foo`
+  runs, then it exits 1 saying the main worktree has uncommitted changes or untracked files, and runs no merge.
+- (STU-21) Given the main worktree detached, when `cardinal-ui --merge foo` runs, then it exits 1 with `main worktree
+  not on a branch`.
+- (STU-21) Given a lock of the main worktree naming a session whose process runs, when `cardinal-ui --merge foo`
+  runs, then it exits 1 naming that session; given one whose process ended, it merges.
+- (STU-21) Given a commit on `trunk` that `foo` lacks, when `cardinal-ui --merge foo` runs, then it exits 1 with `foo
+  diverged from trunk: rebase it in its worktree` and the trunk is unchanged.
+- (STU-21) Given a `cardinal check` that exits 1 with `the installed cardinal cannot run the hook ...: install it
+  with ...`, when `cardinal-ui --merge foo` runs, then the trunk holds `foo`, and it exits 1 printing `merged foo
+  (foo) into trunk; cardinal check: exit 1:` and that line.
+- (STU-21) Given `cardinal-ui` run in a linked worktree, when it merges, then the trunk of the main worktree moves and
+  the linked worktree is unchanged.
+- (STU-15) Given a merge running, when the user presses `q`, then the screen quits once `cardinal check` has ended.
 
 ## Non-goals
 
@@ -113,6 +135,8 @@ changes the project only when the user starts a session.
   verdict of a trend: `skill:evaluate-harness` reads them; the panel never turns a number into a pass or a fail.
 - A faster reading of the transcripts: the measure takes the time of the readers, the cache hides it.
 - Following the changes of the files as they happen: the interval of STU-2 bounds how stale the screen is.
+- Rebasing a diverged branch, merging anything but a fast-forward, pushing the trunk, or closing the merged
+  worktree: the rebase is the issue session's, the push and `cardinal run worktree close` the user's.
 - Pruning what `next-issue` prunes on its own (CLM-6): `cardinal-ui` runs the tool, which may delete the claims of
   issues the trunk closed, as it does for the agent.
 - The layout, the colours and the keys beyond those of STU-2: they may change without a requirement.

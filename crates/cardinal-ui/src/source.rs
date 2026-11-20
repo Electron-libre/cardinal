@@ -276,7 +276,7 @@ fn field(text: &str, key: &str) -> Option<String> {
 /// The session of the lock of the worktree `path`, read from the file `cardinal-session` of its git directory
 /// (WSL-9), with the wait mark `cardinal-waiting` that names it while it runs (SWT-3); `None` when there is none
 /// (STU-7, STU-13).
-fn session(path: &Path) -> Option<Session> {
+pub fn session(path: &Path) -> Option<Session> {
     let text = git_file(path, "cardinal-session")?;
     let id = field(&text, "session")?;
     let alive = alive(&field(&text, "pid")?);

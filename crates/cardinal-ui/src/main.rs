@@ -1,11 +1,14 @@
 //! `cardinal-ui`: the milestones, the queue of issues, the worktrees and the measures of the project of the current
 //! directory, in one terminal screen (`specs/steering-ui.md`, ADR 0030). It reads the project through
 //! `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
-//! changes the project only to start an issue session in a zellij tab (`start.rs`).
-//! Usage: `cardinal-ui [--print | --start <stem>]`: with no argument the screen runs in the terminal until `q`;
-//! `--print` prints it once as text; `--start` starts the session of an issue.
+//! changes the project only to start an issue session in a zellij tab (`start.rs`) or to merge into the trunk an issue
+//! closed on its branch (`merge.rs`).
+//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem>]`: with no argument the screen runs in the
+//! terminal until `q`; `--print` prints it once as text; `--start` starts the session of an issue; `--merge` merges
+//! it.
 
 mod measures;
+mod merge;
 mod panels;
 mod screen;
 mod source;
@@ -13,7 +16,7 @@ mod start;
 
 use std::path::Path;
 
-const USAGE: &str = "usage: cardinal-ui [--print | --start <stem>]";
+const USAGE: &str = "usage: cardinal-ui [--print | --start <stem> | --merge <stem>]";
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
@@ -66,9 +69,14 @@ fn print() -> i32 {
     i32::from(panels.iter().any(|p| p.failed))
 }
 
-/// Starts the session of the issue `stem`: exit code 1 when nothing started (STU-11).
-fn start(stem: &str) -> i32 {
-    match start_in_project(stem) {
+/// Merges the issue `stem` of the project of the current directory into its trunk (STU-20).
+fn merge_in_project(stem: &str) -> Result<String, String> {
+    merge::merge(&source::root(Path::new(".")), stem)
+}
+
+/// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (STU-11, STU-21).
+fn report(done: Result<String, String>) -> i32 {
+    match done {
         Ok(done) => {
             println!("{done}");
             0
@@ -85,7 +93,8 @@ fn main() {
     let code = match args.as_slice() {
         [] => interactive(),
         [a] if a == "--print" => print(),
-        [a, stem] if a == "--start" => start(stem),
+        [a, stem] if a == "--start" => report(start_in_project(stem)),
+        [a, stem] if a == "--merge" => report(merge_in_project(stem)),
         _ => {
             eprintln!("{USAGE}");
             2

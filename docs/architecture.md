@@ -239,7 +239,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 ([ADR 0030](adr/0030-the-steering-ui-is-a-crate-of-its-own.md), spec
 [`specs/steering-ui.md`](../specs/steering-ui.md)): it reads a project only through the JSON documents of the tools
 of its pinned revision (NXT-19, RMP-8, REP-21), checked by their `version`, and through git. It drives zellij from outside to
-start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)). It is not managed content and a
+start a session on an issue ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs
+`git merge --ff-only` in the main worktree to merge an issue closed on its branch (STU-20). It is not managed content and a
 consumer does not need it; the release workflow does not build it.
 
 ```mermaid
@@ -249,6 +250,7 @@ flowchart LR
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
   ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
+  ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
@@ -263,6 +265,7 @@ flowchart LR
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads and the starts on threads of their own, renders `--print` into a buffer |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
+| `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
 
 ## The cost of a turn
 

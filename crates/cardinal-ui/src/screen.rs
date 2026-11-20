@@ -10,13 +10,13 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::keys::{action, ended, job, quits, task, Action, Ended, Focus, Selection, Task};
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::Panel;
+use crate::theme::{Role, Theme};
 
 /// How often the screen reads the project again (STU-2).
 pub const REFRESH: Duration = Duration::from_secs(2);
@@ -47,15 +47,18 @@ fn height(p: &Panel) -> u16 {
         .saturating_add(2)
 }
 
-/// Renders the panels into `buf` over `area`: the milestones, the worktrees and the measures at their height, the
-/// queue in the rest, the line `selected` (a panel and a line) highlighted, the help line and `status` last.
+/// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the milestones, the worktrees and the
+/// measures at their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, the help
+/// line and `status` last.
 fn render(
     area: Rect,
     buf: &mut Buffer,
     panels: &[Panel; 4],
     selected: Option<(usize, usize)>,
     status: &str,
+    theme: &Theme,
 ) {
+    buf.set_style(area, theme.screen());
     let [milestones, queue, worktrees, measures] = panels;
     let areas = Layout::vertical([
         Constraint::Max(height(milestones)),
@@ -77,13 +80,16 @@ fn render(
             .map(|(i, l)| {
                 let line = Line::raw(l.as_str());
                 if selected == Some((n, i)) {
-                    line.style(Style::new().add_modifier(Modifier::REVERSED))
+                    line.style(theme.selected())
                 } else {
                     line
                 }
             })
             .collect();
-        let block = Block::bordered().title(format!(" {} ", p.title));
+        let block = Block::bordered()
+            .border_style(theme.fg(Role::Border))
+            .title(format!(" {} ", p.title))
+            .title_style(theme.fg(Role::Accent));
         Paragraph::new(lines)
             .block(block)
             .scroll((scroll, 0))
@@ -94,6 +100,7 @@ fn render(
     } else {
         format!("{HELP}  {status}")
     };
+    buf.set_style(areas[4], theme.status());
     Line::raw(help).render(areas[4], buf);
 }
 
@@ -111,7 +118,8 @@ pub fn text(panels: &[Panel; 4]) -> String {
     let rows = panels.iter().map(height).fold(1u16, u16::saturating_add);
     let area = Rect::new(0, 0, width, rows);
     let mut buf = Buffer::empty(area);
-    render(area, &mut buf, panels, None, "");
+    // the colors never reach the text (STU-31)
+    render(area, &mut buf, panels, None, "", &Theme::default());
     let mut out = String::new();
     for y in 0..rows {
         let mut row = String::new();
@@ -194,11 +202,13 @@ fn received(
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUA-3, SUA-4, SUA-13), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
-/// back (SUA-6). The terminal is given back as it was, also on a panic (Ratatui's hook).
+/// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (STU-31, STU-33). The terminal
+/// is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
     measure: impl Fn(),
+    (theme, status): (Theme, String),
 ) -> std::io::Result<Option<String>> {
     let (ask, asked) = mpsc::channel::<()>();
     let (send, read_panels) = mpsc::channel();
@@ -219,7 +229,7 @@ pub fn run(
             issue: 0,
             worktree: 0,
         };
-        let mut status = String::new();
+        let mut status = status;
         let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
         let mut quitting = false;
@@ -254,8 +264,11 @@ pub fn run(
                     &v.panels,
                     selected.line(v),
                     &status,
+                    &theme,
                 ),
-                None => Line::raw("reading the project…").render(f.area(), f.buffer_mut()),
+                None => Line::raw("reading the project…")
+                    .style(theme.screen())
+                    .render(f.area(), f.buffer_mut()),
             })?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
@@ -304,6 +317,7 @@ mod tests {
     use super::*;
     use crate::keys::reselect;
     use crate::keys::tests::view;
+    use ratatui::style::{Color, Modifier};
 
     // spec: SUA-1 (internal: the highlight of a screen that needs a real terminal)
     #[test]
@@ -321,13 +335,68 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 120, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((1, 1)), "started a in /w");
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((1, 1)),
+            "started a in /w",
+            &Theme::default(),
+        );
         let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
         assert!((0..15).any(|y| row(y).contains("m measure  started a in /w")));
+    }
+
+    // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
+    #[test]
+    fn the_frame_is_drawn_in_the_roles_of_the_theme() {
+        let panel = |title, lines: &[&str]| Panel {
+            title,
+            lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            failed: false,
+        };
+        let panels = [
+            panel("Milestones", &["m"]),
+            panel("Queue", &["> b", "  a"]),
+            panel("Worktrees", &["w"]),
+            panel("Measures", &["x"]),
+        ];
+        let (theme, ignored) = crate::theme::parse(
+            "background = \"#000001\"\nsurface = \"#000002\"\nborder = \"#112233\"\ntext = \"#000004\"\nmuted = \"#000005\"\naccent = \"#000006\"\nselection = \"#000007\"\n",
+        );
+        assert_eq!(ignored, Vec::<String>::new());
+        let rgb = |n| Color::Rgb(0, 0, n);
+        let area = Rect::new(0, 0, 140, 15);
+        let mut buf = Buffer::empty(area);
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((1, 1)),
+            "theme: line 9 ignored",
+            &theme,
+        );
+        let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let find = |s: &str| (0..15).find(|y| row(*y).contains(s)).unwrap();
+        let corner = &buf[(0, 0)];
+        assert_eq!(
+            (corner.symbol(), corner.fg),
+            ("┌", Color::Rgb(0x11, 0x22, 0x33))
+        );
+        let title = row(0).find("Milestones").unwrap();
+        assert_eq!(buf[(u16::try_from(title).unwrap(), 0)].fg, rgb(6));
+        let m = find("│m");
+        assert_eq!((buf[(1, m)].fg, buf[(1, m)].bg), (rgb(4), rgb(1)));
+        let a = find("  a");
+        assert_eq!(buf[(3, a)].bg, rgb(7));
+        assert!(!buf[(3, a)].modifier.contains(Modifier::REVERSED));
+        let status = find("theme: line 9 ignored");
+        assert_eq!((buf[(0, status)].fg, buf[(0, status)].bg), (rgb(5), rgb(2)));
+        assert_eq!(buf[(139, status)].bg, rgb(2), "the whole line");
     }
 
     // spec: STU-14 (internal: the selection of a screen that needs a real terminal)
@@ -363,7 +432,14 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 40, 22);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((1, 29)), "");
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((1, 29)),
+            "",
+            &Theme::default(),
+        );
         let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let y = (0..22)
             .find(|y| row(*y).contains("issue30"))
@@ -403,7 +479,7 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 80, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((2, 1)), "");
+        render(area, &mut buf, &panels, Some((2, 1)), "", &Theme::default());
         let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let ws = (0..15).find(|y| row(*y).contains("/ws")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
@@ -428,7 +504,14 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 40, 16);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((2, 17)), "");
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((2, 17)),
+            "",
+            &Theme::default(),
+        );
         let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let y = (0..16)
             .find(|y| row(*y).contains("/ws18"))

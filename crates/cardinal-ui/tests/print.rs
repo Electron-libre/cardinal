@@ -159,6 +159,32 @@ fn ui_in(
     zellij: Option<&Path>,
     args: &[&str],
 ) -> (Option<i32>, String, String) {
+    let mut cmd = command(dir, cardinal, args);
+    if let Some(zellij) = zellij {
+        cmd.env("ZELLIJ", "0").env("CARDINAL_UI_ZELLIJ", zellij);
+    }
+    output(&mut cmd)
+}
+
+/// `cardinal-ui <args>` of [`ui`] with the environment variables `envs` set, `None` for those removed.
+fn ui_env(
+    dir: &Path,
+    cardinal: &Path,
+    envs: &[(&str, Option<&Path>)],
+    args: &[&str],
+) -> (Option<i32>, String, String) {
+    let mut cmd = command(dir, cardinal, args);
+    for (name, value) in envs {
+        match value {
+            Some(v) => cmd.env(name, v),
+            None => cmd.env_remove(name),
+        };
+    }
+    output(&mut cmd)
+}
+
+/// The command `cardinal-ui <args>` in `dir` with the fake `cardinal`, outside zellij, in UTC, with no theme file.
+fn command(dir: &Path, cardinal: &Path, args: &[&str]) -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"));
     cmd.args(args)
         .current_dir(dir)
@@ -168,10 +194,14 @@ fn ui_in(
         // outside zellij, a call of `zellij` fails the test
         .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
         // the measures go next to the fake `cardinal`, never to the cache of the user (STU-18)
-        .env("XDG_CACHE_HOME", cardinal.parent().unwrap().join("cache"));
-    if let Some(zellij) = zellij {
-        cmd.env("ZELLIJ", "0").env("CARDINAL_UI_ZELLIJ", zellij);
-    }
+        .env("XDG_CACHE_HOME", cardinal.parent().unwrap().join("cache"))
+        // the theme of the user is never read (STU-32)
+        .env("CARDINAL_UI_THEME", "/nonexistent/theme.toml");
+    cmd
+}
+
+/// Runs `cmd`: exit code, stdout, stderr.
+fn output(cmd: &mut Command) -> (Option<i32>, String, String) {
     let out = cmd.output().unwrap();
     (
         out.status.code(),
@@ -639,4 +669,91 @@ fn outside_zellij_or_when_list_tabs_fails_no_tab_and_no_error() {
     let text = p.zellij("not json", 0);
     let (code, out, _) = ui_in(&p.repo, &cardinal, Some(&text), &["--print"]);
     assert_eq!(code, Some(0), "{out}");
+}
+
+// spec: STU-32, STU-33
+#[test]
+fn the_ignored_lines_of_the_theme_are_named_on_stderr_and_print_stays_plain() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let theme = p.root.path().join("theme.toml");
+    std::fs::write(
+        &theme,
+        "# a theme\nborder = \"#112233\"  # the frame\naccent = \"blue\"\n\nshadow = \"#000000\"\ngarbage\n",
+    )
+    .unwrap();
+    let (code, out, err) = ui_env(
+        &p.repo,
+        &cardinal,
+        &[("CARDINAL_UI_THEME", Some(&theme))],
+        &["--print"],
+    );
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(
+        err.lines().collect::<Vec<_>>(),
+        [
+            "theme: line 3 ignored: invalid color \"blue\"",
+            "theme: line 5 ignored: unknown role shadow",
+            "theme: line 6 ignored: not a role = \"#rrggbb\" line",
+        ],
+        "{err}"
+    );
+    assert!(!out.contains('\x1b'), "{out}");
+}
+
+// spec: STU-33
+#[test]
+fn a_theme_that_cannot_be_read_is_named_and_the_screen_shown() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let dir = p.root.path().join("theme-dir");
+    std::fs::create_dir(&dir).unwrap();
+    let (code, out, err) = ui_env(
+        &p.repo,
+        &cardinal,
+        &[("CARDINAL_UI_THEME", Some(&dir))],
+        &["--print"],
+    );
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        err.starts_with(&format!("theme: {}: ", dir.display())),
+        "{err}"
+    );
+    assert!(out.contains("> b"), "{out}");
+}
+
+// spec: STU-32
+#[test]
+fn the_theme_is_read_from_the_config_directory_and_a_missing_one_says_nothing() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let home = p.root.path().join("home");
+    let config = p.root.path().join("config");
+    for dir in [home.join(".config/cardinal-ui"), config.join("cardinal-ui")] {
+        std::fs::create_dir_all(&dir).unwrap();
+    }
+    std::fs::write(home.join(".config/cardinal-ui/theme.toml"), "home\n").unwrap();
+    std::fs::write(config.join("cardinal-ui/theme.toml"), "\nconfig\n").unwrap();
+    let run = |xdg: &Path| {
+        ui_env(
+            &p.repo,
+            &cardinal,
+            &[
+                ("CARDINAL_UI_THEME", None),
+                ("HOME", Some(&home)),
+                ("XDG_CONFIG_HOME", Some(xdg)),
+            ],
+            &["--print"],
+        )
+    };
+    let (code, _, err) = run(&config);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(err.starts_with("theme: line 2 ignored"), "{err}");
+    let (_, _, err) = run(Path::new("config"));
+    assert!(
+        err.starts_with("theme: line 1 ignored"),
+        "relative: $HOME/.config: {err}"
+    );
+    let (_, _, err) = run(&p.root.path().join("nothing"));
+    assert_eq!(err, "", "a missing file says nothing");
 }

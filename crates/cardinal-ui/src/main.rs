@@ -4,7 +4,7 @@
 //! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
 //! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
-//! to wait for the user (`notify.rs`).
+//! to wait for the user (`notify.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
@@ -20,6 +20,7 @@ mod release;
 mod screen;
 mod source;
 mod start;
+mod theme;
 
 use std::path::Path;
 
@@ -64,7 +65,9 @@ fn interactive() -> i32 {
         let (running, error) = reader.status();
         read(running, error)
     };
-    match screen::run(read, run_task, || measurer.start()) {
+    let (theme, ignored) = theme::load(theme::path().as_deref());
+    let status = theme::status(&ignored);
+    match screen::run(read, run_task, || measurer.start(), (theme, status)) {
         Ok(None) => 0,
         // the result of a task the user quit during (SUA-6)
         Ok(Some(line)) => {
@@ -81,6 +84,10 @@ fn interactive() -> i32 {
 /// Prints the panels once as text, measuring first when the last measure is missing or over an hour old; exit code 1
 /// when one shows an error (STU-4, STU-8, STU-17).
 fn print() -> i32 {
+    // the lines of the theme file it ignored, the colors themselves never printed (STU-31, STU-33)
+    for line in theme::load(theme::path().as_deref()).1 {
+        eprintln!("{line}");
+    }
     let root = source::root(Path::new("."));
     let error = match measures::directory(&root) {
         None => Some("measures: no home directory".to_string()),

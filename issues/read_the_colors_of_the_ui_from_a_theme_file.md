@@ -43,3 +43,45 @@ A steering UI to watch
 # Hints
 * The UI writes no file outside its cache directory (STU-3): it reads the theme file, never creates it.
 * A light terminal must stay readable with the defaults: keep them close to the terminal's own colors.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+`cardinal-ui` reads a flat theme file of `<role> = "#rrggbb"` lines (`CARDINAL_UI_THEME`, else the XDG config path),
+read-only, defaults in ANSI colors that follow the terminal's palette; each ignored line is named (status line,
+stderr of `--print`). Out of scope: a template for the user's generator, reloading the theme while the screen runs.
+Means: a line-based reader instead of a TOML library, so each ignored line has its number and no dependency is added.
+
+## Plan
+1. [x] Theme file and frame: a module `theme.rs` (path, line reader, defaults, the `theme:` lines), the roles drawn on
+   the borders, titles, lines, background, selection and help/status line, the `theme:` lines on the status line and
+   the stderr of `--print`; verified by tests of `print.rs` (stderr, no escape sequence, exit code) and internal
+   render tests of the buffer's colors; makes true STU-32, STU-33. (autonomous)
+2. [ ] Styled states: the lines of the panels carry the role of their words (`ready`, `blocked`, `on hold`, `merged`,
+   `waiting since`, `awaits release`, `merge pending`, `measuring…`, errors, `free`, `ended`, the `>` offered),
+   drawn by the screen, `--print` unchanged; verified by internal render tests; makes true STU-31 (spec `accepted`).
+
+## Decisions
+- Mode: autonomous
+- Base commit: c1a4b98567c800b836630d0fae96c8cf3143a20d
+- Colors: `#rrggbb` only (1 a); defaults: the ANSI colors of the table of STU-33 (2 a).
+
+## Deliverable 1 summary
+- done: `theme.rs` reads the theme file (`CARDINAL_UI_THEME`, else the XDG config path), the frame drawn in its roles,
+  the ignored lines on the status line and the stderr of `--print`; docs of the theme file (`docs/usage.md`, README,
+  architecture), the state roles of its table drawn by deliverable 2.
+
+| check | result |
+|---|---|
+| tests | pass (`cargo test -p cardinal-ui`) |
+| lint | pass |
+| specs | pass (`check-specs`, `steering-ui` draft) |
+| docs | updated |
+| code review | no findings |
+
+- red: STU-32, STU-33: `left: []` against the expected `theme: line 3 ignored: invalid color "blue"` lines on stderr.
+- Code review: no findings
+- not verified: the colors in a real terminal (drawn into a buffer by the tests only).
+- decisions needed: none

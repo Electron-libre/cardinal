@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -29,6 +29,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-26** (deterministic) withdrawn: moved to SUA-4.
 - **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) with a mark (its session and its time) no read before had found, titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
+- **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection`, the help and status line in `muted` on `surface`, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -48,6 +49,23 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-30** (deterministic) The notification of STU-29 must run the program named by the environment variable `CARDINAL_UI_NOTIFY`, else `notify-send` found on the `PATH`, with the title and the body as its two arguments, apart from the keys and the reads of STU-2; a program that cannot be run or exits with a code other than 0 leaves the screen as it was but for its status line, which shows, after what it already shows, `notify: ` and the cause (as STU-6 words it) the first time only.
 - **STU-18** (deterministic) The cache directory must be `<cache>/cardinal-ui/<project>-<hash>`, `<cache>` the value of `XDG_CACHE_HOME` when it is an absolute path, else `$HOME/.cache`, and `<hash>` the 64-bit FNV-1a hash of the path of `<main>` in 16 hexadecimal digits, so two projects of one name keep their own; a measure writes each file whole (a temporary file of that directory, named after its process so two measures at once never share one, renamed over it, `efficiency.json` last), removes the temporary files of the directory over an hour old when it starts, and the age of the last measure is the modification time of `efficiency.json`.
 - **STU-19** (deterministic) A step of a measure that cannot be run or exits with a code other than 0, or a report that prints no JSON object or one whose `version` is not `1`, must end the measure, leave the four files of the last measure unchanged (a measure renames its files into place only once every step succeeded), and leave the `Measures` panel showing the line of STU-6 naming the step (`session-metrics`, `delivered-quality`, `cardinal-report`) above the last measure, the panel counting as failed for STU-8.
+
+- **STU-32** (deterministic) The theme must be read from the file the environment variable `CARDINAL_UI_THEME` names, else `<config>/cardinal-ui/theme.toml`, `<config>` the value of `XDG_CONFIG_HOME` when it is an absolute path, else `$HOME/.config`, once when `cardinal-ui` starts, and never created nor written; a missing file gives every role its default with no message. Each line of the file is blank, a comment opening with `#`, or `<role> = "#rrggbb"`, a comment after it or not, `<role>` one of the table under STU-33; a role the file does not set keeps its default, and the last line that sets a role wins.
+- **STU-33** (deterministic) A line of the theme file that is none of those of STU-32, names an unknown role, or holds a value other than `#` and six hexadecimal digits must be ignored, its role kept at its default, and named `theme: line <n> ignored: <cause>` (`<n>` from 1, `<cause>` one of `not a role = "#rrggbb" line`, `unknown role <role>`, `invalid color <value>`), and a file that exists but cannot be read named `theme: <path>: <error>`, its roles all at their default: on the status line of the screen until a task replaces it, the first ignored line alone followed by `(+<k> more)` when there are others, and one per line on the stderr of `--print`, whose exit code they leave as STU-8 says.
+
+  | Role | Default | Drawn on |
+  |---|---|---|
+  | `background` | the terminal's | the screen |
+  | `surface` | the terminal's | the help and status line |
+  | `border` | the terminal's | the borders of the panels |
+  | `text` | the terminal's | the lines of the panels |
+  | `muted` | ANSI dark gray | the help and status line, `free`, `ended` and `session ended` |
+  | `accent` | ANSI cyan | the titles of the panels, the `>` of the issue `next-issue` offers |
+  | `selection` | reversed video | the selected line (its background when set) |
+  | `pass` | ANSI green | the state `ready`, `merged` |
+  | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files |
+  | `warn` | ANSI yellow | `on hold`, `(on hold)`, `waiting since <time>: <reason>` |
+  | `info` | ANSI blue | `awaits release`, `merge pending`, `measuring…` |
 
 - **STU-27** (deterministic) withdrawn: moved to SUA-11.
 - **STU-28** (deterministic) withdrawn: moved to SUA-12.
@@ -130,6 +148,20 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-30) Given a `CARDINAL_UI_NOTIFY` that exits 3 with `no bus` on stderr, when two waits are notified, then the
   status line reads `notify: exit 3: no bus` after the first only.
 
+- (STU-31) Given a theme file that sets `border = "#112233"`, when the screen draws, then the borders of the panels are
+  `#112233`, the selected line has the background of `selection`, and the state `ready` of an issue is drawn in `pass`.
+- (STU-31) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
+- (STU-32) Given no theme file, then every role has its default and no `theme:` line is shown.
+- (STU-32) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read
+  from `$HOME/.config/cardinal-ui/theme.toml`.
+- (STU-32) Given two lines that set `accent`, then the last one is drawn.
+- (STU-33) Given a theme file whose line 3 reads `accent = "blue"`, when `cardinal-ui --print` runs, then stderr holds
+  `theme: line 3 ignored: invalid color "blue"`, its other roles are applied and its exit code is that of its panels.
+- (STU-33) Given a line `shadow = "#000000"`, then it is named `unknown role shadow` and ignored.
+- (STU-33) Given a `CARDINAL_UI_THEME` naming a directory, then `theme: <path>: <error>` is shown and every role keeps
+  its default.
+- (STU-33) Given three ignored lines, when the screen starts, then its status line names the first with `(+2 more)`.
+
 ## Non-goals
 
 - Entering a session, ending a session whose issue is not merged, reusing a free worktree for a new issue, or editing
@@ -144,4 +176,7 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - Following the changes of the files as they happen: the interval of STU-2 bounds how stale the screen is.
 - Pruning what `next-issue` prunes on its own (CLM-6): `cardinal-ui` runs the tool, which may delete the claims of
   issues the trunk closed, as it does for the agent.
-- The layout, the colours and the keys beyond those of STU-2, STU-17 and SUA: they may change without a requirement.
+- The layout, the keys beyond those of STU-2, STU-17 and SUA, and the defaults of the roles of STU-33: they may change
+  without a requirement.
+- Reading the theme again while the screen runs, other color forms than `#rrggbb` (ANSI names, 256-color indexes),
+  bold or italic per role, or a theme template for a given generator: the generator writes the file.

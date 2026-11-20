@@ -298,6 +298,30 @@ error above the last measure, whose files stay as they were. `--print` measures 
 hour old. The numbers are trends with their sample, never a pass or a fail: `skill:evaluate-harness` reads the rest
 of the report.
 
+It draws in the colors of a theme file, read once when it starts and never written: the file
+`CARDINAL_UI_THEME` names, else `$XDG_CONFIG_HOME/cardinal-ui/theme.toml` (`~/.config/...` when unset or relative),
+one `<role> = "#rrggbb"` line per role, blank lines and `#` comments allowed, so a theme generator can write it:
+
+```toml
+background = "#1e1e2e"
+accent = "#89b4fa"   # titles, the issue offered
+```
+
+| Role | Default | Drawn on |
+|---|---|---|
+| `background`, `text` | the terminal's | the screen, the lines of the panels |
+| `surface` | the terminal's | the help and status line |
+| `border` | the terminal's | the borders of the panels |
+| `muted` | dark gray | the help and status line, `free`, `ended` |
+| `accent` | cyan | the titles, the `>` of the issue offered |
+| `selection` | reversed video | the selected line (its background when set) |
+| `pass`, `fail`, `warn`, `info` | green, red, yellow, blue | `ready` and `merged`; `blocked` and the errors; `on hold` and the waits; `awaits release`, `merge pending`, `measuring…` |
+
+A role the file does not set keeps its default, an ANSI color that follows the palette of the terminal; with no
+file, it draws in those. A line it cannot read (not such a line, an unknown role, a color other than `#rrggbb`) is
+ignored and named `theme: line <n> ignored: <cause>`, on the status line of the screen (the first one, with `(+<k>
+more)`) and on the stderr of `--print`, which prints no color and whose exit code it leaves as it is.
+
 Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
 press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
 `<main worktree>-<stem>` on a branch `<stem>`) and a zellij tab named after it, running
@@ -348,7 +372,7 @@ zellij, when the repository is bare, the main worktree is detached, has uncommit
 live session holds its lock, the project turned the skill `release` off (run the steps `cardinal run release`
 prints), a tab `release` still runs `claude /release` (`zellij action list-panes`), or `cardinal run release --json`,
 run in the main worktree, lists no milestone and is not `prepared`, or fails.
-Apart from a start, a merge, an end and its cache of measures, it writes nothing.
+Apart from a start, a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

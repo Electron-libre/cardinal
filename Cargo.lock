@@ -109,6 +109,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cardinal-ui"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "cc"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

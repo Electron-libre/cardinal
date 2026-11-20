@@ -6,7 +6,7 @@ source = "."
 
 [project]
 # Scopes allowed in commit messages besides `docs` and `cardinal` (crates, areas).
-commit_scopes = ["sync", "files"]
+commit_scopes = ["sync", "files", "ui"]
 # Documents at the repository root that skills may cite besides AGENTS.md and CLAUDE.md (delivered-quality counts
 # their lines as docs).
 root_docs = ["README.md"]

@@ -54,8 +54,8 @@ form of the stderr reports, `worktree` and `cardinal-report`.
 1. [x] `next-issue --json`: `Entry` keeps the priority, milestone and dependencies it reads, one renderer builds the
    document from the `Queue`; verified by `crates/cardinal/tests/next_issue_json.rs` (`tests/next_issue.rs` is over
    the file size limit); makes true NXT-18, NXT-19. ~350 lines. (autonomous)
-2. [ ] `roadmap --json`: `rows` returns a milestone structure rendered as the table or as JSON; verified by
-   `crates/cardinal/tests/roadmap.rs`; makes true RMP-7, RMP-8. ~200 lines.
+2. [x] `roadmap --json`: `rows` returns a milestone structure rendered as the table or as JSON; verified by
+   `crates/cardinal/tests/roadmap.rs`; makes true RMP-7, RMP-8. ~200 lines. (autonomous)
 
 ## Deliverable 1
 done: `next-issue --json` prints the queue as one JSON object (version, next, issues with state, hold, taken, stale).
@@ -69,6 +69,26 @@ done: `next-issue --json` prints the queue as one JSON object (version, next, is
 | code review | `low`, clean |
 
 red: NXT-18, NXT-19, NXT-H2: stdout empty, `next-issue` read `--json` as the `issues` directory (`no --json directory`).
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+done: `roadmap --json` (alone or with `--open`) prints the milestones as one JSON object (version, milestones with
+state, hold, release, document and listed issues).
+
+| check | result |
+|---|---|
+| tests | `roadmap` 17/17 (4 new) |
+| lint | clean |
+| specs | `check-specs` clean for RMP, spec `accepted` |
+| docs | `docs/usage.md`, module doc |
+| code review | `low`, clean |
+
+red: RMP-7, RMP-8, RMP-H2: `roadmap` exited 2 on the unknown argument `--json`.
 
 Code review: no findings
 

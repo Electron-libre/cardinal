@@ -250,3 +250,83 @@ fn an_invalid_configuration_is_reported() {
     assert_eq!(out.status.code(), Some(2), "{err}");
     assert!(err.contains("invalid"), "{err}");
 }
+
+/// The document `roadmap` prints in `root` with `args` (`--json` among them), checked to be one line.
+fn document(root: &Path, args: &[&str]) -> serde_json::Value {
+    let (code, out) = roadmap(root, args);
+    assert_eq!(code, Some(0), "{out}");
+    assert_eq!(out.lines().count(), 1, "one line: {out}");
+    serde_json::from_str(&out).expect(&out)
+}
+
+// spec: RMP-H2, RMP-7, RMP-8
+#[test]
+fn a_program_reads_each_milestone_and_its_issues() {
+    let root = project(&[
+        ("ROADMAP.md", ROADMAP),
+        ("ROADMAP-done.md", DONE),
+        ("issues/done/a.md", "# A\n"),
+        ("issues/b.md", "# B\n"),
+        ("issues/done/z.md", "# Z\n"),
+    ]);
+    let doc = document(root.path(), &["--json"]);
+    assert_eq!(doc["version"], 1);
+    let names: Vec<&str> = doc["milestones"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["Next", "Draft", "Odd", "Later | soon", "Old"]);
+    assert_eq!(
+        doc["milestones"][0],
+        serde_json::json!({
+            "name": "Next", "state": "in issues", "on_hold": null, "released": null, "document": "ROADMAP.md",
+            "issues": [{"stem": "b", "open": true}, {"stem": "a", "open": false}]
+        })
+    );
+    assert_eq!(doc["milestones"][1]["state"], serde_json::Value::Null);
+    assert_eq!(doc["milestones"][1]["issues"], serde_json::json!([]));
+    assert_eq!(doc["milestones"][2]["state"], "paused");
+    assert_eq!(doc["milestones"][3]["state"], "shaped");
+    assert_eq!(doc["milestones"][4]["released"], "v1.0.0");
+    assert_eq!(doc["milestones"][4]["document"], "ROADMAP-done.md");
+}
+
+// spec: RMP-8
+#[test]
+fn json_gives_the_reason_of_a_hold() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## A\n\n- State: shaped\n- On hold: later\n\n## B\n\n- State: idea\n- On hold:\n",
+    )]);
+    let doc = document(root.path(), &["--json"]);
+    assert_eq!(doc["milestones"][0]["state"], "shaped");
+    assert_eq!(doc["milestones"][0]["on_hold"], "later");
+    assert_eq!(doc["milestones"][1]["on_hold"], "");
+}
+
+// spec: RMP-7
+#[test]
+fn json_with_open_leaves_out_the_released_milestones() {
+    let root = project(&[("ROADMAP.md", ROADMAP), ("ROADMAP-done.md", DONE)]);
+    for args in [["--json", "--open"], ["--open", "--json"]] {
+        let doc = document(root.path(), &args);
+        let names: Vec<&str> = doc["milestones"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["name"].as_str().unwrap())
+            .collect();
+        assert!(!names.contains(&"Old") && names.contains(&"Next"), "{doc}");
+    }
+}
+
+// spec: RMP-7
+#[test]
+fn json_with_no_milestone_prints_an_empty_list() {
+    let root = project(&[("ROADMAP.md", "# Roadmap\n")]);
+    let (code, out) = roadmap(root.path(), &["--json"]);
+    assert_eq!(out, "{\"version\":1,\"milestones\":[]}\n");
+    assert_eq!(code, Some(0));
+}

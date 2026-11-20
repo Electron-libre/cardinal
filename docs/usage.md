@@ -43,7 +43,8 @@ without the key keeps them where they are.
 documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state, `(on
 hold)` after it for a milestone with a `- On hold: <reason>` line), the
 `Released:` version, the open issues over the listed ones (a link to an existing file of `issues/done/` counts closed)
-and the document; `--open` hides the released ones. It writes nothing.
+and the document; `--open` hides the released ones, and `--json` prints them as one JSON object for a program (each
+milestone with its state, hold, release, document and listed issues, open or not, RMP-8). It writes nothing.
 
 An issue the user defers takes `on_hold: '<reason>'` in its front matter, a deferred milestone a line `- On hold:
 <reason>`: `cardinal run next-issue` never offers them and lists them as `On hold: <stem> (<reason>)` after the

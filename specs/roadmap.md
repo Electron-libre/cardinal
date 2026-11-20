@@ -1,6 +1,6 @@
 ---
 id: RMP
-status: draft
+status: accepted
 adrs: []
 ---
 

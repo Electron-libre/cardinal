@@ -57,9 +57,9 @@ worktree and a diverged branch. Out of scope: the rebase, the push, closing the 
 1. [x] `cardinal-ui --merge <stem>`: a module `merge.rs` (refusals, merge, check) and the argument in `main.rs`;
    verified by `crates/cardinal-ui/tests/merge.rs` (throwaway repository with a linked worktree, fake `cardinal`);
    makes true STU-20 (its merge), STU-21, STU-3. ~450 lines. (autonomous)
-2. [ ] The key `f` in the screen: an action run on a thread as `s`, one start or merge at a time, `q` waiting for it,
+2. [x] The key `f` in the screen: an action run on a thread as `s`, one start or merge at a time, `q` waiting for it,
    `f merge` on the help line; the local merge of "Merge back" (`details.md`) names the key; verified by the unit
-   tests of `screen.rs`; makes true STU-20, STU-15, STU-H5. ~150 lines.
+   tests of `screen.rs`; makes true STU-20, STU-15, STU-H5. ~150 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -82,5 +82,25 @@ red: STU-H5, STU-20, STU-21, STU-3: `--merge` unknown, `cardinal-ui` exited 2 wi
 Code review: no findings
 
 not verified: a merge in a real project (the fake `cardinal` stands for `next-issue` and `check`).
+
+decisions needed: none
+
+## Deliverable 2
+done: the key `f` merges the selected issue, on a thread as `s`, one start or merge at a time, `q` waiting for it;
+`f merge` on the help line; spec `accepted`; README, `docs/usage.md`, `docs/workflow.md`, `docs/architecture.md` and
+the local merge of "Merge back" name the key.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` green |
+| lint | green |
+| specs | green, `specs/steering-ui.md` accepted |
+| docs | see done |
+| code review | see below |
+
+red: STU-20: `Action::Merge` and `task` not found (compile error of the unit test)
+Code review: no findings
+
+not verified: the key in a real terminal (the screen needs one; its parts are unit-tested).
 
 decisions needed: none

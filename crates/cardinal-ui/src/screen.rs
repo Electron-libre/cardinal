@@ -1,6 +1,6 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
-//! (STU-4); in the terminal, an issue of the queue is selected and `s` starts its session (STU-9), and `m` takes the
-//! measures again (STU-17).
+//! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (STU-9), `f` merges it into the
+//! trunk (STU-20), and `m` takes the measures again (STU-17).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -24,7 +24,7 @@ const TICK: Duration = Duration::from_millis(100);
 const PRINT_WIDTH: u16 = 100;
 
 /// The help line under the panels.
-const HELP: &str = "q quit  r refresh  ↑↓ select  s start  m measure";
+const HELP: &str = "q quit  r refresh  ↑↓ select  s start  f merge  m measure";
 
 /// What a read gives: the panels, and the stems of the issues of the queue in the order of its lines.
 pub struct View {
@@ -129,8 +129,25 @@ pub enum Action {
     Up,
     Down,
     Start,
+    Merge,
     Measure,
     Nothing,
+}
+
+/// A task on the selected issue that changes the project, one at a time (STU-15).
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Task {
+    Start,
+    Merge,
+}
+
+/// The task `action` runs on the issue `stem`, with the status line shown while it runs.
+fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
+    match action {
+        Action::Start => Some((Task::Start, format!("starting {stem}…"))),
+        Action::Merge => Some((Task::Merge, format!("merging {stem}…"))),
+        _ => None,
+    }
 }
 
 /// The action of the key `key`.
@@ -145,6 +162,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Up | KeyCode::Char('k') => Action::Up,
         KeyCode::Down | KeyCode::Char('j') => Action::Down,
         KeyCode::Char('s') => Action::Start,
+        KeyCode::Char('f') => Action::Merge,
         KeyCode::Char('m') => Action::Measure,
         _ => Action::Nothing,
     }
@@ -195,10 +213,10 @@ fn reselect(before: &[String], selected: usize, stems: &[String]) -> usize {
         .unwrap_or_else(|| select(selected, stems.len(), &Action::Nothing))
 }
 
-/// Whether the screen quits now on `action`, and whether it quits once the start running (`starting`) ends (STU-15).
-fn quits(action: &Action, starting: bool, quitting: bool) -> (bool, bool) {
+/// Whether the screen quits now on `action`, and whether it quits once the task running (`busy`) ends (STU-15).
+fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool) {
     match action {
-        Action::Quit if starting => (false, true),
+        Action::Quit if busy => (false, true),
         Action::Quit => (true, quitting),
         _ => (false, quitting),
     }
@@ -215,12 +233,13 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 }
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
-/// own so the keys are answered during a slow read; `start` starts the session of the selected issue on `s`, on a
-/// thread too, its result on the status line (STU-9); `measure` starts a measure on `m`, which runs apart (STU-17).
+/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue
+/// (STU-9, STU-20), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
+/// which runs apart (STU-17).
 /// The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
-    start: fn(&str) -> Result<String, String>,
+    run_task: fn(Task, &str) -> Result<String, String>,
     measure: impl Fn(),
 ) -> std::io::Result<()> {
     let (ask, asked) = mpsc::channel::<()>();
@@ -232,14 +251,14 @@ pub fn run(
             }
         }
     });
-    let (started, start_result) = mpsc::channel::<Result<String, String>>();
+    let (done, task_result) = mpsc::channel::<Result<String, String>>();
     let mut terminal = ratatui::try_init()?;
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
         let mut selected = 0;
         let mut status = String::new();
-        let mut starting = false;
+        let mut busy = false;
         let mut quitting = false;
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
@@ -258,12 +277,12 @@ pub fn run(
                     return Err(std::io::Error::other("the reading of the project failed"));
                 }
             }
-            if let Ok(done) = start_result.try_recv() {
+            if let Ok(result) = task_result.try_recv() {
                 if quitting {
                     return Ok(());
                 }
-                status = done.unwrap_or_else(|e| e);
-                starting = false;
+                status = result.unwrap_or_else(|e| e);
+                busy = false;
                 schedule.asked = true;
             }
             terminal.draw(|f| match &view {
@@ -278,12 +297,12 @@ pub fn run(
                 if let Event::Key(key) = event::read()? {
                     let len = view.as_ref().map_or(0, |v| v.stems.len());
                     let key = action(&key);
-                    let (now, later) = quits(&key, starting, quitting);
+                    let (now, later) = quits(&key, busy, quitting);
                     if now {
                         return Ok(());
                     }
                     if later && !quitting {
-                        status = "quitting once the start ends…".to_string();
+                        status = "quitting once the task ends…".to_string();
                     }
                     quitting = later;
                     match key {
@@ -293,13 +312,14 @@ pub fn run(
                             measure();
                             schedule.asked = true;
                         }
-                        Action::Start => {
+                        Action::Start | Action::Merge => {
                             let stem = view.as_ref().and_then(|v| v.stems.get(selected));
-                            if let (Some(stem), false) = (stem.cloned(), starting) {
-                                starting = true;
-                                status = format!("starting {stem}…");
-                                let send = started.clone();
-                                std::thread::spawn(move || send.send(start(&stem)));
+                            let job = stem.and_then(|s| task(&key, s).map(|t| (t, s.clone())));
+                            if let (Some(((job, shown), stem)), false) = (job, busy) {
+                                busy = true;
+                                status = shown;
+                                let send = done.clone();
+                                std::thread::spawn(move || send.send(run_task(job, &stem)));
                             }
                         }
                         a => selected = select(selected, len, &a),
@@ -353,6 +373,22 @@ mod tests {
             "a shorter queue moves it back"
         );
         assert_eq!(select(0, 0, &Action::Down), 0);
+    }
+
+    // spec: STU-20 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn f_merges_the_selected_issue() {
+        assert_eq!(action(&press(KeyCode::Char('f'))), Action::Merge);
+        assert!(HELP.contains("f merge"), "{HELP}");
+        assert_eq!(
+            task(&Action::Merge, "foo").map(|(_, s)| s),
+            Some("merging foo…".to_string())
+        );
+        assert_eq!(
+            task(&Action::Start, "foo").map(|(_, s)| s),
+            Some("starting foo…".to_string())
+        );
+        assert!(task(&Action::Refresh, "foo").is_none());
     }
 
     // spec: STU-9 (internal: the highlight of a screen that needs a real terminal)
@@ -423,7 +459,7 @@ mod tests {
 
     // spec: STU-15 (internal: the keys of a screen that needs a real terminal)
     #[test]
-    fn quit_during_a_start_waits_for_it() {
+    fn quit_during_a_start_or_a_merge_waits_for_it() {
         assert_eq!(quits(&Action::Quit, false, false), (true, false));
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
         assert_eq!(quits(&Action::Refresh, true, true), (false, true));

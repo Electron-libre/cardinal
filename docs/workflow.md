@@ -113,7 +113,8 @@ sequenceDiagram
 ```
 
 - In a zellij session, `cardinal-ui` does the user's part for a ready issue: `s` opens its worktree and a tab running
-  `claude` on it ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md), `docs/usage.md`, "Steering UI").
+  `claude` on it ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md), `docs/usage.md`, "Steering UI"); `f`
+  on an issue `merge pending` runs the local merge in the main worktree, then `cardinal check` there.
 - The agent never creates, enters or leaves a worktree: a session entered with `EnterWorktree` or `claude --worktree`
   is isolated by Claude Code, which refuses every command it cannot prove stays there.
 - The claim (`cardinal run issue-claim`, step 0 of `issue-workflow`) makes `cardinal run next-issue` skip the issue in every

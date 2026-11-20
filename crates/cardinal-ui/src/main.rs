@@ -45,7 +45,7 @@ fn interactive() -> i32 {
         let (running, error) = reader.status();
         read(running, error)
     };
-    match screen::run(read, start_in_project, || measurer.start()) {
+    match screen::run(read, run_task, || measurer.start()) {
         Ok(()) => 0,
         Err(e) => {
             eprintln!("cardinal-ui: {e}");
@@ -67,6 +67,14 @@ fn print() -> i32 {
     // a reader that closed the output early (`| head`) is no failure
     let _ = std::io::Write::write_all(&mut std::io::stdout(), screen::text(&panels).as_bytes());
     i32::from(panels.iter().any(|p| p.failed))
+}
+
+/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20).
+fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
+    match task {
+        screen::Task::Start => start_in_project(stem),
+        screen::Task::Merge => merge_in_project(stem),
+    }
 }
 
 /// Merges the issue `stem` of the project of the current directory into its trunk (STU-20).

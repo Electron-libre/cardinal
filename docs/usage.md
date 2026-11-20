@@ -295,11 +295,13 @@ taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same
 `PATH` or the program `CARDINAL_UI_ZELLIJ` names.
 
 An issue closed on its branch with `merge_back = "local"` waits `merge pending` until the trunk holds the close.
-`cardinal-ui --merge <stem>` merges it, from any worktree of the project: in the main worktree, `git merge --ff-only
+`f` on it in the queue, or `cardinal-ui --merge <stem>`, merges it, from any worktree of the project: in the main worktree, `git merge --ff-only
 <branch>` (the branch of its claim), then `cardinal check`, whose failure keeps the merge and prints the line naming
 the install it needs (exit 1). It merges nothing (exit 1, saying why) when the issue is not `merge pending`, the
 main worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
-trunk is not an ancestor of the branch (rebase it in its worktree first). The next read drops the claim (CLM-6).
+trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
+why nothing was; `s` and `f` start nothing while a start or a merge runs, and `q` then quits once it ended. The next
+read drops the claim (CLM-6).
 Apart from a start, a merge and its cache of measures, it writes nothing.
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.

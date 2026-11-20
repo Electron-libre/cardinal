@@ -55,8 +55,8 @@ On a branch other than the trunk, once the user agreed to close the issue:
    `"local"`: push nothing and open no pull request. When the trunk is not an ancestor of the branch (`git merge-base
    --is-ancestor <trunk> HEAD` fails: another issue was merged since), the fast-forward would fail: propose to rebase
    the branch onto the trunk and, on the user's go, rebase it, run the project check and `cardinal check` again. Then
-   stop and print the merge for the user to run in the main worktree, `git merge --ff-only <branch>`; never run it
-   yourself from the linked worktree.
+   stop and print the merge for the user to run in the main worktree, `git merge --ff-only <branch>` (or the key `f`
+   of `cardinal-ui` on the issue); never run it yourself from the linked worktree.
    `"pull-request"` or no key: push the branch to the remote the trunk tracks (`git push -u <remote> <branch>`), then, with the host's CLI (`gh`
    on GitHub: `gh pr list --head <branch>`), open the pull request to the trunk when the branch has none, titled after
    the issue, its body the summary of the deliverables; with one, the push updated it. Report its URL. No remote or no

@@ -24,9 +24,9 @@ The work done before this file existed is in `issues/done/`.
   sessions at work and the measures, and start an issue session in its own worktree in a zellij pane.
 - Why: today the user opens each worktree, launches `claude` and hands it the issue by hand, then reads the state
   through several `cardinal run` commands and `skill:evaluate-harness`.
-- State: in issues
+- State: done
 - Issues:
   - [print_the_queue_and_the_roadmap_as_json](issues/done/print_the_queue_and_the_roadmap_as_json.md)
   - [show_the_project_state_in_a_steering_ui](issues/done/show_the_project_state_in_a_steering_ui.md)
   - [start_an_issue_session_in_a_zellij_pane](issues/done/start_an_issue_session_in_a_zellij_pane.md)
-  - [show_the_measures_in_the_steering_ui](issues/show_the_measures_in_the_steering_ui.md)
+  - [show_the_measures_in_the_steering_ui](issues/done/show_the_measures_in_the_steering_ui.md)

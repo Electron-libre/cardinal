@@ -188,12 +188,24 @@ fn start_without_a_stem_is_refused() {
     assert!(err.contains("usage"), "{err}");
 }
 
-/// A queue of ready issues claimed by sessions that ended: `d` in `<root>/repo-d`, which exists, `e` in a worktree
-/// removed since, and `f` merge pending.
+/// A queue of ready issues claimed by sessions that ended: `d` in the linked worktree `<root>/repo-d`, `e` in a
+/// worktree removed since, `f` merge pending, and `g` in a directory that is no worktree.
 fn ended_queue(s: &Setup) -> (String, PathBuf) {
     let wt = s.root.path().join("repo-d");
-    std::fs::create_dir_all(&wt).unwrap();
+    let git = |args: &[&str]| {
+        let out = Command::new("git")
+            .args(["-c", "user.email=t@t", "-c", "user.name=t"])
+            .args(args)
+            .current_dir(&s.repo)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "git {args:?}");
+    };
+    git(&["commit", "-q", "--allow-empty", "-m", "init", "--no-verify"]);
+    git(&["worktree", "add", "-q", "-b", "d", wt.to_str().unwrap()]);
     let gone = s.root.path().join("repo-e");
+    let plain = s.root.path().join("repo-g");
+    std::fs::create_dir_all(&plain).unwrap();
     let claim = |state: &str, w: &Path| {
         format!(
             r#"{{"by":"claim","state":"{state}","worktree":"{}","branch":"x","session_alive":false}}"#,
@@ -206,10 +218,11 @@ fn ended_queue(s: &Setup) -> (String, PathBuf) {
         )
     };
     let queue = format!(
-        r#"{{"version":1,"next":null,"issues":[{},{},{}]}}"#,
+        r#"{{"version":1,"next":null,"issues":[{},{},{},{}]}}"#,
         issue("d", claim("working", &wt)),
         issue("e", claim("working", &gone)),
         issue("f", claim("merge pending", &wt)),
+        issue("g", claim("working", &plain)),
     );
     (queue, wt)
 }
@@ -251,8 +264,51 @@ fn a_claim_whose_worktree_is_gone_or_merge_pending_does_not_resume() {
         )),
         "{err}"
     );
+    let plain = s.root.path().join("repo-g");
+    let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "g"]);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains(&format!("g: worktree {} gone", plain.display())),
+        "{err}"
+    );
     let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "f"]);
     assert_eq!(code, Some(1));
     assert!(err.contains("f: taken"), "{err}");
     assert_eq!(s.log(), "");
+}
+
+// spec: STU-11
+#[test]
+fn a_claim_whose_worktree_a_live_session_holds_does_not_resume() {
+    let s = setup();
+    let (queue, wt) = ended_queue(&s);
+    let out = Command::new("git")
+        .args(["rev-parse", "--git-path", "cardinal-session"])
+        .current_dir(&wt)
+        .output()
+        .unwrap();
+    let lock = wt.join(String::from_utf8_lossy(&out.stdout).trim());
+    std::fs::write(&lock, format!("session s9\npid {}\n", std::process::id())).unwrap();
+    let cardinal = s.cardinal_with(&s.opened(), &queue);
+    let zellij = s.zellij(0, "");
+    let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "d"]);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains(&format!("d: session s9 works in {}", wt.display())),
+        "{err}"
+    );
+    assert_eq!(s.log(), "");
+}
+
+// spec: STU-11
+#[test]
+fn a_claim_that_says_nothing_of_its_session_does_not_resume() {
+    let s = setup();
+    let (queue, _) = ended_queue(&s);
+    let queue = queue.replacen(r#","session_alive":false"#, "", 1);
+    let cardinal = s.cardinal_with(&s.opened(), &queue);
+    let zellij = s.zellij(0, "");
+    let (code, _, err) = s.ui(&cardinal, Some(&zellij), &["--start", "d"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("d: taken"), "{err}");
 }

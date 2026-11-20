@@ -298,8 +298,9 @@ press `s` (the selection follows its issue across the reads, and `q` during a st
 `claude "/issue-workflow issues/<stem>.md"`; the session claims the issue at step 0 of `issue-workflow` and its
 validation stops stay in Claude Code. A ready issue whose claim names a session that ended (quit, crashed) is resumed
 instead: the tab opens in the worktree of the claim, with no `worktree open`, and the new session takes the claim back;
-when that worktree was removed, nothing starts and the status line names `cardinal run issue-claim --release <stem>`,
-which frees the claim. The status line says what started or why nothing did (outside zellij, an issue
+when `git worktree list` no longer lists that worktree, nothing starts and the status line names `cardinal run
+issue-claim --release <stem>`, which frees the claim; nor does it start while a live session holds the lock of that
+worktree. The status line says what started or why nothing did (outside zellij, an issue
 taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same from a shell of the zellij session
 (exit 1 when nothing started). It lists the tabs with `zellij action list-tabs --json`, through the `zellij` on the
 `PATH` or the program `CARDINAL_UI_ZELLIJ` names.

@@ -260,6 +260,8 @@ fn refused(stem: &str, theirs: Option<Claim>) -> String {
 /// Delete the claim of `stem` when it is `working` and its process no longer runs (CLM-10).
 fn release(stem: &str) -> Result<String, String> {
     let here = Path::new(".");
+    git(here, &["rev-parse", "--git-dir"], None)
+        .ok_or("not in a git repository: there is no claim to release")?;
     let (old, c) = read(here, stem).ok_or_else(|| format!("{stem}: no claim to release"))?;
     if c.state != "working" {
         return Err(format!(
@@ -285,7 +287,7 @@ fn release(stem: &str) -> Result<String, String> {
 pub(super) fn main(args: &[String]) -> u8 {
     let done = match args {
         [flag, stem] if flag == "--release" => release(stem),
-        [issue] => claim(issue),
+        [issue] if !issue.starts_with("--") => claim(issue),
         _ => {
             eprintln!("usage: issue-claim issues/<stem>.md | issue-claim --release <stem>");
             return 2;

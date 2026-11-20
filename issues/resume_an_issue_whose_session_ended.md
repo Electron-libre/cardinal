@@ -64,6 +64,7 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 1. [x] `issue-claim --release <stem>`: deletes a `working` claim whose process ended (CAS), refuses a live, absent or `merge pending` one; verified by `tests/issue_claim.rs`; makes true CLM-10. (autonomous)
 2. [x] `next-issue` resume hint: the taken line of an ended claim says `resume: …` or `worktree gone`, then `give up: …`; verified by `tests/issue_claim.rs`; makes true CLM-5, CLM-H2. (autonomous)
 3. [x] `cardinal-ui` resume: `s` / `--start` on a ready issue whose claim's session ended opens the tab in the claim's worktree without `worktree open`, refuses when that worktree is gone; verified by `crates/cardinal-ui/tests/start.rs`; makes true STU-9, STU-11. (autonomous)
+4. [x] Fixes of the `high` review: resume only a worktree `git worktree list` lists and no live session holds; an unknown `session_alive` counts as alive; `--release` outside git or with no stem; the cross-worktree check of CLM-5 restored; verified by `start.rs`, `issue_claim.rs`; makes true STU-11, CLM-10. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -118,5 +119,22 @@ or give up, and `issue-claim --release` frees a dead claim. Out of scope: handin
 
 - red: STU-9, STU-11: `--start d` exited 1 with `d: taken` (left: Some(1), right: Some(0))
 - Code review: 1 findings: the `ready` check also applies to a resumed issue (important); not changed: STU-9 as validated resumes only a `ready` issue, and `state` (NXT-19) is ready, blocked or on hold whatever takes the issue, so a blocked or held issue is not resumed on purpose.
+- not verified: a real zellij tab and `claude` session (the tests use fakes)
+- decisions needed: none
+
+## Deliverable 4: summary (fixes of the `high` review)
+- done: the resume refuses a claim worktree `git worktree list` does not list (`gone`) or whose lock a live session holds (`session <id> works in <w>`, which also stops a second `s` once the first session took the lock); a missing `session_alive` counts as alive; `issue-claim --release` says `not in a git repository` outside git and prints the usage (exit 2) with no stem; the CLM-5 test reads a main-worktree claim from the linked worktree again.
+
+| check | result |
+|---|---|
+| tests | `cardinal-ui` start 10, `issue_claim` 14, `next_issue` 19 passed |
+| lint | clean (project-check) |
+| specs | STU-11 amended and traced; `steering-ui.md` `accepted` |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+- red: STU-11, CLM-10: `--start d` resumed despite a live lock / a plain directory / no `session_alive`; `--release` outside git printed `a: no claim to release`
+- `high` review findings: 8; fixed: lock of a live session (important), double `s` (important, covered by the lock: the `SessionStart` hook takes it), non-worktree directory, missing `session_alive`, `--release` outside git, `--release` with no stem, lost cross-worktree test; not fixed: unquoted worktree path in the hint (nit: `worktree open` makes no path with spaces).
+- Code review: 1 findings: the claim's worktree compared as a string with the paths of `git worktree list` (important, uncertain), fixed: both canonicalized.
 - not verified: a real zellij tab and `claude` session (the tests use fakes)
 - decisions needed: none

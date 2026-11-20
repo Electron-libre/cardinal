@@ -37,12 +37,7 @@ pub fn start(root: &Path, stem: &str) -> Result<String, String> {
         return Err(format!("{stem}: {}, not ready", issue.state));
     }
     let (worktree, done) = match resumed {
-        Some(w) if !Path::new(&w).is_dir() => {
-            return Err(format!(
-                "{stem}: worktree {w} gone: cardinal run issue-claim --release {stem}"
-            ));
-        }
-        Some(w) => (w, "resumed"),
+        Some(w) => (resumable(root, stem, w)?, "resumed"),
         None => (open_worktree(root, stem)?, "started"),
     };
     let first_message = format!("/issue-workflow issues/{stem}.md");
@@ -63,6 +58,23 @@ pub fn start(root: &Path, stem: &str) -> Result<String, String> {
         return Err(source::failure(tab, code, &err));
     }
     Ok(format!("{done} {stem} in {worktree}"))
+}
+
+/// The worktree `w` of the claim of `stem` whose session ended, once `git worktree list` lists it and no live
+/// session holds its lock (STU-11).
+fn resumable(root: &Path, stem: &str, w: String) -> Result<String, String> {
+    let worktrees = source::worktrees(root)?;
+    // the claim holds `--show-toplevel`, symlinks resolved; the list holds the path given to `worktree add`
+    let real = |p: &str| std::fs::canonicalize(p).unwrap_or_else(|_| p.into());
+    let Some(listed) = worktrees.iter().find(|t| real(&t.path) == real(&w)) else {
+        return Err(format!(
+            "{stem}: worktree {w} gone: cardinal run issue-claim --release {stem}"
+        ));
+    };
+    if let Some(session) = listed.session.as_ref().filter(|s| s.alive) {
+        return Err(format!("{stem}: session {} works in {w}", session.id));
+    }
+    Ok(w)
 }
 
 /// Opens the worktree of `stem` with `cardinal run worktree open`: its path.

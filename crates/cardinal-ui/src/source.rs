@@ -275,7 +275,8 @@ fn taken(v: &Value) -> Option<Taken> {
             state: string(&v["state"]).unwrap_or_default(),
             worktree: string(&v["worktree"]).unwrap_or_default(),
             branch: string(&v["branch"]).unwrap_or_default(),
-            alive: v["session_alive"] == true,
+            // unknown counts as alive: an ended session is resumed (STU-9), so it must be stated
+            alive: v["session_alive"] != false,
         }),
         _ => Some(Taken::Branch {
             branch: string(&v["branch"]).unwrap_or_default(),

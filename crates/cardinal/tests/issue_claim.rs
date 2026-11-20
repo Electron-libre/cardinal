@@ -250,15 +250,15 @@ fn next_issue_skips_a_working_claim_and_says_when_its_session_ended() {
         out.contains(&format!("Taken: a (claimed in {ws}, session ended; resume: claude \"/issue-workflow issues/a.md\" in {ws}; give up: cardinal run issue-claim --release a)\n")),
         "{out}"
     );
+    claim(&r.main, "s2", &live(), "b");
+    let out = next(&r.ws);
+    assert!(out.contains("Every open issue is taken."), "{out}");
     git(&r.main, &["worktree", "remove", "--force", &ws]);
     let out = next(&r.main);
     assert!(
         out.contains(&format!("Taken: a (claimed in {ws}, session ended, worktree gone; give up: cardinal run issue-claim --release a)\n")),
         "{out}"
     );
-    claim(&r.main, "s2", &live(), "b");
-    let out = next(&r.main);
-    assert!(out.contains("Every open issue is taken."), "{out}");
 }
 
 // spec: CLM-H2
@@ -459,6 +459,12 @@ fn release_frees_only_a_working_claim_whose_process_ended() {
     let (code, out) = release(&r.main);
     assert_eq!(code, Some(1), "no claim: {out}");
     assert!(out.contains("no claim"), "{out}");
+    let (code, out) = release(r.main.parent().unwrap());
+    assert_eq!(code, Some(1), "outside git: {out}");
+    assert!(out.contains("not in a git repository"), "{out}");
+    let (code, out) = tool(&r.main, "", "", &["issue-claim", "--release"]);
+    assert_eq!(code, Some(2), "no stem: {out}");
+    assert!(out.contains("usage"), "{out}");
 
     claim(&r.ws, "s1", &live(), "a");
     let before = claim_text(&r.main, "a");

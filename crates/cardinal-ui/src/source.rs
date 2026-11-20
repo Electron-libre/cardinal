@@ -111,7 +111,7 @@ pub fn in_zellij() -> bool {
 }
 
 /// The names of the tabs of the current zellij session; none outside zellij or when they cannot be listed (STU-12).
-pub fn tabs(dir: &Path) -> Vec<String> {
+fn tabs(dir: &Path) -> Vec<String> {
     if !in_zellij() {
         return Vec::new();
     }

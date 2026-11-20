@@ -81,12 +81,12 @@ impl Project {
         path
     }
 
-    /// The fake `zellij`: `list-tabs` prints the tabs `tabs` (JSON); `new-tab` logs each argument on a line, then
+    /// The fake `zellij`: `list-panes` prints the panes `panes` (JSON); `new-tab` logs each argument on a line, then
     /// exits `code` with `err` on stderr.
-    fn zellij(&self, tabs: &str, code: i32, err: &str) -> PathBuf {
+    fn zellij(&self, panes: &str, code: i32, err: &str) -> PathBuf {
         let path = self.root.path().join("zellij");
         let body = format!(
-            "if [ \"$2\" = list-tabs ]; then printf '%s\\n' '{tabs}'; exit 0; fi\necho zellij >> '{log}'; for a in \"$@\"; do printf '%s\\n' \"$a\" >> '{log}'; done\nprintf '%s' '{err}' >&2; exit {code}\n",
+            "if [ \"$2\" = list-panes ]; then printf '%s\\n' '{panes}'; exit 0; fi\necho zellij >> '{log}'; for a in \"$@\"; do printf '%s\\n' \"$a\" >> '{log}'; done\nprintf '%s' '{err}' >&2; exit {code}\n",
             log = self.log.display()
         );
         script(&path, &body);
@@ -139,6 +139,13 @@ impl Project {
     }
 }
 
+/// A pane of the tab `tab` running `command`, exited or not, as `list-panes --json --all` prints it.
+fn pane(tab: &str, command: &str, exited: bool) -> String {
+    format!(
+        r#"{{"id":1,"is_plugin":false,"tab_id":3,"tab_name":"{tab}","terminal_command":"{command}","exited":{exited}}}"#
+    )
+}
+
 fn awaits() -> String {
     format!("printf '%s\\n' '{AWAITS}'; exit 0")
 }
@@ -148,7 +155,7 @@ fn awaits() -> String {
 fn a_milestone_awaiting_its_release_opens_a_release_tab_in_the_main_worktree() {
     let p = project();
     let cardinal = p.cardinal(&awaits());
-    let zellij = p.zellij(r#"[{"name":"x"}]"#, 0, "");
+    let zellij = p.zellij(&format!("[{}]", pane("x", "claude", false)), 0, "");
     let ws_head = git(&p.ws, &["rev-parse", "HEAD"]);
     let (code, out, err) = p.release(&cardinal, Some(&zellij));
     assert_eq!(code, Some(0), "{out}{err}");
@@ -245,11 +252,57 @@ fn a_live_session_in_the_main_worktree_holds_it() {
 fn an_open_release_tab_is_not_opened_twice() {
     let p = project();
     let cardinal = p.cardinal(&awaits());
-    let zellij = p.zellij(r#"[{"name":"x"},{"name":"release"}]"#, 0, "");
+    let running = format!("[{}]", pane("release", "claude /release", false));
+    let zellij = p.zellij(&running, 0, "");
     let (code, _, err) = p.release(&cardinal, Some(&zellij));
     assert_eq!(code, Some(1));
     assert!(err.contains("a release tab is already open"), "{err}");
     assert!(!p.log().contains("zellij"), "{}", p.log());
+}
+
+// spec: STU-27
+#[test]
+fn an_exited_release_tab_or_an_issue_named_release_does_not_hold_it() {
+    for panes in [
+        format!("[{}]", pane("release", "claude /release", true)),
+        format!(
+            "[{}]",
+            pane("release", "claude /issue-workflow issues/release.md", false)
+        ),
+        "not json".to_string(),
+    ] {
+        let p = project();
+        let cardinal = p.cardinal(&awaits());
+        let zellij = p.zellij(&panes, 0, "");
+        let (code, out, err) = p.release(&cardinal, Some(&zellij));
+        assert_eq!(code, Some(0), "{panes}: {out}{err}");
+        assert_eq!(p.log(), p.opened(), "{panes}");
+    }
+}
+
+// spec: STU-26, STU-27
+#[test]
+fn a_release_prepared_but_not_tagged_is_resumed() {
+    let p = project();
+    let prepared = r#"{"version":1,"proposed":"0.3.0","last":"v0.2.0","commits":3,"prepared":true,"milestones":[]}"#;
+    let cardinal = p.cardinal(&format!("printf '%s\\n' '{prepared}'; exit 0"));
+    let zellij = p.zellij("[]", 0, "");
+    let (code, out, err) = p.release(&cardinal, Some(&zellij));
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(p.log(), p.opened());
+}
+
+// spec: STU-27
+#[test]
+fn a_project_with_the_skill_off_and_nothing_to_release_is_told_so() {
+    let p = project();
+    git(&p.repo, &["rm", "-q", ".claude/skills/release/SKILL.md"]);
+    git(&p.repo, &["commit", "-qm", "off", "--no-verify"]);
+    let cardinal = p.cardinal(&format!("printf '%s\\n' '{NOTHING}'; exit 0"));
+    let zellij = p.zellij("[]", 0, "");
+    let (code, _, err) = p.release(&cardinal, Some(&zellij));
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no milestone awaits its release"), "{err}");
 }
 
 // spec: STU-27

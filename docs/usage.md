@@ -309,7 +309,7 @@ branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the 
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
 why nothing was; `s`, `f`, `e` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
-ended, printing the result of a merge or an end. The next
+ended, printing the result of a merge, an end or a release start. The next
 read drops the claim (CLM-6).
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose
@@ -327,13 +327,13 @@ way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 
 session is at work (it runs and does not wait for the user). A step that fails stops the end and names what the steps
 before it did.
 Once a milestone awaits its release (`awaits release` in the milestones panel), `v`, or `cardinal-ui --release`,
-starts the release from any worktree of the project: a zellij tab named `release` in the main worktree running
+(or once a release committed but not tagged waits for its tag) starts the release from any worktree of the project: a zellij tab named `release` in the main worktree running
 `claude /release`, so `skill:release` keeps the version, its reread, its review and the tag, its stops included. One
 release covers every milestone awaiting it: `v` needs no selection. It opens nothing (exit 1, saying why) outside
 zellij, when the repository is bare, the main worktree is detached, has uncommitted changes or untracked files or a
 live session holds its lock, the project turned the skill `release` off (run the steps `cardinal run release`
-prints), a tab `release` is already open, or `cardinal run release --json`, run in the main worktree, lists no
-milestone or fails.
+prints), a tab `release` still runs `claude /release` (`zellij action list-panes`), or `cardinal run release --json`,
+run in the main worktree, lists no milestone and is not `prepared`, or fails.
 Apart from a start, a merge, an end and its cache of measures, it writes nothing.
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.

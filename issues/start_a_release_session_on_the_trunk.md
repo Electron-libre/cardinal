@@ -45,6 +45,10 @@ itself stays in `skill:release`; no milestone selection: one release covers ever
    with `merge.rs`, then the tab of STU-28), `--release` in `main.rs`, the key `v` and its help in `screen.rs` (one
    task more, kept under 800 lines); verified by `tests/release.rs` through the binary with fake `cardinal` and
    `zellij`, and an internal test of the key; makes true STU-26, STU-27, STU-28, STU-3, STU-15. ~450 lines. (autonomous)
+2. [x] Fix the findings of the `high` review: resume a release prepared but not tagged, a release tab found by its
+   running `claude /release` pane (`list-panes`), nothing to release said before the skill being off, STU-3 naming
+   the reads of the start, `v` before the first read, the docs; verified by `tests/release.rs` and the internal test
+   of the key; makes true STU-26, STU-27, STU-3. ~170 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -68,4 +72,23 @@ with its reason (STU-26 to STU-28); the checks of the main worktree are shared w
 red: STU-H8, STU-26, STU-27, STU-28: `cardinal-ui --release` exited 2 (usage: unknown argument)
 Code review: no findings
 not verified: the tab opened in a real zellij session (fakes only).
+decisions needed: none
+
+## Deliverable 2
+done: the six findings of the `high` review (`f73616d..a446b4d`), all fixed: a release committed but not tagged (`prepared`) starts the
+session that resumes it; only a `release` tab still running `claude /release` holds the start; nothing to release is
+said before the skill being off; STU-3 names the reads of the start; `v` works before the first read; docs.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui`: pass (3 new in `tests/release.rs`, 2 rewritten) |
+| lint | clippy -D warnings: pass |
+| specs | `check-specs`: spec `accepted` |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+| code review | low: no findings |
+
+red: STU-26, STU-27: `a_release_prepared_but_not_tagged_is_resumed` exited 1 (`no milestone awaits its release`); an exited `release` pane still refused the start
+Code review: no findings
+not verified: the `release` tab of another project in the same zellij session holds the start too (its pane runs
+the same command; the cwd of a pane is not compared).
 decisions needed: none

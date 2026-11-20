@@ -206,17 +206,20 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
     }
 }
 
-/// The task `action` runs on what `sel` selects in `v`: the task, the status line while it runs and the stem;
-/// `None` for another key or an empty panel; why it runs none when the key belongs to the other panel or the worktree
-/// is detached (STU-9, STU-20, STU-22).
+/// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
+/// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
+/// belongs to the other panel or the worktree is detached (STU-9, STU-20, STU-22). The release covers every
+/// milestone awaiting it: it needs no selection nor read (STU-26).
 fn job(
     action: &Action,
     sel: Selection,
-    v: &View,
+    v: Option<&View>,
 ) -> Result<Option<(Task, String, String)>, String> {
+    if *action == Action::Release {
+        return Ok(task(action, "").map(|(t, shown)| (t, shown, String::new())));
+    }
+    let Some(v) = v else { return Ok(None) };
     let stem = match (action, sel.focus) {
-        // the release covers every milestone awaiting it: no selection
-        (Action::Release, _) => Some(String::new()),
         (Action::Start | Action::Merge, Focus::Queue) => v.stems.get(sel.issue).cloned(),
         (Action::Start | Action::Merge, Focus::Worktrees) => {
             return Err("s and f act on the queue: Tab to it".to_string())
@@ -426,14 +429,14 @@ pub fn run(
                             schedule.asked = true;
                         }
                         Action::Start | Action::Merge | Action::End | Action::Release => {
-                            match view.as_ref().map(|v| job(&key, selected, v)) {
-                                Some(Ok(Some((job, shown, stem)))) if !busy => {
+                            match job(&key, selected, view.as_ref()) {
+                                Ok(Some((job, shown, stem))) if !busy => {
                                     busy = true;
                                     status = shown;
                                     let send = done.clone();
                                     std::thread::spawn(move || send.send(run_task(job, &stem)));
                                 }
-                                Some(Err(why)) if !busy => status = why,
+                                Err(why) if !busy => status = why,
                                 _ => {}
                             }
                         }
@@ -512,18 +515,22 @@ mod tests {
 
     // spec: STU-26, STU-15 (internal: the keys of a screen that needs a real terminal)
     #[test]
-    fn v_starts_the_release_from_either_panel() {
+    fn v_starts_the_release_from_either_panel_and_before_the_first_read() {
         assert_eq!(action(&press(KeyCode::Char('v'))), Action::Release);
         assert!(HELP.contains("v release"), "{HELP}");
         let v = view(&["bar"], &[("/main", Some("trunk"))]);
-        for focus in [Focus::Queue, Focus::Worktrees] {
+        for (focus, read) in [
+            (Focus::Queue, Some(&v)),
+            (Focus::Worktrees, Some(&v)),
+            (Focus::Queue, None),
+        ] {
             let sel = Selection {
                 focus,
                 issue: 0,
                 worktree: 0,
             };
             assert_eq!(
-                job(&Action::Release, sel, &v),
+                job(&Action::Release, sel, read),
                 Ok(Some((
                     Task::Release,
                     "starting the release…".to_string(),
@@ -658,7 +665,7 @@ mod tests {
             worktree,
         };
         assert_eq!(
-            job(&Action::End, on(Focus::Worktrees, 1), &v),
+            job(&Action::End, on(Focus::Worktrees, 1), Some(&v)),
             Ok(Some((
                 Task::End,
                 "ending foo…".to_string(),
@@ -666,18 +673,22 @@ mod tests {
             )))
         );
         assert_eq!(
-            job(&Action::Start, on(Focus::Queue, 1), &v),
+            job(&Action::Start, on(Focus::Queue, 1), Some(&v)),
             Ok(Some((
                 Task::Start,
                 "starting bar…".to_string(),
                 "bar".to_string()
             )))
         );
-        assert!(job(&Action::End, on(Focus::Queue, 1), &v).is_err_and(|e| e.contains("Tab")));
-        assert!(job(&Action::Merge, on(Focus::Worktrees, 1), &v).is_err_and(|e| e.contains("Tab")));
-        assert!(job(&Action::End, on(Focus::Worktrees, 2), &v)
+        assert!(job(&Action::End, on(Focus::Queue, 1), Some(&v)).is_err_and(|e| e.contains("Tab")));
+        assert!(job(&Action::Merge, on(Focus::Worktrees, 1), Some(&v))
+            .is_err_and(|e| e.contains("Tab")));
+        assert!(job(&Action::End, on(Focus::Worktrees, 2), Some(&v))
             .is_err_and(|e| e.contains("/d: detached")));
-        assert_eq!(job(&Action::Refresh, on(Focus::Queue, 0), &v), Ok(None));
+        assert_eq!(
+            job(&Action::Refresh, on(Focus::Queue, 0), Some(&v)),
+            Ok(None)
+        );
         let mut sel = on(Focus::Queue, 0);
         sel.apply(&Action::Switch, &v);
         assert_eq!(sel.focus, Focus::Worktrees);

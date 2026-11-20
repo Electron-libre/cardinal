@@ -40,3 +40,42 @@ Steering UI
 
 # Hints
 * The text output is read by the agent every time it runs: leave it byte for byte unchanged.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-20
+
+## Understanding
+`next-issue --json` and `roadmap --json` print one JSON object on one line for the steering UI, with a `version`
+field; the text outputs, the stderr reports and the exit codes stay as they are. Out of scope: the UI itself, a JSON
+form of the stderr reports, `worktree` and `cardinal-report`.
+
+## Plan
+1. [x] `next-issue --json`: `Entry` keeps the priority, milestone and dependencies it reads, one renderer builds the
+   document from the `Queue`; verified by `crates/cardinal/tests/next_issue_json.rs` (`tests/next_issue.rs` is over
+   the file size limit); makes true NXT-18, NXT-19. ~350 lines. (autonomous)
+2. [ ] `roadmap --json`: `rows` returns a milestone structure rendered as the table or as JSON; verified by
+   `crates/cardinal/tests/roadmap.rs`; makes true RMP-7, RMP-8. ~200 lines.
+
+## Deliverable 1
+done: `next-issue --json` prints the queue as one JSON object (version, next, issues with state, hold, taken, stale).
+
+| check | result |
+|---|---|
+| tests | `next_issue_json` 7/7, `next_issue` and `issue_claim` unchanged and green |
+| lint | clean |
+| specs | `check-specs` clean for NXT |
+| docs | `docs/usage.md`, module doc |
+| code review | `low`, clean |
+
+red: NXT-18, NXT-19, NXT-H2: stdout empty, `next-issue` read `--json` as the `issues` directory (`no --json directory`).
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2925de2ffdcda6496a51a9391c526b621740bad3

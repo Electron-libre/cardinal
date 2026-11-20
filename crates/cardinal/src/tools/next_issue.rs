@@ -9,7 +9,8 @@
 //! comes from git alone, so every worktree sees it.
 //! An issue is also taken by its claim (`issue_claim.rs`, ADR 0022): `working`, listed with its worktree, or `merge
 //! pending`, listed with its branch until the trunk holds the closed issue, when the claim is dropped.
-//! Usage: `cardinal run next-issue` (from the repo root, or pass the `issues` directory as argument).
+//! Usage: `cardinal run next-issue [--json]` (from the repo root, or pass the `issues` directory as argument);
+//! `--json` prints the queue as one JSON object for a program instead of the text (NXT-18, NXT-19).
 
 use std::path::Path;
 use std::process::Command;
@@ -331,6 +332,11 @@ fn cycles(deps: &[(String, Vec<String>)]) -> Vec<Vec<String>> {
 struct Entry {
     stem: String,
     why: String,
+    /// Its `priority`, `None` when NXT-2 reports it.
+    priority: Option<u8>,
+    milestone: Option<String>,
+    /// Its `depends_on`, `None` when NXT-8 reports it invalid.
+    depends_on: Option<Vec<String>>,
     blockers: Vec<String>,
     /// The reason it is on hold, if it is (NXT-15, NXT-16).
     hold: Option<String>,
@@ -373,11 +379,12 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
     for stem in &stems {
         let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).unwrap_or_default();
         let why = front_matter(&text, "why").unwrap_or_default();
-        let rank = priority(&text).unwrap_or_else(|| {
+        let rank = priority(&text);
+        if rank.is_none() {
             report(format!("issue without a priority: {stem}"));
-            3
-        });
-        let (place, milestone_hold) = match (milestone(&text), &roadmap) {
+        }
+        let milestone = milestone(&text);
+        let (place, milestone_hold) = match (milestone.clone(), &roadmap) {
             (Some(name), Some(names)) => {
                 if let Some(i) = names.iter().position(|(n, _)| *n == name) {
                     let hold = names[i].1.as_deref();
@@ -401,7 +408,8 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             Some(h) => Some(h),
             None => milestone_hold,
         };
-        let blockers = match depends_on(&text) {
+        let deps = depends_on(&text);
+        let blockers = match deps.clone() {
             None => {
                 report(format!("invalid depends_on: {stem}"));
                 vec!["an invalid depends_on".to_string()]
@@ -429,10 +437,13 @@ fn order(dir: &Path) -> (Vec<Entry>, bool) {
             Group::Blocked
         };
         keyed.push((
-            (group, place, rank, age, stem.clone()),
+            (group, place, rank.unwrap_or(3), age, stem.clone()),
             Entry {
                 stem: stem.clone(),
                 why,
+                priority: rank,
+                milestone,
+                depends_on: deps,
                 blockers,
                 hold,
             },
@@ -514,6 +525,69 @@ impl Queue {
             .collect()
     }
 
+    /// Whether the text output lists the issue `stem` `Stale:` (PAR-4).
+    fn stale(&self, stem: &str) -> bool {
+        self.branches.iter().any(|b| b.name == stem && !b.taken)
+    }
+
+    /// What takes the issue `stem`, as NXT-19 writes it: its claim, else its branch, else `null`.
+    fn taken_json(&self, stem: &str) -> serde_json::Value {
+        if let Some(c) = self.claim(stem) {
+            return serde_json::json!({
+                "by": "claim",
+                "state": c.state,
+                "worktree": c.worktree,
+                "branch": c.branch,
+                "session_alive": c.alive(),
+            });
+        }
+        self.taken_by(stem).map_or(
+            serde_json::Value::Null,
+            |b| serde_json::json!({"by": "branch", "branch": b.name, "worktree": b.worktree}),
+        )
+    }
+
+    /// The document of `next-issue --json` (NXT-18, NXT-19).
+    fn json(&self, dir: &Path, free: &[(usize, &Entry)]) -> serde_json::Value {
+        const PRIORITIES: [&str; 3] = ["high", "medium", "low"];
+        let issues: Vec<serde_json::Value> = self
+            .entries
+            .iter()
+            .map(|e| {
+                let state = if e.hold.is_some() {
+                    "on hold"
+                } else if e.blockers.is_empty() {
+                    "ready"
+                } else {
+                    "blocked"
+                };
+                let blocked_by: &[String] = if e.depends_on.is_some() {
+                    &e.blockers
+                } else {
+                    &[]
+                };
+                serde_json::json!({
+                    "stem": e.stem,
+                    "title": title(dir, &e.stem),
+                    "priority": e.priority.and_then(|p| PRIORITIES.get(usize::from(p))),
+                    "why": e.why,
+                    "milestone": e.milestone,
+                    "depends_on": e.depends_on,
+                    "state": state,
+                    "blocked_by": blocked_by,
+                    "hold": e.hold,
+                    "taken": self.taken_json(&e.stem),
+                    "stale": self.stale(&e.stem),
+                })
+            })
+            .collect();
+        serde_json::json!({
+            "version": 1,
+            "next": free.first().map(|(_, e)| &e.stem),
+            "issues": issues,
+        })
+    }
+
     /// What `next-issue` offers first: `Next: issues/<stem>.md` and the title of the first free ready issue, else the
     /// line saying there is none (NXT-12).
     fn offer(&self, dir: &Path, free: &[(usize, &Entry)]) -> String {
@@ -542,7 +616,11 @@ pub(super) fn next(dir: &Path) -> String {
 }
 
 pub(super) fn main(args: &[String]) -> u8 {
-    let dir = args.first().map_or("issues", String::as_str);
+    let json = args.iter().any(|a| a == "--json");
+    let dir = args
+        .iter()
+        .find(|a| *a != "--json")
+        .map_or("issues", String::as_str);
     let dir = Path::new(dir);
     if !dir.is_dir() {
         eprintln!("no {} directory", dir.display());
@@ -550,6 +628,10 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     let queue = Queue::read(dir);
     let free = queue.free();
+    if json {
+        println!("{}", queue.json(dir, &free));
+        std::process::exit(i32::from(queue.drift));
+    }
     println!("{}", queue.offer(dir, &free));
     if let Some((_, first)) = free.first() {
         println!("  why: {}", first.why);
@@ -572,7 +654,6 @@ pub(super) fn main(args: &[String]) -> u8 {
         }
     }
     let taken = |stem: &str| queue.taken_by(stem).map(|b| b.worktree.as_deref());
-    let stale = |stem: &str| queue.branches.iter().any(|b| b.name == stem && !b.taken);
     for e in &queue.entries {
         match queue.claim(&e.stem) {
             Some(c) if c.state == "merge pending" => {
@@ -595,7 +676,7 @@ pub(super) fn main(args: &[String]) -> u8 {
         }
     }
     for e in &queue.entries {
-        if stale(&e.stem) {
+        if queue.stale(&e.stem) {
             println!("Stale: {0} (branch with no worktree and nothing off the main branch; run `cardinal run worktree close {0}`)", e.stem);
         }
     }

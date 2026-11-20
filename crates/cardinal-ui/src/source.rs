@@ -100,17 +100,17 @@ pub fn cardinal() -> PathBuf {
         .map_or_else(|| PathBuf::from("cardinal"), PathBuf::from)
 }
 
-/// The `zellij` to run: `CARDINAL_UI_ZELLIJ`, else `zellij` on the `PATH` (STU-12).
+/// The `zellij` to run: `CARDINAL_UI_ZELLIJ`, else `zellij` on the `PATH` (SUA-10).
 pub fn zellij() -> PathBuf {
     std::env::var_os("CARDINAL_UI_ZELLIJ").map_or_else(|| PathBuf::from("zellij"), PathBuf::from)
 }
 
-/// Whether the UI runs in a zellij session (STU-9).
+/// Whether the UI runs in a zellij session (SUA-1).
 pub fn in_zellij() -> bool {
     std::env::var_os("ZELLIJ").is_some()
 }
 
-/// The names of the tabs of the current zellij session; none outside zellij or when they cannot be listed (STU-12).
+/// The names of the tabs of the current zellij session; none outside zellij or when they cannot be listed (SUA-10).
 fn tabs(dir: &Path) -> Vec<String> {
     if !in_zellij() {
         return Vec::new();
@@ -275,7 +275,7 @@ fn taken(v: &Value) -> Option<Taken> {
             state: string(&v["state"]).unwrap_or_default(),
             worktree: string(&v["worktree"]).unwrap_or_default(),
             branch: string(&v["branch"]).unwrap_or_default(),
-            // unknown counts as alive: an ended session is resumed (STU-9), so it must be stated
+            // unknown counts as alive: an ended session is resumed (SUA-1), so it must be stated
             alive: v["session_alive"] != false,
         }),
         _ => Some(Taken::Branch {
@@ -362,8 +362,8 @@ pub fn session(path: &Path) -> Option<Session> {
     })
 }
 
-/// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (STU-21, STU-23,
-/// STU-24); the error line of STU-6 when git cannot run.
+/// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (SUA-7, STU-23,
+/// SUA-8); the error line of STU-6 when git cannot run.
 pub fn holds_close(dir: &Path, trunk: &str, stem: &str) -> Result<bool, String> {
     let close = format!("refs/heads/{trunk}:issues/done/{stem}.md");
     let args = ["cat-file", "-e", &close];

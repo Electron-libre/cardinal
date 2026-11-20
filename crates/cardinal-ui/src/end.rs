@@ -1,4 +1,4 @@
-//! The end of what a merged issue left (STU-22, STU-24, STU-25): once the trunk holds the close of the issue `<stem>`,
+//! The end of what a merged issue left (SUA-3, SUA-8, SUA-9): once the trunk holds the close of the issue `<stem>`,
 //! the session of the linked worktree on the branch `<stem>` ends, the zellij tab the UI opened for it closes (only
 //! the session's pane when the tab holds others), then `cardinal run worktree close <stem>` removes the worktree and
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
@@ -13,11 +13,11 @@ use serde_json::Value;
 use crate::merge::{git, main_worktree};
 use crate::source;
 
-/// How long the session may take to end once signalled (STU-25).
+/// How long the session may take to end once signalled (SUA-9).
 const WAIT: Duration = Duration::from_secs(10);
 
 /// The pane of the session of `stem` in the panes `list-panes --json` printed: the tab id and the pane id, and
-/// whether it is the only terminal pane of its tab (STU-25).
+/// whether it is the only terminal pane of its tab (SUA-9).
 fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
     let panes = panes.as_array()?;
     let terminal = |p: &&Value| p["is_plugin"] == false;
@@ -37,7 +37,7 @@ fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
     Some((tab, pane["id"].as_u64()?, alone))
 }
 
-/// Runs `zellij args` in `dir`, failing with the line of STU-25.
+/// Runs `zellij args` in `dir`, failing with the line of SUA-9.
 fn zellij(dir: &Path, args: &[&str]) -> Result<String, String> {
     let name = format!("zellij {}", args.join(" "));
     let (out, err, code) = source::run(&name, &source::zellij(), args, dir)?;
@@ -67,7 +67,7 @@ fn close_pane(dir: &Path, stem: &str) -> Result<Option<String>, String> {
     }
 }
 
-/// Ends the session `id` of process `pid`, its pane closed or not, then waits for it to end (STU-25).
+/// Ends the session `id` of process `pid`, its pane closed or not, then waits for it to end (SUA-9).
 fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), String> {
     if !signalled {
         let kill = "kill -HUP";
@@ -91,7 +91,7 @@ fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), S
 }
 
 /// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
-/// that took the number of the session (STU-25).
+/// that took the number of the session (SUA-9).
 fn started_after(pid: &str, lock: &Path) -> bool {
     let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
         return false;
@@ -114,13 +114,13 @@ fn started_after(pid: &str, lock: &Path) -> bool {
 }
 
 /// Ends what the merged issue `stem` of the project at `root` left, on the linked worktree of the branch `stem`
-/// (STU-24).
+/// (SUA-8).
 pub fn end(root: &Path, stem: &str) -> Result<String, String> {
     end_on(root, stem, stem)
 }
 
 /// Ends what the merged issue `stem` left on the linked worktree of the branch `branch`: `ended <stem>`, or why
-/// nothing was ended, or the step that failed after what the steps before it did (STU-22, STU-24, STU-25).
+/// nothing was ended, or the step that failed after what the steps before it did (SUA-3, SUA-8, SUA-9).
 pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     let (main, trunk) = main_worktree(root)?;
     let worktrees = source::worktrees(root)?;
@@ -191,7 +191,7 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     Ok(format!("ended {stem}"))
 }
 
-/// The result of the merge of STU-20 followed, once its `cardinal check` passed, by the end of its issue (STU-22).
+/// The result of the merge of SUA-2 followed, once its `cardinal check` passed, by the end of its issue (SUA-3).
 pub fn after_merge(
     merged: Result<(String, String), String>,
     end: impl FnOnce(&str) -> Result<String, String>,
@@ -206,7 +206,7 @@ pub fn after_merge(
 mod tests {
     use super::after_merge;
 
-    // spec: STU-22 (internal: the key `f` runs in the terminal loop, which no binary test drives)
+    // spec: SUA-3 (internal: the key `f` runs in the terminal loop, which no binary test drives)
     #[test]
     fn a_merge_whose_check_passed_chains_the_end_on_its_branch_and_a_failed_one_does_not() {
         let merged = || {

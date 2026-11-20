@@ -265,7 +265,8 @@ projects directory given, they read the `projects/` of the configuration directo
 
 ## Steering UI
 
-`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md)) shows the
+`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md), its actions in
+[specs/steering-ui-actions.md](../specs/steering-ui-actions.md)) shows the
 project of the current directory (the root of its work tree) in one terminal screen, in four panels:
 
 | Panel | Read from | Each line |

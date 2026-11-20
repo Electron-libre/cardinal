@@ -1,6 +1,6 @@
 //! `cardinal-ui`: the milestones, the queue of issues, the worktrees and the measures of the project of the current
-//! directory, in one terminal screen (`specs/steering-ui.md`, ADR 0030). It reads the project through
-//! `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
+//! directory, in one terminal screen (`specs/steering-ui.md`, its actions in `specs/steering-ui-actions.md`, ADR
+//! 0030). It reads the project through `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the user (`measures.rs`), and
 //! changes the project only to start an issue session in a zellij tab (`start.rs`), to start the release session of
 //! the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its branch (`merge.rs`), or
 //! to end what a merged issue left (`end.rs`).
@@ -45,7 +45,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     }
 }
 
-/// Starts the session of the issue `stem` of the project of the current directory (STU-9).
+/// Starts the session of the issue `stem` of the project of the current directory (SUA-1).
 fn start_in_project(stem: &str) -> Result<String, String> {
     start::start(&source::root(Path::new(".")), stem)
 }
@@ -61,7 +61,7 @@ fn interactive() -> i32 {
     };
     match screen::run(read, run_task, || measurer.start()) {
         Ok(None) => 0,
-        // the result of a task the user quit during (STU-15)
+        // the result of a task the user quit during (SUA-6)
         Ok(Some(line)) => {
             eprintln!("cardinal-ui: {line}");
             0
@@ -88,8 +88,8 @@ fn print() -> i32 {
     i32::from(panels.iter().any(|p| p.failed))
 }
 
-/// Runs the task of a key on the issue `stem` of the project of the current directory (STU-9, STU-20, STU-22), or
-/// starts its release session (STU-26).
+/// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUA-3), or
+/// starts its release session (SUA-4).
 fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
     match task {
         screen::Task::Start => start_in_project(stem),
@@ -99,12 +99,12 @@ fn run_task(task: screen::Task, stem: &str) -> Result<String, String> {
     }
 }
 
-/// Merges the issue `stem` of the project of the current directory into its trunk (STU-21).
+/// Merges the issue `stem` of the project of the current directory into its trunk (SUA-7).
 fn merge_in_project(stem: &str) -> Result<String, String> {
     merge::merge(&source::root(Path::new(".")), stem)
 }
 
-/// Merges the issue `stem`, then ends what it left once its check passed (STU-20, STU-22).
+/// Merges the issue `stem`, then ends what it left once its check passed (SUA-2, SUA-3).
 fn merge_then_end(stem: &str) -> Result<String, String> {
     let root = source::root(Path::new("."));
     end::after_merge(merge::merge_branch(&root, stem), |branch| {
@@ -112,7 +112,7 @@ fn merge_then_end(stem: &str) -> Result<String, String> {
     })
 }
 
-/// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (STU-11, STU-21).
+/// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (SUA-5, SUA-7).
 fn report(done: Result<String, String>) -> i32 {
     match done {
         Ok(done) => {

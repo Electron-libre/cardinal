@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal-ui --start <stem>` (STU-9, STU-11, STU-12), against a throwaway git repository, a fake
+//! Behavior test for `cardinal-ui --start <stem>` (SUA-1, SUA-5, SUA-10), against a throwaway git repository, a fake
 //! `cardinal` and a fake `zellij` that log their calls.
 
 use std::os::unix::fs::PermissionsExt;
@@ -100,7 +100,7 @@ impl Setup {
     }
 }
 
-// spec: STU-H2, STU-9, STU-11, STU-12
+// spec: SUA-H1, SUA-1, SUA-5, SUA-10
 #[test]
 fn a_ready_issue_starts_in_a_tab_of_its_worktree() {
     let s = setup();
@@ -120,7 +120,7 @@ fn a_ready_issue_starts_in_a_tab_of_its_worktree() {
     );
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn outside_zellij_nothing_starts() {
     let s = setup();
@@ -134,7 +134,7 @@ fn outside_zellij_nothing_starts() {
     assert_eq!(s.log(), "");
 }
 
-// spec: STU-9, STU-11
+// spec: SUA-1, SUA-5
 #[test]
 fn a_taken_blocked_or_unknown_issue_does_not_start() {
     let s = setup();
@@ -148,7 +148,7 @@ fn a_taken_blocked_or_unknown_issue_does_not_start() {
     assert_eq!(s.log(), "");
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn a_failed_worktree_open_runs_no_zellij() {
     let s = setup();
@@ -163,7 +163,7 @@ fn a_failed_worktree_open_runs_no_zellij() {
     assert_eq!(s.log(), "cardinal run worktree open b\n");
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn a_failed_zellij_is_named_and_the_worktree_stays() {
     let s = setup();
@@ -178,7 +178,7 @@ fn a_failed_zellij_is_named_and_the_worktree_stays() {
     assert!(s.root.path().join("repo-b").is_dir());
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn start_without_a_stem_is_refused() {
     let s = setup();
@@ -227,7 +227,7 @@ fn ended_queue(s: &Setup) -> (String, PathBuf) {
     (queue, wt)
 }
 
-// spec: STU-9, STU-11
+// spec: SUA-1, SUA-5
 #[test]
 fn an_issue_whose_session_ended_resumes_in_the_worktree_of_its_claim() {
     let s = setup();
@@ -247,7 +247,7 @@ fn an_issue_whose_session_ended_resumes_in_the_worktree_of_its_claim() {
     );
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn a_claim_whose_worktree_is_gone_or_merge_pending_does_not_resume() {
     let s = setup();
@@ -277,7 +277,7 @@ fn a_claim_whose_worktree_is_gone_or_merge_pending_does_not_resume() {
     assert_eq!(s.log(), "");
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn a_claim_whose_worktree_a_live_session_holds_does_not_resume() {
     let s = setup();
@@ -300,7 +300,7 @@ fn a_claim_whose_worktree_a_live_session_holds_does_not_resume() {
     assert_eq!(s.log(), "");
 }
 
-// spec: STU-11
+// spec: SUA-5
 #[test]
 fn a_claim_that_says_nothing_of_its_session_does_not_resume() {
     let s = setup();

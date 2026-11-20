@@ -1,4 +1,4 @@
-//! The start of an issue session (STU-9, STU-11, STU-12): in a zellij session, a ready issue nothing takes gets its
+//! The start of an issue session (SUA-1, SUA-5, SUA-10): in a zellij session, a ready issue nothing takes gets its
 //! worktree (`cardinal run worktree open <stem>`) and a zellij tab named after its stem, running an interactive
 //! `claude` that hands `issues/<stem>.md` to `issue-workflow`. An issue whose `working` claim names a session that
 //! ended is resumed instead: the tab opens in the worktree of the claim, and the new session takes the claim back
@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::source;
 
-/// Why nothing starts outside zellij (STU-11).
+/// Why nothing starts outside zellij (SUA-5).
 pub const NEEDS_ZELLIJ: &str = "start needs zellij: run cardinal-ui in a zellij session";
 
 /// Starts the session of the issue `stem` of the project at `root`: what was started, or why nothing was.
@@ -61,7 +61,7 @@ pub fn start(root: &Path, stem: &str) -> Result<String, String> {
 }
 
 /// The worktree `w` of the claim of `stem` whose session ended, once `git worktree list` lists it and no live
-/// session holds its lock (STU-11).
+/// session holds its lock (SUA-5).
 fn resumable(root: &Path, stem: &str, w: String) -> Result<String, String> {
     let worktrees = source::worktrees(root)?;
     // the claim holds `--show-toplevel`, symlinks resolved; the list holds the path given to `worktree add`

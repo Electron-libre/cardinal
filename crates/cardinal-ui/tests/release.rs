@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal-ui --release` (STU-26, STU-27, STU-28), against a throwaway repository whose main
+//! Behavior test for `cardinal-ui --release` (SUA-4, SUA-11, SUA-12), against a throwaway repository whose main
 //! worktree `repo` is on `trunk` with a linked worktree `ws`, a fake `cardinal` and a fake `zellij` that log their
 //! calls.
 
@@ -150,7 +150,7 @@ fn awaits() -> String {
     format!("printf '%s\\n' '{AWAITS}'; exit 0")
 }
 
-// spec: STU-H8, STU-26, STU-27, STU-28
+// spec: SUA-H5, SUA-4, SUA-11, SUA-12
 #[test]
 fn a_milestone_awaiting_its_release_opens_a_release_tab_in_the_main_worktree() {
     let p = project();
@@ -165,7 +165,7 @@ fn a_milestone_awaiting_its_release_opens_a_release_tab_in_the_main_worktree() {
     assert_eq!(git(&p.ws, &["status", "--porcelain"]), "");
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn outside_zellij_no_release_starts() {
     let p = project();
@@ -179,7 +179,7 @@ fn outside_zellij_no_release_starts() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn no_milestone_awaiting_its_release_opens_no_tab() {
     let p = project();
@@ -191,7 +191,7 @@ fn no_milestone_awaiting_its_release_opens_no_tab() {
     assert!(!p.log().contains("zellij"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_release_that_cannot_be_read_is_named() {
     let p = project();
@@ -206,7 +206,7 @@ fn a_release_that_cannot_be_read_is_named() {
     assert!(!p.log().contains("zellij"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_dirty_or_detached_main_worktree_opens_no_tab() {
     let p = project();
@@ -227,7 +227,7 @@ fn a_dirty_or_detached_main_worktree_opens_no_tab() {
     assert!(!p.log().contains("zellij"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_live_session_in_the_main_worktree_holds_it() {
     let p = project();
@@ -247,7 +247,7 @@ fn a_live_session_in_the_main_worktree_holds_it() {
     assert!(p.log().ends_with("claude\n/release\n"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn an_open_release_tab_is_not_opened_twice() {
     let p = project();
@@ -260,7 +260,7 @@ fn an_open_release_tab_is_not_opened_twice() {
     assert!(!p.log().contains("zellij"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn an_exited_release_tab_or_an_issue_named_release_does_not_hold_it() {
     for panes in [
@@ -280,7 +280,7 @@ fn an_exited_release_tab_or_an_issue_named_release_does_not_hold_it() {
     }
 }
 
-// spec: STU-26, STU-27
+// spec: SUA-4, SUA-11
 #[test]
 fn a_release_prepared_but_not_tagged_is_resumed() {
     let p = project();
@@ -292,7 +292,7 @@ fn a_release_prepared_but_not_tagged_is_resumed() {
     assert_eq!(p.log(), p.opened());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_project_with_the_skill_off_and_nothing_to_release_is_told_so() {
     let p = project();
@@ -305,7 +305,7 @@ fn a_project_with_the_skill_off_and_nothing_to_release_is_told_so() {
     assert!(err.contains("no milestone awaits its release"), "{err}");
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_project_that_turned_the_skill_off_opens_no_tab() {
     let p = project();
@@ -322,7 +322,7 @@ fn a_project_that_turned_the_skill_off_opens_no_tab() {
     assert!(!p.log().contains("zellij"), "{}", p.log());
 }
 
-// spec: STU-27
+// spec: SUA-11
 #[test]
 fn a_failed_zellij_is_named() {
     let p = project();

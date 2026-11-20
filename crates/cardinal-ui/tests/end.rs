@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal-ui --end <stem>` (STU-24, STU-25), against a throwaway repository whose issue `foo`
+//! Behavior test for `cardinal-ui --end <stem>` (SUA-8, SUA-9), against a throwaway repository whose issue `foo`
 //! was closed on the branch `foo` of a linked worktree then merged into `trunk`, a process standing for its session,
 //! a fake `zellij` and a fake `cardinal` that log their calls.
 
@@ -222,7 +222,7 @@ fn ended(pid: u32) -> bool {
     !alive(pid)
 }
 
-// spec: STU-H6, STU-24, STU-25, STU-3
+// spec: SUA-H3, SUA-8, SUA-9, STU-3
 #[test]
 fn a_waiting_session_alone_in_its_tab_ends_with_the_tab_then_the_worktree_closes() {
     let mut p = project(true);
@@ -240,7 +240,7 @@ fn a_waiting_session_alone_in_its_tab_ends_with_the_tab_then_the_worktree_closes
     assert!(log.ends_with(&p.closed()), "{log}");
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_tab_holding_another_pane_keeps_it_and_loses_the_session_pane() {
     let mut p = project(true);
@@ -257,7 +257,7 @@ fn a_tab_holding_another_pane_keeps_it_and_loses_the_session_pane() {
     assert!(ended(pid));
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_session_with_no_tab_of_the_ui_gets_sighup() {
     let mut p = project(true);
@@ -268,7 +268,7 @@ fn a_session_with_no_tab_of_the_ui_gets_sighup() {
     assert_eq!(p.log(), p.closed(), "no zellij outside zellij");
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn an_ended_session_with_no_tab_only_closes_the_worktree() {
     let p = project(true);
@@ -281,7 +281,7 @@ fn an_ended_session_with_no_tab_only_closes_the_worktree() {
     );
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_session_deaf_to_sighup_keeps_the_worktree() {
     let mut p = project(true);
@@ -293,7 +293,7 @@ fn a_session_deaf_to_sighup_keeps_the_worktree() {
     assert_eq!(p.log(), "", "no worktree close");
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_failed_worktree_close_names_what_was_done() {
     let mut p = project(true);
@@ -308,7 +308,7 @@ fn a_failed_worktree_close_names_what_was_done() {
     );
 }
 
-// spec: STU-24
+// spec: SUA-8
 #[test]
 fn a_session_at_work_is_refused() {
     let mut p = project(true);
@@ -324,7 +324,7 @@ fn a_session_at_work_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-24
+// spec: SUA-8
 #[test]
 fn a_trunk_without_the_close_is_refused() {
     let mut p = project(false);
@@ -338,7 +338,7 @@ fn a_trunk_without_the_close_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-24
+// spec: SUA-8
 #[test]
 fn an_untracked_file_in_the_worktree_is_refused() {
     let mut p = project(true);
@@ -354,7 +354,7 @@ fn an_untracked_file_in_the_worktree_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-24
+// spec: SUA-8
 #[test]
 fn the_ui_run_in_the_worktree_ends_nothing() {
     let mut p = project(true);
@@ -368,7 +368,7 @@ fn the_ui_run_in_the_worktree_ends_nothing() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-24
+// spec: SUA-8
 #[test]
 fn no_linked_worktree_on_the_branch_or_a_detached_main_is_refused() {
     let p = project(true);
@@ -390,7 +390,7 @@ fn no_linked_worktree_on_the_branch_or_a_detached_main_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_failing_list_panes_or_an_exited_pane_falls_back_to_sighup() {
     for panes in [
@@ -409,7 +409,7 @@ fn a_failing_list_panes_or_an_exited_pane_falls_back_to_sighup() {
     }
 }
 
-// spec: STU-25
+// spec: SUA-9
 #[test]
 fn a_pid_started_after_the_lock_is_another_process_and_gets_no_signal() {
     let mut p = project(true);

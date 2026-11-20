@@ -1,4 +1,4 @@
-//! Behavior test for `cardinal-ui --merge <stem>` (STU-20, STU-21), against a throwaway repository whose issue `foo`
+//! Behavior test for `cardinal-ui --merge <stem>` (SUA-2, SUA-7), against a throwaway repository whose issue `foo`
 //! was closed on the branch `foo` of a linked worktree, and a fake `cardinal` that logs its calls.
 
 use std::os::unix::fs::PermissionsExt;
@@ -139,7 +139,7 @@ impl Project {
 /// A pid no process can have: above the largest `pid_max` of Linux (2^22).
 const ENDED_PID: u32 = 99_999_999;
 
-// spec: STU-H5, STU-20, STU-21, STU-3
+// spec: SUA-H2, SUA-2, SUA-7, STU-3
 #[test]
 fn a_merge_pending_issue_fast_forwards_the_trunk_then_checks() {
     let p = project();
@@ -166,7 +166,7 @@ fn a_merge_pending_issue_fast_forwards_the_trunk_then_checks() {
     );
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_branch_without_its_close_committed_is_refused() {
     let p = project();
@@ -183,7 +183,7 @@ fn a_branch_without_its_close_committed_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-20
+// spec: SUA-2
 #[test]
 fn a_tag_named_as_the_branch_is_not_merged() {
     let p = project();
@@ -198,7 +198,7 @@ fn a_tag_named_as_the_branch_is_not_merged() {
     assert_eq!(p.trunk(), git(&p.repo, &["rev-parse", "refs/heads/foo"]));
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn an_issue_not_merge_pending_merges_nothing() {
     let p = project();
@@ -213,7 +213,7 @@ fn an_issue_not_merge_pending_merges_nothing() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_dirty_main_worktree_is_refused() {
     let p = project();
@@ -236,7 +236,7 @@ fn a_dirty_main_worktree_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_detached_main_worktree_is_refused() {
     let p = project();
@@ -248,7 +248,7 @@ fn a_detached_main_worktree_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_live_session_in_the_main_worktree_is_refused_an_ended_one_is_not() {
     let p = project();
@@ -268,7 +268,7 @@ fn a_live_session_in_the_main_worktree_is_refused_an_ended_one_is_not() {
     assert_eq!(p.trunk(), p.foo());
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_diverged_branch_is_refused() {
     let p = project();
@@ -288,7 +288,7 @@ fn a_diverged_branch_is_refused() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_failing_check_keeps_the_merge_and_names_the_install() {
     let p = project();
@@ -305,7 +305,7 @@ fn a_failing_check_keeps_the_merge_and_names_the_install() {
     assert_eq!(p.trunk(), p.foo(), "the merge is kept");
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn merge_without_a_stem_is_refused() {
     let p = project();
@@ -319,7 +319,7 @@ fn merge_without_a_stem_is_refused() {
     assert_eq!(out.status.code(), Some(2));
 }
 
-// spec: STU-21
+// spec: SUA-7
 #[test]
 fn a_bare_repository_has_no_main_worktree_to_merge_in() {
     let p = project();
@@ -355,7 +355,7 @@ fn a_bare_repository_has_no_main_worktree_to_merge_in() {
     assert_eq!(p.log(), "");
 }
 
-// spec: STU-H7, STU-23
+// spec: SUA-H4, STU-23
 #[test]
 fn a_linked_worktree_whose_close_is_on_the_trunk_reads_merged() {
     let p = project();

@@ -1,4 +1,4 @@
-//! The start of a release session (STU-26, STU-27, STU-28): in a zellij session, once a milestone awaits its
+//! The start of a release session (SUA-4, SUA-11, SUA-12): in a zellij session, once a milestone awaits its
 //! release, a zellij tab `release` opens in the main worktree, running an interactive `claude` whose first message is
 //! `/release`, so `skill:release` keeps the version, its reread, its review and its tag; a release committed but not
 //! tagged yet starts the same session, which resumes it. Nothing opens from a detached, dirty or locked main
@@ -10,14 +10,14 @@ use serde_json::Value;
 
 use crate::{merge, source};
 
-/// Why nothing starts outside zellij (STU-27).
+/// Why nothing starts outside zellij (SUA-11).
 pub const NEEDS_ZELLIJ: &str = "release needs zellij: run cardinal-ui in a zellij session";
 
-/// The name of the tab of the release session (STU-28).
+/// The name of the tab of the release session (SUA-12).
 const TAB: &str = "release";
 
 /// Whether a tab `release` holds a terminal pane still running `claude /release`; `false` when the panes cannot be
-/// listed (STU-27).
+/// listed (SUA-11).
 fn tab_open(dir: &Path) -> bool {
     let args = ["action", "list-panes", "--json", "--all"];
     let Ok((out, _, 0)) = source::run("zellij", &source::zellij(), &args, dir) else {

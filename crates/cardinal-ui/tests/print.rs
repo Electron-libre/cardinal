@@ -152,7 +152,7 @@ fn ui(dir: &Path, cardinal: &Path, args: &[&str]) -> (Option<i32>, String, Strin
 }
 
 /// `cardinal-ui <args>` in `dir` with the fake `cardinal`, in a zellij session whose `zellij` is `zellij` when given
-/// (STU-12); the time zone is UTC.
+/// (SUA-10); the time zone is UTC.
 fn ui_in(
     dir: &Path,
     cardinal: &Path,
@@ -624,7 +624,7 @@ fn an_issue_with_a_tab_of_its_name_shows_it() {
     assert!(!line(&out, "> b").contains("tab"), "{out}");
 }
 
-// spec: STU-12
+// spec: SUA-10
 #[test]
 fn outside_zellij_or_when_list_tabs_fails_no_tab_and_no_error() {
     let p = project();

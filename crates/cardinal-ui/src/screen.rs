@@ -1,7 +1,7 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
-//! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (STU-9), `f` merges it into the
-//! trunk (STU-20); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (STU-22); `m`
-//! takes the measures again (STU-17); `v` starts the release session (STU-26).
+//! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
+//! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `m`
+//! takes the measures again (STU-17); `v` starts the release session (SUA-4).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -36,14 +36,14 @@ pub struct View {
     pub worktrees: Vec<(String, Option<String>)>,
 }
 
-/// The panel the selection is in (STU-22).
+/// The panel the selection is in (SUA-3).
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Focus {
     Queue,
     Worktrees,
 }
 
-/// The selected line of the queue and of the worktrees, and the panel the keys move it in (STU-9, STU-22).
+/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUA-3).
 #[derive(Debug, Clone, Copy)]
 struct Selection {
     focus: Focus,
@@ -65,7 +65,7 @@ impl Selection {
     }
 
     /// Keeps the selection on the same issue and the same worktree path from the read `before` to the read `after`
-    /// (STU-14, STU-22).
+    /// (STU-14, SUA-3).
     fn reread(&mut self, before: &View, after: &View) {
         self.issue = reselect(&before.stems, self.issue, &after.stems);
         let paths = |v: &View| v.worktrees.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
@@ -186,7 +186,7 @@ pub enum Action {
     Nothing,
 }
 
-/// A task on the selected issue that changes the project, one at a time (STU-15).
+/// A task on the selected issue that changes the project, one at a time (SUA-6).
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Task {
     Start,
@@ -208,8 +208,8 @@ fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
-/// belongs to the other panel or the worktree is detached (STU-9, STU-20, STU-22). The release covers every
-/// milestone awaiting it: it needs no selection nor read (STU-26).
+/// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUA-3). The release covers every
+/// milestone awaiting it: it needs no selection nor read (SUA-4).
 fn job(
     action: &Action,
     sel: Selection,
@@ -303,7 +303,7 @@ fn reselect(before: &[String], selected: usize, stems: &[String]) -> usize {
         .unwrap_or_else(|| select(selected, stems.len(), &Action::Nothing))
 }
 
-/// Whether the screen quits now on `action`, and whether it quits once the task running (`busy`) ends (STU-15).
+/// Whether the screen quits now on `action`, and whether it quits once the task running (`busy`) ends (SUA-6).
 fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool) {
     match action {
         Action::Quit if busy => (false, true),
@@ -312,7 +312,7 @@ fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool) {
     }
 }
 
-/// What the end of a task gives (STU-15).
+/// What the end of a task gives (SUA-6).
 #[derive(Debug, PartialEq)]
 enum Ended {
     /// The line the status line shows.
@@ -321,7 +321,7 @@ enum Ended {
     Quit(String),
 }
 
-/// The end of a task with `result`, the user having quit during it or not (STU-15).
+/// The end of a task with `result`, the user having quit during it or not (SUA-6).
 fn ended(result: Result<String, String>, quitting: bool) -> Ended {
     let line = result.unwrap_or_else(|e| e);
     if quitting {
@@ -331,7 +331,7 @@ fn ended(result: Result<String, String>, quitting: bool) -> Ended {
     }
 }
 
-/// The selection after `action` in a queue of `len` issues, kept in it (STU-9).
+/// The selection after `action` in a queue of `len` issues, kept in it (SUA-1).
 fn select(selected: usize, len: usize, action: &Action) -> usize {
     let moved = match action {
         Action::Up => selected.saturating_sub(1),
@@ -343,9 +343,9 @@ fn select(selected: usize, len: usize, action: &Action) -> usize {
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, or
-/// of `e` on the selected worktree (STU-9, STU-20, STU-22), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
+/// of `e` on the selected worktree (SUA-1, SUA-2, SUA-3), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
 /// which runs apart (STU-17). Gives the result of a task the user quit during, to print once the terminal is given
-/// back (STU-15). The terminal is given back as it was, also on a panic (Ratatui's hook).
+/// back (SUA-6). The terminal is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
@@ -478,7 +478,7 @@ mod tests {
         assert_eq!(action(&release), Action::Nothing);
     }
 
-    // spec: STU-9 (internal: the keys and the selection of a screen that needs a real terminal)
+    // spec: SUA-1 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
     fn the_arrows_and_j_k_move_the_selection_and_s_starts() {
         assert_eq!(action(&press(KeyCode::Up)), Action::Up);
@@ -497,7 +497,7 @@ mod tests {
         assert_eq!(select(0, 0, &Action::Down), 0);
     }
 
-    // spec: STU-20 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUA-2 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn f_merges_the_selected_issue() {
         assert_eq!(action(&press(KeyCode::Char('f'))), Action::Merge);
@@ -513,7 +513,7 @@ mod tests {
         assert!(task(&Action::Refresh, "foo").is_none());
     }
 
-    // spec: STU-26, STU-15 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUA-4, SUA-6 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn v_starts_the_release_from_either_panel_and_before_the_first_read() {
         assert_eq!(action(&press(KeyCode::Char('v'))), Action::Release);
@@ -541,7 +541,7 @@ mod tests {
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
     }
 
-    // spec: STU-9 (internal: the highlight of a screen that needs a real terminal)
+    // spec: SUA-1 (internal: the highlight of a screen that needs a real terminal)
     #[test]
     fn the_selected_issue_is_highlighted_and_the_status_shown() {
         let panel = |title, lines: &[&str]| Panel {
@@ -607,7 +607,7 @@ mod tests {
         assert!(buf[(3, y)].modifier.contains(Modifier::REVERSED));
     }
 
-    // spec: STU-15 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUA-6 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn quit_during_a_start_or_a_merge_waits_for_it() {
         assert_eq!(quits(&Action::Quit, false, false), (true, false));
@@ -646,7 +646,7 @@ mod tests {
         }
     }
 
-    // spec: STU-22 (internal: the keys and the selection of a screen that needs a real terminal)
+    // spec: SUA-3 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
     fn tab_moves_to_the_worktrees_where_e_ends_the_selected_one() {
         assert_eq!(action(&press(KeyCode::Tab)), Action::Switch);
@@ -700,7 +700,7 @@ mod tests {
         assert_eq!(sel.focus, Focus::Queue);
     }
 
-    // spec: STU-22 (internal: the selection of a screen that needs a real terminal)
+    // spec: SUA-3 (internal: the selection of a screen that needs a real terminal)
     #[test]
     fn the_selected_worktree_follows_its_path_and_is_highlighted() {
         let before = view(&[], &[("/main", Some("trunk")), ("/ws", Some("foo"))]);
@@ -740,7 +740,7 @@ mod tests {
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
     }
 
-    // spec: STU-22 (internal: the layout of a screen that needs a real terminal)
+    // spec: SUA-3 (internal: the layout of a screen that needs a real terminal)
     #[test]
     fn the_selected_worktree_stays_visible_in_a_short_panel() {
         let panel = |title, lines: Vec<String>| Panel {

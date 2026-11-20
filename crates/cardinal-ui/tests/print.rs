@@ -50,6 +50,14 @@ const QUEUE: &str = r#"{"version":1,"next":"b","issues":[
 {"stem":"a","title":"Title a","priority":"low","why":"","milestone":"One","depends_on":[],"state":"ready","blocked_by":[],"hold":null,"taken":{"by":"claim","state":"working","worktree":"WS","branch":"ws","session_alive":true},"stale":false}]}"#;
 const ROADMAP: &str = r#"{"version":1,"milestones":[{"name":"One","state":"in issues","on_hold":null,"released":null,"document":"ROADMAP.md","issues":[{"path":"issues/a.md","stem":"a","open":true},{"path":"issues/b.md","stem":"b","open":true}]}]}"#;
 
+/// The path `name` of the git directory of the worktree `dir`.
+fn git_path(dir: &Path, name: &str) -> String {
+    git(
+        dir,
+        &["rev-parse", "--path-format=absolute", "--git-path", name],
+    )
+}
+
 fn project() -> Project {
     let root = tempfile::tempdir().unwrap();
     let repo = root.path().join("repo");
@@ -93,27 +101,59 @@ impl Project {
 
     /// Makes the session `id` of the process `pid` hold the lock of the worktree `dir` (WSL-9).
     fn lock(dir: &Path, id: &str, pid: &str) {
-        let path = git(
-            dir,
-            &[
-                "rev-parse",
-                "--path-format=absolute",
-                "--git-path",
-                "cardinal-session",
-            ],
+        std::fs::write(
+            git_path(dir, "cardinal-session"),
+            format!("session {id}\npid {pid}\n"),
+        )
+        .unwrap();
+    }
+
+    /// Marks the worktree `dir` as waiting for the user in the session `id` since `since` (SWT-3).
+    fn waiting(dir: &Path, id: &str, since: u64, reason: &str) {
+        std::fs::write(
+            git_path(dir, "cardinal-waiting"),
+            format!("session {id}\nsince {since}\nreason {reason}\n"),
+        )
+        .unwrap();
+    }
+
+    /// Writes a fake `zellij` whose `action list-tabs --json` prints `tabs` and exits `code`.
+    fn zellij(&self, tabs: &str, code: i32) -> PathBuf {
+        let path = self.root.path().join("zellij");
+        let script = format!(
+            "#!/bin/sh\ncase \"$*\" in\n  'action list-tabs --json') printf '%s\\n' '{tabs}'; exit {code} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n"
         );
-        std::fs::write(path, format!("session {id}\npid {pid}\n")).unwrap();
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path
     }
 }
 
-/// `cardinal-ui <args>` in `dir` with the fake `cardinal`: exit code, stdout, stderr.
+/// `cardinal-ui <args>` in `dir` with the fake `cardinal`, outside zellij: exit code, stdout, stderr.
 fn ui(dir: &Path, cardinal: &Path, args: &[&str]) -> (Option<i32>, String, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"))
-        .args(args)
+    ui_in(dir, cardinal, None, args)
+}
+
+/// `cardinal-ui <args>` in `dir` with the fake `cardinal`, in a zellij session whose `zellij` is `zellij` when given
+/// (STU-12); the time zone is UTC.
+fn ui_in(
+    dir: &Path,
+    cardinal: &Path,
+    zellij: Option<&Path>,
+    args: &[&str],
+) -> (Option<i32>, String, String) {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_cardinal-ui"));
+    cmd.args(args)
         .current_dir(dir)
         .env("CARDINAL_UI_CARDINAL", cardinal)
-        .output()
-        .unwrap();
+        .env("TZ", "UTC")
+        .env_remove("ZELLIJ")
+        // outside zellij, a call of `zellij` fails the test
+        .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij");
+    if let Some(zellij) = zellij {
+        cmd.env("ZELLIJ", "0").env("CARDINAL_UI_ZELLIJ", zellij);
+    }
+    let out = cmd.output().unwrap();
     (
         out.status.code(),
         String::from_utf8_lossy(&out.stdout).into_owned(),
@@ -384,4 +424,77 @@ fn a_closed_output_is_no_panic() {
     drop(child.stdout.take());
     let out = child.wait_with_output().unwrap();
     assert!(matches!(out.status.code(), Some(0 | 1)), "{out:?}");
+}
+
+/// 2026-11-20 09:05:00 UTC.
+const NINE_O_FIVE: u64 = 1_795_165_500;
+
+// spec: STU-H3, STU-13
+#[test]
+fn a_session_that_waits_for_the_user_is_flagged() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    Project::lock(&p.ws, "s1", &std::process::id().to_string());
+    Project::waiting(&p.ws, "s1", NINE_O_FIVE, "stop");
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    assert!(ws.contains("session s1  waiting since 09:05: stop"), "{ws}");
+    assert!(!line(&out, &format!("{}  ", p.repo.display())).contains("waiting"));
+}
+
+// spec: STU-13
+#[test]
+fn a_mark_of_an_ended_or_another_session_is_not_shown() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    Project::lock(&p.ws, "s1", "2147483646");
+    Project::waiting(&p.ws, "s1", NINE_O_FIVE, "stop");
+    Project::lock(&p.repo, "s2", &std::process::id().to_string());
+    Project::waiting(&p.repo, "s3", NINE_O_FIVE, "stop");
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    assert!(ws.contains("ended") && !ws.contains("waiting"), "{ws}");
+    assert!(
+        !line(&out, &format!("{}  ", p.repo.display())).contains("waiting"),
+        "{out}"
+    );
+}
+
+const TABS: &str =
+    r#"[{"position":0,"name":"Tab #1","tab_id":0},{"position":1,"name":"a","tab_id":3}]"#;
+
+// spec: STU-10, STU-3
+#[test]
+fn an_issue_with_a_tab_of_its_name_shows_it() {
+    let p = project();
+    let queue = QUEUE.replace("WS", p.ws.to_str().unwrap());
+    let cardinal = p.cardinal(&ok(&queue), &ok(ROADMAP));
+    let zellij = p.zellij(TABS, 0);
+    let (code, out, err) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        line(&out, "  a  ")
+            .trim_end_matches(['│', ' '])
+            .ends_with("  tab"),
+        "{out}"
+    );
+    assert!(!line(&out, "> b").contains("tab"), "{out}");
+}
+
+// spec: STU-12
+#[test]
+fn outside_zellij_or_when_list_tabs_fails_no_tab_and_no_error() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(!line(&out, "  a  ").contains("tab"), "{out}");
+    let failing = p.zellij("", 1);
+    let (code, out, _) = ui_in(&p.repo, &cardinal, Some(&failing), &["--print"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(!line(&out, "  a  ").contains("tab"), "{out}");
+    let text = p.zellij("not json", 0);
+    let (code, out, _) = ui_in(&p.repo, &cardinal, Some(&text), &["--print"]);
+    assert_eq!(code, Some(0), "{out}");
 }

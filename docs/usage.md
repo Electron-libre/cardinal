@@ -260,14 +260,15 @@ project of the current directory (the root of its work tree) in one terminal scr
 | Panel | Read from | Each line |
 |---|---|---|
 | Milestones | `cardinal run roadmap --open --json`, the released ones left out | name, state (`(on hold)` after it), open issues over the listed ones |
-| Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch); the problems of the issue files under it, after `!` |
-| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free` |
+| Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem; the problems of the issue files under it, after `!` |
+| Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch, the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` while that session waits for the user (the mark of the `session-wait` hooks) |
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` or `Ctrl+C`. `cardinal-ui --print` prints the
 screen once as text (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a `version` other
 than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal` it runs is the
-one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names. It writes nothing; `next-issue` still drops the
+one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; in a zellij session it lists the tabs with
+`zellij action list-tabs --json`, through the `zellij` on the `PATH` or the program `CARDINAL_UI_ZELLIJ` names. It writes nothing; `next-issue` still drops the
 claims of the issues the trunk closed, as it does for the agent. Install it with `cargo install` (`just install-ui`
 in a clone): no release binary is published for it.
 

@@ -80,6 +80,9 @@ fn queue(q: &Queue) -> Vec<String> {
             ];
             cells.extend(i.milestone.clone());
             cells.extend(i.taken.as_ref().map(taken));
+            if i.tab {
+                cells.push("tab".to_string());
+            }
             format!("{marker}{}", cells.join("  "))
         })
         .collect();
@@ -90,10 +93,25 @@ fn queue(q: &Queue) -> Vec<String> {
     lines
 }
 
+/// The local time `HH:MM` of `seconds` since the Unix epoch (STU-13).
+fn clock(seconds: i64) -> String {
+    chrono::DateTime::from_timestamp(seconds, 0).map_or_else(
+        || "?".to_string(),
+        |t| t.with_timezone(&chrono::Local).format("%H:%M").to_string(),
+    )
+}
+
 fn worktree(w: &Worktree) -> String {
     let session = match &w.session {
         None => "free".to_string(),
-        Some(s) if s.alive => format!("session {}", s.id),
+        Some(s) if s.alive => match &s.waiting {
+            Some((since, reason)) => format!(
+                "session {}  waiting since {}: {reason}",
+                s.id,
+                clock(*since)
+            ),
+            None => format!("session {}", s.id),
+        },
         Some(s) => format!("session {} ended", s.id),
     };
     format!(

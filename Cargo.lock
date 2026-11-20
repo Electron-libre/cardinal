@@ -118,6 +118,7 @@ dependencies = [
 name = "cardinal-ui"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "ratatui",
  "serde_json",
  "tempfile",

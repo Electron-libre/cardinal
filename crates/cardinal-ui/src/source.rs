@@ -1,6 +1,7 @@
 //! What `cardinal-ui` reads of a project (STU-3): the documents of `cardinal run next-issue --json` and
 //! `cardinal run roadmap --json` (NXT-19, RMP-8) and the worktrees git lists, each with the session of its lock
-//! (WSL-9). A source that cannot be read gives the line its panel shows instead (STU-6).
+//! (WSL-9) and its wait mark (SWT-3), and, in a zellij session, the names of its tabs (STU-10). A source that cannot
+//! be read gives the line its panel shows instead (STU-6).
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -40,6 +41,8 @@ pub struct Issue {
     pub state: String,
     pub milestone: Option<String>,
     pub taken: Option<Taken>,
+    /// Whether a tab of the current zellij session is named after its stem (STU-10).
+    pub tab: bool,
 }
 
 /// The queue of `next-issue --json`, and the problems it reported on stderr (NXT-2, STU-6).
@@ -53,6 +56,9 @@ pub struct Queue {
 pub struct Session {
     pub id: String,
     pub alive: bool,
+    /// Since when (seconds since the Unix epoch) and why it waits for the user, when it runs and the mark of the
+    /// worktree names it (STU-13).
+    pub waiting: Option<(i64, String)>,
 }
 
 /// A worktree of `git worktree list` (STU-7).
@@ -74,6 +80,32 @@ pub struct State {
 fn cardinal() -> PathBuf {
     std::env::var_os("CARDINAL_UI_CARDINAL")
         .map_or_else(|| PathBuf::from("cardinal"), PathBuf::from)
+}
+
+/// The `zellij` to run: `CARDINAL_UI_ZELLIJ`, else `zellij` on the `PATH` (STU-12).
+fn zellij() -> PathBuf {
+    std::env::var_os("CARDINAL_UI_ZELLIJ").map_or_else(|| PathBuf::from("zellij"), PathBuf::from)
+}
+
+/// Whether the UI runs in a zellij session (STU-9).
+pub fn in_zellij() -> bool {
+    std::env::var_os("ZELLIJ").is_some()
+}
+
+/// The names of the tabs of the current zellij session; none outside zellij or when they cannot be listed (STU-12).
+fn tabs(dir: &Path) -> Vec<String> {
+    if !in_zellij() {
+        return Vec::new();
+    }
+    let args = ["action", "list-tabs", "--json"];
+    let Ok((out, _, 0)) = run("zellij", &zellij(), &args, dir) else {
+        return Vec::new();
+    };
+    let list = serde_json::from_str::<Value>(out.trim()).unwrap_or_default();
+    array(&list)
+        .iter()
+        .filter_map(|t| string(&t["name"]))
+        .collect()
 }
 
 /// The output of `program args` in `dir`: stdout, stderr and exit code; the error line of STU-6 when it cannot run.
@@ -182,13 +214,16 @@ fn taken(v: &Value) -> Option<Taken> {
 }
 
 /// The queue of `next-issue --json` (NXT-19).
-fn queue(dir: &Path) -> Result<Queue, String> {
+fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
     let (doc, err) = document("next-issue", &[], dir, true)?;
     Ok(Queue {
         next: string(&doc["next"]),
         issues: array(&doc["issues"])
             .iter()
             .map(|i| Issue {
+                tab: i["stem"]
+                    .as_str()
+                    .is_some_and(|s| tabs.iter().any(|t| t == s)),
                 stem: string(&i["stem"]).unwrap_or_default(),
                 priority: string(&i["priority"]),
                 state: string(&i["state"]).unwrap_or_default(),
@@ -214,30 +249,37 @@ fn alive(pid: &str) -> bool {
             .is_ok_and(|s| s.success())
 }
 
-/// The session of the lock of the worktree `path`, read from the file `cardinal-session` of its git directory
-/// (WSL-9); `None` when there is none (STU-7).
-fn session(path: &Path) -> Option<Session> {
-    let git = Path::new("git");
-    let args = [
-        "rev-parse",
-        "--path-format=absolute",
-        "--git-path",
-        "cardinal-session",
-    ];
-    let (out, _, code) = run("git", git, &args, path).ok()?;
+/// The file `name` of the git directory of the worktree `path`.
+fn git_file(path: &Path, name: &str) -> Option<String> {
+    let args = ["rev-parse", "--path-format=absolute", "--git-path", name];
+    let (out, _, code) = run("git", Path::new("git"), &args, path).ok()?;
     if code != 0 {
         return None;
     }
-    let text = std::fs::read_to_string(out.trim()).ok()?;
-    let field = |key: &str| {
-        text.lines()
-            .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
-            .map(str::to_string)
-    };
-    Some(Session {
-        id: field("session")?,
-        alive: alive(&field("pid")?),
-    })
+    std::fs::read_to_string(out.trim()).ok()
+}
+
+/// The value of the line `<key> <value>` of `text`.
+fn field(text: &str, key: &str) -> Option<String> {
+    text.lines()
+        .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
+        .map(str::to_string)
+}
+
+/// The session of the lock of the worktree `path`, read from the file `cardinal-session` of its git directory
+/// (WSL-9), with the wait mark `cardinal-waiting` that names it while it runs (SWT-3); `None` when there is none
+/// (STU-7, STU-13).
+fn session(path: &Path) -> Option<Session> {
+    let text = git_file(path, "cardinal-session")?;
+    let id = field(&text, "session")?;
+    let alive = alive(&field(&text, "pid")?);
+    let waiting = git_file(path, "cardinal-waiting")
+        .filter(|mark| alive && field(mark, "session").as_deref() == Some(id.as_str()))
+        .and_then(|mark| {
+            let since = field(&mark, "since")?.parse().ok()?;
+            Some((since, field(&mark, "reason").unwrap_or_default()))
+        });
+    Some(Session { id, alive, waiting })
 }
 
 /// The worktrees of the repository of `dir`, in the order of `git worktree list --porcelain` (STU-7).
@@ -285,7 +327,7 @@ pub fn root(dir: &Path) -> PathBuf {
 pub fn read(dir: &Path) -> State {
     State {
         milestones: milestones(dir),
-        queue: queue(dir),
+        queue: queue(dir, &tabs(dir)),
         worktrees: worktrees(dir),
     }
 }

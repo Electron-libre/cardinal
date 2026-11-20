@@ -245,7 +245,9 @@ consumer does not need it; the release workflow does not build it.
 flowchart LR
   ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims"]
   ui -->|"cardinal run roadmap --json"| milestones["milestones"]
-  ui -->|"git worktree list,<br/>git-path cardinal-session"| worktrees["worktrees, locks"]
+  ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
+  ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
+  tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
   milestones --> screen
   worktrees --> screen
@@ -253,7 +255,7 @@ flowchart LR
 
 | Module | Does |
 |---|---|
-| `source.rs` | runs the tools and git, checks the documents, reads the lock of each worktree |
+| `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source |
 | `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads on a thread of their own, renders `--print` into a buffer |
 

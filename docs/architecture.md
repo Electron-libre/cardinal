@@ -265,7 +265,7 @@ flowchart LR
 | `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
 | `panels.rs` | one line per milestone, issue and worktree, or the error of a source; the measures panel |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
-| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts and the merges on threads of their own, renders `--print` into a buffer |
+| `screen.rs` | draws the panels (Ratatui), runs the terminal loop with the reads, the starts, the merges and the ends on threads of their own, the selection in the queue or the worktrees, renders `--print` into a buffer |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
 | `end.rs` | ends what a merged issue left: refuses a session at work, a dirty worktree, a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree |

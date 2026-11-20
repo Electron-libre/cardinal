@@ -260,14 +260,16 @@ pub fn alive(pid: &str) -> bool {
             .is_ok_and(|s| s.success())
 }
 
-/// The file `name` of the git directory of the worktree `path`.
-fn git_file(path: &Path, name: &str) -> Option<String> {
+/// The path of the file `name` of the git directory of the worktree `path`.
+pub fn git_path(path: &Path, name: &str) -> Option<PathBuf> {
     let args = ["rev-parse", "--path-format=absolute", "--git-path", name];
     let (out, _, code) = run("git", Path::new("git"), &args, path).ok()?;
-    if code != 0 {
-        return None;
-    }
-    std::fs::read_to_string(out.trim()).ok()
+    (code == 0).then(|| PathBuf::from(out.trim()))
+}
+
+/// The file `name` of the git directory of the worktree `path`.
+fn git_file(path: &Path, name: &str) -> Option<String> {
+    std::fs::read_to_string(git_path(path, name)?).ok()
 }
 
 /// The value of the line `<key> <value>` of `text`.

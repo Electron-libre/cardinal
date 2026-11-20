@@ -101,7 +101,9 @@ fn merge_in_project(stem: &str) -> Result<String, String> {
 /// Merges the issue `stem`, then ends what it left once its check passed (STU-20, STU-22).
 fn merge_then_end(stem: &str) -> Result<String, String> {
     let root = source::root(Path::new("."));
-    end::after_merge(merge::merge(&root, stem), || end::end(&root, stem))
+    end::after_merge(merge::merge_branch(&root, stem), |branch| {
+        end::end_on(&root, stem, branch)
+    })
 }
 
 /// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (STU-11, STU-21).

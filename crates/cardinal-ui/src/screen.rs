@@ -107,7 +107,7 @@ fn render(
     .split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let scroll = match selected {
-            Some((1, line)) if n == 1 => offset(line, area.height.saturating_sub(2)),
+            Some((panel, line)) if panel == n => offset(line, area.height.saturating_sub(2)),
             _ => 0,
         };
         let lines: Vec<Line> = p
@@ -696,6 +696,31 @@ mod tests {
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, ws)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
+    }
+
+    // spec: STU-22 (internal: the layout of a screen that needs a real terminal)
+    #[test]
+    fn the_selected_worktree_stays_visible_in_a_short_panel() {
+        let panel = |title, lines: Vec<String>| Panel {
+            title,
+            lines,
+            failed: false,
+        };
+        let worktrees = (1..=20).map(|i| format!("/ws{i:02}")).collect();
+        let panels = [
+            panel("Milestones", vec!["m".to_string()]),
+            panel("Queue", vec!["> b".to_string()]),
+            panel("Worktrees", worktrees),
+            panel("Measures", vec!["x".to_string()]),
+        ];
+        let area = Rect::new(0, 0, 40, 16);
+        let mut buf = Buffer::empty(area);
+        render(area, &mut buf, &panels, Some((2, 17)), "");
+        let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let y = (0..16)
+            .find(|y| row(*y).contains("/ws18"))
+            .expect("the selected worktree is shown");
+        assert!(buf[(3, y)].modifier.contains(Modifier::REVERSED));
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

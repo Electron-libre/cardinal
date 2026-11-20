@@ -305,13 +305,15 @@ why nothing was; `s`, `f` and `e` start nothing while a start, a merge or an end
 ended, printing the result of a merge or an end. The next
 read drops the claim (CLM-6).
 
-Once the trunk holds the close of an issue, `f` goes on once `cardinal check` passed, and, for an issue merged by
-hand, `e` on its worktree (`Tab` moves the selection to the worktrees panel, the arrows within it; `s` and `f` act on
-the queue) or `cardinal-ui --end <stem>` does alone, ending what it left, from any other worktree of
-the project: the session of the linked worktree on the branch `<stem>` and its tab, then the worktree and the branch
-(`cardinal run worktree close <stem>`, run in the main worktree). In a zellij session, the tab named `<stem>` whose
+Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose
+`cardinal check` passed; for an issue merged by hand, `e` on its worktree (`Tab` moves the selection to the worktrees
+panel, the arrows within it; `s` and `f` act on the queue), or `cardinal-ui --end <stem>`, does it alone. From any
+other worktree of the project, it ends the session of the linked worktree on the branch `<stem>` and its tab, then the worktree and the branch
+(`cardinal run worktree close <path>`, run in the main worktree); after `f`, the worktree of the branch of the claim. In a zellij session, the tab named `<stem>` whose
 pane runs `claude /issue-workflow issues/<stem>.md` (the one `s` opened, found with `zellij action list-panes --json
---all`) is closed, or that pane alone when the tab holds others; a session with no such pane gets `SIGHUP`. Either
+--all`) is closed, or that pane alone when the tab holds others; a session with no such pane (its command exited, or a
+zellij without `list-panes`) gets `SIGHUP`, unless its process started after the lock was written: that number was
+taken by another process, which gets no signal. Either
 way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 10 seconds for it. It ends nothing
 (exit 1, saying why) when no linked worktree is on that branch, the main worktree is detached, the trunk lacks
 `issues/done/<stem>.md`, the worktree has uncommitted changes or untracked files, the UI runs inside it, or its

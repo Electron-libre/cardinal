@@ -23,7 +23,9 @@ fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
     let terminal = |p: &&Value| p["is_plugin"] == false;
     let command = format!("claude /issue-workflow issues/{stem}.md");
     let pane = panes.iter().filter(terminal).find(|p| {
-        p["tab_name"].as_str() == Some(stem) && p["terminal_command"].as_str() == Some(&command)
+        p["tab_name"].as_str() == Some(stem)
+            && p["terminal_command"].as_str() == Some(&command)
+            && p["exited"] != true
     })?;
     let tab = pane["tab_id"].as_u64()?;
     let alone = panes
@@ -45,9 +47,12 @@ fn zellij(dir: &Path, args: &[&str]) -> Result<String, String> {
     Ok(out)
 }
 
-/// Closes the tab, or the pane alone, of the session of `stem`: what was closed, `None` when the UI opened none.
+/// Closes the tab, or the pane alone, of the session of `stem`: what was closed, `None` when the UI opened none or
+/// the panes cannot be listed (a zellij without `list-panes`).
 fn close_pane(dir: &Path, stem: &str) -> Result<Option<String>, String> {
-    let out = zellij(dir, &["action", "list-panes", "--json", "--all"])?;
+    let Ok(out) = zellij(dir, &["action", "list-panes", "--json", "--all"]) else {
+        return Ok(None);
+    };
     let panes = serde_json::from_str::<Value>(out.trim()).unwrap_or_default();
     let Some((tab, pane, alone)) = session_pane(&panes, stem) else {
         return Ok(None);
@@ -67,7 +72,8 @@ fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), S
     if !signalled {
         let kill = "kill -HUP";
         let (_, err, code) = source::run(kill, Path::new("kill"), &["-HUP", pid], dir)?;
-        if code != 0 {
+        // a session that ended on its own meanwhile needs no signal
+        if code != 0 && source::alive(pid) {
             return Err(source::failure(kill, code, &err));
         }
     }
@@ -84,16 +90,45 @@ fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), S
     Ok(())
 }
 
-/// Ends what the merged issue `stem` of the project at `root` left: `ended <stem>`, or why nothing was ended, or the
-/// step that failed after what the steps before it did (STU-24, STU-25).
+/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
+/// that took the number of the session (STU-25).
+fn started_after(pid: &str, lock: &Path) -> bool {
+    let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
+        return false;
+    };
+    let Ok((out, _, 0)) = source::run(
+        "ps",
+        Path::new("ps"),
+        &["-o", "etimes=", "-p", pid],
+        lock.parent().unwrap_or(lock),
+    ) else {
+        return false;
+    };
+    let Ok(elapsed) = out.trim().parse::<u64>() else {
+        return false;
+    };
+    let started = std::time::SystemTime::now() - Duration::from_secs(elapsed);
+    started
+        .duration_since(written)
+        .is_ok_and(|d| d > Duration::from_secs(2))
+}
+
+/// Ends what the merged issue `stem` of the project at `root` left, on the linked worktree of the branch `stem`
+/// (STU-24).
 pub fn end(root: &Path, stem: &str) -> Result<String, String> {
+    end_on(root, stem, stem)
+}
+
+/// Ends what the merged issue `stem` left on the linked worktree of the branch `branch`: `ended <stem>`, or why
+/// nothing was ended, or the step that failed after what the steps before it did (STU-22, STU-24, STU-25).
+pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     let (main, trunk) = main_worktree(root)?;
     let worktrees = source::worktrees(root)?;
     let target = worktrees
         .iter()
         .skip(1)
-        .find(|w| w.branch.as_deref() == Some(stem))
-        .ok_or_else(|| format!("{stem}: no linked worktree on branch {stem}"))?;
+        .find(|w| w.branch.as_deref() == Some(branch))
+        .ok_or_else(|| format!("{stem}: no linked worktree on branch {branch}"))?;
     let path = Path::new(&target.path);
     let trunk = trunk.ok_or("main worktree not on a branch")?;
     if !source::holds_close(&main, &trunk, stem)? {
@@ -117,7 +152,11 @@ pub fn end(root: &Path, stem: &str) -> Result<String, String> {
             path.display()
         ));
     }
-    let session = target.session.as_ref().filter(|s| s.alive);
+    let lock = source::git_path(path, "cardinal-session");
+    let session = target
+        .session
+        .as_ref()
+        .filter(|s| s.alive && !lock.as_deref().is_some_and(|l| started_after(&s.pid, l)));
     if let Some(s) = session.filter(|s| s.waiting.is_none()) {
         return Err(format!("session {} is at work in {}", s.id, path.display()));
     }
@@ -142,7 +181,7 @@ pub fn end(root: &Path, stem: &str) -> Result<String, String> {
     let (_, err, code) = source::run(
         name,
         &source::cardinal(),
-        &["run", "worktree", "close", stem],
+        &["run", "worktree", "close", &target.path],
         &main,
     )
     .map_err(|e| failed(&done, e))?;
@@ -154,11 +193,11 @@ pub fn end(root: &Path, stem: &str) -> Result<String, String> {
 
 /// The result of the merge of STU-20 followed, once its `cardinal check` passed, by the end of its issue (STU-22).
 pub fn after_merge(
-    merged: Result<String, String>,
-    end: impl FnOnce() -> Result<String, String>,
+    merged: Result<(String, String), String>,
+    end: impl FnOnce(&str) -> Result<String, String>,
 ) -> Result<String, String> {
-    let merged = merged?;
-    end()
+    let (branch, merged) = merged?;
+    end(&branch)
         .map(|e| format!("{merged}; {e}"))
         .map_err(|e| format!("{merged}; {e}"))
 }
@@ -169,20 +208,27 @@ mod tests {
 
     // spec: STU-22 (internal: the key `f` runs in the terminal loop, which no binary test drives)
     #[test]
-    fn a_merge_whose_check_passed_chains_the_end_and_a_failed_one_does_not() {
-        let merged = || Ok("merged foo (foo) into trunk".to_string());
+    fn a_merge_whose_check_passed_chains_the_end_on_its_branch_and_a_failed_one_does_not() {
+        let merged = || {
+            Ok((
+                "feature-foo".to_string(),
+                "merged foo (feature-foo) into trunk".to_string(),
+            ))
+        };
         assert_eq!(
-            after_merge(merged(), || Ok("ended foo".to_string())),
-            Ok("merged foo (foo) into trunk; ended foo".to_string())
+            after_merge(merged(), |branch| Ok(format!("ended on {branch}"))),
+            Ok("merged foo (feature-foo) into trunk; ended on feature-foo".to_string())
         );
         assert_eq!(
-            after_merge(merged(), || Err("session s1 is at work in ws".to_string())),
-            Err("merged foo (foo) into trunk; session s1 is at work in ws".to_string())
+            after_merge(merged(), |_| Err("session s1 is at work in ws".to_string())),
+            Err("merged foo (feature-foo) into trunk; session s1 is at work in ws".to_string())
         );
-        let failed = Err("merged foo (foo) into trunk; cardinal check: exit 1".to_string());
+        let failed = "merged foo (foo) into trunk; cardinal check: exit 1".to_string();
         assert_eq!(
-            after_merge(failed.clone(), || panic!("no end after a failed check")),
-            failed
+            after_merge(Err(failed.clone()), |_| panic!(
+                "no end after a failed check"
+            )),
+            Err(failed)
         );
     }
 }

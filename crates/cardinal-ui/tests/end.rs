@@ -110,7 +110,7 @@ impl Project {
         executable(
             &self.path("zellij"),
             &format!(
-                "#!/bin/sh\necho \"zellij $*\" >> '{log}'\ncase \"$2\" in\n  list-panes) cat '{panes}'; exit 0 ;;\n  close-tab-by-id|close-pane) [ -f '{pid}' ] && kill -HUP $(cat '{pid}'); exit 0 ;;\nesac\nexit 9\n",
+                "#!/bin/sh\necho \"zellij $*\" >> '{log}'\ncase \"$2\" in\n  list-panes) grep -q FAIL '{panes}' && {{ echo 'no such action' >&2; exit 2; }}; cat '{panes}'; exit 0 ;;\n  close-tab-by-id|close-pane) [ -f '{pid}' ] && kill -HUP $(cat '{pid}'); exit 0 ;;\nesac\nexit 9\n",
                 panes = self.path("panes").display(),
                 pid = self.path("pid").display(),
             ),
@@ -205,7 +205,11 @@ impl Project {
     }
 
     fn closed(&self) -> String {
-        format!("worktree close foo in {}\n", self.repo.display())
+        format!(
+            "worktree close {} in {}\n",
+            self.ws.display(),
+            self.repo.display()
+        )
     }
 }
 
@@ -384,4 +388,42 @@ fn no_linked_worktree_on_the_branch_or_a_detached_main_is_refused() {
     assert_eq!(code, Some(1));
     assert!(err.contains("main worktree not on a branch"), "{err}");
     assert_eq!(p.log(), "");
+}
+
+// spec: STU-25
+#[test]
+fn a_failing_list_panes_or_an_exited_pane_falls_back_to_sighup() {
+    for panes in [
+        "FAIL".to_string(),
+        r#"[{"id":7,"is_plugin":false,"exited":true,"tab_id":4,"tab_name":"foo","terminal_command":"claude /issue-workflow issues/foo.md"}]"#.to_string(),
+    ] {
+        let mut p = project(true);
+        let pid = p.session(true, false);
+        std::fs::write(p.path("panes"), &panes).unwrap();
+        let (code, out, err) = p.end(&p.repo, "foo", true);
+        assert_eq!(code, Some(0), "{panes}: {out}{err}");
+        assert!(ended(pid), "{panes}: the session got SIGHUP");
+        let log = p.log();
+        assert!(!log.contains("close-tab") && !log.contains("close-pane"), "{log}");
+        assert!(log.ends_with(&p.closed()), "{log}");
+    }
+}
+
+// spec: STU-25
+#[test]
+fn a_pid_started_after_the_lock_is_another_process_and_gets_no_signal() {
+    let mut p = project(true);
+    let pid = p.session(true, false);
+    let lock = p.git_path("cardinal-session");
+    let old = std::time::SystemTime::now() - Duration::from_secs(600);
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(old)
+        .unwrap();
+    let (code, out, err) = p.end(&p.repo, "foo", false);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(alive(pid), "the process that took the number lives");
+    assert_eq!(p.log(), p.closed());
 }

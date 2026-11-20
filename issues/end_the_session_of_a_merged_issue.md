@@ -62,6 +62,10 @@ without the close. Out of scope: `--force`, ending a session whose issue is not 
    verified by `tests/merge.rs` and `tests/print.rs`; makes true STU-23 and the chain of STU-22. (autonomous)
 3. [x] Selection in the worktrees panel (`Tab`, arrows, kept by path across reads) and the key `e`, one task at a time;
    verified by unit tests of `screen.rs` and the `--end` test; makes true STU-22, STU-15, STU-H6, STU-H7. (autonomous)
+4. [x] Docs of the whole issue and fixes of its `high` review: the end after `f` on the worktree of the claim's branch,
+   closed by its path; `list-panes` failing or an exited pane fall back to `SIGHUP`; no signal to a pid started after
+   the lock; a `kill` of a process already gone is no failure; the worktrees panel scrolls to its selection; verified
+   by `tests/end.rs` and unit tests; makes true STU-22, STU-25. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -125,4 +129,29 @@ selected worktree's issue, `s`/`f` and `e` say which panel they need; spec `acce
 red: STU-22: `cannot find type Focus`, `no variant End`, `no field worktrees` (28 compile errors)
 Code review: no findings
 not verified: the keys in a real terminal; the help line, longer now, clips the status line under ~110 columns.
+decisions needed: none
+
+## Summary of deliverable 4
+done: `update-docs` over `f457da6..HEAD` (usage, architecture); fixes of the `high` review: the end after `f` runs on
+the worktree of the claim's branch (`merge_branch`, `end_on`), `worktree close` gets the worktree's path, an exited
+pane or a failing `list-panes` falls back to `SIGHUP`, a pid started over 2 s after the lock gets no signal, a `kill`
+of a process gone meanwhile is no failure, the worktrees panel scrolls to its selection; STU-22 and STU-25 amended.
+
+| check | result |
+|---|---|
+| tests | `tests/end.rs` 13 passed, unit tests of `after_merge` and the scroll; `project-check` exit 0 |
+| lint | clean |
+| specs | `accepted`; size warning (issue `split_the_steering_ui_spec`) |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+| code review | high on the issue: 7 findings; low on this deliverable: no findings |
+
+red: STU-25, STU-22: `a_failing_list_panes_or_an_exited_pane_falls_back_to_sighup` (exit 1 on `list-panes`), the pid
+test (the process got `SIGHUP`), the log `worktree close foo` instead of the path, `after_merge` taking no branch
+Code review: 7 findings (high): branch other than the stem after `f`: fixed; SIGHUP to a recycled pid: fixed (start
+time against the lock's mtime); `list-panes` failing: fixed; exited pane: fixed; end before knowing `worktree close`
+accepts the branch: not fixed, `worktree close` decides merged with ancestry, `git cherry` and trees (PAR-6), which a
+copy in the UI would drift from, and a branch with new commits after its merge is rare, the session already waiting;
+`kill` of a gone process: fixed; worktrees panel not scrolled: fixed.
+not verified: `e` on a worktree whose branch is not named after its issue still looks for that branch's close (STU-22
+names the branch `<stem>`).
 decisions needed: none

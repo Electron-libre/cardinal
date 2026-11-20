@@ -54,6 +54,11 @@ fn pending_branch(root: &Path, stem: &str) -> Result<String, String> {
 /// Merges the issue `stem` of the project at `root` into the trunk: what was merged, or why nothing was, or why the
 /// check after the merge failed (STU-20, STU-21).
 pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
+    merge_branch(root, stem).map(|(_, merged)| merged)
+}
+
+/// The merge of `merge`, with the branch of the claim it merged when it succeeded (STU-22).
+pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String> {
     let branch = pending_branch(root, stem)?;
     // the full name: a tag of the same name would win over the branch
     let head = format!("refs/heads/{branch}");
@@ -90,7 +95,7 @@ pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     let merged = format!("merged {stem} ({branch}) into {trunk}");
     let check = "cardinal check";
     match source::run(check, &source::cardinal(), &["check"], &main) {
-        Ok((_, _, 0)) => Ok(merged),
+        Ok((_, _, 0)) => Ok((branch, merged)),
         Ok((_, err, code)) => Err(format!("{merged}; {}", source::failure(check, code, &err))),
         Err(e) => Err(format!("{merged}; {e}")),
     }

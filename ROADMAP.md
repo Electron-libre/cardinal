@@ -31,10 +31,28 @@ The work done before this file existed is in `issues/done/`.
   - [start_an_issue_session_in_a_zellij_pane](issues/done/start_an_issue_session_in_a_zellij_pane.md)
   - [show_the_measures_in_the_steering_ui](issues/done/show_the_measures_in_the_steering_ui.md)
 
+## Merge back from the steering UI
+
+- Goal: give the user a path, from the steering UI, from a closed issue to a clean trunk: merge its branch into the
+  trunk locally, then end its `claude` session, close its zellij tab and remove its worktree and branch.
+- Why: once a session closes its issue on its branch, the user opens the main worktree to merge it by hand, then
+  ends the session, closes the tab and runs `cardinal run worktree close`; the close also pushes and opens a pull
+  request a project that merges locally does not want.
+- State: in issues
+- Issues:
+  - [merge_back_locally_when_the_project_asks](issues/merge_back_locally_when_the_project_asks.md)
+  - [merge_a_closed_issue_from_the_steering_ui](issues/merge_a_closed_issue_from_the_steering_ui.md)
+  - [end_the_session_of_a_merged_issue](issues/end_the_session_of_a_merged_issue.md)
+
 ## Releases from the steering UI
 
 - Goal: give the user a path to release from the steering UI: see which `done` milestone awaits its release, then
   start it on the trunk (the version `cardinal run release` proposes, the section to reread and review, the tag).
 - Why: an issue session runs in a linked worktree and never enters the main one, so it cannot prepare the release
   its close proposes; today the user merges, opens a session in the main worktree and asks for the release by hand.
-- State: idea
+- State: in issues
+- Issues:
+  - [print_the_release_proposal_as_json](issues/print_the_release_proposal_as_json.md)
+  - [show_the_milestones_awaiting_their_release](issues/show_the_milestones_awaiting_their_release.md)
+  - [write_the_release_steps_in_a_skill](issues/write_the_release_steps_in_a_skill.md)
+  - [start_a_release_session_on_the_trunk](issues/start_a_release_session_on_the_trunk.md)

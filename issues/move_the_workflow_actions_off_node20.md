@@ -44,6 +44,8 @@ major on `node24`: checkout v7, upload-artifact v7, download-artifact v8. `Swati
 1. [x] Bump the actions: `checkout@v4` → `@v7` (4 workflow files), `upload-artifact@v4` → `@v7`,
    `download-artifact@v4` → `@v8` (`release.yml`), then `just sync`; verified by `just check` (`check-cardinal`: the
    copy matches `files/`) and `grep -rn 'uses:'` showing only `node24` or composite actions. (autonomous)
+2. [x] Fixes of the `high` review: `docs/usage.md` names the runner minimum of the synced workflow at `github-ci`;
+   verified by `just check` and a `low` review. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -54,6 +56,8 @@ major on `node24`: checkout v7, upload-artifact v7, download-artifact v8. `Swati
   publishes with `GH_TOKEN`, not the checkout's credentials (its `publish` job has no checkout). download-artifact v5
   changes the path of a download by ID (we download by pattern with `merge-multiple`), v8 fails on a digest
   mismatch (wanted). upload-artifact v7 adds an opt-in `archive: false`.
+
+Status: done; left: the type of commit `2cd8acf` (see the summary of deliverable 2).
 
 ## Summary of deliverable 1
 done: the four workflows (and the synced copy) use `checkout@v7`, `upload-artifact@v7`, `download-artifact@v8`.
@@ -67,3 +71,18 @@ done: the four workflows (and the synced copy) use `checkout@v7`, `upload-artifa
 red: none (CI configuration, no test).
 Code review: no findings
 not verified: the workflows themselves only run on GitHub, after the push.
+
+## Summary of deliverable 2
+done: `docs/usage.md`, row `github-ci`: the synced workflow needs a runner that runs `node24` (2.327.1 or later).
+
+| check | result |
+|---|---|
+| tests, lint, specs (`just check`) | pass |
+| docs | this deliverable |
+| code review (`low`) | no findings |
+
+red: none (docs only).
+Code review: no findings
+High review of the issue: 2 findings (nits). Runner minimum not documented: fixed here. Commit typed `ci`, left out
+of the changelog by `release`: retyping it `fix(files)` rewrites a local commit, asked of the user.
+not verified: the workflows only run on GitHub, after the push.

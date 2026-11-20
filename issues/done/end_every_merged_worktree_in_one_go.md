@@ -129,7 +129,7 @@ red: SUA-8: `--end foo` exited 0 on a branch with a commit after the merge; SUA-
 High review (6 findings):
 - important, the end killed a session then kept its worktree when the branch was ahead of the trunk: fixed (SUA-8).
 - pre-existing, a merged worktree whose directory is gone is kept forever: filed as
-  [end_a_merged_worktree_whose_directory_is_gone](end_a_merged_worktree_whose_directory_is_gone.md).
+  [end_a_merged_worktree_whose_directory_is_gone](../end_a_merged_worktree_whose_directory_is_gone.md).
 - nit, the `; ` of a part and of its steps mixed up: parts joined by ` | `.
 - nit, `end_merged` reads every worktree again per worktree: not fixed, a handful of worktrees, the read is cheap
   next to the 10 s a session may take to end.

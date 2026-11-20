@@ -55,9 +55,9 @@ as text for scripts and the tests, which run a fake `cardinal` named by `CARDINA
 1. [x] Crate and reading: workspace member, ADR 0030, `source` module (run the tools, check `version`, the errors of
    STU-6; worktrees and their lock, STU-7) and a plain-text `--print` of the read state; verified by
    `crates/cardinal-ui/tests/print.rs` with a fake `cardinal`; makes true STU-3, STU-5 to STU-8. ~700 lines. (autonomous)
-2. [ ] Screen: the three panels drawn with Ratatui, `--print` rendering them through its test backend (100 columns),
+2. [x] Screen: the three panels drawn with Ratatui, `--print` rendering them through its test backend (100 columns),
    the interactive loop (alternate screen, refresh every 2 s, `r`, `q`, `Esc`); verified by `tests/print.rs`
-   (panels) and a unit test of the key handling; makes true STU-1, STU-2, STU-4, STU-H1. ~600 lines.
+   (panels) and a unit test of the key handling; makes true STU-1, STU-2, STU-4, STU-H1. ~600 lines. (autonomous)
 3. [ ] Install and docs: `just install-ui`, `README.md`, `docs/architecture.md` (a section on the UI),
    `docs/usage.md`, `commit_scopes` gains `ui`; verified by `just check`. ~100 lines.
 
@@ -82,6 +82,32 @@ Code review: 2 findings
    `a_queue_that_fails_with_exit_1_and_no_document_shows_its_stderr`).
 
 not verified: the interactive screen (deliverable 2)
+
+decisions needed: none
+
+## Deliverable 2
+done: the three panels drawn with Ratatui (titled boxes, the queue taking the rest, a help line), `--print` rendering
+them through its test backend, the interactive screen (alternate screen, refresh every 2 s and on `r`, `q` and `Esc`
+quit); STU-4 amended: the text is wider than 100 columns when a line needs it.
+
+| check | result |
+|---|---|
+| tests | `tests/print.rs` 10/10, unit test of the keys 1/1 |
+| lint | clippy clean |
+| specs | `check-specs` clean, every STU requirement traced |
+| docs | deferred to deliverable 3 by the plan |
+| smoke | interactive run in a pseudo-terminal (`script`, 120x40): screen drawn, `r` then `q`, exit 0, alternate screen left |
+| code review | `low`, 1 finding |
+
+red: none observed: the layout test was written after the screen; the earlier `--print` printed `== Milestones ==`
+and no box, which it would have failed on.
+
+Code review: 1 finding
+1. fixed: any event restarted the wait of 2 s, so a stream of keys or resizes could keep the screen from reading
+   the project; the wait now counts from the last read (smoke rerun with keys between, exit 0). No test: the loop
+   needs a real terminal.
+
+not verified: the screen in a terminal other than the pseudo-terminal of `script` (colours, resize by hand)
 
 decisions needed: none
 

@@ -19,7 +19,7 @@ open each worktree to know it. It reads the project and changes nothing.
 - **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen three panels: the milestones (each with its state, `on hold` when it is, and its open issues over the listed ones), the queue (each open issue in the order of `next-issue`, the one it offers marked, with its priority, its state, its milestone and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
 - **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, and quit on `q` or `Esc`, giving the terminal back as it found it.
 - **STU-3** (deterministic) `cardinal-ui` must write no file and no git ref of its own: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --json` and git commands that read.
-- **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, 100 columns wide, and exit, so a script or a test reads what the user would see.
+- **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, 100 columns wide or as wide as its longest line needs, and exit, so a script or a test reads what the user would see.
 
 ### Contract
 

@@ -284,3 +284,19 @@ fn a_queue_that_fails_with_exit_1_and_no_document_shows_its_stderr() {
     );
     assert_eq!(code, Some(1));
 }
+
+// spec: STU-1, STU-4
+#[test]
+fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let titles: Vec<&str> = out
+        .lines()
+        .filter_map(|l| l.strip_prefix("┌ ")?.split(' ').next())
+        .collect();
+    assert_eq!(titles, ["Milestones", "Queue", "Worktrees"], "{out}");
+    let width = out.lines().next().unwrap().chars().count();
+    assert!(width >= 100, "{width}: {out}");
+    assert!(out.lines().all(|l| l.chars().count() <= width), "{out}");
+}

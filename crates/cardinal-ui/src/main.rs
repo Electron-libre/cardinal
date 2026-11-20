@@ -10,6 +10,9 @@
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
 //! merged worktree; `--release` starts the release session in the main worktree.
 
+// drawn by the charts screen of the next commit, built and tested until then
+#[cfg_attr(not(test), allow(dead_code))]
+mod charts;
 mod end;
 mod keys;
 mod measures;

@@ -1,6 +1,6 @@
 //! The measures of the project (STU-16 to STU-19): `session-metrics` and `delivered-quality --summary` run into the
 //! cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
-//! milestone. The readers take about a minute each on a large history of transcripts, so the screen shows the last
+//! milestone, and the last 12 groups of revisions for the charts (SUC-4). The readers take about a minute each on a large history of transcripts, so the screen shows the last
 //! measure at once, measures again when it starts and the last one is over an hour old and on `m`, on a thread of its
 //! own.
 
@@ -15,10 +15,11 @@ pub const STALE: Duration = Duration::from_secs(3600);
 
 /// The files of a measure, `efficiency.json` last: its modification time dates the measure (STU-18), so a rename
 /// that fails before it leaves the last measure dated as it was.
-const FILES: [&str; 4] = [
+const FILES: [&str; 5] = [
     "sessions.tsv",
     "quality.tsv",
     "milestones.json",
+    "revisions.json",
     "efficiency.json",
 ];
 
@@ -164,6 +165,19 @@ fn steps(root: &Path, dir: &Path) -> Result<(), String> {
         &path("efficiency.json"),
         true,
     )?;
+    // the groups of revisions of the charts, more than the panel's (SUC-4)
+    let revisions = [
+        &inputs[..],
+        &["--project", &project, "--last", "12", "--json"],
+    ]
+    .concat();
+    step(
+        "cardinal-report",
+        &revisions,
+        root,
+        &path("revisions.json"),
+        true,
+    )?;
     let milestones = [&inputs[..], &["--by", "milestone", "--json"]].concat();
     step(
         "cardinal-report",
@@ -188,7 +202,7 @@ fn step(name: &str, args: &[&str], root: &Path, out: &str, json: bool) -> Result
 }
 
 /// The table `title` of the report document of the file `path`, as maps from column to cell, one per row.
-fn table(path: &Path, title: &str) -> Vec<Vec<(String, String)>> {
+pub(crate) fn table(path: &Path, title: &str) -> Vec<Vec<(String, String)>> {
     let text = std::fs::read_to_string(path).unwrap_or_default();
     let Ok(doc) = parse("cardinal-report", &text) else {
         return Vec::new();

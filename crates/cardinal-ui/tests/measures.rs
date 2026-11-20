@@ -49,8 +49,8 @@ impl Project {
         project_cache(&self.path("cache/cardinal-ui"))
     }
 
-    /// Writes the fake `cardinal`, logging each call in `calls`; `metrics` replaces the answer of `session-metrics`, and
-    /// the file `report-answer`, when written, the efficiency report.
+    /// Writes the fake `cardinal`, logging each call in `calls`; `metrics` replaces the answer of `session-metrics`, the
+    /// file `report-answer`, when written, the efficiency report, and `trend-answer` the report of the charts.
     fn cardinal(&self, metrics: &str) {
         let metrics = if metrics.is_empty() {
             "echo 'session-rows'; exit 0"
@@ -58,10 +58,11 @@ impl Project {
             metrics
         };
         let script = format!(
-            "#!/bin/sh\necho \"$*\" >> '{calls}'\ncase \"$*\" in\n  'run next-issue --json') echo '{{\"version\":1,\"next\":null,\"issues\":[]}}'; exit 0 ;;\n  'run roadmap --open --json') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics') {metrics} ;;\n  'run delivered-quality {repo} --summary') echo 'quality-rows'; exit 0 ;;\n  'run cardinal-report '*'--by milestone'*) echo '{MILESTONES}'; exit 0 ;;\n  'run cardinal-report '*) if [ -f '{report}' ]; then cat '{report}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\necho \"$*\" >> '{calls}'\ncase \"$*\" in\n  'run next-issue --json') echo '{{\"version\":1,\"next\":null,\"issues\":[]}}'; exit 0 ;;\n  'run roadmap --open --json') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics') {metrics} ;;\n  'run delivered-quality {repo} --summary') echo 'quality-rows'; exit 0 ;;\n  'run cardinal-report '*'--by milestone'*) echo '{MILESTONES}'; exit 0 ;;\n  'run cardinal-report '*'--last 12'*) if [ -f '{trend}' ]; then cat '{trend}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\n  'run cardinal-report '*) if [ -f '{report}' ]; then cat '{report}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             calls = self.path("calls").display(),
             repo = self.repo.display(),
             report = self.path("report-answer").display(),
+            trend = self.path("trend-answer").display(),
         );
         let path = self.path("cardinal");
         std::fs::write(&path, script).unwrap();
@@ -107,6 +108,7 @@ impl Project {
             "quality.tsv",
             "efficiency.json",
             "milestones.json",
+            "revisions.json",
         ] {
             let ok = Command::new("touch")
                 .args(["-d", &format!("{hours} hours ago")])
@@ -190,7 +192,7 @@ fn the_user_reads_the_trend_and_the_quality_per_milestone() {
         assert!(cache.join(name).is_file(), "{name}");
     }
     let left: Vec<_> = std::fs::read_dir(&cache).unwrap().collect();
-    assert_eq!(left.len(), 4, "no temporary file left");
+    assert_eq!(left.len(), 5, "no temporary file left");
     // within the hour, the measure is shown at once
     std::fs::remove_file(p.path("calls")).unwrap();
     let (code, again) = p.print();
@@ -368,7 +370,7 @@ fn a_measure_removes_the_temporary_files_of_an_ended_one() {
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
-    assert_eq!(names.len(), 4, "{names:?}");
+    assert_eq!(names.len(), 5, "{names:?}");
 }
 
 // spec: STU-17
@@ -419,4 +421,46 @@ fn a_separate_git_directory_is_its_own_project() {
         "{calls}{}",
         String::from_utf8_lossy(&out.stderr)
     );
+}
+
+// spec: SUC-4
+#[test]
+fn a_measure_keeps_the_last_twelve_groups_for_the_charts() {
+    let p = Project::new();
+    let (code, out) = p.print();
+    assert_eq!(code, Some(0), "{out}");
+    let calls = p.calls();
+    let trend = line(&calls, "--last 12");
+    assert!(
+        trend.contains("--project repo --last 12 --json")
+            && trend.contains(&format!("--sessions {}/", p.cache().display())),
+        "{trend}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(p.cache().join("revisions.json"))
+            .unwrap()
+            .trim(),
+        EFFICIENCY
+    );
+}
+
+// spec: SUC-4
+#[test]
+fn a_failed_report_of_the_charts_keeps_the_last_measure() {
+    let p = Project::new();
+    p.print();
+    p.age(2);
+    std::fs::write(p.path("trend-answer"), "not json").unwrap();
+    let before: Vec<Vec<u8>> = ["efficiency.json", "revisions.json", "sessions.tsv"]
+        .iter()
+        .map(|n| std::fs::read(p.cache().join(n)).unwrap())
+        .collect();
+    let (code, out) = p.print();
+    assert_eq!(code, Some(1), "{out}");
+    assert!(out.contains("cardinal-report: not JSON"), "{out}");
+    let after: Vec<Vec<u8>> = ["efficiency.json", "revisions.json", "sessions.tsv"]
+        .iter()
+        .map(|n| std::fs::read(p.cache().join(n)).unwrap())
+        .collect();
+    assert_eq!(after, before);
 }

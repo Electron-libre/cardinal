@@ -290,8 +290,8 @@ program that fails shows `notify: <cause>` on the status line the first time onl
 
 A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to) into
 `$XDG_CACHE_HOME/cardinal-ui/<project>-<hash of its path>` (under `~/.cache` when unset), outside the project since the
-rows name projects and issues, then `cardinal-report --project <project> --last 4 --json` and
-`cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
+rows name projects and issues, then `cardinal-report --project <project> --last 4 --json`, the same with `--last 12`
+for the charts (`revisions.json`) and `cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
 transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts
 and the last one is over an hour old, and on `m`: `measuring…` heads the panel meanwhile, and a failed step shows its
 error above the last measure, whose files stay as they were. `--print` measures first when the measure is over an

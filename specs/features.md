@@ -1,6 +1,6 @@
 ---
 id: FEA
-status: accepted
+status: draft
 adrs: [0014, 0017, 0025]
 ---
 
@@ -45,7 +45,7 @@ checks of the binary that a feature carries stay quiet in a project that turned 
 - **FEA-24** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check` must not report `missing: native review gate`, `modified: native review gate` nor `conflict: native review gate (...)` (SYN-23).
 - **FEA-25** (deterministic) Once a `sync` ran with the feature `review-gate` turned off, `check`, `sync` and `update` must not print the warnings of SYN-24.
 - **FEA-26** (deterministic) `rule-breaches` must not apply rules `no-verify`, `stage-everything`, `review-waiver` and `review-before-commit` (BRE-4, BRE-5, BRE-6, BRE-21) to a session whose `.claude/cardinal.toml` committed at its `start` (as BRE-14 reads it) turns off the feature `review-gate`: no finding of theirs, and they apply to no such session.
-- **FEA-27** (deterministic) The source of Cardinal must declare the features `harness-measure`, made of the files of `files/.claude/skills/evaluate-harness/` and `files/.claude/skills/audit-instructions/`, `report-style`, made of the file `.claude/rules/reports-to-the-user.md`, and `github-ci`, made of the files of `files/.github/`; none of them with an entry.
+- **FEA-27** (deterministic) The source of Cardinal must declare the features `harness-measure`, made of the files of `files/.claude/skills/evaluate-harness/` and `files/.claude/skills/audit-instructions/`, `report-style`, made of the file `.claude/rules/reports-to-the-user.md`, `github-ci`, made of the files of `files/.github/`, and `release`, made of the files of `files/.claude/skills/release/` (the tool `release` and its ask rules stay); none of them with an entry.
 - **FEA-28** (deterministic) `check`, `sync` and `update` must not print the warnings of SYN-28 on the user settings when the project turns off the feature `harness-measure`; those on the project's own settings stay, since they sweep the transcripts of every project.
 - **FEA-29** (deterministic) The rule that the agent talks to the user in the `user_language` must be in a managed file of no feature, `.claude/rules/user-language.md`, and not in `.claude/rules/reports-to-the-user.md`, which holds only the format of the reports.
 - **FEA-30** (deterministic) The source of Cardinal must declare the feature `issue-files`, made of the files of `files/.claude/skills/issue-workflow/`, `files/.claude/skills/create-issue/` and `files/.claude/skills/prioritize-issues/` and the file `cardinal/issues.just` (`next-issue`, `close-issue`, `check-issue`), with no entry and no `needs`.

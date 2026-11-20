@@ -32,6 +32,36 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "the tool, not the agent, says when a milestone is finished (CLS-8)",
     ),
     (
+        "issue-workflow",
+        "`skill:release`",
+        "the steps of a release live in their own skill, run on the trunk",
+    ),
+    (
+        "release",
+        "in the main worktree, on the trunk",
+        "the release is prepared where the tag lands, never in an issue worktree",
+    ),
+    (
+        "release",
+        "`cardinal run release --json`",
+        "the proposal is read as data, prepared and empty cases included",
+    ),
+    (
+        "release",
+        "`/code-review low",
+        "the changelog section is reviewed before its commit, as the gate asks",
+    ),
+    (
+        "release",
+        "`cardinal run release <version> --tag`",
+        "the tag comes after the commit of the section",
+    ),
+    (
+        "release",
+        "never push",
+        "the push stays the user's (REL-8)",
+    ),
+    (
         "create-issue",
         "commit the issue files alone",
         "the user no longer types \"commit\" after each new issue",

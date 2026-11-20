@@ -183,10 +183,9 @@ on the local merge command).
   one named `not staged:` held changes of yours and stays out). Never move it unasked. When it was the last open issue of its milestone,
   `close-issue` sets that milestone `done` itself and prints `milestone <name> done in <document>` (never edit the
   `State:` line yourself: the commit gate lets only the tool's edit through); on that line, propose a release to
-  the user (`cardinal run release` with no argument prints the version it would number, without a prompt in auto
-  mode) and stop: theirs to validate. On their go, run
-  `cardinal run release <version>` (a permission prompt, also in auto mode), let them reread the section, commit it
-  after its `low` review (the gate asks for it), then run `cardinal run release <version> --tag`; they push.
+  the user: on the trunk, `skill:release` (its stops included) once they agree; on another branch, the release waits
+  for the merge, prepared on the trunk by a session in the main worktree (the steering UI marks the milestone
+  awaiting its release).
   The report of the close ends on a Markdown link to the next issue `close-issue` printed
   (`[<title>](issues/<stem>.md)`), or on its line saying there is none.
 - To know which issue comes next, run `cardinal run next-issue` (the first ready issue, its `depends_on` all done, that

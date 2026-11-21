@@ -33,6 +33,7 @@ The work done before this file existed is in `issues/done/`.
   - [end_every_merged_worktree_in_one_go](issues/done/end_every_merged_worktree_in_one_go.md)
   - [end_a_merged_worktree_whose_directory_is_gone](issues/end_a_merged_worktree_whose_directory_is_gone.md)
   - [notify_the_desktop_when_a_session_waits](issues/done/notify_the_desktop_when_a_session_waits.md)
+  - [split_the_print_tests_of_the_steering_ui](issues/split_the_print_tests_of_the_steering_ui.md)
 
 ## User control
 

@@ -265,14 +265,14 @@ projects directory given, they read the `projects/` of the configuration directo
 
 ## Steering UI
 
-`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md), its actions in
+`cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md), its queue in
+[specs/steering-ui-queue.md](../specs/steering-ui-queue.md), its actions in
 [specs/steering-ui-actions.md](../specs/steering-ui-actions.md)) shows the
-project of the current directory (the root of its work tree) in one terminal screen, in four panels:
+project of the current directory (the root of its work tree) in one terminal screen, in three panels:
 
 | Panel | Read from | Each line |
 |---|---|---|
-| Milestones | `cardinal run roadmap --open --json`, the released ones left out; `cardinal run release --json` when one of them is `done`, again only once `HEAD`, a tag or the roadmap changed | name, state (`(on hold)` after it, then `awaits release v<version>` when `release` would list it, the version it proposes, bare when it proposes none), open issues over the listed ones; the error of a `release` that failed under them |
-| Queue | `cardinal run next-issue --json` | `>` before the issue offered, stem, priority, state, milestone, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem; the problems of the issue files under it, after `!` |
+| Queue | `cardinal run next-issue --json`; `cardinal run roadmap --open --json`, the released milestones left out; `cardinal run release --json` when one of them is `done`, again only once `HEAD`, a tag or the roadmap changed | a section per milestone, in the order of the roadmap, then the milestones it does not list, then `No milestone`: a heading (name, state, `(on hold)` after it, then `awaits release v<version>` when `release` would list it, the version it proposes, bare when it proposes none, open issues over the listed ones), then its open issues as a tree, each under the first open issue of its milestone it depends on (`├─ `, `└─ `); per issue, in aligned columns, `>` before the issue offered, stem, priority, state, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem, `also after <stems>` for its other open dependencies; the errors of the tools above the sections, the problems of the issue files under them, after `!` |
 | Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch (`merged` after it when the trunk holds the close of the issue of that name), the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
 | Measures | the last measure of the project (below) | `measured <HH:MM>`; per group of the last four groups of revisions of the project, its sessions and the medians of input tokens (with the share read from cache), output tokens, peak context (with the sessions it rests on) and validations, or `too few`; per milestone, its done issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue (with the issues of known tokens) |
 
@@ -370,7 +370,7 @@ before it did.
 (the trunk holds the close of its branch), one after the other, going on after one it refuses: it says `ended
 <branch>` or `kept <branch>: <why>` for each (on the status line, parted by ` | `, or one line each on stdout, exit 1 when it kept
 one), or `no merged worktree`. A worktree that now serves another, open issue is not `merged` and stays.
-Once a milestone awaits its release (`awaits release` in the milestones panel), `v`, or `cardinal-ui --release`,
+Once a milestone awaits its release (`awaits release` on its heading in the queue), `v`, or `cardinal-ui --release`,
 (or once a release committed but not tagged waits for its tag) starts the release from any worktree of the project: a zellij tab named `release` in the main worktree running
 `claude /release`, so `skill:release` keeps the version, its reread, its review and the tag, its stops included. One
 release covers every milestone awaiting it: `v` needs no selection. It opens nothing (exit 1, saying why) outside

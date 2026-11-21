@@ -342,9 +342,9 @@ fn with_no_done_milestone_release_is_not_run() {
     assert!(!out.contains("awaits release"), "{out}");
 }
 
-// spec: STU-6, STU-8
+// spec: STU-6, STU-8, SUQ-1
 #[test]
-fn a_release_that_fails_leaves_the_milestones_with_its_error_under_them() {
+fn a_release_that_fails_heads_the_queue_with_its_error() {
     let p = project();
     let failing = Answer {
         out: "",
@@ -359,8 +359,8 @@ fn a_release_that_fails_leaves_the_milestones_with_its_error_under_them() {
         .lines()
         .position(|l| l.contains("release: exit 3: cannot read the tags"));
     assert!(
-        matches!((row, error), (Some(r), Some(e)) if r < e),
-        "the error goes under the milestones: {out}"
+        matches!((row, error), (Some(r), Some(e)) if e < r),
+        "the error heads the queue: {out}"
     );
     assert!(!line(&out, "New  ").contains("awaits release"), "{out}");
     assert_eq!(code, Some(1));
@@ -368,7 +368,7 @@ fn a_release_that_fails_leaves_the_milestones_with_its_error_under_them() {
 
 // spec: STU-6
 #[test]
-fn a_release_of_an_unsupported_version_is_an_error_under_the_milestones() {
+fn a_release_of_an_unsupported_version_is_an_error_above_the_milestones() {
     let p = project();
     let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(r#"{"version":2}"#)));
     let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
@@ -475,7 +475,7 @@ fn a_queue_that_fails_with_exit_1_and_no_document_shows_its_stderr() {
 
 // spec: STU-1, STU-4, STU-16
 #[test]
-fn the_screen_holds_four_titled_panels_at_least_100_columns_wide() {
+fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
     let p = project();
     let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
@@ -483,11 +483,7 @@ fn the_screen_holds_four_titled_panels_at_least_100_columns_wide() {
         .lines()
         .filter_map(|l| l.strip_prefix("┌ ")?.split(' ').next())
         .collect();
-    assert_eq!(
-        titles,
-        ["Milestones", "Queue", "Worktrees", "Measures"],
-        "{out}"
-    );
+    assert_eq!(titles, ["Queue", "Worktrees", "Measures"], "{out}");
     let width = out.lines().next().unwrap().chars().count();
     assert!(width >= 100, "{width}: {out}");
     assert!(out.lines().all(|l| l.chars().count() <= width), "{out}");
@@ -507,8 +503,11 @@ fn a_long_queue_is_printed_whole() {
     let cardinal = p.cardinal(&ok(&queue), &ok(ROADMAP));
     let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(code, Some(0));
-    assert!(out.contains("> issue0  low"), "the first issue");
-    assert!(out.contains("  issue699  low"), "the last issue");
+    assert!(line(&out, "> issue0 ").contains("  low"), "the first issue");
+    assert!(
+        line(&out, "  issue699 ").contains("  low"),
+        "the last issue"
+    );
     assert!(
         out.lines().last().unwrap().contains("q quit"),
         "the help line last"
@@ -769,4 +768,60 @@ fn the_theme_is_read_from_the_config_directory_and_a_missing_one_says_nothing() 
     );
     let (_, _, err) = run(&p.root.path().join("nothing"));
     assert_eq!(err, "", "a missing file says nothing");
+}
+
+/// An issue of `next-issue --json` (NXT-19), open and free.
+fn open_issue(stem: &str, priority: &str, milestone: &str, depends_on: &str) -> String {
+    format!(
+        r#"{{"stem":"{stem}","title":"t","priority":"{priority}","why":"","milestone":{milestone},"depends_on":{depends_on},"state":"ready","blocked_by":[],"hold":null,"taken":null,"stale":false}}"#
+    )
+}
+
+// spec: SUQ-H1, SUQ-1, SUQ-2, SUQ-3, STU-1
+#[test]
+fn the_user_reads_each_milestone_as_a_tree_of_its_issues() {
+    let p = project();
+    let one = r#""One""#;
+    let issues = [
+        open_issue("a", "high", one, "[]"),
+        open_issue("b", "low", one, r#"["a"]"#),
+        open_issue("c", "medium", one, r#"["a","b"]"#),
+        open_issue("d", "low", "null", "[]"),
+    ];
+    let queue = format!(
+        r#"{{"version":1,"next":"a","issues":[{}]}}"#,
+        issues.join(",")
+    );
+    let roadmap = ROADMAP.replace(
+        r#"{"path":"issues/b.md","stem":"b","open":true}"#,
+        r#"{"path":"issues/b.md","stem":"b","open":true},{"path":"issues/c.md","stem":"c","open":true}"#,
+    );
+    let cardinal = p.cardinal(&ok(&queue), &ok(&roadmap));
+    let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    let rows: Vec<&str> = ["One  ", "> a", "├─ b", "└─ c", "No milestone", "  d  "]
+        .iter()
+        .map(|needle| line(&out, needle))
+        .collect();
+    let at = |row: &str| out.lines().position(|l| l == row).unwrap();
+    assert!(rows.windows(2).all(|w| at(w[0]) + 1 == at(w[1])), "{out}");
+    assert!(rows[0].contains("in issues  3/3 open"), "{out}");
+    assert!(
+        rows[3]
+            .trim_end_matches([' ', '│'])
+            .ends_with("also after b"),
+        "{out}"
+    );
+    assert!(!rows[2].contains("also after"), "{out}");
+    let column = |row: &str, word: &str| row.find(word).map(|b| row[..b].chars().count());
+    let priorities: Vec<_> = [(1, "high"), (2, "low"), (3, "medium"), (5, "low")]
+        .iter()
+        .map(|(n, word)| column(rows[*n], &format!("  {word}  ")))
+        .collect();
+    assert!(
+        priorities
+            .iter()
+            .all(|c| c.is_some() && *c == priorities[0]),
+        "{out}"
+    );
 }

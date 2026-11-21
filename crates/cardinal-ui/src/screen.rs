@@ -39,8 +39,10 @@ pub(crate) const HELP: &str =
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
 /// the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
 pub struct View {
-    pub panels: [Panel; 4],
+    pub panels: [Panel; 3],
     pub stems: Vec<String>,
+    /// The line of the queue panel of each stem, the headings between them (SUQ-1).
+    pub stem_lines: Vec<usize>,
     pub worktrees: Vec<(String, Option<String>)>,
     pub waits: Option<Vec<Wait>>,
     /// The charts of the last measure (SUC-2).
@@ -81,15 +83,14 @@ pub(crate) fn styled<'a>(
 fn render(
     area: Rect,
     buf: &mut Buffer,
-    panels: &[Panel; 4],
+    panels: &[Panel; 3],
     selected: Option<(usize, usize)>,
     status: &str,
     theme: &Theme,
 ) {
     buf.set_style(area, theme.screen());
-    let [milestones, queue, worktrees, measures] = panels;
+    let [queue, worktrees, measures] = panels;
     let areas = Layout::vertical([
-        Constraint::Max(height(milestones)),
         Constraint::Min(height(queue).min(3)),
         Constraint::Max(height(worktrees)),
         Constraint::Max(height(measures)),
@@ -100,7 +101,7 @@ fn render(
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
     }
-    help_line(HELP, status, areas[4], buf, theme);
+    help_line(HELP, status, areas[3], buf, theme);
 }
 
 /// Draws `p` bordered over `area`, its line `selected` highlighted and kept visible, in the roles of `theme` (STU-31).
@@ -153,7 +154,7 @@ pub(crate) fn help_line(help: &str, status: &str, area: Rect, buf: &mut Buffer, 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
 /// row without its trailing spaces (STU-4). Rendered straight into a buffer: a terminal of the test backend
 /// mixes up the cells past the 65,535th.
-pub fn text(panels: &[Panel; 4]) -> String {
+pub fn text(panels: &[Panel; 3]) -> String {
     let longest = panels
         .iter()
         .flat_map(|p| p.lines.iter())
@@ -259,7 +260,7 @@ fn draw(
         render_charts(
             area,
             f.buffer_mut(),
-            &head(&v.panels[3]),
+            &head(&v.panels[2]),
             &v.charts,
             status,
             theme,
@@ -399,7 +400,6 @@ mod tests {
             failed: false,
         };
         let panels = [
-            panel("Milestones", &["m"]),
             panel("Queue", &["> b", "  a"]),
             panel("Worktrees", &["w"]),
             panel("Measures", &["x"]),
@@ -410,7 +410,7 @@ mod tests {
             area,
             &mut buf,
             &panels,
-            Some((1, 1)),
+            Some((0, 1)),
             "started a in /w",
             &Theme::default(),
         );
@@ -432,7 +432,6 @@ mod tests {
             failed: false,
         };
         let panels = [
-            panel("Milestones", &["m"]),
             panel("Queue", &["> b", "  a"]),
             panel("Worktrees", &["w"]),
             panel("Measures", &["x"]),
@@ -448,7 +447,7 @@ mod tests {
             area,
             &mut buf,
             &panels,
-            Some((1, 1)),
+            Some((0, 1)),
             "theme: line 9 ignored",
             &theme,
         );
@@ -459,9 +458,9 @@ mod tests {
             (corner.symbol(), corner.fg),
             ("┌", Color::Rgb(0x11, 0x22, 0x33))
         );
-        let title = row(0).find("Milestones").unwrap();
+        let title = row(0).find("Queue").unwrap();
         assert_eq!(buf[(u16::try_from(title).unwrap(), 0)].fg, rgb(6));
-        let m = find("│m");
+        let m = find("│w");
         assert_eq!((buf[(1, m)].fg, buf[(1, m)].bg), (rgb(4), rgb(1)));
         let a = find("  a");
         assert_eq!(buf[(3, a)].bg, rgb(7));
@@ -497,7 +496,6 @@ mod tests {
             role: Role::Pass,
         };
         let panels = [
-            panel("Milestones", &["m"], Vec::new()),
             panel(
                 "Queue",
                 &["  a  ready", "  b  ready"],
@@ -509,7 +507,7 @@ mod tests {
         let (theme, _) = crate::theme::parse("pass = \"#00aa00\"\nselection = \"#333333\"");
         let area = Rect::new(0, 0, 140, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((1, 1)), "", &theme);
+        render(area, &mut buf, &panels, Some((0, 1)), "", &theme);
         let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a  ready")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("  b  ready")).unwrap();
@@ -549,7 +547,6 @@ mod tests {
         };
         let queue = (1..=40).map(|i| format!("  issue{i:02}")).collect();
         let panels = [
-            panel("Milestones", vec!["m".to_string()]),
             panel("Queue", queue),
             panel("Worktrees", vec!["w".to_string()]),
             panel("Measures", vec!["x".to_string()]),
@@ -560,7 +557,7 @@ mod tests {
             area,
             &mut buf,
             &panels,
-            Some((1, 29)),
+            Some((0, 29)),
             "",
             &Theme::default(),
         );
@@ -597,14 +594,13 @@ mod tests {
             failed: false,
         };
         let panels = [
-            panel("Milestones", &["m"]),
             panel("Queue", &["> b"]),
             panel("Worktrees", &["/main", "/ws"]),
             panel("Measures", &["x"]),
         ];
         let area = Rect::new(0, 0, 80, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((2, 1)), "", &Theme::default());
+        render(area, &mut buf, &panels, Some((1, 1)), "", &Theme::default());
         let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let ws = (0..15).find(|y| row(*y).contains("/ws")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
@@ -623,7 +619,6 @@ mod tests {
         };
         let worktrees = (1..=20).map(|i| format!("/ws{i:02}")).collect();
         let panels = [
-            panel("Milestones", vec!["m".to_string()]),
             panel("Queue", vec!["> b".to_string()]),
             panel("Worktrees", worktrees),
             panel("Measures", vec!["x".to_string()]),
@@ -634,7 +629,7 @@ mod tests {
             area,
             &mut buf,
             &panels,
-            Some((2, 17)),
+            Some((1, 17)),
             "",
             &Theme::default(),
         );

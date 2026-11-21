@@ -45,8 +45,8 @@ impl Selection {
     /// The panel and the line to highlight in `v`: none in an empty or failed panel.
     pub(crate) fn line(&self, v: &View) -> Option<(usize, usize)> {
         match self.focus {
-            Focus::Queue => (!v.stems.is_empty()).then_some((1, self.issue)),
-            Focus::Worktrees => (!v.worktrees.is_empty()).then_some((2, self.worktree)),
+            Focus::Queue => v.stem_lines.get(self.issue).map(|line| (0, *line)),
+            Focus::Worktrees => (!v.worktrees.is_empty()).then_some((1, self.worktree)),
         }
     }
 }
@@ -328,13 +328,9 @@ pub(crate) mod tests {
             failed: false,
         };
         View {
-            panels: [
-                panel("Milestones"),
-                panel("Queue"),
-                panel("Worktrees"),
-                panel("Measures"),
-            ],
+            panels: [panel("Queue"), panel("Worktrees"), panel("Measures")],
             stems: stems.iter().map(|s| (*s).to_string()).collect(),
+            stem_lines: (0..stems.len()).collect(),
             worktrees: worktrees
                 .iter()
                 .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
@@ -403,6 +399,33 @@ pub(crate) mod tests {
         assert_eq!(job(&Action::EndMerged, sel, None), ending);
         let v = view(&["bar"], &[("/main", Some("trunk"))]);
         assert_eq!(job(&Action::EndMerged, sel, Some(&v)), ending);
+    }
+
+    // spec: STU-14 (internal: the keys and the selection of a screen that needs a real terminal)
+    #[test]
+    fn the_selection_moves_over_the_issue_rows_only() {
+        // `One` on line 0 heads `a` and `b`, `Two` on line 3 heads `c`
+        let mut v = view(&["a", "b", "c"], &[]);
+        v.stem_lines = vec![1, 2, 4];
+        let mut sel = Selection {
+            focus: Focus::Queue,
+            issue: 1,
+            worktree: 0,
+        };
+        sel.apply(&Action::Down, &v);
+        assert_eq!(
+            (sel.issue, sel.line(&v)),
+            (2, Some((0, 4))),
+            "the heading skipped"
+        );
+        sel.apply(&Action::Down, &v);
+        assert_eq!(sel.line(&v), Some((0, 4)), "kept on the last issue");
+        // `b` drawn under `a` moves to the root of its section once `a` is closed
+        let mut after = view(&["c", "b"], &[]);
+        after.stem_lines = vec![1, 3];
+        sel.issue = 1;
+        sel.reread(&v, &after);
+        assert_eq!((sel.issue, sel.line(&after)), (1, Some((0, 3))));
     }
 
     // spec: SUA-3 (internal: the keys and the selection of a screen that needs a real terminal)

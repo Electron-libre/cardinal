@@ -25,6 +25,7 @@ pub struct Milestone {
 }
 
 /// The milestones of `roadmap --json`, and the error line of a `release --json` that could not be read (STU-6).
+#[derive(Default)]
 pub struct Milestones {
     pub list: Vec<Milestone>,
     pub release_error: Option<String>,
@@ -50,12 +51,15 @@ pub struct Issue {
     pub priority: Option<String>,
     pub state: String,
     pub milestone: Option<String>,
+    /// The stems of its `depends_on`, in its order (SUQ-1).
+    pub depends_on: Vec<String>,
     pub taken: Option<Taken>,
     /// Whether a tab of the current zellij session is named after its stem (STU-10).
     pub tab: bool,
 }
 
 /// The queue of `next-issue --json`, and the problems it reported on stderr (NXT-2, STU-6).
+#[derive(Default)]
 pub struct Queue {
     pub next: Option<String>,
     pub issues: Vec<Issue>,
@@ -302,6 +306,7 @@ pub fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
                 priority: string(&i["priority"]),
                 state: string(&i["state"]).unwrap_or_default(),
                 milestone: string(&i["milestone"]),
+                depends_on: array(&i["depends_on"]).iter().filter_map(string).collect(),
                 taken: taken(&i["taken"]),
             })
             .collect(),

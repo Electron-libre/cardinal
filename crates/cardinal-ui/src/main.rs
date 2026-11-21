@@ -22,6 +22,7 @@ mod screen;
 mod source;
 mod start;
 mod theme;
+mod tree;
 
 use std::path::Path;
 
@@ -31,10 +32,6 @@ const USAGE: &str =
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     let state = source::read(&source::root(Path::new(".")), measuring, measure_error);
-    let stems = state.queue.as_ref().map_or_else(
-        |_| Vec::new(),
-        |q| q.issues.iter().map(|i| i.stem.clone()).collect(),
-    );
     let worktrees = state.worktrees.as_ref().map_or_else(
         |_| Vec::new(),
         |ws| {
@@ -44,9 +41,12 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         },
     );
     let waits = state.worktrees.as_deref().ok().map(notify::waits);
+    let (panels, issues) = panels::panels(&state);
+    let (stems, stem_lines) = issues.into_iter().unzip();
     screen::View {
-        panels: panels::panels(&state),
+        panels,
         stems,
+        stem_lines,
         worktrees,
         waits,
         charts: state.charts,

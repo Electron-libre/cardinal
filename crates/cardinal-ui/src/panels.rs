@@ -1,11 +1,15 @@
 //! The panels of the screen (STU-1, STU-16): a title and one line per milestone, issue, worktree or measure, or the
-//! error line of a source that could not be read (STU-6); the words of a state carry the role of the theme they are
-//! drawn in (STU-31).
+//! error line of a source that could not be read (STU-6); the queue holds the milestones, each heading the tree of its
+//! issues in aligned columns (SUQ-1 to SUQ-3); the words of a state carry the role of the theme they are drawn in
+//! (STU-31).
 
 use std::ops::Range;
 
+use ratatui::text::Line;
+
 use crate::source::{Milestone, Milestones, Queue, State, Taken, Worktree};
 use crate::theme::Role;
+use crate::tree::{sections, Heading};
 
 /// A panel: its title, its lines and the words of its lines drawn in a role.
 pub struct Panel {
@@ -56,6 +60,29 @@ impl Styled {
         self.text.push_str(text);
         self.marks.push((start..self.text.len(), role));
     }
+
+    /// `other` appended, its words in their role.
+    fn append(&mut self, other: Self) {
+        let start = self.text.len();
+        self.text.push_str(&other.text);
+        self.marks.extend(
+            other
+                .marks
+                .into_iter()
+                .map(|(r, role)| (r.start + start..r.end + start, role)),
+        );
+    }
+
+    /// Spaces appended up to the display column `column`.
+    fn pad(&mut self, column: usize) {
+        let width = Line::raw(self.text.as_str()).width();
+        self.push(&" ".repeat(column.saturating_sub(width)));
+    }
+}
+
+/// The display columns of `text`.
+fn width(text: &str) -> usize {
+    Line::raw(text).width()
 }
 
 impl Panel {
@@ -115,26 +142,6 @@ fn milestone(m: &Milestone) -> Styled {
     line
 }
 
-/// The panel of the milestones (STU-1): the error line of a `release` that could not be read under them, the panel
-/// failed (STU-6).
-fn milestones(read: &Result<Milestones, String>) -> Panel {
-    let mut panel = panel("Milestones", read, |ms| {
-        let mut lines: Vec<Styled> = if ms.list.is_empty() {
-            vec![Styled::plain("No milestone.")]
-        } else {
-            ms.list.iter().map(milestone).collect()
-        };
-        lines.extend(
-            ms.release_error
-                .as_deref()
-                .map(|e| Styled::all(e, Role::Fail)),
-        );
-        lines
-    });
-    panel.failed |= read.as_ref().is_ok_and(|ms| ms.release_error.is_some());
-    panel
-}
-
 /// What takes an issue, appended to `line`.
 fn taken(line: &mut Styled, t: &Taken) {
     match t {
@@ -168,41 +175,118 @@ fn state_role(state: &str) -> Option<Role> {
     }
 }
 
-fn queue(q: &Queue) -> Vec<Styled> {
-    let mut lines: Vec<Styled> = q
-        .issues
+/// The cells of an issue row (SUQ-3): the mark of the next issue with the tree and the stem, the priority, the state
+/// and what follows it.
+fn cells(q: &Queue, n: usize, tree: &str, also_after: &[String]) -> [Styled; 4] {
+    let i = &q.issues[n];
+    let mut stem = Styled::default();
+    if q.next.as_deref() == Some(i.stem.as_str()) {
+        stem.mark(">", Role::Accent);
+        stem.push(" ");
+    } else {
+        stem.push("  ");
+    }
+    stem.push(tree);
+    stem.push(&i.stem);
+    let mut state = Styled::default();
+    match state_role(&i.state) {
+        Some(role) => state.mark(&i.state, role),
+        None => state.push(&i.state),
+    }
+    let mut rest = Styled::default();
+    let mut words = Vec::new();
+    if let Some(t) = &i.taken {
+        let mut line = Styled::default();
+        taken(&mut line, t);
+        words.push(line);
+    }
+    if i.tab {
+        words.push(Styled::plain("tab"));
+    }
+    if !also_after.is_empty() {
+        words.push(Styled::plain(format!(
+            "also after {}",
+            also_after.join(", ")
+        )));
+    }
+    for (k, w) in words.into_iter().enumerate() {
+        if k > 0 {
+            rest.push("  ");
+        }
+        rest.append(w);
+    }
+    [
+        stem,
+        Styled::plain(i.priority.as_deref().unwrap_or("no priority")),
+        state,
+        rest,
+    ]
+}
+
+/// The queue panel (STU-1, SUQ-1): the error lines of the sources that could not be read, then a section per
+/// milestone, its heading and its issues as a tree in aligned columns (SUQ-3), then the problems of the issue files;
+/// with the stem of each issue row and its line, in the order of the lines (STU-14).
+fn queue(
+    milestones: &Result<Milestones, String>,
+    queue: &Result<Queue, String>,
+) -> (Panel, Vec<(String, usize)>) {
+    let mut lines: Vec<Styled> = Vec::new();
+    let mut errors = Vec::new();
+    if let Err(e) = milestones {
+        errors.push(e.as_str());
+    }
+    if let Ok(Milestones {
+        release_error: Some(e),
+        ..
+    }) = milestones
+    {
+        errors.push(e.as_str());
+    }
+    if let Err(e) = queue {
+        errors.push(e.as_str());
+    }
+    lines.extend(errors.iter().map(|e| Styled::all(*e, Role::Fail)));
+    let empty = Queue::default();
+    let q = queue.as_ref().unwrap_or(&empty);
+    let listed = milestones.as_ref().ok().map(|ms| ms.list.as_slice());
+    let sections = sections(listed, &q.issues);
+    let rows: Vec<[Styled; 4]> = sections
         .iter()
-        .map(|i| {
-            let mut line = Styled::default();
-            if q.next.as_deref() == Some(i.stem.as_str()) {
-                line.mark(">", Role::Accent);
-                line.push(" ");
-            } else {
-                line.push("  ");
-            }
-            line.push(&i.stem);
-            line.push("  ");
-            line.push(i.priority.as_deref().unwrap_or("no priority"));
-            line.push("  ");
-            match state_role(&i.state) {
-                Some(role) => line.mark(&i.state, role),
-                None => line.push(&i.state),
-            }
-            if let Some(m) = &i.milestone {
-                line.push("  ");
-                line.push(m);
-            }
-            if let Some(t) = &i.taken {
-                line.push("  ");
-                taken(&mut line, t);
-            }
-            if i.tab {
-                line.push("  tab");
-            }
-            line
-        })
+        .flat_map(|s| &s.rows)
+        .map(|r| cells(q, r.issue, &r.tree, &r.also_after))
         .collect();
-    if lines.is_empty() {
+    // the column each cell starts at: that of the longest cell before it plus two
+    let mut columns = [0usize; 4];
+    for k in 1..4 {
+        let widest = rows
+            .iter()
+            .map(|r| width(&r[k - 1].text))
+            .max()
+            .unwrap_or(0);
+        columns[k] = columns[k - 1] + widest + 2;
+    }
+    let mut rows = rows.into_iter();
+    let mut issues = Vec::new();
+    for s in &sections {
+        lines.push(match &s.heading {
+            Heading::Listed(n) => milestone(&listed.unwrap_or_default()[*n]),
+            Heading::Named(name) => Styled::plain(name.as_str()),
+            Heading::None => Styled::plain("No milestone"),
+        });
+        for r in &s.rows {
+            let Some(cells) = rows.next() else { break };
+            issues.push((q.issues[r.issue].stem.clone(), lines.len()));
+            let mut line = Styled::default();
+            for (k, cell) in cells.into_iter().enumerate() {
+                if k > 0 && !cell.text.is_empty() {
+                    line.pad(columns[k]);
+                }
+                line.append(cell);
+            }
+            lines.push(line);
+        }
+    }
+    if sections.is_empty() && queue.is_ok() {
         lines.push(Styled::plain("No open issue."));
     }
     lines.extend(
@@ -210,7 +294,7 @@ fn queue(q: &Queue) -> Vec<Styled> {
             .iter()
             .map(|p| Styled::all(format!("! {p}"), Role::Fail)),
     );
-    lines
+    (Panel::of("Queue", lines, !errors.is_empty()), issues)
 }
 
 /// The local time `HH:MM` of `seconds` since the Unix epoch, its date before it when it is not today (STU-13).
@@ -284,11 +368,11 @@ fn measures(measure: &[String], running: bool, error: Option<&str>) -> Panel {
     Panel::of("Measures", lines, error.is_some())
 }
 
-/// The panels of `state`, in the order of the screen.
-pub fn panels(state: &State) -> [Panel; 4] {
-    [
-        milestones(&state.milestones),
-        panel("Queue", &state.queue, queue),
+/// The panels of `state`, in the order of the screen, with the stem of each issue row of the queue and its line.
+pub fn panels(state: &State) -> ([Panel; 3], Vec<(String, usize)>) {
+    let (queue, issues) = queue(&state.milestones, &state.queue);
+    let panels = [
+        queue,
         panel("Worktrees", &state.worktrees, |ws| {
             ws.iter().map(worktree).collect()
         }),
@@ -297,7 +381,8 @@ pub fn panels(state: &State) -> [Panel; 4] {
             state.measuring,
             state.measure_error.as_deref(),
         ),
-    ]
+    ];
+    (panels, issues)
 }
 
 #[cfg(test)]
@@ -338,6 +423,7 @@ mod tests {
             priority: Some("high".to_string()),
             state: state.to_string(),
             milestone: None,
+            depends_on: Vec::new(),
             taken,
             tab: false,
         }
@@ -375,7 +461,20 @@ mod tests {
             ],
             problems: vec!["issue without a priority: f".to_string()],
         };
-        let rows = queue(&q);
+        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q));
+        // the words of each line drawn in a role; line 0 is the heading `No milestone`
+        let rows: Vec<Styled> = (0..panel.lines.len())
+            .map(|n| Styled {
+                text: panel.lines[n].clone(),
+                marks: panel
+                    .marks
+                    .iter()
+                    .filter(|m| m.line == n)
+                    .map(|m| (m.range.clone(), m.role))
+                    .collect(),
+            })
+            .skip(1)
+            .collect();
         assert_eq!(
             marked(&rows[0]),
             [(">", Role::Accent), ("ready", Role::Pass)]
@@ -467,10 +566,9 @@ mod tests {
                 },
             ]
         );
-        let failed = panel(
-            "Queue",
-            &Err::<Queue, _>("next-issue: not JSON".to_string()),
-            queue,
+        let (failed, _) = queue(
+            &Ok(Milestones::default()),
+            &Err("next-issue: not JSON".to_string()),
         );
         assert_eq!(
             failed.marks,
@@ -485,9 +583,34 @@ mod tests {
             release_error: Some("release: exit 3".to_string()),
         };
         assert_eq!(
-            milestones(&Ok(ms)).marks,
+            queue(&Ok(ms), &Err("next-issue: exit 3".to_string()))
+                .0
+                .marks,
+            [
+                Mark {
+                    line: 0,
+                    range: 0..15,
+                    role: Role::Fail
+                },
+                Mark {
+                    line: 1,
+                    range: 0..18,
+                    role: Role::Fail
+                }
+            ],
+            "the errors head the queue"
+        );
+        let ms = Milestones {
+            list: Vec::new(),
+            release_error: None,
+        };
+        assert!(queue(&Ok(ms), &Err("x".to_string())).0.failed);
+        assert_eq!(
+            queue(&Err("roadmap: exit 3".to_string()), &Ok(Queue::default()))
+                .0
+                .marks,
             [Mark {
-                line: 1,
+                line: 0,
                 range: 0..15,
                 role: Role::Fail
             }]

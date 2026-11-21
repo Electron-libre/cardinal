@@ -20,6 +20,7 @@ mod panels;
 mod release;
 mod screen;
 mod source;
+mod spinner;
 mod start;
 mod theme;
 mod tree;

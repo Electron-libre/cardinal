@@ -47,9 +47,9 @@ other animation. Working or waiting is read by joining the claim to the worktree
    space in the stem cell (columns kept), `⠿` / `‖` in `--print`, the roles of the theme table; verified by `--print`
    tests in a new `crates/cardinal-ui/tests/marks.rs` (`print.rs` is over the file size limit) and a role test of
    `panels.rs`; makes true SUQ-4 (print part), SUQ-3. (autonomous)
-2. [ ] The spinner turns on the screen: the panel keeps where its turning marks are, the draw writes the frame of the
+2. [x] The spinner turns on the screen: the panel keeps where its turning marks are, the draw writes the frame of the
    time elapsed since the screen started (100 ms a frame, no read needed), the CPU of the redraw measured; verified
-   by an internal test of `screen.rs` that draws two ticks apart; makes true SUQ-4 (screen part), SUQ-H2.
+   by an internal test of `screen.rs` that draws two ticks apart; makes true SUQ-4 (screen part), SUQ-H2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -72,5 +72,27 @@ red: SUQ-H2, SUQ-4, SUQ-3: `an_issue_at_work_and_a_waiting_one_carry_their_mark`
 Code review: no findings
 
 not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+done: the screen writes, before each draw, the frame of the time it has run (100 ms a frame) over the still mark at
+work; `--print` keeps `⠿`. CPU of 20 s of the screen in a pty, this project: 0.99 / 0.99 s user before, 1.04 / 1.01 s
+after (≈ 0.15 % of a core), so no redraw throttling.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui` pass (1 new in `spinner.rs`) |
+| lint | clean (`project-check`) |
+| specs | SUQ-4, SUQ-H2 traced on the screen side; `specs/steering-ui-queue.md` `accepted` |
+| docs | `docs/architecture.md` (module `spinner.rs`) |
+| code review | see below |
+
+red: none: the test of `spinner.rs` was written with the module it calls and never ran red; the wiring in the loop
+of `screen.rs` has no test (it needs a terminal).
+
+Code review: no findings
+
+not verified: the turning mark seen in a real terminal (the CPU run drew it in a pty, unread)
 
 decisions needed: none

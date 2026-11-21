@@ -3,7 +3,7 @@
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUA-3); `E`
 //! ends it on every merged worktree (SUA-13); `m` takes the measures again (STU-17); `v` starts the release session
 //! (SUA-4); a worktree that starts to wait for the user notifies the desktop (STU-29); `g` switches to the charts of
-//! the measures and back (SUC-1).
+//! the measures and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -21,6 +21,7 @@ use crate::keys::{
 };
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::{Mark, Panel};
+use crate::spinner;
 use crate::theme::{Role, Theme};
 
 /// How often the screen reads the project again (STU-2).
@@ -316,6 +317,7 @@ pub fn run(
         let mut busy = false;
         let mut quitting = false;
         let mut charts = false;
+        let started = Instant::now();
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
                 return Err(std::io::Error::other("the reading of the project failed"));
@@ -338,6 +340,10 @@ pub fn run(
                 }
                 busy = false;
                 schedule.asked = true;
+            }
+            if let Some(v) = view.as_mut() {
+                // the mark at work turns at each tick, a read or not (SUQ-4)
+                spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
             terminal.draw(|f| draw(f, view.as_ref(), (selected, charts), &status, &theme))?;
             if event::poll(TICK)? {

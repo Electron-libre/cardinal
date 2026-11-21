@@ -271,6 +271,7 @@ flowchart LR
 | `source.rs` | runs the tools, git and zellij, checks the documents, reads the lock and the wait mark of each worktree |
 | `panels.rs` | the queue (a heading per milestone, a line per issue in aligned columns, the mark of a claim at work or waiting), one line per worktree, or the error of a source; the measures panel; the words of a state marked with the role of the theme they are drawn in |
 | `tree.rs` | the sections of the queue: the open issues grouped by milestone, each section a tree of their dependencies |
+| `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the panels (Ratatui) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, renders `--print` into a buffer |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |

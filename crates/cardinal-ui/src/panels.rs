@@ -165,6 +165,39 @@ fn taken(line: &mut Styled, t: &Taken) {
     }
 }
 
+/// The mark of SUQ-4 `--print` writes for an issue claimed by a session at work; the screen turns it (SUQ-4).
+pub const AT_WORK: &str = "⠿";
+
+/// The mark of SUQ-4 of an issue claimed by a session that waits for the user.
+pub const WAITING: &str = "‖";
+
+/// The mark of SUQ-4 of the issue taken as `t`, with its role, among the worktrees `worktrees`: none unless a claim
+/// other than `merge pending` whose session has not ended; waiting when the worktree at its path waits (STU-13).
+fn activity(t: Option<&Taken>, worktrees: &[Worktree]) -> Option<(&'static str, Role)> {
+    let Some(Taken::Claim {
+        state,
+        worktree,
+        alive: true,
+        ..
+    }) = t
+    else {
+        return None;
+    };
+    if state == "merge pending" {
+        return None;
+    }
+    let waits = worktrees
+        .iter()
+        .find(|w| &w.path == worktree)
+        .and_then(|w| w.session.as_ref())
+        .is_some_and(|s| s.waiting.is_some());
+    Some(if waits {
+        (WAITING, Role::Warn)
+    } else {
+        (AT_WORK, Role::Accent)
+    })
+}
+
 /// The role of the state of an issue (NXT-19), none for another one.
 fn state_role(state: &str) -> Option<Role> {
     match state {
@@ -175,9 +208,14 @@ fn state_role(state: &str) -> Option<Role> {
     }
 }
 
-/// The cells of an issue row (SUQ-3): the mark of the next issue with the tree and the stem, the priority, the state
-/// and what follows it.
-fn cells(q: &Queue, n: usize, tree: &str, also_after: &[String]) -> [Styled; 4] {
+/// The cells of an issue row (SUQ-3): the mark of the next issue with the tree, the mark of SUQ-4 among `worktrees`
+/// and the stem, the priority, the state and what follows it.
+fn cells(
+    q: &Queue,
+    n: usize,
+    (tree, also_after): (&str, &[String]),
+    worktrees: &[Worktree],
+) -> [Styled; 4] {
     let i = &q.issues[n];
     let mut stem = Styled::default();
     if q.next.as_deref() == Some(i.stem.as_str()) {
@@ -187,6 +225,10 @@ fn cells(q: &Queue, n: usize, tree: &str, also_after: &[String]) -> [Styled; 4] 
         stem.push("  ");
     }
     stem.push(tree);
+    if let Some((mark, role)) = activity(i.taken.as_ref(), worktrees) {
+        stem.mark(mark, role);
+        stem.push(" ");
+    }
     stem.push(&i.stem);
     let mut state = Styled::default();
     match state_role(&i.state) {
@@ -225,10 +267,12 @@ fn cells(q: &Queue, n: usize, tree: &str, also_after: &[String]) -> [Styled; 4] 
 
 /// The queue panel (STU-1, SUQ-1): the error lines of the sources that could not be read, then a section per
 /// milestone, its heading and its issues as a tree in aligned columns (SUQ-3), then the problems of the issue files;
-/// with the stem of each issue row and its line, in the order of the lines (STU-14).
+/// with the stem of each issue row and its line, in the order of the lines (STU-14); the claims marked by the
+/// worktrees `worktrees` (SUQ-4).
 fn queue(
     milestones: &Result<Milestones, String>,
     queue: &Result<Queue, String>,
+    worktrees: &[Worktree],
 ) -> (Panel, Vec<(String, usize)>) {
     let mut lines: Vec<Styled> = Vec::new();
     let mut errors = Vec::new();
@@ -253,7 +297,7 @@ fn queue(
     let rows: Vec<[Styled; 4]> = sections
         .iter()
         .flat_map(|s| &s.rows)
-        .map(|r| cells(q, r.issue, &r.tree, &r.also_after))
+        .map(|r| cells(q, r.issue, (&r.tree, &r.also_after), worktrees))
         .collect();
     // the column each cell starts at: that of the longest cell before it plus two
     let mut columns = [0usize; 4];
@@ -370,7 +414,8 @@ fn measures(measure: &[String], running: bool, error: Option<&str>) -> Panel {
 
 /// The panels of `state`, in the order of the screen, with the stem of each issue row of the queue and its line.
 pub fn panels(state: &State) -> ([Panel; 3], Vec<(String, usize)>) {
-    let (queue, issues) = queue(&state.milestones, &state.queue);
+    let worktrees = state.worktrees.as_deref().unwrap_or_default();
+    let (queue, issues) = queue(&state.milestones, &state.queue, worktrees);
     let panels = [
         queue,
         panel("Worktrees", &state.worktrees, |ws| {
@@ -461,7 +506,7 @@ mod tests {
             ],
             problems: vec!["issue without a priority: f".to_string()],
         };
-        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q));
+        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), &[]);
         // the words of each line drawn in a role; line 0 is the heading `No milestone`
         let rows: Vec<Styled> = (0..panel.lines.len())
             .map(|n| Styled {
@@ -494,6 +539,47 @@ mod tests {
             marked(&rows[5]),
             [("! issue without a priority: f", Role::Fail)]
         );
+    }
+
+    // spec: SUQ-4 (internal: the roles are drawn only in a terminal, never by `--print`)
+    #[test]
+    fn the_mark_at_work_is_in_accent_and_the_waiting_one_in_warn() {
+        let claim = |worktree: &str| {
+            Some(Taken::Claim {
+                state: "working".to_string(),
+                worktree: worktree.to_string(),
+                branch: "x".to_string(),
+                alive: true,
+            })
+        };
+        let q = Queue {
+            next: None,
+            issues: vec![
+                issue("a", "ready", claim("/a")),
+                issue("b", "ready", claim("/b")),
+            ],
+            problems: Vec::new(),
+        };
+        let session = |waiting| crate::source::Session {
+            id: "s".to_string(),
+            pid: "1".to_string(),
+            alive: true,
+            waiting,
+        };
+        let worktrees =
+            [("/a", None), ("/b", Some((0, "stop".to_string())))].map(|(path, waiting)| Worktree {
+                path: path.to_string(),
+                branch: None,
+                session: Some(session(waiting)),
+                merged: false,
+            });
+        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), &worktrees);
+        let first = |line: usize| {
+            let m = panel.marks.iter().find(|m| m.line == line).unwrap();
+            (&panel.lines[line][m.range.clone()], m.role)
+        };
+        assert_eq!(first(1), (AT_WORK, Role::Accent));
+        assert_eq!(first(2), (WAITING, Role::Warn));
     }
 
     // spec: STU-31 (internal: the roles are drawn only in a terminal, never by `--print`)
@@ -563,7 +649,7 @@ mod tests {
             list: vec![m],
             release_error: None,
         };
-        let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()));
+        let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()), &[]);
         assert_eq!(panel.lines, ["New  done  0/1 open", "No open issue."]);
         assert_eq!(issues.len(), 0);
     }
@@ -590,6 +676,7 @@ mod tests {
         let (failed, _) = queue(
             &Ok(Milestones::default()),
             &Err("next-issue: not JSON".to_string()),
+            &[],
         );
         assert_eq!(
             failed.marks,
@@ -604,7 +691,7 @@ mod tests {
             release_error: Some("release: exit 3".to_string()),
         };
         assert_eq!(
-            queue(&Ok(ms), &Err("next-issue: exit 3".to_string()))
+            queue(&Ok(ms), &Err("next-issue: exit 3".to_string()), &[])
                 .0
                 .marks,
             [
@@ -625,11 +712,15 @@ mod tests {
             list: Vec::new(),
             release_error: None,
         };
-        assert!(queue(&Ok(ms), &Err("x".to_string())).0.failed);
+        assert!(queue(&Ok(ms), &Err("x".to_string()), &[]).0.failed);
         assert_eq!(
-            queue(&Err("roadmap: exit 3".to_string()), &Ok(Queue::default()))
-                .0
-                .marks,
+            queue(
+                &Err("roadmap: exit 3".to_string()),
+                &Ok(Queue::default()),
+                &[]
+            )
+            .0
+            .marks,
             [Mark {
                 line: 0,
                 range: 0..15,

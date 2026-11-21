@@ -32,3 +32,45 @@ A steering UI to watch
 
 # Resources
 * `crates/cardinal-ui/src/screen.rs`, `crates/cardinal-ui/src/panels.rs`, `specs/session-wait.md`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-21
+
+## Understanding
+The row of an issue claimed by a live session gets a mark before its stem: a spinner turning every 100 ms while the
+session works, a still `‖` while its worktree waits (STU-13); `--print` writes the still `⠿` / `‖`. Out of scope: any
+other animation. Working or waiting is read by joining the claim to the worktree at its path.
+
+## Plan
+1. [x] Marks of a working and of a waiting session: the claim joined to its worktree in the panels, the mark and its
+   space in the stem cell (columns kept), `⠿` / `‖` in `--print`, the roles of the theme table; verified by `--print`
+   tests in a new `crates/cardinal-ui/tests/marks.rs` (`print.rs` is over the file size limit) and a role test of
+   `panels.rs`; makes true SUQ-4 (print part), SUQ-3. (autonomous)
+2. [ ] The spinner turns on the screen: the panel keeps where its turning marks are, the draw writes the frame of the
+   time elapsed since the screen started (100 ms a frame, no read needed), the CPU of the redraw measured; verified
+   by an internal test of `screen.rs` that draws two ticks apart; makes true SUQ-4 (screen part), SUQ-H2.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 05e49cf0a1825ad5c78df2d1c101478a9dfe72c4
+- Waiting mark in `warn`, as `waiting since` (1 a); glyphs: braille spinner `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`, `⠿` in `--print`, `‖` waiting (2 a).
+
+## Deliverable 1
+done: the queue rows of a claim at work read `⠿` and those of a waiting worktree `‖` before the stem, in `accent` and `warn`.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui` pass (3 new in `tests/marks.rs`, 1 in `panels.rs`) |
+| lint | clean (`project-check`) |
+| specs | SUQ-4, SUQ-3, SUQ-H2 traced; `check-specs` clean on SUQ and STU |
+| docs | `docs/usage.md`, `README.md`, `docs/architecture.md` |
+| code review | see below |
+
+red: SUQ-H2, SUQ-4, SUQ-3: `an_issue_at_work_and_a_waiting_one_carry_their_mark` panicked, the row read `│  a  low  ready  claimed in …/ws` with no mark.
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none

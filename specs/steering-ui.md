@@ -60,11 +60,11 @@ run several commands nor open each worktree. It changes the project only through
   | `border` | the terminal's | the borders of the panels |
   | `text` | the terminal's | the lines of the panels |
   | `muted` | ANSI dark gray | the help, `free`, `ended` and `session ended` |
-  | `accent` | ANSI cyan | the titles of the panels, the `>` of the issue `next-issue` offers |
+  | `accent` | ANSI cyan | the titles of the panels, the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
   | `selection` | reversed video | the selected line (its background when set) |
   | `pass` | ANSI green | the state `ready`, `merged` |
   | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files |
-  | `warn` | ANSI yellow | `on hold`, `(on hold)`, `waiting since <time>: <reason>` |
+  | `warn` | ANSI yellow | `on hold`, `(on hold)`, `waiting since <time>: <reason>`, the waiting mark of SUQ-4 |
   | `info` | ANSI blue | `awaits release`, `merge pending`, `measuring…` |
 
 - **STU-27** (deterministic) withdrawn: moved to SUA-11.

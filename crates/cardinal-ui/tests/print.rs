@@ -234,7 +234,7 @@ fn the_user_reads_the_milestones_the_queue_and_the_worktrees() {
     );
     let b = line(&out, "> b");
     assert!(b.contains("high") && b.contains("ready"), "{b}");
-    let a = line(&out, "  a  ");
+    let a = line(&out, "  ⠿ a  ");
     assert!(
         a.contains(&format!("claimed in {}", p.ws.display())) && !a.contains("ended"),
         "{a}"
@@ -664,7 +664,7 @@ fn an_issue_with_a_tab_of_its_name_shows_it() {
     let (code, out, err) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(
-        line(&out, "  a  ")
+        line(&out, "  ⠿ a  ")
             .trim_end_matches(['│', ' '])
             .ends_with("  tab"),
         "{out}"
@@ -679,11 +679,11 @@ fn outside_zellij_or_when_list_tabs_fails_no_tab_and_no_error() {
     let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
     let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(code, Some(0), "{out}");
-    assert!(!line(&out, "  a  ").contains("tab"), "{out}");
+    assert!(!line(&out, "  ⠿ a  ").contains("tab"), "{out}");
     let failing = p.zellij("", 1);
     let (code, out, _) = ui_in(&p.repo, &cardinal, Some(&failing), &["--print"]);
     assert_eq!(code, Some(0), "{out}");
-    assert!(!line(&out, "  a  ").contains("tab"), "{out}");
+    assert!(!line(&out, "  ⠿ a  ").contains("tab"), "{out}");
     let text = p.zellij("not json", 0);
     let (code, out, _) = ui_in(&p.repo, &cardinal, Some(&text), &["--print"]);
     assert_eq!(code, Some(0), "{out}");

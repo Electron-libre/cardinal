@@ -93,6 +93,6 @@ of `screen.rs` has no test (it needs a terminal).
 
 Code review: no findings
 
-not verified: the turning mark seen in a real terminal (the CPU run drew it in a pty, unread)
+not verified: none (8 s of the screen in a pty drew each of the ten frames 7 or 8 times, `⠿` never)
 
 decisions needed: none

@@ -372,8 +372,14 @@ fn a_release_of_an_unsupported_version_is_an_error_above_the_milestones() {
     let p = project();
     let cardinal = p.cardinal_releasing(&ok(QUEUE), &ok(DONE), Some(&ok(r#"{"version":2}"#)));
     let (code, out, _) = ui(&p.repo, &cardinal, &["--print"]);
-    assert!(out.contains("New  "), "{out}");
-    assert!(out.contains("release: version 2 unsupported"), "{out}");
+    let row = out.lines().position(|l| l.contains("New  "));
+    let error = out
+        .lines()
+        .position(|l| l.contains("release: version 2 unsupported"));
+    assert!(
+        matches!((row, error), (Some(r), Some(e)) if e < r),
+        "the error heads the queue: {out}"
+    );
     assert_eq!(code, Some(1));
 }
 

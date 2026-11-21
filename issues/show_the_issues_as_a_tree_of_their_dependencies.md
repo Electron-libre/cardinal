@@ -54,6 +54,10 @@ the issue rows only. Out of scope: folding, an issue under several parents, the 
    and draws the tree and the aligned columns, the milestones panel merged into the queue, the view keeping the line of
    each stem so the selection skips the headings; verified by `--print` tests (`tests/print.rs`) and internal tests of
    the selection; makes true STU-1, STU-14, SUQ-1, SUQ-2, SUQ-3 (~700 lines) (autonomous)
+2. [x] Fixes of the `high` review of the issue: the parents of a section computed once (a long chain drew in cubic
+   time), `also after` without the issue itself nor a repeated stem, a milestone named twice holding its issues once,
+   `No open issue.` under the headings, the error above the milestones checked, stale comments; verified by tests
+   of `tree.rs`, `panels.rs` and `tests/print.rs`; makes true SUQ-1, SUQ-2 (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -89,3 +93,24 @@ Follow-ups:
 - `crates/cardinal-ui/tests/print.rs` is at 827 lines, over the file size limit: not split here, as the move of its
   fixtures would push the deliverable over its size limit; filed as
   [split_the_print_tests_of_the_steering_ui](split_the_print_tests_of_the_steering_ui.md).
+
+## Deliverable 2
+
+done: the six findings of the `high` review of `7e09056..bacc915` fixed.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | unchanged, accepted |
+| docs | doc comments of `screen.rs` and `panels.rs` |
+| code review | high on the issue, then low on this deliverable |
+
+red: SUQ-1, SUQ-2: a chain of 2000 dependencies never finished drawing; `also after` listed `a` on the row of `a`
+and a repeated stem twice; an empty queue under a milestone showed no `No open issue.`
+
+Code review: 6 findings (high on the issue), all fixed: 1 important (the cubic walk of a long chain), 5 nits.
+
+not verified: none.
+
+decisions needed: none.

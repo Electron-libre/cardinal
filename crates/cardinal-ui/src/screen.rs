@@ -77,8 +77,8 @@ pub(crate) fn styled<'a>(
     Line::from(spans)
 }
 
-/// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the milestones, the worktrees and the
-/// measures at their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, the help
+/// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the worktrees and the measures at
+/// their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, the help
 /// line after `status`.
 fn render(
     area: Rect,
@@ -255,7 +255,7 @@ fn draw(
     theme: &Theme,
 ) {
     let area = f.area();
-    // a panel holds one line per stem or worktree, in order: an empty or failed one selects nothing
+    // the selected line comes from `Selection::line`: a stem through its line of the queue, a worktree by its rank
     if let Some(v) = view.filter(|_| charts) {
         render_charts(
             area,

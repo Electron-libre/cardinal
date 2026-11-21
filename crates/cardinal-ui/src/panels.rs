@@ -16,7 +16,7 @@ pub struct Panel {
     pub title: &'static str,
     pub lines: Vec<String>,
     pub marks: Vec<Mark>,
-    /// Whether it shows the error of STU-6 instead of its content.
+    /// Whether it shows the error of STU-6, instead of its content or above it.
     pub failed: bool,
 }
 
@@ -286,7 +286,7 @@ fn queue(
             lines.push(line);
         }
     }
-    if sections.is_empty() && queue.is_ok() {
+    if q.issues.is_empty() && queue.is_ok() {
         lines.push(Styled::plain("No open issue."));
     }
     lines.extend(
@@ -545,6 +545,27 @@ mod tests {
             "{words}"
         );
         assert_eq!(role, Role::Warn);
+    }
+
+    // spec: SUQ-1 (internal: the lines of the queue, on its data rather than a repository)
+    #[test]
+    fn an_empty_queue_says_so_under_its_milestones() {
+        let m = Milestone {
+            name: "New".to_string(),
+            state: Some("done".to_string()),
+            on_hold: false,
+            open: 0,
+            listed: 1,
+            awaits_release: false,
+            proposed: None,
+        };
+        let ms = Milestones {
+            list: vec![m],
+            release_error: None,
+        };
+        let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()));
+        assert_eq!(panel.lines, ["New  done  0/1 open", "No open issue."]);
+        assert_eq!(issues.len(), 0);
     }
 
     // spec: STU-31 (internal: the roles are drawn only in a terminal, never by `--print`)

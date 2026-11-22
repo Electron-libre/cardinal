@@ -69,8 +69,8 @@ The work done before this file existed is in `issues/done/`.
 
 - Goal: make `cardinal-ui` the place the user steers from, not only reads: the Cardinal logo on the screen, the
   summary of the selected issue folded and unfolded, the progress of each milestone and of each issue at work as a
-  bar, a command to select the next issue and one to prioritize the issues, and a way of giving commands that is
-  easy to discover as they grow.
+  bar, a command to select the next issue, one to prioritize the issues, one to cut a milestone into issues and one to
+  audit the code, and a way of giving commands that is easy to discover as they grow.
 - Why: the feedback of the user on 2026-11-23: an issue is known by its stem only, progress is a fraction to
   compute, the order of the queue is changed from another terminal, and one letter per action, listed on the help
   line only, is not practical.
@@ -83,3 +83,6 @@ The work done before this file existed is in `issues/done/`.
   - [select_the_next_issue_with_a_key](issues/select_the_next_issue_with_a_key.md)
   - [prioritize_the_issues_from_the_ui](issues/prioritize_the_issues_from_the_ui.md)
   - [rethink_the_commands_of_the_ui](issues/rethink_the_commands_of_the_ui.md)
+  - [cut_a_milestone_into_issues_from_the_ui](issues/cut_a_milestone_into_issues_from_the_ui.md)
+  - [write_a_skill_to_audit_the_code](issues/write_a_skill_to_audit_the_code.md)
+  - [audit_the_code_from_the_ui](issues/audit_the_code_from_the_ui.md)

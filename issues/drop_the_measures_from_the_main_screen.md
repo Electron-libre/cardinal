@@ -29,3 +29,44 @@ A steering UI to read at a glance
 # Resources
 * `crates/cardinal-ui/src/screen.rs` (`render`), `crates/cardinal-ui/src/measures.rs`, `crates/cardinal-ui/src/charts.rs`
 * `docs/usage.md` (the screen of `cardinal-ui`)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+The main screen keeps the queue and the worktrees only; the `Measures` panel moves to a measures screen of its own,
+reached by `g` after the charts (panels → charts → measures → panels), where `m` measures; `m` does nothing on the
+panels. `--print` keeps printing the panel under the worktrees (scripts and the tests of STU-16 to STU-19 read it).
+
+## Plan
+1. [ ] Measures screen: `render` draws the queue and the worktrees only, a `Screen` (panels, charts, measures) replaces
+   the `charts` flag of the loop, `g` cycles the three, `m` acts on the charts and measures screens only, the
+   measures screen draws the panel over the whole screen with its help line, `docs/usage.md` updated; verified by unit
+   tests of `keys.rs`, `screen.rs` and `charts.rs` (rendered buffers) and `tests/print_screen.rs`; makes true STU-1,
+   STU-4, STU-16, STU-17, SUC-1, SUC-6.
+2. [ ] Docs of the whole issue and fixes of its `high` review; verified by `just check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: deddcca1162d57c73d63500f91c85f1ed7df6808
+- 1 a: the table on a screen of its own, `g` from the charts.
+- 2 a: `--print` keeps the table under the worktrees.
+
+## Summary of deliverable 1
+done: the main screen draws the queue and the worktrees only; `g` cycles panels → charts → measures table → panels,
+`m` measures on the charts and the table only; `--print` keeps the table under the worktrees (`print.rs`, split out
+of `screen.rs` to keep it under 800 lines).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass, STU and SUC back to `accepted` |
+| docs | `docs/usage.md`, `docs/architecture.md`, `README.md` |
+| code review | see below |
+
+red: STU-1, SUC-1, SUC-6: cannot find function `screen_key`, type `Screen`, value `MEASURES_HELP`
+
+not verified: the screen in a real terminal (rendered on the test backend only).
+decisions needed: none.

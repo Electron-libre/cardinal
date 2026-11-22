@@ -67,7 +67,7 @@ pub enum Action {
     Release,
     Measure,
     Charts,
-    /// `Esc`: back to the panels from the charts (SUC-1), else quit (STU-2).
+    /// `Esc`: back to the panels from the charts and the measures (SUC-1), else quit (STU-2).
     Back,
     Nothing,
 }
@@ -150,17 +150,30 @@ pub fn action(key: &KeyEvent) -> Action {
     }
 }
 
-/// Whether the charts are shown after `action`, and what it then does (SUC-1): `g` switches between the panels and
-/// the charts, where `Esc` goes back to the panels and only the keys of the reads and of the measures act, so the
-/// selection and the tasks wait; `Esc` quits from the panels.
-pub(crate) fn charts_key(charts: bool, action: Action) -> (bool, Action) {
-    match action {
-        Action::Charts => (!charts, Action::Nothing),
-        Action::Back if charts => (false, Action::Nothing),
-        Action::Back => (false, Action::Quit),
-        Action::Quit | Action::Refresh | Action::Measure => (charts, action),
-        _ if charts => (charts, Action::Nothing),
-        a => (charts, a),
+/// The screen `cardinal-ui` shows (SUC-1): its panels, the charts of the measures, or the table of the measures.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) enum Screen {
+    Panels,
+    Charts,
+    Measures,
+}
+
+/// The screen shown after `action` on `shown`, and what it then does (SUC-1): `g` goes from the panels to the charts,
+/// to the measures and back to the panels; on the charts and the measures `Esc` goes back to the panels and only the
+/// keys of the reads and of the measures act, so the selection and the tasks wait; on the panels `Esc` quits and
+/// `m` does nothing.
+pub(crate) fn screen_key(shown: Screen, action: Action) -> (Screen, Action) {
+    match (shown, action) {
+        (Screen::Panels, Action::Charts) => (Screen::Charts, Action::Nothing),
+        (Screen::Charts, Action::Charts) => (Screen::Measures, Action::Nothing),
+        (Screen::Panels, Action::Back) => (Screen::Panels, Action::Quit),
+        // back to the panels from the last screen of `g` or on `Esc`; no measure from the panels
+        (Screen::Measures, Action::Charts)
+        | (Screen::Panels, Action::Measure)
+        | (_, Action::Back) => (Screen::Panels, Action::Nothing),
+        (s, a @ (Action::Quit | Action::Refresh | Action::Measure)) => (s, a),
+        (Screen::Panels, a) => (Screen::Panels, a),
+        (s, _) => (s, Action::Nothing),
     }
 }
 
@@ -225,7 +238,7 @@ pub(crate) mod tests {
     fn q_esc_and_ctrl_c_quit_and_r_refreshes() {
         assert_eq!(action(&press(KeyCode::Char('q'))), Action::Quit);
         assert_eq!(
-            charts_key(false, action(&press(KeyCode::Esc))).1,
+            screen_key(Screen::Panels, action(&press(KeyCode::Esc))).1,
             Action::Quit
         );
         let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
@@ -342,42 +355,63 @@ pub(crate) mod tests {
 
     // spec: SUC-1 (internal: the keys of a screen that needs a real terminal)
     #[test]
-    fn g_switches_to_the_charts_where_only_the_keys_of_the_reads_act() {
+    fn g_cycles_the_panels_the_charts_and_the_measures_where_only_the_keys_of_the_reads_act() {
+        use Screen::{Charts, Measures, Panels};
         assert_eq!(action(&press(KeyCode::Char('g'))), Action::Charts);
-        assert_eq!(charts_key(false, Action::Charts), (true, Action::Nothing));
-        for idle in [
-            Action::Start,
-            Action::Merge,
-            Action::End,
-            Action::EndMerged,
-            Action::Release,
-        ] {
-            assert_eq!(charts_key(true, idle), (true, Action::Nothing));
-        }
-        for idle in [Action::Up, Action::Down, Action::Switch] {
+        assert_eq!(
+            screen_key(Panels, Action::Charts),
+            (Charts, Action::Nothing)
+        );
+        assert_eq!(
+            screen_key(Charts, Action::Charts),
+            (Measures, Action::Nothing)
+        );
+        assert_eq!(
+            screen_key(Measures, Action::Charts),
+            (Panels, Action::Nothing)
+        );
+        for shown in [Charts, Measures] {
+            for idle in [
+                Action::Start,
+                Action::Merge,
+                Action::End,
+                Action::EndMerged,
+                Action::Release,
+                Action::Up,
+                Action::Down,
+                Action::Switch,
+            ] {
+                assert_eq!(
+                    screen_key(shown, idle),
+                    (shown, Action::Nothing),
+                    "no task, the selection kept"
+                );
+            }
+            for acts in [Action::Quit, Action::Refresh, Action::Measure] {
+                assert_eq!(screen_key(shown, acts.clone()), (shown, acts));
+            }
             assert_eq!(
-                charts_key(true, idle),
-                (true, Action::Nothing),
-                "the selection kept"
+                screen_key(shown, Action::Back),
+                (Panels, Action::Nothing),
+                "Esc back to the panels"
             );
         }
-        for acts in [Action::Quit, Action::Refresh, Action::Measure] {
-            assert_eq!(charts_key(true, acts.clone()), (true, acts));
-        }
-        assert_eq!(charts_key(true, Action::Charts), (false, Action::Nothing));
         assert_eq!(action(&press(KeyCode::Esc)), Action::Back);
         assert_eq!(
-            charts_key(true, Action::Back),
-            (false, Action::Nothing),
-            "Esc back to the panels"
-        );
-        assert_eq!(
-            charts_key(false, Action::Back),
-            (false, Action::Quit),
+            screen_key(Panels, Action::Back),
+            (Panels, Action::Quit),
             "Esc quits from the panels"
         );
-        assert_eq!(charts_key(false, Action::Start), (false, Action::Start));
-        assert!(HELP.contains("g charts"), "{HELP}");
+        assert_eq!(
+            screen_key(Panels, Action::Measure),
+            (Panels, Action::Nothing),
+            "no measure from the panels"
+        );
+        assert_eq!(screen_key(Panels, Action::Start), (Panels, Action::Start));
+        assert!(
+            HELP.contains("g charts") && !HELP.contains("m measure"),
+            "{HELP}"
+        );
     }
 
     // spec: SUE-2 (internal: the keys of a screen that needs a real terminal)

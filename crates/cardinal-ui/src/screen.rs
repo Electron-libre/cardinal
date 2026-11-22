@@ -1,9 +1,9 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui, in a terminal (STU-2) or once as text
 //! (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
-//! ends it on every merged worktree (SUE-2); `m` takes the measures again (STU-17); `v` starts the release session
-//! (SUA-4); a worktree that starts to wait for the user notifies the desktop (STU-29); `g` switches to the charts of
-//! the measures and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4).
+//! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4); a worktree that starts to wait
+//! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
+//! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -16,7 +16,7 @@ use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::charts::{head, render_charts, Chart};
 use crate::keys::{
-    action, charts_key, ended, job, quits, task, Action, Ended, Focus, Selection, Task,
+    action, ended, job, quits, screen_key, task, Action, Ended, Focus, Screen, Selection, Task,
 };
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::{Mark, Panel};
@@ -30,12 +30,12 @@ pub const REFRESH: Duration = Duration::from_secs(2);
 /// How long the loop waits for a key before it looks for a finished read.
 const TICK: Duration = Duration::from_millis(100);
 
-/// The width of the text of `--print`, unless a line needs more (STU-4).
-const PRINT_WIDTH: u16 = 100;
-
 /// The help line under the panels.
 pub(crate) const HELP: &str =
-    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  m measure  g charts";
+    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  g charts";
+
+/// The help line under the table of the measures (SUC-6).
+const MEASURES_HELP: &str = "q quit  r refresh  m measure  g panels";
 
 /// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
 /// the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
@@ -78,33 +78,30 @@ pub(crate) fn styled<'a>(
     Line::from(spans)
 }
 
-/// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the worktrees and the measures at
-/// their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, then the row of
-/// `status` while it shows a message (STU-34) and the help line.
-fn render(
+/// Renders `panels` one above the other into `buf` over `area` in the roles of `theme` (STU-31): the first in the
+/// rows the others leave, each other at its height, the line `selected` (a panel and a line) highlighted, then the
+/// row of `status` while it shows a message (STU-34) and the line `help`.
+pub(crate) fn render(
     area: Rect,
     buf: &mut Buffer,
-    panels: &[Panel; 3],
+    (panels, help): (&[Panel], &str),
     selected: Option<(usize, usize)>,
     status: &Status,
     theme: &Theme,
 ) {
     buf.set_style(area, theme.screen());
-    let [queue, worktrees, measures] = panels;
-    let areas = Layout::vertical([
-        Constraint::Min(height(queue).min(3)),
-        Constraint::Max(height(worktrees)),
-        Constraint::Max(height(measures)),
-        Constraint::Length(status.rows()),
-        Constraint::Length(1),
-    ])
-    .split(area);
+    let first = panels.first().map_or(0, |p| height(p).min(3));
+    let constraints = std::iter::once(Constraint::Min(first))
+        .chain(panels.iter().skip(1).map(|p| Constraint::Max(height(p))))
+        .chain([Constraint::Length(status.rows()), Constraint::Length(1)]);
+    let areas = Layout::vertical(constraints).split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
     }
-    status.draw(areas[3], buf, theme);
-    help_line(HELP, areas[4], buf, theme);
+    let n = panels.len();
+    status.draw(areas[n], buf, theme);
+    help_line(help, areas[n + 1], buf, theme);
 }
 
 /// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the
@@ -149,46 +146,6 @@ pub(crate) fn draw_panel(
 pub(crate) fn help_line(help: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
     buf.set_style(area, theme.help());
     Line::raw(help).render(area, buf);
-}
-
-/// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
-/// row without its trailing spaces (STU-4). Rendered straight into a buffer: a terminal of the test backend
-/// mixes up the cells past the 65,535th.
-pub fn text(panels: &[Panel; 3]) -> String {
-    let longest = panels
-        .iter()
-        .flat_map(|p| p.lines.iter())
-        .map(|l| Line::raw(l.as_str()).width().saturating_add(2))
-        .max()
-        .unwrap_or(0);
-    let width = PRINT_WIDTH.max(u16::try_from(longest).unwrap_or(u16::MAX));
-    let rows = panels.iter().map(height).fold(1u16, u16::saturating_add);
-    let area = Rect::new(0, 0, width, rows);
-    let mut buf = Buffer::empty(area);
-    // the colors never reach the text (STU-31)
-    render(
-        area,
-        &mut buf,
-        panels,
-        None,
-        &Status::default(),
-        &Theme::default(),
-    );
-    let mut out = String::new();
-    for y in 0..rows {
-        let mut row = String::new();
-        let mut x = 0;
-        while x < width {
-            let symbol = buf.cell((x, y)).map_or(" ", ratatui::buffer::Cell::symbol);
-            row.push_str(symbol);
-            // a wide character covers the next cells, which hold no symbol of their own
-            let columns = u16::try_from(Line::raw(symbol).width()).unwrap_or(1).max(1);
-            x = x.saturating_add(columns);
-        }
-        out.push_str(row.trim_end());
-        out.push('\n');
-    }
-    out
 }
 
 /// When to read the project: every `REFRESH` from the end of the last read and on `r`, one read at a time (STU-2).
@@ -252,35 +209,44 @@ fn received(
     }
 }
 
-/// Draws `view` in the frame `f`, its charts when `charts` (SUC-1), else its panels with the line `selected` of
-/// [`Selection::line`] highlighted, or `reading the project…` before the first read, in the roles of `theme` (STU-31).
+/// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
+/// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1), or `reading the
+/// project…` before the first read, in the roles of `theme` (STU-31).
 fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    (selected, charts): (Selection, bool),
+    (selected, shown): (Selection, Screen),
     status: &Status,
     theme: &Theme,
 ) {
     let area = f.area();
-    // the selected line comes from `Selection::line`: a stem through its line of the queue, a worktree by its rank
-    if let Some(v) = view.filter(|_| charts) {
-        render_charts(
-            area,
-            f.buffer_mut(),
-            &head(&v.panels[2]),
-            &v.charts,
-            status,
-            theme,
-        );
-    } else if let Some(v) = view {
-        render(
-            area,
-            f.buffer_mut(),
-            &v.panels,
-            selected.line(v),
-            status,
-            theme,
-        );
+    if let Some(v) = view {
+        let buf = f.buffer_mut();
+        match shown {
+            Screen::Charts => {
+                render_charts(area, buf, &head(&v.panels[2]), &v.charts, status, theme);
+            }
+            Screen::Measures => {
+                render(
+                    area,
+                    buf,
+                    (&v.panels[2..], MEASURES_HELP),
+                    None,
+                    status,
+                    theme,
+                );
+            }
+            // the selected line comes from `Selection::line`: a stem through its line of the queue, a worktree by
+            // its rank
+            Screen::Panels => render(
+                area,
+                buf,
+                (&v.panels[..2], HELP),
+                selected.line(v),
+                status,
+                theme,
+            ),
+        }
     } else {
         f.buffer_mut().set_style(area, theme.screen());
         Line::raw("reading the project…").render(area, f.buffer_mut());
@@ -289,7 +255,7 @@ fn draw(
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
-/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m`,
+/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (STU-31, STU-33). The terminal
 /// is given back as it was, also on a panic (Ratatui's hook).
@@ -322,7 +288,7 @@ pub fn run(
         let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
         let mut quitting = false;
-        let mut charts = false;
+        let mut shown = Screen::Panels;
         let started = Instant::now();
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
@@ -347,11 +313,11 @@ pub fn run(
                 // the mark at work turns at each tick, a read or not (SUQ-4)
                 spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
-            terminal.draw(|f| draw(f, view.as_ref(), (selected, charts), &status, &theme))?;
+            terminal.draw(|f| draw(f, view.as_ref(), (selected, shown), &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
-                    let (shown, key) = charts_key(charts, action(&key));
-                    charts = shown;
+                    let (screen, key) = screen_key(shown, action(&key));
+                    shown = screen;
                     let (now, later) = quits(&key, busy, quitting);
                     if now {
                         return Ok(None);
@@ -417,7 +383,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((0, 1)),
             &Status::new("started a in /w", Kind::Done),
             &Theme::default(),
@@ -453,7 +419,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             None,
             &Status::default(),
             &Theme::default(),
@@ -462,7 +428,7 @@ mod tests {
         assert!(row(14).starts_with("q quit"));
         assert!(
             row(13).starts_with('└'),
-            "the measures panel right above the help"
+            "the last panel right above the help"
         );
     }
 
@@ -490,7 +456,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((0, 1)),
             &Status::new("theme: line 9 ignored", Kind::Error),
             &theme,
@@ -555,7 +521,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((0, 1)),
             &Status::default(),
             &theme,
@@ -608,7 +574,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((0, 29)),
             &Status::default(),
             &Theme::default(),
@@ -655,7 +621,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((1, 1)),
             &Status::default(),
             &Theme::default(),
@@ -687,7 +653,7 @@ mod tests {
         render(
             area,
             &mut buf,
-            &panels,
+            (&panels, HELP),
             Some((1, 17)),
             &Status::default(),
             &Theme::default(),
@@ -702,6 +668,72 @@ mod tests {
             "the whole inner row of the scrolled panel"
         );
         assert!(!buf[(39, y)].modifier.contains(Modifier::REVERSED));
+    }
+
+    /// The screen `shown` of a view whose panels hold `lines` (the measures third), drawn in 120 by 15 cells.
+    fn drawn(lines: [&[&str]; 3], shown: Screen) -> Vec<String> {
+        let mut v = view(&["b"], &[("/main", Some("trunk"))]);
+        for (p, l) in v.panels.iter_mut().zip(lines) {
+            p.lines = l.iter().map(|x| (*x).to_string()).collect();
+        }
+        let selected = Selection {
+            focus: Focus::Queue,
+            issue: 0,
+            worktree: 0,
+        };
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 15)).unwrap();
+        terminal
+            .draw(|f| {
+                draw(
+                    f,
+                    Some(&v),
+                    (selected, shown),
+                    &Status::default(),
+                    &Theme::default(),
+                );
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        (0..15)
+            .map(|y| (0..120).map(|x| buf[(x, y)].symbol()).collect())
+            .collect()
+    }
+
+    // spec: STU-1, SUC-6 (internal: the screens are drawn only in the terminal)
+    #[test]
+    fn the_panels_show_no_measures_and_the_measures_screen_shows_them_whole() {
+        let table = [
+            "measured 19:23",
+            "by revision:",
+            "r1  12 sessions",
+            "by milestone:",
+        ];
+        let panels = drawn([&["> b"], &["/main"], &table], Screen::Panels).join("\n");
+        assert!(
+            panels.contains(" Queue ") && panels.contains(" Worktrees "),
+            "{panels}"
+        );
+        assert!(
+            !panels.contains("Measures") && !panels.contains("measured"),
+            "{panels}"
+        );
+        let rows = drawn([&["> b"], &["/main"], &table], Screen::Measures);
+        let screen = rows.join("\n");
+        assert!(rows[0].contains(" Measures "), "{screen}");
+        for line in table {
+            assert!(screen.contains(line), "{line} in {screen}");
+        }
+        assert!(!screen.contains("Queue"), "{screen}");
+        assert!(rows[14].starts_with(MEASURES_HELP), "{screen}");
+        assert!(MEASURES_HELP.contains("m measure") && MEASURES_HELP.contains("g panels"));
+        let tall: Vec<String> = (0..30).map(|i| format!("row{i:02}")).collect();
+        let tall: Vec<&str> = tall.iter().map(String::as_str).collect();
+        let screen = drawn([&["> b"], &["/main"], &tall], Screen::Measures).join("\n");
+        assert!(
+            screen.contains("row00") && !screen.contains("row29"),
+            "its first rows: {screen}"
+        );
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

@@ -1,7 +1,7 @@
 //! The measures of the project (STU-16 to STU-19): `session-metrics` and `delivered-quality --summary` run into the
 //! cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
 //! milestone, and the last 12 groups of revisions for the charts (SUC-4). The readers take about a minute each on a large history of transcripts, so the screen shows the last
-//! measure at once, measures again when it starts and the last one is over an hour old and on `m`, on a thread of its
+//! measure at once, measures again when it starts and the last one is over an hour old and on `m` (SUC-1), on a thread of its
 //! own.
 
 use std::path::{Path, PathBuf};

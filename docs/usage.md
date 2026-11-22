@@ -269,17 +269,16 @@ projects directory given, they read the `projects/` of the configuration directo
 [specs/steering-ui-queue.md](../specs/steering-ui-queue.md), its actions in
 [specs/steering-ui-actions.md](../specs/steering-ui-actions.md), the end of a merged worktree in
 [specs/steering-ui-end.md](../specs/steering-ui-end.md)) shows the
-project of the current directory (the root of its work tree) in one terminal screen, in three panels:
+project of the current directory (the root of its work tree) in one terminal screen, in two panels (the measures have a screen of their own, below):
 
 | Panel | Read from | Each line |
 |---|---|---|
 | Queue | `cardinal run next-issue --json`; `cardinal run roadmap --open --json`, the released milestones left out; `cardinal run release --json` when one of them is `done`, again only once `HEAD`, a tag or the roadmap changed | a section per milestone, in the order of the roadmap, then the milestones it does not list, then `No milestone`: a heading (name, state, `(on hold)` after it, then `awaits release v<version>` when `release` would list it, the version it proposes, bare when it proposes none, open issues over the listed ones), then its open issues as a tree, each under the first open issue of its milestone it depends on (`├─ `, `└─ `); per issue, in aligned columns, `>` before the issue offered, a spinner before the stem while the session of its claim works (`⠿` in `--print`) or `‖` while its worktree waits for the user, stem, priority, state, what takes it (`claimed in <worktree>`, `, session ended`, `merge pending`, a branch), `tab` when a tab of the current zellij session bears its stem, `also after <stems>` for its other open dependencies; the errors of the tools above the sections, the problems of the issue files under them, after `!` |
 | Worktrees | `git worktree list` and the lock of each (`workspace-lock`) | path, branch (`merged` after it when the trunk holds the close of the issue of that name), the session holding the lock (`ended` when its process is gone) or `free`, then `waiting since <HH:MM>: <reason>` (its date before it when not today) while that session waits for the user (the mark of the `session-wait` hooks) |
-| Measures | the last measure of the project (below) | `measured <HH:MM>`; per group of the last four groups of revisions of the project, its sessions and the medians of input tokens (with the share read from cache), output tokens, peak context (with the sessions it rests on) and validations, or `too few`; per milestone, its done issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue (with the issues of known tokens) |
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `cardinal-ui --print`
-prints the screen once as text (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
+prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
 the issues the trunk closed, as it does for the agent.
@@ -294,14 +293,18 @@ A measure runs `cardinal run session-metrics` and `delivered-quality <main workt
 rows name projects and issues, then `cardinal-report --project <project> --last 4 --json`, the same with `--last 12`
 for the charts (`revisions.json`) and `cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
 transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts
-and the last one is over an hour old, and on `m`: `measuring…` heads the panel meanwhile, and a failed step shows its
+and the last one is over an hour old, and on `m` of the charts and the measures screens: `measuring…` heads the table meanwhile, and a failed step shows its
 error above the last measure, whose files stay as they were. `--print` measures first when the measure is over an
-hour old. `g` switches the screen to four bar charts of the last measure and back
-([specs/steering-ui-charts.md](../specs/steering-ui-charts.md)): the median input per session and the cached share over
+hour old. `g` switches the screen to four bar charts of the last measure, then to the table of the measures, then back
+to the panels ([specs/steering-ui-charts.md](../specs/steering-ui-charts.md)): the charts draw the median input per session and the cached share over
 the last twelve groups of revisions, the fixes after per issue and the findings per review per milestone (the issues
 of no milestone left out), each bar from zero with its number and its sample, a group `too few` unbarred, a chart
-too tall for the terminal showing its newest rows; there `Esc` goes back too, `q`, `r` and `m` work and the other keys
-wait. The numbers are trends with their sample, never a pass or a fail:
+too tall for the terminal showing its newest rows; the table reads `measured <HH:MM>`, then per group of the last four
+groups of revisions of the project its sessions and the medians of input tokens (with the share read from cache),
+output tokens, peak context (with the sessions it rests on) and validations, or `too few`, and per milestone its done
+issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue
+(with the issues of known tokens). On both, `Esc` goes back to the panels, `q`, `r` and `m` work and the other keys
+wait; on the panels, `m` does nothing. The numbers are trends with their sample, never a pass or a fail:
 `skill:evaluate-harness` reads the rest of the report.
 
 What an action did or why it refused, a failed notification and an ignored theme line go on the status line, a row

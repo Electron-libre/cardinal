@@ -256,7 +256,7 @@ flowchart LR
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
   ui -->|"notify-send or CARDINAL_UI_NOTIFY<br/>(a new wait)"| desktop["desktop notification"]
-  ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old, on m)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
+  ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old,<br/>on m of the charts and the measures)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
   ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
   ui -->|"list-panes, close-tab-by-id or SIGHUP,<br/>cardinal run worktree close (merged)"| ended["session, tab, worktree"]
   ui -->|"release --json, zellij action new-tab<br/>claude /release (awaiting release)"| release["release tab in the main worktree"]
@@ -274,7 +274,8 @@ flowchart LR
 | `tree.rs` | the sections of the queue: the open issues grouped by milestone, each section a tree of their dependencies |
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
-| `screen.rs` | draws the panels (Ratatui) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, renders `--print` into a buffer |
+| `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own |
+| `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on a row of its own above the help line |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |

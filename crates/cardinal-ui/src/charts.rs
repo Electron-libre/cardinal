@@ -233,7 +233,7 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
 }
 
 /// The help line under the charts (SUC-1).
-const CHARTS_HELP: &str = "q quit  r refresh  m measure  g panels";
+const CHARTS_HELP: &str = "q quit  r refresh  m measure  g measures";
 
 /// The lines of the `Measures` panel `p` before its groups: the error of the last measure, `measured` or `measuring…`
 /// (SUC-2).
@@ -544,7 +544,7 @@ mod tests {
             .expect("the milestone");
         assert!(one.contains("2 issues"), "{one}");
         assert!(screen.contains("1.71 7 reviews"), "{screen}");
-        assert!(rows.last().unwrap().contains("g panels"), "{screen}");
+        assert!(rows.last().unwrap().contains("g measures"), "{screen}");
     }
 
     // spec: SUC-2 (internal: the charts screen is drawn only in the terminal)

@@ -152,7 +152,8 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
   status line reads `notify: exit 3: no bus` after the first only.
 
 - (STU-31) Given a theme file that sets `border = "#112233"`, when the screen draws, then the borders of the panels are
-  `#112233`, the selected line has the background of `selection` up to the right border of its panel, and the state `ready` of an issue is drawn in `pass`.
+  `#112233`, the selected line has the background of `selection` up to the right border of its panel, and the state
+  `ready` of an issue is drawn in `pass`.
 - (STU-31) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (STU-32) Given no theme file, then every role has its default and no `theme:` line is shown.
 - (STU-32) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read

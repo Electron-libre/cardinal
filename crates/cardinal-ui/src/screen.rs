@@ -105,7 +105,8 @@ fn render(
     help_line(HELP, status, areas[3], buf, theme);
 }
 
-/// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the roles of `theme` (STU-31).
+/// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the
+/// roles of `theme` (STU-31).
 pub(crate) fn draw_panel(
     p: &Panel,
     area: Rect,

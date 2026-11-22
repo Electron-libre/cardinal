@@ -41,6 +41,8 @@ after the paragraph is rendered, its row derived from the scroll offset of STU-1
 ## Plan
 1. [x] Whole-row highlight: `draw_panel` styles the selected row of the inner area; verified by the STU-31 screen test
    asserting the `selection` background on the last inner column, also in a scrolled panel; makes true STU-31. (autonomous)
+2. [x] Review fixes of the whole issue: wrap the two lines the `high` review named at 120 columns; verified by
+   `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -61,4 +63,22 @@ done: `draw_panel` sets the selection style on the whole visible inner row of th
 red: STU-31: `up to the right border`: left `Rgb(0, 0, 1)`, right `Rgb(0, 0, 7)`
 Code review: no findings
 not verified: the rendering in a real terminal (the buffer is asserted, not the screen).
+decisions needed: none
+
+## Summary of deliverable 2
+High review of the whole issue (`57d6461..39ce44b`): 1 finding (nit, lines over 120 columns), fixed here.
+
+done: the `high` review of the issue: the doc comment of `draw_panel` and the STU-31 scenario wrapped at 120 columns.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a (the fix is a doc wrap) |
+| code review | low: no findings |
+
+red: none
+Code review: no findings
+not verified: none
 decisions needed: none

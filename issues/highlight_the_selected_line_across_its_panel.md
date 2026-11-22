@@ -28,3 +28,37 @@ A steering UI to watch
 
 # Resources
 * `crates/cardinal-ui/src/screen.rs` (`render`), `crates/cardinal-ui/src/theme.rs` (`Theme::selected`)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+Paint the selected row of the queue or worktrees panel on `selection` (or reversed video) from the left to the right
+border, the marked words keeping their role. Means: approach 2, the style set on the visible row of the inner area
+after the paragraph is rendered, its row derived from the scroll offset of STU-14.
+
+## Plan
+1. [x] Whole-row highlight: `draw_panel` styles the selected row of the inner area; verified by the STU-31 screen test
+   asserting the `selection` background on the last inner column, also in a scrolled panel; makes true STU-31. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 57d6461a409c5656931092051d99f25817d9d9a9
+
+## Summary of deliverable 1
+done: `draw_panel` sets the selection style on the whole visible inner row of the selected line, after the paragraph
+(scroll offset of STU-14 applied); STU-31 and `docs/usage.md` say "across its panel".
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (STU back to `accepted`) |
+| docs | `docs/usage.md` theme table |
+| code review | low: no findings |
+
+red: STU-31: `up to the right border`: left `Rgb(0, 0, 1)`, right `Rgb(0, 0, 7)`
+Code review: no findings
+not verified: the rendering in a real terminal (the buffer is asserted, not the screen).
+decisions needed: none

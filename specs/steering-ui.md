@@ -29,7 +29,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-26** (deterministic) withdrawn: moved to SUA-4.
 - **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) with a mark (its session and its time) no read before had found, titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
-- **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection`, the help in `muted` and the status message in `text`, both on `surface`, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
+- **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection` across the whole inner width of its panel, the help in `muted` and the status message in `text`, both on `surface`, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -152,7 +152,7 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
   status line reads `notify: exit 3: no bus` after the first only.
 
 - (STU-31) Given a theme file that sets `border = "#112233"`, when the screen draws, then the borders of the panels are
-  `#112233`, the selected line has the background of `selection`, and the state `ready` of an issue is drawn in `pass`.
+  `#112233`, the selected line has the background of `selection` up to the right border of its panel, and the state `ready` of an issue is drawn in `pass`.
 - (STU-31) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (STU-32) Given no theme file, then every role has its default and no `theme:` line is shown.
 - (STU-32) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read

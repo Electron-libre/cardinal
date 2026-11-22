@@ -319,7 +319,7 @@ accent = "#89b4fa"   # titles, the issue offered
 | `border` | the terminal's | the borders of the panels |
 | `muted` | dark gray | the help, `free`, `ended` |
 | `accent` | cyan | the titles, the `>` of the issue offered |
-| `selection` | reversed video | the selected line (its background when set) |
+| `selection` | reversed video | the selected line, across its panel (its background when set) |
 | `pass`, `fail`, `warn`, `info` | green, red, yellow, blue | `ready` and `merged`; `blocked` and the errors; `on hold` and the waits; `awaits release`, `merge pending`, `measuring…` |
 
 A role the file does not set keeps its default, an ANSI color that follows the palette of the terminal; with no

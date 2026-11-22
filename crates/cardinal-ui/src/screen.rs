@@ -105,7 +105,7 @@ fn render(
     help_line(HELP, status, areas[3], buf, theme);
 }
 
-/// Draws `p` bordered over `area`, its line `selected` highlighted and kept visible, in the roles of `theme` (STU-31).
+/// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the roles of `theme` (STU-31).
 pub(crate) fn draw_panel(
     p: &Panel,
     area: Rect,
@@ -118,23 +118,28 @@ pub(crate) fn draw_panel(
         .lines
         .iter()
         .enumerate()
-        .map(|(i, l)| {
-            let line = styled(l, p.marks.iter().filter(|m| m.line == i), theme);
-            if selected == Some(i) {
-                line.style(theme.selected())
-            } else {
-                line
-            }
-        })
+        .map(|(i, l)| styled(l, p.marks.iter().filter(|m| m.line == i), theme))
         .collect();
     let block = Block::bordered()
         .border_style(theme.fg(Role::Border))
         .title(format!(" {} ", p.title))
         .title_style(theme.fg(Role::Accent));
+    let inner = block.inner(area);
     Paragraph::new(lines)
         .block(block)
         .scroll((scroll, 0))
         .render(area, buf);
+    // the whole inner row, not only its characters: the paragraph styles the graphemes alone
+    let row = selected
+        .and_then(|line| u16::try_from(line).ok())
+        .and_then(|line| line.checked_sub(scroll))
+        .filter(|row| *row < inner.height);
+    if let Some(row) = row {
+        buf.set_style(
+            Rect::new(inner.x, inner.y + row, inner.width, 1),
+            theme.selected(),
+        );
+    }
 }
 
 /// The status message in `text`, then the help `help` in `muted`, both on `surface`, over `area`: the status first, so
@@ -470,6 +475,10 @@ mod tests {
         assert_eq!((buf[(1, m)].fg, buf[(1, m)].bg), (rgb(4), rgb(1)));
         let a = find("  a");
         assert_eq!(buf[(3, a)].bg, rgb(7));
+        let border =
+            u16::try_from(row(a).chars().skip(1).position(|c| c == '│').unwrap() + 1).unwrap();
+        assert_eq!(buf[(border - 1, a)].bg, rgb(7), "up to the right border");
+        assert_eq!(buf[(border, a)].bg, rgb(1), "the border keeps the screen");
         assert!(!buf[(3, a)].modifier.contains(Modifier::REVERSED));
         let status = find("theme: line 9 ignored");
         let line = row(status);
@@ -644,6 +653,11 @@ mod tests {
             .find(|y| row(*y).contains("/ws18"))
             .expect("the selected worktree is shown");
         assert!(buf[(3, y)].modifier.contains(Modifier::REVERSED));
+        assert!(
+            buf[(38, y)].modifier.contains(Modifier::REVERSED),
+            "the whole inner row of the scrolled panel"
+        );
+        assert!(!buf[(39, y)].modifier.contains(Modifier::REVERSED));
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

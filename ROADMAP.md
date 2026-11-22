@@ -59,7 +59,7 @@ The work done before this file existed is in `issues/done/`.
   issue, the messages are lost in the command bar, and the help line offers actions that would only be refused.
 - State: in issues
 - Issues:
-  - [drop_the_measures_from_the_main_screen](issues/drop_the_measures_from_the_main_screen.md)
+  - [drop_the_measures_from_the_main_screen](issues/done/drop_the_measures_from_the_main_screen.md)
   - [set_the_milestones_apart_from_the_issues_in_the_queue](issues/set_the_milestones_apart_from_the_issues_in_the_queue.md)
   - [show_the_messages_of_the_ui_out_of_the_help_line](issues/done/show_the_messages_of_the_ui_out_of_the_help_line.md)
   - [offer_only_the_keys_that_apply_to_the_selection](issues/offer_only_the_keys_that_apply_to_the_selection.md)

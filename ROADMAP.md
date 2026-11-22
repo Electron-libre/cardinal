@@ -64,3 +64,22 @@ The work done before this file existed is in `issues/done/`.
   - [show_the_messages_of_the_ui_out_of_the_help_line](issues/done/show_the_messages_of_the_ui_out_of_the_help_line.md)
   - [offer_only_the_keys_that_apply_to_the_selection](issues/done/offer_only_the_keys_that_apply_to_the_selection.md)
   - [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](issues/wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md)
+
+## A steering UI to command
+
+- Goal: make `cardinal-ui` the place the user steers from, not only reads: the Cardinal logo on the screen, the
+  summary of the selected issue folded and unfolded, the progress of each milestone and of each issue at work as a
+  bar, a command to select the next issue and one to prioritize the issues, and a way of giving commands that is
+  easy to discover as they grow.
+- Why: the feedback of the user on 2026-11-23: an issue is known by its stem only, progress is a fraction to
+  compute, the order of the queue is changed from another terminal, and one letter per action, listed on the help
+  line only, is not practical.
+- State: in issues
+- Issues:
+  - [show_the_cardinal_logo_in_the_ui](issues/show_the_cardinal_logo_in_the_ui.md)
+  - [fold_the_summary_of_the_selected_issue](issues/fold_the_summary_of_the_selected_issue.md)
+  - [draw_the_progress_of_a_milestone_as_a_bar](issues/draw_the_progress_of_a_milestone_as_a_bar.md)
+  - [draw_the_progress_of_an_issue_as_a_bar](issues/draw_the_progress_of_an_issue_as_a_bar.md)
+  - [select_the_next_issue_with_a_key](issues/select_the_next_issue_with_a_key.md)
+  - [prioritize_the_issues_from_the_ui](issues/prioritize_the_issues_from_the_ui.md)
+  - [rethink_the_commands_of_the_ui](issues/rethink_the_commands_of_the_ui.md)

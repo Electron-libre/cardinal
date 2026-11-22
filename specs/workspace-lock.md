@@ -11,8 +11,8 @@ adrs: [0005, 0022, 0024, 0027, 0032]
 Two Claude Code sessions in one worktree share its files, index, review marker and build output. A lock per worktree,
 held by the session that first starts or acts there while its process runs, stops the others before they edit or run
 anything (ADR 0022). A holder with nothing in progress hands it over to the next session (ADR 0024), any uncommitted
-change counting (ADR 0027), and so does a session Claude Code continued in another, and that other once the user goes back to the first (ADR 0032). It catches the mistakes
-of cooperative agents, not bypasses (ADR 0005).
+change counting (ADR 0027), and so does a session Claude Code continued in another, and that other once the user
+goes back to the first (ADR 0032). It catches the mistakes of cooperative agents, not bypasses (ADR 0005).
 
 ## Requirements
 
@@ -33,7 +33,7 @@ of cooperative agents, not bypasses (ADR 0005).
 - **WSL-8** (deterministic) The managed entries of `.claude/settings.json` (`entries/.claude/settings.json` of the source, SYN-29) must hold `cardinal run workspace-lock check` as a `PreToolUse` hook on `Bash|Edit|Write|NotebookEdit`, `cardinal run workspace-lock start` as a `SessionStart` hook and `cardinal run workspace-lock release` as a `SessionEnd` hook.
 - **WSL-11** (deterministic) `check` and `start` must take, as WSL-1 says, the lock of a holder whose session Claude Code continued in the session of their input, whatever its work in progress: the transcript of the holder, the file `<holder session>.jsonl` in the directory of the `transcript_path` of the input, holds a record of `type` `continued-in` whose `continuedInSessionId` is the session of the input, the last such record, with no record of `type` `user` or `assistant` whose `timestamp` comes after its own; a holder session that is not a plain file name (a `/`, a `\\` or `..`) has no transcript.
 - **WSL-12** (deterministic) When `check` or `start` takes the lock as WSL-11 or WSL-13 says, it must first rewrite every claim in the state `working` (CLM-1) of the worktree of its input that names the session or the process of the holder, by compare-and-swap with the value it read, to the session and the process of its input, then write the lock, keeping the worktree, the branch and the state of the claim, so the claim keeps the lock (WSL-10) and the continued session takes it back (CLM-2).
-- **WSL-13** (deterministic) `check` and `start` must take, as WSL-1 and WSL-12 say, the lock of a holder the session of their input was continued in and that the user left by going back to that session, whatever its work in progress: the transcript of the input (its `transcript_path`) holds a record of `type` `continued-in` whose `continuedInSessionId` is the session of the holder, and a record of `type` `user` or `assistant` whose `timestamp` comes after the one of its last record `continued-in`.
+- **WSL-13** (deterministic) `check` and `start` must take, as WSL-1 and WSL-12 say, the lock of a holder the session of their input was continued in and that the user left by going back to that session, whatever its work in progress: the transcript of the input (its `transcript_path`) holds a record of `type` `continued-in` whose `continuedInSessionId` is the session of the holder, and the first record of `type` `user` or `assistant` whose `timestamp` comes after the one of its last record `continued-in` is stamped after the last write of the lock file (the holder took the lock before the user went back).
 
 ## Scenarios
 
@@ -72,6 +72,9 @@ of cooperative agents, not bypasses (ADR 0005).
   `continued-in` name `b` then `c` with a `user` record stamped after the last one, when `a` calls `Bash`, then the
   call is refused in the first case and passes in the second; with no record naming `b`, or no `transcript_path`, it
   is refused.
+- (WSL-13) Given a transcript of `a` whose record `continued-in` names `b`, followed by a `user` record stamped
+  before `b` took the lock (`a` went back, then ended, and `b` took the lock as WSL-1 says), when `a` is resumed and
+  calls `Bash` while `b` runs with work in progress, then the call is refused.
 - (WSL-11) Given a lock naming session `a` and no transcript of `a` beside the transcript of `b`, or an input with no
   `transcript_path`, when `b` calls `Bash` while `a` has work in progress, then the call is refused.
 - (WSL-11) Given a transcript of `a` whose record `continued-in` names `b`, followed by an `assistant` record stamped

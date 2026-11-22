@@ -671,7 +671,7 @@ fn the_session_a_user_returns_to_takes_the_lock_and_its_claims_back_from_the_for
     append(
         t,
         "a",
-        br#"{"type":"user","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+        br#"{"type":"user","timestamp":"2099-01-01T00:00:00.000Z"}"#,
     );
     let (code, _, err) = hook_with_transcript("check", &r.main, "a", &live(), t);
     assert_eq!(code, Some(0), "the user went back to a: {err}");
@@ -708,7 +708,7 @@ fn only_a_record_after_the_last_continued_in_gives_the_lock_back() {
     append(
         t,
         "c",
-        br#"{"type":"user","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+        br#"{"type":"user","timestamp":"2099-01-01T00:00:00.000Z"}"#,
     );
     let (code, _, err) = hook_with_transcript("check", &r.main, "c", &live(), t);
     assert_eq!(code, Some(2), "no record naming the holder: {err}");
@@ -716,9 +716,41 @@ fn only_a_record_after_the_last_continued_in_gives_the_lock_back() {
     append(
         t,
         "a",
-        br#"{"type":"assistant","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+        br#"{"type":"assistant","timestamp":"2099-01-01T00:00:00.000Z"}"#,
+    );
+    let (code, out, err) = hook_with_transcript("start", &r.main, "a", &live(), t);
+    assert_eq!(code, Some(0), "a later fork the user left too: {err}");
+    assert!(
+        out.is_empty(),
+        "the session returned to takes the lock silently: {out}"
+    );
+    assert!(lock(&r.main).contains("session a\n"));
+}
+
+// spec: WSL-13
+#[test]
+fn a_fork_that_took_the_lock_after_the_return_keeps_it() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let fork = Other::new();
+    let t = transcripts.path();
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2000-01-01T00:00:00.000Z","continuedInSessionId":"b"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2000-01-01T00:01:00.000Z"}"#,
+    );
+    hook("check", &r.main, "b", &fork.pid());
+    dirty(&r.main);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2099-01-01T00:00:00.000Z"}"#,
     );
     let (code, _, err) = hook_with_transcript("check", &r.main, "a", &live(), t);
-    assert_eq!(code, Some(0), "a later fork the user left too: {err}");
-    assert!(lock(&r.main).contains("session a\n"));
+    assert_eq!(
+        code,
+        Some(2),
+        "b took the lock once a had ended, after the return: {err}"
+    );
 }

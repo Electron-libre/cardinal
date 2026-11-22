@@ -35,8 +35,8 @@ Several issues may share a worktree, one after the other; the worktree outlives 
 - **Lock**: the `workspace-lock` hooks keep one live session per worktree; a second one has its edits and commands
   refused. A crashed session's lock is freed when its process is gone, and the lock of a session with no work in
   progress (a clean worktree, no issue claimed) goes to the next session that acts; one Claude Code continued in a
-  fork goes to that fork, and back to the first session when the user returns to it. A project that never runs two sessions in one worktree turns the feature `workspace-lock`
-  off; the claim stays.
+  fork goes to that fork, and back to the first session when the user returns to it. A project that never runs two
+  sessions in one worktree turns the feature `workspace-lock` off; the claim stays.
 - **Hooks** act on the work tree of their `cwd` (`lint-gate`, `review-gate`; `format-code` formats the project of the
   edited file); `cardinal run` finds the `cardinal.toml` of the worktree and runs the tools of the revision it pins
   (with a local source, those of the worktree's own crate). The session's project is the worktree: its hooks are

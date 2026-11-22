@@ -118,7 +118,7 @@ enum Verdict {
 /// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
 /// that runs, has work in progress, was not continued in the caller and is not a session the user left to go back to
 /// the caller (WSL-3, WSL-10, WSL-11, WSL-13).
-fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
+fn keeps(holder: &Holder, caller: &Caller, cwd: &Path, lock: &Path) -> Verdict {
     let me = &caller.me;
     if holder.session == me.session || holder.pid == me.pid || !alive(&holder.pid) {
         return Verdict::Free;
@@ -126,7 +126,7 @@ fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
     let Some(work) = in_progress(holder, cwd) else {
         return Verdict::Free;
     };
-    if continued_in(holder, caller) || returned_from(holder, caller) {
+    if continued_in(holder, caller) || returned_from(holder, caller, lock) {
         return Verdict::Continued;
     }
     Verdict::Kept(work)
@@ -165,8 +165,9 @@ fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
 struct Continuations {
     /// The sessions its records `continued-in` name.
     sessions: Vec<String>,
-    /// Whether a `user` or `assistant` record is stamped after its last record `continued-in` (the user went back).
-    returned: bool,
+    /// The timestamp of the first `user` or `assistant` record stamped after its last record `continued-in`: when the
+    /// user went back to it.
+    returned: Option<String>,
 }
 
 impl Continuations {
@@ -179,8 +180,9 @@ impl Continuations {
         // The timestamp of the last record `continued-in`.
         let mut last: Option<String> = None;
         for line in text.split(|&b| b == b'\n') {
-            // Until a `continued-in` record, only such a record matters: skip parsing the others.
-            if last.is_none() && !line.windows(12).any(|w| w == b"continued-in") {
+            // Before a `continued-in` record and once a return is found, only such a record matters: skip the others.
+            let pending = last.is_some() && found.returned.is_none();
+            if !pending && !line.windows(12).any(|w| w == b"continued-in") {
                 continue;
             }
             let Ok(record) = serde_json::from_slice::<serde_json::Value>(line) else {
@@ -189,14 +191,16 @@ impl Continuations {
             let stamp = record["timestamp"].as_str().unwrap_or_default();
             match record["type"].as_str() {
                 Some("continued-in") => {
-                    if let Some(next) = record["continuedInSessionId"].as_str() {
-                        found.sessions.push(next.to_string());
-                        last = Some(stamp.to_string());
-                        found.returned = false;
-                    }
+                    // A record naming no session still ends the continuation before it: it matches no session.
+                    let next = record["continuedInSessionId"].as_str().unwrap_or_default();
+                    found.sessions.push(next.to_string());
+                    last = Some(stamp.to_string());
+                    found.returned = None;
                 }
-                Some("user" | "assistant") if last.as_deref().is_some_and(|at| stamp > at) => {
-                    found.returned = true;
+                Some("user" | "assistant")
+                    if found.returned.is_none() && last.as_deref().is_some_and(|at| stamp > at) =>
+                {
+                    found.returned = Some(stamp.to_string());
                 }
                 _ => {}
             }
@@ -217,17 +221,30 @@ fn continued_in(holder: &Holder, caller: &Caller) -> bool {
         return false;
     };
     let found = Continuations::read(&dir.join(format!("{name}.jsonl")));
-    !found.returned && found.sessions.last() == Some(&caller.me.session)
+    let me = &caller.me.session;
+    found.returned.is_none() && found.sessions.last() == Some(me) && !me.is_empty()
 }
 
 /// Whether the caller's own transcript says the user went back to it from `holder`, a session it was continued in
-/// (WSL-13): a record `continued-in` names the holder and a `user` or `assistant` record is stamped after the last one.
-fn returned_from(holder: &Holder, caller: &Caller) -> bool {
+/// (WSL-13): a record `continued-in` names the holder, and the first `user` or `assistant` record stamped after the
+/// last one is stamped after the holder took the lock at `lock` (its last write), so a holder that took it later,
+/// once the caller had ended, keeps it.
+fn returned_from(holder: &Holder, caller: &Caller, lock: &Path) -> bool {
     let Some(path) = caller.transcript else {
         return false;
     };
     let found = Continuations::read(path);
-    found.returned && found.sessions.contains(&holder.session)
+    let Some(returned) = found.returned.as_deref() else {
+        return false;
+    };
+    let Ok(returned) = chrono::DateTime::parse_from_rfc3339(returned) else {
+        return false;
+    };
+    let Ok(taken) = std::fs::metadata(lock).and_then(|m| m.modified()) else {
+        return false;
+    };
+    found.sessions.contains(&holder.session)
+        && returned > chrono::DateTime::<chrono::Utc>::from(taken)
 }
 
 /// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the
@@ -275,14 +292,15 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
 }
 
 /// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10, WSL-11, WSL-13), with the claims of a holder
-/// continued in the caller or left for it (WSL-12): `Ok` when it holds it, else the holder that keeps it and its work in progress.
+/// continued in the caller or left for it (WSL-12): `Ok` when it holds it, else the holder that keeps it and its
+/// work in progress.
 fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)> {
     let before = read(path);
     if before.as_ref() == Some(&caller.me) {
         return Ok(());
     }
     // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
-    let verdict = before.as_ref().map(|h| keeps(h, caller, cwd));
+    let verdict = before.as_ref().map(|h| keeps(h, caller, cwd, path));
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
@@ -290,7 +308,7 @@ fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)
     let verdict = match (&holder, verdict) {
         (None, _) => Verdict::Free,
         (Some(h), Some(v)) if before.as_ref() == Some(h) => v,
-        (Some(h), _) => keeps(h, caller, cwd),
+        (Some(h), _) => keeps(h, caller, cwd, path),
     };
     match (holder, verdict) {
         (Some(h), Verdict::Kept(work)) => Err((h, work)),

@@ -43,6 +43,10 @@ its own transcript: a `continued-in` naming the holder, then a `user` or `assist
 1. [x] Take the lock back: `keeps` reads the caller's own transcript with the reader `continued_in` shares (refactored
    into one transcript scan), the verdict hands the claims as WSL-12 does; ADR 0032 amended; verified by behaviour
    tests in `crates/cardinal/tests/workspace_lock.rs`; makes true WSL-13, WSL-12. (autonomous)
+2. [x] Fixes of the high review: a return counts only when its first message after the last `continued-in` is stamped
+   after the holder took the lock (the lock file's last write), a `continued-in` naming no session ends the one
+   before it, the reader skips parsing once a return is found, a `start` case; verified by behaviour tests; makes
+   true WSL-13. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -73,5 +77,34 @@ not verified: a real return to the origin session against the new binary (the re
 2026-11-22).
 
 Code review: no findings
+
+decisions needed: none
+
+## Deliverable 2 summary
+done: fixes of the high review (WSL-13 compares the return with the lock's last write; malformed `continued-in`;
+cheaper scan; `start` traced; rewrapped lines); spec, `docs/gates.md`, ADR 0032 reworded.
+
+| check | result |
+|---|---|
+| tests | pass (`workspace_lock` 22) |
+| lint | pass |
+| specs | pass |
+| docs | updated |
+| code review | high: 6 findings; low of the fixes: no findings |
+
+red: WSL-13: `b took the lock once a had ended, after the return` (exit 0, expected 2).
+
+High review findings:
+1. A resumed origin took the lock from a fork that took it after the return: fixed (lock mtime against the first
+   return stamp).
+2. The old process mid-turn writes `assistant` records that count as a return: not fixed, the user's answer 1 a (a
+   non-goal of the spec).
+3. A `continued-in` with no `continuedInSessionId` no longer ended the one before: fixed.
+4. Full parse of every line after a `continued-in`: fixed once a return is found; the lines between the record and
+   the first message are still parsed.
+5. No `start` case for WSL-13: fixed.
+6. Lines over 120 columns: fixed in the doc comment, the details and the spec intent.
+
+not verified: a real return to the origin session against the new binary.
 
 decisions needed: none

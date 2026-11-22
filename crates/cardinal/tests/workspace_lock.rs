@@ -113,14 +113,19 @@ fn dirty(dir: &Path) {
     std::fs::write(dir.join("wip"), "wip").unwrap();
 }
 
-/// Claim the issue `stem` in the state `working` for `session` of process `pid` (CLM-1).
+/// Claim the issue `stem` in the state `working` for `session` of process `pid` in the worktree `dir` (CLM-1).
 fn claim(dir: &Path, stem: &str, session: &str, pid: &str) {
+    claim_as(dir, stem, session, pid, dir, "working");
+}
+
+/// Claim the issue `stem` from the repository of `dir` with the worktree `worktree` and the state `state`.
+fn claim_as(dir: &Path, stem: &str, session: &str, pid: &str, worktree: &Path, state: &str) {
     let blob = dir.join(".git").join("claim-blob");
     std::fs::write(
         &blob,
         format!(
-            "session {session}\npid {pid}\nworktree {}\nbranch trunk\nstate working\n",
-            dir.display()
+            "session {session}\npid {pid}\nworktree {}\nbranch trunk\nstate {state}\n",
+            worktree.display()
         ),
     )
     .unwrap();
@@ -620,28 +625,34 @@ fn a_session_continued_in_another_hands_it_its_working_claims() {
 
 // spec: WSL-12
 #[test]
-fn a_handover_leaves_the_claims_of_other_sessions_and_merge_pending_ones() {
+fn a_handover_moves_only_the_working_claims_of_the_holder_in_its_worktree() {
     let r = repo();
     let transcripts = tempfile::tempdir().unwrap();
-    let other = Other::new();
-    hook("check", &r.main, "a", &other.pid());
+    let (holder, stranger) = (Other::new(), Other::new());
+    hook("check", &r.main, "a", &holder.pid());
     dirty(&r.main);
-    claim(&r.main, "mine", "z", &other.pid());
-    claim(&r.main, "pending", "a", &other.pid());
-    let pending = claim_of(&r.main, "pending").replace("state working", "state merge pending");
-    let blob = r.main.join(".git").join("claim-blob");
-    std::fs::write(&blob, format!("{pending}\n")).unwrap();
-    let oid = git(&r.main, &["hash-object", "-w", blob.to_str().unwrap()]);
-    git(
+    claim(&r.main, "cleared", "s1", &holder.pid());
+    claim(&r.main, "theirs", "z", &stranger.pid());
+    claim_as(
         &r.main,
-        &["update-ref", "refs/cardinal/claims/pending", &oid],
+        "pending",
+        "a",
+        &holder.pid(),
+        &r.main,
+        "merge pending",
     );
-    let before = (claim_of(&r.main, "mine"), claim_of(&r.main, "pending"));
+    claim_as(&r.main, "elsewhere", "a", &holder.pid(), &r.ws, "working");
+    let unchanged = ["theirs", "pending", "elsewhere"].map(|s| claim_of(&r.main, s));
     transcript(transcripts.path(), "a", Some("b"));
     let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
     assert_eq!(code, Some(0), "{err}");
+    assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
+    assert!(
+        claim_of(&r.main, "cleared").starts_with(&format!("session b\npid {}\n", live())),
+        "a claim of the holder's process moves too"
+    );
     assert_eq!(
-        (claim_of(&r.main, "mine"), claim_of(&r.main, "pending")),
-        before
+        ["theirs", "pending", "elsewhere"].map(|s| claim_of(&r.main, s)),
+        unchanged
     );
 }

@@ -130,11 +130,24 @@ fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
     Verdict::Kept(work)
 }
 
-/// Rewrite the `working` claims of the session of `holder` to the caller's session and process, each by
-/// compare-and-swap with the value read (WSL-12).
+/// Rewrite the `working` claims of the worktree of `cwd` that name the session or the process of `holder` (the claims
+/// `in_progress` counts) to the caller's session and process, each by compare-and-swap with the value read (WSL-12).
 fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
+    let canonical = |p: &Path| std::fs::canonicalize(p).ok();
+    let Some(top) = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .current_dir(cwd)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| canonical(Path::new(String::from_utf8_lossy(&o.stdout).trim())))
+    else {
+        return;
+    };
     for (stem, old, claim) in issue_claim::all(cwd) {
-        if claim.state == "working" && claim.session == holder.session {
+        let ours = claim.session == holder.session || claim.pid == holder.pid;
+        let here = canonical(Path::new(&claim.worktree)).as_ref() == Some(&top);
+        if claim.state == "working" && ours && here {
             let moved = issue_claim::Claim {
                 session: caller.me.session.clone(),
                 pid: caller.me.pid.clone(),
@@ -242,10 +255,9 @@ fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)
     }
     // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
     let verdict = before.as_ref().map(|h| keeps(h, caller, cwd));
-    let mutex = Mutex::take(path);
-    if mutex.is_none() {
+    let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
-    }
+    };
     let holder = read(path);
     let verdict = match (&holder, verdict) {
         (None, _) => Verdict::Free,
@@ -255,13 +267,14 @@ fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)
     match (holder, verdict) {
         (Some(h), Verdict::Kept(work)) => Err((h, work)),
         (holder, verdict) => {
+            // The claims move first, under the mutex: until the lock names the caller, no other session sees a holder
+            // without them, and a move cut short is done again by the next call (WSL-12).
+            if let (Some(h), Verdict::Continued) = (&holder, verdict) {
+                hand_claims(h, caller, cwd);
+            }
             let tmp = path.with_extension(format!("tmp{}", std::process::id()));
             if std::fs::write(&tmp, caller.me.text()).is_ok() {
                 let _ = std::fs::rename(&tmp, path);
-            }
-            drop(mutex);
-            if let (Some(h), Verdict::Continued) = (holder, verdict) {
-                hand_claims(&h, caller, cwd);
             }
             Ok(())
         }

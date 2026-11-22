@@ -46,6 +46,9 @@ CLM-2 stay unchanged. Out of scope: a fork Claude Code recorded no `continued-in
    other ways it gets the lock, then rewrites by compare-and-swap the `working` claims naming the holder's session to
    the caller's session and process; verified by tests of `tests/workspace_lock.rs` (claim moved, re-claim succeeds, a
    third session refused once clean, other claims unchanged); makes true WSL-12. (autonomous)
+2. [x] Fixes of the high review: move the claims of the holder's session or process in its worktree only, before
+   writing the lock under the mutex; tests of the cleared session, the stranger, merge pending and other-worktree
+   claims; the dropped full stop of `docs/gates.md`; verified by `tests/workspace_lock.rs`; makes true WSL-12. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -71,3 +74,32 @@ Code review: no findings
 not verified: a real Claude Code fork (the transcript record is faked as in WSL-11's tests).
 
 decisions needed: none
+
+## Summary of deliverable 2
+done: WSL-12 amended and fixed for the 6 findings of the high review: claims matched by session or process, only those
+of the worktree of the input, moved under the mutex before the lock is written; going back to the holder stated as a
+non-goal and filed as `issues/hand_the_worktree_back_to_the_session_a_user_returns_to.md`.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | pass |
+| docs | `gates.md` fixed |
+| code review | see below |
+
+red: WSL-12: the claim of the cleared session of the holder's process (`cleared`) still named `s1`
+
+Code review: no findings
+
+High review findings:
+1. claim matched by process too: fixed.
+2. going back to the holder locked out: stated as a non-goal of `workspace-lock`, follow-up issue filed.
+3. claims moved after the mutex: fixed, moved under it before the lock (a move cut short is redone by the next call).
+4. claims of other worktrees: fixed, only the worktree of the input.
+5. weak test: fixed (distinct process, lock asserted, cleared-session and other-worktree cases).
+6. full stop in `docs/gates.md`: fixed.
+
+not verified: the race of finding 3 (no test of the ordering under the mutex); a real Claude Code fork.
+
+decisions needed: none (the non-goal of finding 2 can be reverted by starting its follow-up issue)

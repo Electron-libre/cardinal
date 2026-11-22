@@ -31,6 +31,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
 - **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection` across the whole inner width of its panel, the help in `muted` on `surface`, the status line as STU-34 says, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
 - **STU-34** (deterministic) The status line of the screen (what an action of SUA or SUE did or why it refused, a notification that failed (STU-30), an ignored theme line (STU-33)) must be drawn on a row of its own, above the help line and only while it holds a message, on `surface` across the whole width: an error (a task that failed or refused, a key that starts nothing and says why, a failed notification, an ignored theme line) in `fail`, the result of a task that succeeded in `pass`, the others (a task that runs, `quitting once the task ends…`) in `text`, each message of the line in its own role when it holds several; it keeps its message until a task or a key that starts one replaces it, a failed notification until the screen quits, a read of STU-2 leaving it as it is.
+- **STU-35** (deterministic) The status line of STU-34 must show every one of its messages whatever the width of the terminal: a message that does not fit after the one before it starts a row of its own below it, one wider than the screen goes on over the rows under it, the line taking as many rows as its messages need, at most a third of the height of the screen (one row at least), the panels keeping the others; a line that needs more rows than that shows its errors first, the others after them as long as they fit.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 then the panel `Measures` of STU-16 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -176,6 +177,10 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-34) Given a merge that succeeded, then a notification that fails, then the status line reads the merge in
   `pass` followed by `notify: <cause>` in `fail`.
 - (STU-34) Given a refused merge, when a read of STU-2 ends, then the status line still reads the refusal.
+- (STU-35) Given an 80-column screen whose status line reads three ended worktrees of 30 columns each, then a notification
+  that fails, then the line takes two rows and the second reads `notify: <cause>` in `fail`.
+- (STU-35) Given a screen 9 rows high and a status line whose messages need five rows, then it takes 3 rows, its
+  errors on the first.
 
 ## Non-goals
 

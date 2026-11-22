@@ -1,5 +1,6 @@
 //! The status line of the screen (STU-34): what an action did or why it refused, a notification that failed, an
-//! ignored theme line, each message in the role of its kind, on a row of its own above the help line.
+//! ignored theme line, each message in the role of its kind, on rows of their own above the help line, wrapped so a
+//! narrow terminal shows them all (STU-35).
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -77,34 +78,119 @@ impl Status {
         self.messages.is_empty() && self.kept.is_none()
     }
 
-    /// The rows the status line takes: one while it shows a message, none otherwise.
-    pub fn rows(&self) -> u16 {
-        u16::from(!self.is_empty())
+    /// The rows the status line takes on a screen over `screen`: as many as its messages need at its width, at most
+    /// a third of its height and one at least (STU-35), none while it shows no message.
+    pub fn rows(&self, screen: Rect) -> u16 {
+        if self.is_empty() {
+            return 0;
+        }
+        let room = (screen.height / 3).max(1);
+        let needed = self.laid(screen.width, room).len();
+        u16::try_from(needed).unwrap_or(u16::MAX).min(room)
     }
 
-    /// Draws the messages over `area` on `surface` across its whole width, each in the role of its kind.
+    /// The messages in the order they came, the kept error last, each with its kind.
+    fn messages(&self) -> impl Iterator<Item = (&str, Kind)> {
+        let messages = self
+            .messages
+            .iter()
+            .map(|(text, kind)| (text.as_str(), *kind));
+        messages.chain(self.kept.iter().map(|text| (text.as_str(), Kind::Error)))
+    }
+
+    /// The rows of the messages at `width`, at most `room`: the errors first when the messages need more (STU-35).
+    fn laid(&self, width: u16, room: u16) -> Vec<Vec<(&str, Kind)>> {
+        let width = usize::from(width.max(1));
+        let rows = wrap(self.messages(), width);
+        if rows.len() <= usize::from(room) {
+            return rows;
+        }
+        let errors = self.messages().filter(|(_, kind)| *kind == Kind::Error);
+        let others = self.messages().filter(|(_, kind)| *kind != Kind::Error);
+        let mut rows = wrap(errors.chain(others), width);
+        rows.truncate(usize::from(room));
+        rows
+    }
+
+    /// Draws the messages over `area` on `surface` across its whole width, each in the role of its kind, a message
+    /// that does not fit after the one before it on the row below (STU-35).
     pub fn draw(&self, area: Rect, buf: &mut Buffer, theme: &Theme) {
         if self.is_empty() {
             return;
         }
-        let mut spans = Vec::new();
-        let messages = self.messages.iter().map(|(text, kind)| (text, *kind));
-        let kept = self.kept.iter().map(|text| (text, Kind::Error));
-        for (n, (text, kind)) in messages.chain(kept).enumerate() {
-            if n > 0 {
-                spans.push(Span::raw("  "));
-            }
-            spans.push(Span::styled(text.as_str(), theme.fg(kind.role())));
-        }
         buf.set_style(area, Style::new().bg(theme.color(Role::Surface)));
-        Line::from(spans).render(area, buf);
+        for (row, y) in self
+            .laid(area.width, area.height)
+            .into_iter()
+            .zip(area.rows())
+        {
+            let mut spans = Vec::new();
+            for (n, (text, kind)) in row.into_iter().enumerate() {
+                if n > 0 {
+                    spans.push(Span::raw(GAP));
+                }
+                spans.push(Span::styled(text, theme.fg(kind.role())));
+            }
+            Line::from(spans).render(y, buf);
+        }
     }
+}
+
+/// What parts two messages of one row.
+const GAP: &str = "  ";
+
+/// The display columns of `text`.
+fn columns(text: &str) -> usize {
+    Line::raw(text).width()
+}
+
+/// `messages` laid out in rows of `width` columns: each after the one before it on its row when it fits, else on a
+/// row of its own, a message wider than a row going on over the rows under it.
+fn wrap<'a>(
+    messages: impl Iterator<Item = (&'a str, Kind)>,
+    width: usize,
+) -> Vec<Vec<(&'a str, Kind)>> {
+    let mut rows: Vec<Vec<(&str, Kind)>> = Vec::new();
+    let mut used = 0;
+    for (text, kind) in messages {
+        let wide = columns(text);
+        if let Some(row) = rows.last_mut().filter(|_| used + GAP.len() + wide <= width) {
+            row.push((text, kind));
+            used += GAP.len() + wide;
+            continue;
+        }
+        let mut rest = text;
+        loop {
+            let (head, tail) = split(rest, width);
+            rows.push(vec![(head, kind)]);
+            used = columns(head);
+            if tail.is_empty() {
+                break;
+            }
+            rest = tail;
+        }
+    }
+    rows
+}
+
+/// `text` cut after its first `width` columns, one character at least so a row always takes some.
+fn split(text: &str, width: usize) -> (&str, &str) {
+    let mut used = 0;
+    for (at, c) in text.char_indices() {
+        used += columns(c.encode_utf8(&mut [0; 4]));
+        if used > width && at > 0 {
+            return text.split_at(at);
+        }
+    }
+    (text, "")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use ratatui::style::Color;
+
+    const SCREEN: Rect = Rect::new(0, 0, 60, 15);
 
     fn drawn(status: &Status, theme: &Theme) -> Buffer {
         let area = Rect::new(0, 0, 60, 1);
@@ -151,7 +237,7 @@ mod tests {
         assert!(row.starts_with("merged foo (foo) into main  notify: exit 1: no bus"));
         assert_eq!(buf[(at(&buf, "notify"), 0)].fg, Color::Rgb(0, 0, 9));
         status.set(Status::default());
-        assert_eq!(status.rows(), 1, "kept until the screen quits");
+        assert_eq!(status.rows(SCREEN), 1, "kept until the screen quits");
     }
 
     // spec: STU-34 (internal: the status line of a screen that needs a real terminal)
@@ -159,9 +245,82 @@ mod tests {
     fn no_message_takes_no_row_and_draws_nothing() {
         let status = Status::new("", Kind::Error);
         assert!(status.is_empty());
-        assert_eq!(status.rows(), 0);
-        assert_eq!(Status::of(Ok("ended foo".into())).rows(), 1);
+        assert_eq!(status.rows(SCREEN), 0);
+        assert_eq!(Status::of(Ok("ended foo".into())).rows(SCREEN), 1);
         let buf = drawn(&status, &Theme::default());
         assert_eq!(buf, Buffer::empty(buf.area));
+    }
+
+    /// The rows `status` draws on a screen of `width` by `height`, as text.
+    fn wrapped(status: &Status, width: u16, height: u16) -> Vec<String> {
+        let area = Rect::new(0, 0, width, status.rows(Rect::new(0, 0, width, height)));
+        let mut buf = Buffer::empty(area);
+        status.draw(area, &mut buf, &Theme::default());
+        (0..area.height)
+            .map(|y| (0..width).map(|x| buf[(x, y)].symbol()).collect::<String>())
+            .map(|row| row.trim_end().to_string())
+            .collect()
+    }
+
+    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    #[test]
+    fn a_message_that_does_not_fit_starts_the_row_below() {
+        let (theme, _) = crate::theme::parse("fail = \"#000009\"\n");
+        let mut status = Status::default();
+        for w in ["a", "b", "c"] {
+            status.push(format!("ended worktree-{w} (branch-{w}x)"), Kind::Done);
+        }
+        status.keep("notify: exit 3: no bus");
+        let rows = wrapped(&status, 80, 24);
+        assert_eq!(
+            rows,
+            [
+                "ended worktree-a (branch-ax)  ended worktree-b (branch-bx)",
+                "ended worktree-c (branch-cx)  notify: exit 3: no bus",
+            ]
+        );
+        let area = Rect::new(0, 0, 80, 2);
+        let mut buf = Buffer::empty(area);
+        status.draw(area, &mut buf, &theme);
+        assert_eq!(buf[(30, 1)].fg, Color::Rgb(0, 0, 9), "notify in fail");
+        assert_eq!(
+            buf[(79, 1)].bg,
+            buf[(79, 0)].bg,
+            "the whole width of each row"
+        );
+    }
+
+    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    #[test]
+    fn a_message_wider_than_the_screen_goes_on_over_the_rows_under_it() {
+        let status = Status::new("merged foo into main…done", Kind::Done);
+        assert_eq!(
+            wrapped(&status, 10, 30),
+            ["merged foo", " into main", "…done"]
+        );
+        assert_eq!(wrapped(&status, 30, 30), ["merged foo into main…done"]);
+    }
+
+    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    #[test]
+    fn a_line_with_too_few_rows_shows_its_errors_first() {
+        let mut status = Status::default();
+        for n in 1..=4 {
+            status.push(format!("ended worktree-{n}"), Kind::Done);
+        }
+        status.push("foo diverged from main", Kind::Error);
+        status.keep("notify: exit 1: no bus");
+        let all = wrapped(&status, 24, 30);
+        assert_eq!(all.len(), 6, "five rows and more on a screen tall enough");
+        let rows = wrapped(&status, 24, 9);
+        assert_eq!(
+            rows,
+            [
+                "foo diverged from main",
+                "notify: exit 1: no bus",
+                "ended worktree-1"
+            ]
+        );
+        assert_eq!(status.rows(Rect::new(0, 0, 24, 2)), 1, "one row at least");
     }
 }

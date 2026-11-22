@@ -268,7 +268,7 @@ pub(crate) fn render_charts(
     let [top, middle, message, bottom] = Layout::vertical([
         Constraint::Length(rows),
         Constraint::Min(0),
-        Constraint::Length(status.rows()),
+        Constraint::Length(status.rows(area)),
         Constraint::Length(1),
     ])
     .areas(area);

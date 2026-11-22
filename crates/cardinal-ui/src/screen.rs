@@ -93,7 +93,7 @@ pub(crate) fn render(
     let first = panels.first().map_or(0, |p| height(p).min(3));
     let constraints = std::iter::once(Constraint::Min(first))
         .chain(panels.iter().skip(1).map(|p| Constraint::Max(height(p))))
-        .chain([Constraint::Length(status.rows()), Constraint::Length(1)]);
+        .chain([Constraint::Length(status.rows(area)), Constraint::Length(1)]);
     let areas = Layout::vertical(constraints).split(area);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
@@ -406,6 +406,42 @@ mod tests {
         assert!(
             row(help - 1).starts_with("started a in /w "),
             "on its own row above the help"
+        );
+    }
+
+    // spec: STU-35 (internal: the screen needs a real terminal)
+    #[test]
+    fn on_a_narrow_screen_the_status_line_wraps_above_the_help() {
+        let panel = |title: &'static str| Panel {
+            title,
+            lines: vec!["x".to_string()],
+            marks: Vec::new(),
+            headings: Vec::new(),
+            failed: false,
+        };
+        let panels = [panel("Queue"), panel("Worktrees"), panel("Measures")];
+        let mut status = Status::default();
+        for w in ["a", "b", "c"] {
+            status.push(format!("ended worktree-{w} (branch-{w}x)"), Kind::Done);
+        }
+        status.keep("notify: exit 3: no bus");
+        let area = Rect::new(0, 0, 80, 15);
+        let mut buf = Buffer::empty(area);
+        render(
+            area,
+            &mut buf,
+            (&panels, HELP),
+            None,
+            &status,
+            &Theme::default(),
+        );
+        let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        let help = (0..15).find(|y| row(*y).starts_with("q quit")).unwrap();
+        assert!(row(help - 2).starts_with("ended worktree-a"));
+        assert!(
+            row(help - 1).contains("notify: exit 3: no bus"),
+            "{}",
+            row(help - 1)
         );
     }
 

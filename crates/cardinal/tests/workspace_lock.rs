@@ -206,6 +206,10 @@ fn check_refuses_another_session_while_the_holder_runs() {
             && err.contains("git stash -u"),
         "the refusal names the process and the paths that keep the lock: {err}"
     );
+    assert!(
+        err.contains(&format!("this session (b) of process {}", live())),
+        "the refusal names the calling session and process: {err}"
+    );
     for i in 0..12 {
         std::fs::write(r.main.join(format!("more{i}")), "").unwrap();
     }
@@ -251,6 +255,10 @@ fn start_takes_the_lock_or_tells_the_agent_the_worktree_is_busy() {
     assert!(out.contains("busy") && out.contains("refused"), "{out}");
     assert!(
         out.contains(&format!("process {}", other.pid())) && out.contains("    ?? wip"),
+        "{out}"
+    );
+    assert!(
+        out.contains(&format!("this session (b) of process {}", live())),
         "{out}"
     );
     assert!(lock(&r.main).contains("session a\n"));
@@ -400,4 +408,83 @@ fn the_shipped_settings_entries_declare_the_three_hooks() {
         None,
         "cardinal run workspace-lock release"
     ));
+}
+
+/// Run `mode` for `session` of process `pid` with a `transcript_path` in `transcripts`.
+fn hook_with_transcript(
+    mode: &str,
+    cwd: &Path,
+    session: &str,
+    pid: &str,
+    transcripts: &Path,
+) -> Out {
+    let event = serde_json::json!({
+        "session_id": session,
+        "cwd": cwd,
+        "hook_event_name": mode,
+        "transcript_path": transcripts.join(format!("{session}.jsonl")),
+    })
+    .to_string();
+    finish(spawn(mode, cwd, session, pid, Some(&event)))
+}
+
+/// Write the transcript of `session` in `transcripts`, ending with a `continued-in` record naming `next` when given.
+fn transcript(transcripts: &Path, session: &str, next: Option<&str>) {
+    let mut records =
+        vec![serde_json::json!({"type": "mode", "mode": "normal", "sessionId": session})];
+    if let Some(next) = next {
+        records.push(
+            serde_json::json!({"type": "continued-in", "sessionId": session, "continuedInSessionId": next}),
+        );
+    }
+    records.push(serde_json::json!({"type": "last-prompt", "lastPrompt": "ok"}));
+    let text = records
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    std::fs::write(transcripts.join(format!("{session}.jsonl")), text).unwrap();
+}
+
+// spec: WSL-11
+#[test]
+fn a_session_continued_in_another_hands_it_the_lock() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let other = Other::new();
+    hook("check", &r.ws, "a", &other.pid());
+    dirty(&r.ws);
+    transcript(transcripts.path(), "a", Some("c"));
+    let (code, _, err) = hook_with_transcript("check", &r.ws, "b", &live(), transcripts.path());
+    assert_eq!(
+        code,
+        Some(2),
+        "a continuation of another session is refused: {err}"
+    );
+    let (code, out, _) = hook_with_transcript("start", &r.ws, "c", &live(), transcripts.path());
+    assert_eq!(code, Some(0));
+    assert!(out.is_empty(), "the fork takes the lock silently: {out}");
+    assert_eq!(lock(&r.ws), format!("session c\npid {}\n", live()));
+}
+
+// spec: WSL-11
+#[test]
+fn check_takes_the_lock_of_the_session_it_continues_and_refuses_without_a_transcript() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(2), "no transcript of the holder: {err}");
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(2), "no transcript_path: {err}");
+    transcript(transcripts.path(), "a", None);
+    let (code, _, _) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(2), "a transcript with no continued-in record");
+    transcript(transcripts.path(), "a", Some("b"));
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
 }

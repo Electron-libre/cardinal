@@ -2,12 +2,13 @@
 //! runs, and the others are refused their edits and commands, so two sessions never share its files, index and
 //! review marker. The lock is the file `cardinal-session` of the git directory of the worktree, holding the
 //! `session_id` of the hook event and the process of the session (`CLAUDE_PID`); a process that no longer runs frees
-//! it, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims. Every change
+//! it, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims, or a holder
+//! whose transcript says Claude Code continued it in the calling session (ADR 0032). Every change
 //! of the lock happens under a mutex directory beside it, created atomically.
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
 
-use std::io::Read;
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
@@ -96,13 +97,43 @@ impl Drop for Mutex {
     }
 }
 
-/// The work in progress that lets `holder` keep the lock of the worktree of `cwd` from `me`, when it is another session
-/// of another process that runs (WSL-3, WSL-10).
-fn keeps(holder: &Holder, me: &Holder, cwd: &Path) -> Option<String> {
+/// The calling session: its holder line and the `transcript_path` of its hook input.
+struct Caller<'a> {
+    me: Holder,
+    transcript: Option<&'a Path>,
+}
+
+/// The work in progress that lets `holder` keep the lock of the worktree of `cwd` from the caller, when it is another
+/// session of another process that runs and was not continued in the caller (WSL-3, WSL-10, WSL-11).
+fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Option<String> {
+    let me = &caller.me;
     if holder.session == me.session || holder.pid == me.pid || !alive(&holder.pid) {
         return None;
     }
-    in_progress(holder, cwd)
+    let work = in_progress(holder, cwd)?;
+    if continued_in(holder, caller) {
+        return None;
+    }
+    Some(work)
+}
+
+/// Whether the transcript of `holder`, beside the caller's, holds a record `continued-in` naming the caller's session
+/// (WSL-11, ADR 0032).
+fn continued_in(holder: &Holder, caller: &Caller) -> bool {
+    let Some(dir) = caller.transcript.and_then(Path::parent) else {
+        return false;
+    };
+    let Ok(file) = std::fs::File::open(dir.join(format!("{}.jsonl", holder.session))) else {
+        return false;
+    };
+    BufReader::new(file)
+        .lines()
+        .map_while(Result::ok)
+        .filter(|l| l.contains("continued-in"))
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(&l).ok())
+        .any(|r| {
+            r["type"] == "continued-in" && r["continuedInSessionId"] == caller.me.session.as_str()
+        })
 }
 
 /// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the
@@ -151,13 +182,13 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
 
 /// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it
 /// and its work in progress.
-fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), (Holder, String)> {
+fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)> {
     let before = read(path);
-    if before.as_ref() == Some(me) {
+    if before.as_ref() == Some(&caller.me) {
         return Ok(());
     }
     // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
-    let kept = before.as_ref().and_then(|h| keeps(h, me, cwd));
+    let kept = before.as_ref().and_then(|h| keeps(h, caller, cwd));
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
@@ -165,14 +196,14 @@ fn take(path: &Path, me: &Holder, cwd: &Path) -> Result<(), (Holder, String)> {
         let work = if before.as_ref() == Some(&h) {
             kept
         } else {
-            keeps(&h, me, cwd)
+            keeps(&h, caller, cwd)
         };
         if let Some(work) = work {
             return Err((h, work));
         }
     }
     let tmp = path.with_extension(format!("tmp{}", std::process::id()));
-    if std::fs::write(&tmp, me.text()).is_ok() {
+    if std::fs::write(&tmp, caller.me.text()).is_ok() {
         let _ = std::fs::rename(&tmp, path);
     }
     Ok(())
@@ -212,17 +243,24 @@ pub(super) fn main(args: &[String]) -> u8 {
         release(&path, session);
         return 0;
     }
-    let me = Holder {
-        session: session.to_string(),
-        pid,
+    let caller = Caller {
+        me: Holder {
+            session: session.to_string(),
+            pid,
+        },
+        transcript: event["transcript_path"].as_str().map(Path::new),
     };
-    let Err((holder, work)) = take(&path, &me, Path::new(cwd)) else {
+    let Err((holder, work)) = take(&path, &caller, Path::new(cwd)) else {
         return 0;
     };
+    let me = format!(
+        "this session ({}) of process {}",
+        caller.me.session, caller.me.pid
+    );
     if mode == "start" {
-        println!("This worktree is busy: the Claude Code session {} of process {} works in it and still runs. Your edits and commands will be refused here: tell the user to open another worktree or to end that session. It keeps the worktree for {work}", holder.session, holder.pid);
+        println!("This worktree is busy: the Claude Code session {} of process {} works in it and still runs, not {me}. Your edits and commands will be refused here: tell the user to open another worktree or to end that session. It keeps the worktree for {work}", holder.session, holder.pid);
         return 0;
     }
-    eprintln!("Refused: another live session ({}) of process {} works in this worktree; two sessions would share its files, index and review marker. Stop and let the user open another worktree or end that session. It keeps the worktree for {work}", holder.session, holder.pid);
+    eprintln!("Refused: another live session ({}) of process {} works in this worktree, not {me}; two sessions would share its files, index and review marker. Stop and let the user open another worktree or end that session. It keeps the worktree for {work}", holder.session, holder.pid);
     2
 }

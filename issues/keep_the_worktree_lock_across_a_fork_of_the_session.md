@@ -39,3 +39,50 @@ tell a fork from a real second session.
 
 # Resources
 * `crates/cardinal/src/tools/workspace_lock.rs`, `specs/workspace-lock.md`, ADR 0022, ADR 0024
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+A session Claude Code continues in a new one (a fork from the session list: new session id, new process, the old
+process still running) keeps the worktree lock; every refusal names the calling session and process. Measured: the
+origin transcript ends with a `continued-in` record naming the new session, written before its `SessionStart:fork`
+hook; the hook input names no parent. Out of scope: why the old process keeps running.
+
+## Plan
+1. [x] Hand the lock to the continuing session, name the caller in refusals: `keeps` of `workspace_lock.rs` reads the
+   holder's transcript beside the input's `transcript_path` for a `continued-in` record naming the caller, only on the
+   refusal path; WSL-3 and WSL-5 messages name the caller; ADR 0032; verified by behaviour tests in
+   `crates/cardinal/tests/workspace_lock.rs`; makes true WSL-11, WSL-3, WSL-5. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: d119438d2ff3a4177bce4373183800f9a11759f3
+- Question 1 a: the fork is told by the `continued-in` record of the origin transcript only.
+- Measure (2026-11-22, Claude Code 2.1.330, transcripts of the `split_the_steering_ui_actions_spec` worktree): the
+  fork transcript opens with `derived-from` listing the origin session; the origin ends with
+  `{"type":"continued-in","continuedInSessionId":<fork>}`. The rule uses the origin's record (the conversation moved),
+  not `derived-from` (a copy only), so a fork run in another terminal stays a second session.
+
+## Deliverable 1 summary
+done: `check` and `start` hand the lock to the session the holder's transcript says it continued in (`continued-in`),
+and every refusal names the calling session and process; spec amended (WSL-11, WSL-3, WSL-5, Behaviour/Contract),
+ADR 0032, `docs/gates.md`, `docs/architecture.md`, `issue-workflow` details.
+
+| check | result |
+|---|---|
+| tests | pass (`workspace_lock` 15/15, `project-check`) |
+| lint | pass (clippy -D warnings) |
+| specs | pass, `workspace-lock` accepted |
+| docs | updated |
+| code review | low: no findings |
+
+red: WSL-11, WSL-3, WSL-5: `left: Some(2) right: Some(0)` (the continuing session refused) and `the refusal names the calling session and process: Refused: another live session (a) of process …` (no caller named)
+
+Code review: no findings
+
+not verified: a real fork from the session list against the new binary (the record format is the one measured on
+2026-11-22).
+
+decisions needed: none

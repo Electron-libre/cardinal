@@ -110,10 +110,15 @@ worktree (per worktree, WSL-9), holding the `session_id` of the event and the pr
 - **`check`** (`PreToolUse` on `Bash|Edit|Write|NotebookEdit`) takes the lock when it is free, when its process no
   longer runs (a killed session skips `SessionEnd`) or when it names the same session or process (a resumed or
   cleared one), and lets the call through; while another live session with work in progress holds it, it refuses the
-  call (exit 2), naming that session, its process and what keeps the lock (the paths, or its claim); `start` says the same. The read-only tools stay open.
+  call (exit 2), naming that session, its process and what keeps the lock (the paths, or its claim) next to the
+  session and process of the call; `start` says the same. The read-only tools stay open.
   Any uncommitted change counts as the holder's work in progress, whoever made it: an issue the user edits by hand
   keeps an idle editor thread holding the lock, until the user commits, stashes (`git stash -u`) or deletes it, or ends that process
   ([ADR 0027](adr/0027-any-uncommitted-change-keeps-the-worktree-lock.md)).
+  A session Claude Code continued in another (a fork, from its session list, with a new session id and process while
+  the old process still runs) hands the lock over to it: before refusing, `check` and `start` read the holder's
+  transcript, `<holder session>.jsonl` beside the `transcript_path` of the event, for a record `continued-in` naming
+  the calling session (WSL-11, [ADR 0032](adr/0032-a-session-continued-in-another-hands-it-its-worktree-lock.md)).
 - **`start`** (`SessionStart`, which cannot block) takes the lock, or tells the agent the worktree is busy.
 - **`release`** (`SessionEnd`) deletes the lock of its own session.
 

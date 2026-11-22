@@ -200,7 +200,7 @@ pub(crate) fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool)
 /// What the end of a task gives (SUA-6).
 #[derive(Debug, PartialEq)]
 pub(crate) enum Ended {
-    /// The status line it shows: its line, in the role of its result (STU-34).
+    /// The status line it shows: its line, in the role of its result (SUS-2).
     Show(Status),
     /// The user quit during the task: the screen quits, and this line is printed once the terminal is given back.
     Quit(String),

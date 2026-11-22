@@ -1,6 +1,6 @@
-//! The status line of the screen (STU-34): what an action did or why it refused, a notification that failed, an
+//! The status line of the screen (SUS-2): what an action did or why it refused, a notification that failed, an
 //! ignored theme line, each message in the role of its kind, on rows of their own above the help line, wrapped so a
-//! narrow terminal shows them all (STU-35).
+//! narrow terminal shows them all (SUS-3).
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -79,7 +79,7 @@ impl Status {
     }
 
     /// The rows the status line takes on a screen over `screen`: as many as its messages need at its width, at most
-    /// a third of its height and one at least (STU-35), none while it shows no message.
+    /// a third of its height and one at least (SUS-3), none while it shows no message.
     pub fn rows(&self, screen: Rect) -> u16 {
         if self.is_empty() {
             return 0;
@@ -98,7 +98,7 @@ impl Status {
         messages.chain(self.kept.iter().map(|text| (text.as_str(), Kind::Error)))
     }
 
-    /// The rows of the messages at `width`, at most `room`: the errors first when the messages need more (STU-35).
+    /// The rows of the messages at `width`, at most `room`: the errors first when the messages need more (SUS-3).
     fn laid(&self, width: u16, room: u16) -> Vec<Vec<(&str, Kind)>> {
         let width = usize::from(width.max(1));
         let rows = wrap(self.messages(), width);
@@ -113,7 +113,7 @@ impl Status {
     }
 
     /// Draws the messages over `area` on `surface` across its whole width, each in the role of its kind, a message
-    /// that does not fit after the one before it on the row below (STU-35).
+    /// that does not fit after the one before it on the row below (SUS-3).
     pub fn draw(&self, area: Rect, buf: &mut Buffer, theme: &Theme) {
         if self.is_empty() {
             return;
@@ -210,7 +210,7 @@ mod tests {
         u16::try_from(row[..row.find(word).unwrap()].chars().count()).unwrap()
     }
 
-    // spec: STU-34 (internal: the colors of a screen that needs a real terminal)
+    // spec: SUS-H2, SUS-2 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn an_error_is_drawn_in_fail_and_a_success_in_pass_on_surface() {
         let (theme, _) = crate::theme::parse(
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(buf[(0, 0)].fg, rgb(4));
     }
 
-    // spec: STU-30, STU-34 (internal: the status line of a screen that needs a real terminal)
+    // spec: STU-30, SUS-2 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn a_failed_notification_outlives_the_task_that_ends_after_it() {
         let (theme, _) = crate::theme::parse("pass = \"#000008\"\nfail = \"#000009\"\n");
@@ -246,7 +246,7 @@ mod tests {
         assert_eq!(status.rows(SCREEN), 1, "kept until the screen quits");
     }
 
-    // spec: STU-34 (internal: the status line of a screen that needs a real terminal)
+    // spec: SUS-2 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn no_message_takes_no_row_and_draws_nothing() {
         let status = Status::new("", Kind::Error);
@@ -268,7 +268,7 @@ mod tests {
             .collect()
     }
 
-    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    // spec: SUS-3 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn a_message_that_does_not_fit_starts_the_row_below() {
         let (theme, _) = crate::theme::parse("surface = \"#000002\"\nfail = \"#000009\"\n");
@@ -298,7 +298,7 @@ mod tests {
         }
     }
 
-    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    // spec: SUS-3 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn a_message_wider_than_the_screen_goes_on_over_the_rows_under_it() {
         let status = Status::new("merged foo into main…done", Kind::Done);
@@ -309,7 +309,7 @@ mod tests {
         assert_eq!(wrapped(&status, 30, 30), ["merged foo into main…done"]);
     }
 
-    // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
+    // spec: SUS-3 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn a_line_with_too_few_rows_shows_its_errors_first() {
         let mut status = Status::default();

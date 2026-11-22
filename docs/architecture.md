@@ -241,7 +241,8 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), the end of a merged worktree in
 [`specs/steering-ui-end.md`](../specs/steering-ui-end.md), its charts in
 [`specs/steering-ui-charts.md`](../specs/steering-ui-charts.md), its queue in
-[`specs/steering-ui-queue.md`](../specs/steering-ui-queue.md)): it reads a project only through the JSON
+[`specs/steering-ui-queue.md`](../specs/steering-ui-queue.md), its theme and status line in
+[`specs/steering-ui-screen.md`](../specs/steering-ui-screen.md)): it reads a project only through the JSON
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to
@@ -276,7 +277,7 @@ flowchart LR
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
-| `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (STU-35) |
+| `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |
 | `help.rs` | the help line under the panels: the keys that always work, then those of the tasks that would act on the selected issue or worktree, from what the read found |

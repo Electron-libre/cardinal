@@ -57,7 +57,7 @@ pub(crate) fn height(p: &Panel) -> u16 {
         .saturating_add(2)
 }
 
-/// The line `text` with the words of `marks` (in the order of the line) in their role (STU-31).
+/// The line `text` with the words of `marks` (in the order of the line) in their role (SUS-1).
 pub(crate) fn styled<'a>(
     text: &'a str,
     marks: impl Iterator<Item = &'a Mark>,
@@ -78,9 +78,9 @@ pub(crate) fn styled<'a>(
     Line::from(spans)
 }
 
-/// Renders `panels` one above the other into `buf` over `area` in the roles of `theme` (STU-31): the first in the
+/// Renders `panels` one above the other into `buf` over `area` in the roles of `theme` (SUS-1): the first in the
 /// rows the others leave, each other at its height, the line `selected` (a panel and a line) highlighted, then the
-/// rows of `status` while it shows a message (STU-34, STU-35) and the line `help`.
+/// rows of `status` while it shows a message (SUS-2, SUS-3) and the line `help`.
 pub(crate) fn render(
     area: Rect,
     buf: &mut Buffer,
@@ -105,7 +105,7 @@ pub(crate) fn render(
 }
 
 /// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the
-/// roles of `theme` (STU-31).
+/// roles of `theme` (SUS-1).
 pub(crate) fn draw_panel(
     p: &Panel,
     area: Rect,
@@ -150,7 +150,7 @@ pub(crate) fn draw_panel(
     }
 }
 
-/// The help `help` in `muted` on `surface` over `area` (STU-31).
+/// The help `help` in `muted` on `surface` over `area` (SUS-1).
 pub(crate) fn help_line(help: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
     buf.set_style(area, theme.help());
     Line::raw(help).render(area, buf);
@@ -220,7 +220,7 @@ fn received(
 /// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
 /// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1) over the help line of
 /// the selection, no key of a task while one runs (`busy`, SUA-15), or `reading the
-/// project…` before the first read, in the roles of `theme` (STU-31).
+/// project…` before the first read, in the roles of `theme` (SUS-1).
 fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
@@ -266,7 +266,7 @@ fn draw(
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
-/// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (STU-31, STU-33). The terminal
+/// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
 /// is given back as it was, also on a panic (Ratatui's hook).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
@@ -372,7 +372,7 @@ mod tests {
     use crate::keys::{reselect, Focus};
     use ratatui::style::{Color, Modifier};
 
-    // spec: SUA-1, STU-34 (internal: the highlight of a screen that needs a real terminal)
+    // spec: SUA-1, SUS-2 (internal: the highlight of a screen that needs a real terminal)
     #[test]
     fn the_selected_issue_is_highlighted_and_the_status_shown() {
         let panel = |title, lines: &[&str]| Panel {
@@ -409,7 +409,7 @@ mod tests {
         );
     }
 
-    // spec: STU-35 (internal: the screen needs a real terminal)
+    // spec: SUS-3 (internal: the screen needs a real terminal)
     #[test]
     fn on_a_narrow_screen_the_status_line_wraps_above_the_help() {
         let panel = |title: &'static str| Panel {
@@ -445,7 +445,7 @@ mod tests {
         );
     }
 
-    // spec: STU-34 (internal: the layout of a screen that needs a real terminal)
+    // spec: SUS-2 (internal: the layout of a screen that needs a real terminal)
     #[test]
     fn with_no_message_the_panels_keep_the_row_of_the_status_line() {
         let panel = |title, lines: &[&str]| Panel {
@@ -478,7 +478,7 @@ mod tests {
         );
     }
 
-    // spec: STU-31, STU-34 (internal: the colors of a screen that needs a real terminal)
+    // spec: SUS-H1, SUS-1, SUS-2 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_frame_is_drawn_in_the_roles_of_the_theme() {
         let panel = |title, lines: &[&str]| Panel {
@@ -539,7 +539,7 @@ mod tests {
         assert_eq!(buf[(139, status)].bg, rgb(2), "the whole width");
     }
 
-    // spec: STU-31, SUQ-5 (internal: the colors of a screen that needs a real terminal)
+    // spec: SUS-1, SUQ-5 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_marked_words_are_drawn_in_their_role_also_when_selected() {
         let panel = |title, lines: &[&str], marks| Panel {

@@ -14,7 +14,7 @@ expected outcome is a command of `cardinal-ui` that starts the audit in a zellij
 
 # Approach
 1. The command starts `claude /<audit skill>` in a new zellij tab named `audit`, as SUA-4 does; refused (status line,
-   STU-34) outside zellij or while that tab is open.
+   SUS-2) outside zellij or while that tab is open.
 2. Offered by the help line, menu or palette of `rethink_the_commands_of_the_ui`.
 
 # Specs

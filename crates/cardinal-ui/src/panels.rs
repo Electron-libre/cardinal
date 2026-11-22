@@ -1,7 +1,7 @@
 //! The panels of the screen (STU-1, STU-16): a title and one line per milestone, issue, worktree or measure, or the
 //! error line of a source that could not be read (STU-6); the queue holds the milestones, each heading the tree of its
 //! issues in aligned columns (SUQ-1 to SUQ-3); the words of a state carry the role of the theme they are drawn in
-//! (STU-31).
+//! (SUS-1).
 
 use std::ops::Range;
 
@@ -22,7 +22,7 @@ pub struct Panel {
     pub failed: bool,
 }
 
-/// The bytes `range` of the line `line` of a panel, drawn in `role` (STU-31).
+/// The bytes `range` of the line `line` of a panel, drawn in `role` (SUS-1).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Mark {
     pub line: usize,
@@ -490,7 +490,7 @@ mod tests {
         }
     }
 
-    // spec: STU-31 (internal: the roles are drawn only in a terminal, never by `--print`)
+    // spec: SUS-1 (internal: the roles are drawn only in a terminal, never by `--print`)
     #[test]
     fn the_states_of_an_issue_carry_their_role() {
         let q = Queue {
@@ -607,7 +607,7 @@ mod tests {
         assert_eq!(first(2), (WAITING, Role::Warn));
     }
 
-    // spec: STU-31 (internal: the roles are drawn only in a terminal, never by `--print`)
+    // spec: SUS-1 (internal: the roles are drawn only in a terminal, never by `--print`)
     #[test]
     fn the_states_of_a_milestone_and_a_worktree_carry_their_role() {
         let m = Milestone {
@@ -689,7 +689,7 @@ mod tests {
         assert_eq!(issues.len(), 0);
     }
 
-    // spec: STU-31 (internal: the roles are drawn only in a terminal, never by `--print`)
+    // spec: SUS-1 (internal: the roles are drawn only in a terminal, never by `--print`)
     #[test]
     fn the_errors_and_a_running_measure_carry_their_role() {
         let measure = measures(&lines(&["x"]), true, Some("delivered-quality: exit 3"));

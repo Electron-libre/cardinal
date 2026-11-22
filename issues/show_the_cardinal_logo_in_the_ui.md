@@ -6,7 +6,7 @@ why: 'an identity touch for the screen the user keeps open; nothing of steering 
 
 # Goal
 `cardinal-ui` shows no sign of Cardinal: its screen opens on the `Queue` panel. The expected outcome is the logo of
-Cardinal on the screen, in the colors of the theme (STU-31, STU-32), without taking the rows the queue needs.
+Cardinal on the screen, in the colors of the theme (SUS-1, SUS-4), without taking the rows the queue needs.
 
 # Findings
 * The logo exists as vector and bitmap files: `docs/logo/cardinal-mark.svg` (a compass mark), `cardinal.svg`,
@@ -21,7 +21,8 @@ Cardinal on the screen, in the colors of the theme (STU-31, STU-32), without tak
 3. Whether `--print` shows it (its tests compare whole lines).
 
 # Specs
-* `specs/steering-ui.md`: STU-1 (what the screen shows), STU-31 (the role it is drawn in), STU-4 (`--print`).
+* `specs/steering-ui.md`: STU-1 (what the screen shows), STU-4 (`--print`); `specs/steering-ui-screen.md`: SUS-1 (the
+  role it is drawn in).
 
 # Milestone
 A steering UI to command

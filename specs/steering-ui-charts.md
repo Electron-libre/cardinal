@@ -23,8 +23,8 @@ holds the table of the measures, so the panels keep their rows for the queue and
 
 - **SUC-3** (deterministic) The bar of a row must be as long as its number over the largest number of its chart times the width left to the bars, from zero, in eighths of a cell, a group `too few` (REP-4) showing `too few` and its `sessions` instead of a bar and a number, and an empty cell (a ratio over no sample) `-` and no bar, so a group with too few sessions is never drawn as a value.
 - **SUC-4** (deterministic) A measure must also run `cardinal-report --project <project> --last 12 --json` (REP-17) into `revisions.json`, written and kept as the files of STU-17, STU-18 and STU-19 are; a last measure without that file, or whose `revisions.json` is older than its `milestones.json` (left by a measure that did not write it), draws the groups of revisions of `efficiency.json` instead.
-- **SUC-5** (deterministic) The charts screen must draw the bars in `accent`, `too few` and the samples in `muted`, and the rest as STU-31 draws the panels.
-- **SUC-6** (deterministic) The measures screen must show the panel `Measures` of STU-16 over the whole screen but the status line of STU-34 and its help line, in the roles of STU-31, its first rows when it is taller than its room.
+- **SUC-5** (deterministic) The charts screen must draw the bars in `accent`, `too few` and the samples in `muted`, and the rest as SUS-1 draws the panels.
+- **SUC-6** (deterministic) The measures screen must show the panel `Measures` of STU-16 over the whole screen but the status line of SUS-2 and its help line, in the roles of SUS-1, its first rows when it is taller than its room.
 
 ## Scenarios
 

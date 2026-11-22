@@ -77,7 +77,7 @@ fn a_closed_output_is_no_panic() {
     assert!(matches!(out.status.code(), Some(0 | 1)), "{out:?}");
 }
 
-// spec: STU-32, STU-33
+// spec: SUS-4, SUS-5
 #[test]
 fn the_ignored_lines_of_the_theme_are_named_on_stderr_and_print_stays_plain() {
     let p = project();
@@ -107,7 +107,7 @@ fn the_ignored_lines_of_the_theme_are_named_on_stderr_and_print_stays_plain() {
     assert!(!out.contains('\x1b'), "{out}");
 }
 
-// spec: STU-33
+// spec: SUS-5
 #[test]
 fn a_theme_that_cannot_be_read_is_named_and_the_screen_shown() {
     let p = project();
@@ -128,7 +128,7 @@ fn a_theme_that_cannot_be_read_is_named_and_the_screen_shown() {
     assert!(out.contains("> b"), "{out}");
 }
 
-// spec: STU-32
+// spec: SUS-4
 #[test]
 fn the_theme_is_read_from_the_config_directory_and_a_missing_one_says_nothing() {
     let p = project();

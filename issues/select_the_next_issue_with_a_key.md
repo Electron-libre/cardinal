@@ -14,7 +14,7 @@ outcome is one key that moves the selection to that issue, so `s` can start it r
 
 # Approach
 1. A key (`n`?) selects the issue of `next` in the queue, switching to the queue panel if the worktrees one has the
-   focus; with no `next`, nothing moves and the status line (STU-34) says why.
+   focus; with no `next`, nothing moves and the status line (SUS-2) says why.
 2. Optionally the screen opens on that issue instead of the first of the queue.
 3. The help line (SUA-15) offers it when `next` is not the selected issue.
 

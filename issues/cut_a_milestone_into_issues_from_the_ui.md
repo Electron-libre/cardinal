@@ -20,7 +20,7 @@ milestone, starts that session in a zellij tab of the main worktree.
 1. Let the selection rest on a milestone heading (amending STU-14), or pick the milestone in the menu or palette of
    `rethink_the_commands_of_the_ui`.
 2. The command starts `claude "/create-issue cut the milestone <name> into issues"` in a new zellij tab named after
-   the milestone, as SUA-4 does; refused (status line, STU-34) outside zellij, on a milestone that is neither `shaped`
+   the milestone, as SUA-4 does; refused (status line, SUS-2) outside zellij, on a milestone that is neither `shaped`
    nor `idea`, or while that tab is open.
 3. The help line or menu offers it only on such a milestone (SUA-15).
 

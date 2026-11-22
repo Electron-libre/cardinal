@@ -92,7 +92,7 @@ fn interactive() -> i32 {
 /// Prints the panels once as text, measuring first when the last measure is missing or over an hour old; exit code 1
 /// when one shows an error (STU-4, STU-8, STU-17).
 fn print() -> i32 {
-    // the lines of the theme file it ignored, the colors themselves never printed (STU-31, STU-33)
+    // the lines of the theme file it ignored, the colors themselves never printed (SUS-1, SUS-5)
     for line in theme::load().1 {
         eprintln!("{line}");
     }

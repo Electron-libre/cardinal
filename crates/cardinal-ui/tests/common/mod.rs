@@ -196,7 +196,7 @@ pub fn command(dir: &Path, cardinal: &Path, args: &[&str]) -> Command {
         .env("CARDINAL_UI_ZELLIJ", "/nonexistent/zellij")
         // the measures go next to the fake `cardinal`, never to the cache of the user (STU-18)
         .env("XDG_CACHE_HOME", cardinal.parent().unwrap().join("cache"))
-        // the theme of the user is never read (STU-32)
+        // the theme of the user is never read (SUS-4)
         .env("XDG_CONFIG_HOME", "/nonexistent/config")
         .env_remove("CARDINAL_UI_THEME");
     cmd

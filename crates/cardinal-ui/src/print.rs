@@ -27,7 +27,7 @@ pub fn text(panels: &[Panel; 3], help: &str) -> String {
     let rows = panels.iter().map(height).fold(1u16, u16::saturating_add);
     let area = Rect::new(0, 0, width, rows);
     let mut buf = Buffer::empty(area);
-    // the colors never reach the text (STU-31)
+    // the colors never reach the text (SUS-1)
     render(
         area,
         &mut buf,

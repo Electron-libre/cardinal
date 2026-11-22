@@ -656,3 +656,69 @@ fn a_handover_moves_only_the_working_claims_of_the_holder_in_its_worktree() {
         unchanged
     );
 }
+
+// spec: WSL-13
+// spec: WSL-12
+#[test]
+fn the_session_a_user_returns_to_takes_the_lock_and_its_claims_back_from_the_fork() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let fork = Other::new();
+    hook("check", &r.main, "b", &fork.pid());
+    claim(&r.main, "foo", "b", &fork.pid());
+    let t = transcripts.path();
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2026-11-22T20:09:24.722Z","continuedInSessionId":"b"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "a", &live(), t);
+    assert_eq!(code, Some(0), "the user went back to a: {err}");
+    assert_eq!(lock(&r.main), format!("session a\npid {}\n", live()));
+    assert!(
+        claim_of(&r.main, "foo").starts_with(&format!("session a\npid {}\n", live())),
+        "the claim comes back to a"
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &fork.pid(), t);
+    assert_eq!(code, Some(2), "the fork left is refused: {err}");
+    assert!(err.contains("the issue foo"), "{err}");
+}
+
+// spec: WSL-13
+#[test]
+fn only_a_record_after_the_last_continued_in_gives_the_lock_back() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let fork = Other::new();
+    hook("check", &r.main, "b", &fork.pid());
+    dirty(&r.main);
+    let t = transcripts.path();
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2026-11-22T20:09:24.722Z","continuedInSessionId":"b"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2026-11-22T20:09:24.646Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "a", &live(), t);
+    assert_eq!(code, Some(2), "no record stamped after the fork: {err}");
+    let (code, _, err) = hook("check", &r.main, "a", &live());
+    assert_eq!(code, Some(2), "no transcript_path: {err}");
+    append(t, "c", br#"{"type":"continued-in","timestamp":"2026-11-22T20:09:24.722Z","continuedInSessionId":"d"}"#);
+    append(
+        t,
+        "c",
+        br#"{"type":"user","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "c", &live(), t);
+    assert_eq!(code, Some(2), "no record naming the holder: {err}");
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2026-11-22T20:20:00.000Z","continuedInSessionId":"e"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"assistant","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "a", &live(), t);
+    assert_eq!(code, Some(0), "a later fork the user left too: {err}");
+    assert!(lock(&r.main).contains("session a\n"));
+}

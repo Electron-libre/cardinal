@@ -3,8 +3,8 @@
 //! review marker. The lock is the file `cardinal-session` of the git directory of the worktree, holding the
 //! `session_id` of the hook event and the process of the session (`CLAUDE_PID`); a process that no longer runs frees
 //! it, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims, or a holder
-//! whose transcript says Claude Code continued it in the calling session (ADR 0032), which then also takes the
-//! `working` claims of that holder. Every change
+//! whose transcript says Claude Code continued it in the calling session (ADR 0032), or a fork the user left to go
+//! back to the calling session, which then also takes the `working` claims of that holder. Every change
 //! of the lock happens under a mutex directory beside it, created atomically.
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
@@ -108,14 +108,16 @@ struct Caller<'a> {
 enum Verdict {
     /// The caller takes it (WSL-1, WSL-2, WSL-10).
     Free,
-    /// The caller takes it as the session the holder was continued in, with its claims (WSL-11, WSL-12).
+    /// The caller takes it, with its claims, as the session the holder was continued in or the user went back to from
+    /// the holder (WSL-11, WSL-12, WSL-13).
     Continued,
     /// The holder keeps it for this work in progress (WSL-3).
     Kept(String),
 }
 
 /// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
-/// that runs, has work in progress and was not continued in the caller (WSL-3, WSL-10, WSL-11).
+/// that runs, has work in progress, was not continued in the caller and is not a session the user left to go back to
+/// the caller (WSL-3, WSL-10, WSL-11, WSL-13).
 fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
     let me = &caller.me;
     if holder.session == me.session || holder.pid == me.pid || !alive(&holder.pid) {
@@ -124,7 +126,7 @@ fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
     let Some(work) = in_progress(holder, cwd) else {
         return Verdict::Free;
     };
-    if continued_in(holder, caller) {
+    if continued_in(holder, caller) || returned_from(holder, caller) {
         return Verdict::Continued;
     }
     Verdict::Kept(work)
@@ -158,9 +160,54 @@ fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
     }
 }
 
+/// What a transcript says of the sessions Claude Code continued it in (ADR 0032).
+#[derive(Default)]
+struct Continuations {
+    /// The sessions its records `continued-in` name.
+    sessions: Vec<String>,
+    /// Whether a `user` or `assistant` record is stamped after its last record `continued-in` (the user went back).
+    returned: bool,
+}
+
+impl Continuations {
+    /// Read the transcript at `path`; an unreadable one names no session. Lines that are not JSON are skipped.
+    fn read(path: &Path) -> Self {
+        let mut found = Continuations::default();
+        let Ok(text) = std::fs::read(path) else {
+            return found;
+        };
+        // The timestamp of the last record `continued-in`.
+        let mut last: Option<String> = None;
+        for line in text.split(|&b| b == b'\n') {
+            // Until a `continued-in` record, only such a record matters: skip parsing the others.
+            if last.is_none() && !line.windows(12).any(|w| w == b"continued-in") {
+                continue;
+            }
+            let Ok(record) = serde_json::from_slice::<serde_json::Value>(line) else {
+                continue;
+            };
+            let stamp = record["timestamp"].as_str().unwrap_or_default();
+            match record["type"].as_str() {
+                Some("continued-in") => {
+                    if let Some(next) = record["continuedInSessionId"].as_str() {
+                        found.sessions.push(next.to_string());
+                        last = Some(stamp.to_string());
+                        found.returned = false;
+                    }
+                }
+                Some("user" | "assistant") if last.as_deref().is_some_and(|at| stamp > at) => {
+                    found.returned = true;
+                }
+                _ => {}
+            }
+        }
+        found
+    }
+}
+
 /// Whether the transcript of `holder`, beside the caller's, says Claude Code continued it in the caller's session
-/// (WSL-11, ADR 0032): its last record `continued-in` names that session and no `user` or `assistant` record is stamped
-/// after it (a record stamped later means the user went back to the holder). Lines that are not JSON are skipped.
+/// (WSL-11): its last record `continued-in` names that session and no `user` or `assistant` record is stamped after
+/// it (a record stamped later means the user went back to the holder).
 fn continued_in(holder: &Holder, caller: &Caller) -> bool {
     let name = &holder.session;
     if name.is_empty() || name.contains(['/', '\\']) || name.contains("..") {
@@ -169,37 +216,18 @@ fn continued_in(holder: &Holder, caller: &Caller) -> bool {
     let Some(dir) = caller.transcript.and_then(Path::parent) else {
         return false;
     };
-    let Ok(text) = std::fs::read(dir.join(format!("{name}.jsonl"))) else {
+    let found = Continuations::read(&dir.join(format!("{name}.jsonl")));
+    !found.returned && found.sessions.last() == Some(&caller.me.session)
+}
+
+/// Whether the caller's own transcript says the user went back to it from `holder`, a session it was continued in
+/// (WSL-13): a record `continued-in` names the holder and a `user` or `assistant` record is stamped after the last one.
+fn returned_from(holder: &Holder, caller: &Caller) -> bool {
+    let Some(path) = caller.transcript else {
         return false;
     };
-    // The session it was last continued in and the timestamp of that record, while nothing later undoes it.
-    let mut continued: Option<(String, String)> = None;
-    for line in text.split(|&b| b == b'\n') {
-        // Until a `continued-in` record, only such a record matters: skip parsing the others.
-        if continued.is_none() && !line.windows(12).any(|w| w == b"continued-in") {
-            continue;
-        }
-        let Ok(record) = serde_json::from_slice::<serde_json::Value>(line) else {
-            continue;
-        };
-        let stamp = record["timestamp"].as_str().unwrap_or_default();
-        match record["type"].as_str() {
-            Some("continued-in") => {
-                continued = record["continuedInSessionId"]
-                    .as_str()
-                    .map(|next| (next.to_string(), stamp.to_string()));
-            }
-            Some("user" | "assistant")
-                if continued
-                    .as_ref()
-                    .is_some_and(|(_, at)| stamp > at.as_str()) =>
-            {
-                continued = None;
-            }
-            _ => {}
-        }
-    }
-    continued.is_some_and(|(next, _)| next == caller.me.session)
+    let found = Continuations::read(path);
+    found.returned && found.sessions.contains(&holder.session)
 }
 
 /// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the
@@ -246,8 +274,8 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
         })
 }
 
-/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10, WSL-11), with the claims of a holder continued in
-/// the caller (WSL-12): `Ok` when it holds it, else the holder that keeps it and its work in progress.
+/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10, WSL-11, WSL-13), with the claims of a holder
+/// continued in the caller or left for it (WSL-12): `Ok` when it holds it, else the holder that keeps it and its work in progress.
 fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)> {
     let before = read(path);
     if before.as_ref() == Some(&caller.me) {

@@ -29,3 +29,49 @@ its claims back, as the fork took them.
 
 # Resources
 * `crates/cardinal/src/tools/workspace_lock.rs` (`continued_in`, `hand_claims`), ADR 0032.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+The session a user goes back to after a fork takes the lock and the `working` claims back from the fork, read from
+its own transcript: a `continued-in` naming the holder, then a `user` or `assistant` record stamped after its last
+`continued-in`. Out of scope: going back to the fork again afterwards (a non-goal).
+
+## Plan
+1. [x] Take the lock back: `keeps` reads the caller's own transcript with the reader `continued_in` shares (refactored
+   into one transcript scan), the verdict hands the claims as WSL-12 does; ADR 0032 amended; verified by behaviour
+   tests in `crates/cardinal/tests/workspace_lock.rs`; makes true WSL-13, WSL-12. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Question 1 a: a record the old process writes on its own counts as a return (non-goal), as for WSL-11.
+- Base commit: 16aab000406da61e3c872ff6afb1278a4cf2c9cd
+- Measure (2026-11-22, transcript `ae357957` of the `show_the_milestones_awaiting_their_release` worktree): after a
+  return the origin transcript, past its `continued-in` record, holds an `assistant` record then the `user` record of
+  the new prompt, both stamped later, then the `assistant` `tool_use` record before its `tool_result`, so the records
+  are written before the `PreToolUse` hook.
+
+## Deliverable 1 summary
+done: `check` and `start` give the lock and the `working` claims back to the session a user returns to after a fork,
+read from its own transcript (one transcript reader shared with WSL-11); spec WSL-13 (accepted), WSL-12 widened,
+non-goals; ADR 0032, `docs/gates.md`, `docs/architecture.md`, `issue-workflow` details.
+
+| check | result |
+|---|---|
+| tests | pass (`workspace_lock` 21) |
+| lint | pass |
+| specs | pass, WSL accepted |
+| docs | updated |
+| code review | no findings |
+
+red: WSL-13, WSL-12: `the user went back to a: Refused: another live session (b) …` (exit 2), and `a later fork the
+user left too` (exit 2).
+
+not verified: a real return to the origin session against the new binary (the records are the ones measured on
+2026-11-22).
+
+Code review: no findings
+
+decisions needed: none

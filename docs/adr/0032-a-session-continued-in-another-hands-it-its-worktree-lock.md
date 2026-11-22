@@ -18,9 +18,12 @@ old session.
 continued in: the file `<holder session>.jsonl` beside the `transcript_path` of the hook input, read only when the lock
 would refuse the call. The record of the old transcript is used rather than `derived-from` of the new one, because it
 says the conversation moved, not only that it was copied. The refusal also names the session and the process of the
-call, so a reader tells a fork the rule misses from a real second session.
+call, so a reader tells a fork the rule misses from a real second session. The reverse holds too: a session whose
+own transcript says it was continued in the holder, then shows a message stamped after its last `continued-in` (the
+user went back to it), takes the lock and the claims back from that fork.
 
 ## Consequences
 A fork goes on working in its worktree. The rule leans on an undocumented record of the transcript format of Claude
 Code: when it changes, forks are refused again, as before this decision, and the refusal shows both sessions. A
-refused call may read the holder's whole transcript once.
+refused call may read the holder's whole transcript and its own once. A message the old process writes on its own
+(a background task that wakes it) counts as the user going back.

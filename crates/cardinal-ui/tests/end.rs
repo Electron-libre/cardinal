@@ -633,7 +633,7 @@ fn a_locked_worktree_is_refused_before_its_tab_or_session_ends() {
         assert_eq!(code, Some(1), "{err}");
         assert!(
             err.contains(&format!(
-                "{0} is locked: run git worktree unlock {0} first",
+                "{0} is locked: run `git worktree unlock '{0}'` first",
                 p.ws.display()
             )),
             "{err}"

@@ -151,7 +151,7 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     // `worktree close` refuses it too, but only once the tab and the session are ended (SUA-8)
     if target.locked {
         return Err(format!(
-            "{0} is locked: run git worktree unlock {0} first",
+            "{0} is locked: run `git worktree unlock '{0}'` first",
             path.display()
         ));
     }

@@ -44,6 +44,9 @@ among its pre-checks, before any tab, pane or session is ended, its directory go
    binary test in `tests/end.rs` (locked worktree, waiting session in its tab, directory kept then gone: exit 1, empty
    log, session alive); makes true SUA-8. (autonomous)
 
+2. [x] High review fixes: quote the path of the unlock hint as `worktree close` does; file the findings outside SUA-8's
+   lock; verified by the test of deliverable 1; makes true SUA-8. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 0df3117e7ea7ece43b28b4c1c932359fec8600ba
@@ -67,3 +70,31 @@ not verified: none
 decisions needed: none
 - Follow-up: the workspace lock refused this very session after a `SessionStart` of source `fork` (new `session_id` and
   `CLAUDE_PID`, the old process still running); the lock was removed by hand. Issue to file.
+
+## Deliverable 2 summary
+done: the unlock hint quotes the path (`git worktree unlock '<path>'`), as `worktree close` does; the follow-ups are filed.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (SUA-8 message) |
+| docs | n/a (`docs/usage.md` names no message) |
+| code review | see below |
+
+red: none
+
+Code review: 1 finding
+- a `'` in the worktree path unbalances the quoted command (nit): not fixed, the hint matches the one of `worktree
+  close` (PAR-21) word for word, and such a path is not one `worktree open` makes.
+
+High review of the issue (3 findings):
+- nested worktree refused only by `worktree close` (pre-existing): filed as
+  `issues/refuse_a_worktree_holding_another_before_the_ui_ends_anything.md`;
+- unquoted path in the hint (nit): fixed;
+- a lock taken while the end waits for the session (nit): not fixed, the window is the 10 s of SUA-9 and
+  `worktree close` still refuses it, keeping the worktree.
+- The fork of the workspace lock: filed as `issues/keep_the_worktree_lock_across_a_fork_of_the_session.md`.
+
+not verified: none
+decisions needed: none

@@ -12,6 +12,7 @@
 
 mod charts;
 mod end;
+mod help;
 mod keys;
 mod measures;
 mod merge;
@@ -45,7 +46,8 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     );
     let waits = state.worktrees.as_deref().ok().map(notify::waits);
     let (panels, issues) = panels::panels(&state);
-    let (stems, stem_lines) = issues.into_iter().unzip();
+    let (stems, stem_lines): (Vec<String>, _) = issues.into_iter().unzip();
+    let keys = help::Keys::of(&state, &stems, source::in_zellij());
     screen::View {
         panels,
         stems,
@@ -53,6 +55,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         worktrees,
         waits,
         charts: state.charts,
+        keys,
     }
 }
 
@@ -99,10 +102,13 @@ fn print() -> i32 {
         Some(dir) if measures::stale(&dir) => measures::measure(&root, &dir).err(),
         Some(_) => None,
     };
-    let panels = read(false, error).panels;
+    let view = read(false, error);
+    // the help line of the selection the screen starts on (SUA-15)
+    let help = help::line(&view, keys::Selection::default());
+    let text = print::text(&view.panels, &help);
     // a reader that closed the output early (`| head`) is no failure
-    let _ = std::io::Write::write_all(&mut std::io::stdout(), print::text(&panels).as_bytes());
-    i32::from(panels.iter().any(|p| p.failed))
+    let _ = std::io::Write::write_all(&mut std::io::stdout(), text.as_bytes());
+    i32::from(view.panels.iter().any(|p| p.failed))
 }
 
 /// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUE-1), or

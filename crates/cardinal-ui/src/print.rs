@@ -5,17 +5,17 @@ use ratatui::layout::Rect;
 use ratatui::text::Line;
 
 use crate::panels::Panel;
-use crate::screen::{height, render, HELP};
+use crate::screen::{height, render};
 use crate::status::Status;
 use crate::theme::Theme;
 
 /// The width of the text of `--print`, unless a line needs more (STU-4).
 const PRINT_WIDTH: u16 = 100;
 
-/// The screen of `panels` as text, the measures under the panels, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
+/// The screen of `panels` and the help line `help` (SUA-15) as text, the measures under the panels, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
 /// row without its trailing spaces (STU-4). Rendered straight into a buffer: a terminal of the test backend
 /// mixes up the cells past the 65,535th.
-pub fn text(panels: &[Panel; 3]) -> String {
+pub fn text(panels: &[Panel; 3], help: &str) -> String {
     let longest = panels
         .iter()
         .flat_map(|p| p.lines.iter())
@@ -30,7 +30,7 @@ pub fn text(panels: &[Panel; 3]) -> String {
     render(
         area,
         &mut buf,
-        (panels, HELP),
+        (panels, help),
         None,
         &Status::default(),
         &Theme::default(),

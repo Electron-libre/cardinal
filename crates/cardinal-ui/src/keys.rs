@@ -8,14 +8,16 @@ use crate::screen::View;
 use crate::status::Status;
 
 /// The panel the selection is in (SUE-1).
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub(crate) enum Focus {
+    #[default]
     Queue,
     Worktrees,
 }
 
-/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUE-1).
-#[derive(Debug, Clone, Copy)]
+/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
+/// screen starts on the first issue of the queue.
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Selection {
     pub(crate) focus: Focus,
     pub(crate) issue: usize,
@@ -227,7 +229,6 @@ pub(crate) fn select(selected: usize, len: usize, action: &Action) -> usize {
 pub(crate) mod tests {
     use super::*;
     use crate::panels::Panel;
-    use crate::screen::HELP;
 
     fn press(code: KeyCode) -> KeyEvent {
         KeyEvent::new(code, KeyModifiers::NONE)
@@ -275,7 +276,6 @@ pub(crate) mod tests {
     #[test]
     fn f_merges_the_selected_issue() {
         assert_eq!(action(&press(KeyCode::Char('f'))), Action::Merge);
-        assert!(HELP.contains("f merge"), "{HELP}");
         assert_eq!(
             task(&Action::Merge, "foo").map(|(_, s)| s),
             Some("merging foo…".to_string())
@@ -291,7 +291,6 @@ pub(crate) mod tests {
     #[test]
     fn v_starts_the_release_from_either_panel_and_before_the_first_read() {
         assert_eq!(action(&press(KeyCode::Char('v'))), Action::Release);
-        assert!(HELP.contains("v release"), "{HELP}");
         let v = view(&["bar"], &[("/main", Some("trunk"))]);
         for (focus, read) in [
             (Focus::Queue, Some(&v)),
@@ -350,6 +349,7 @@ pub(crate) mod tests {
                 .collect(),
             waits: Some(Vec::new()),
             charts: crate::charts::charts(None),
+            keys: crate::help::Keys::default(),
         }
     }
 
@@ -408,10 +408,6 @@ pub(crate) mod tests {
             "no measure from the panels"
         );
         assert_eq!(screen_key(Panels, Action::Start), (Panels, Action::Start));
-        assert!(
-            HELP.contains("g charts") && !HELP.contains("m measure"),
-            "{HELP}"
-        );
     }
 
     // spec: SUE-2 (internal: the keys of a screen that needs a real terminal)
@@ -419,7 +415,6 @@ pub(crate) mod tests {
     fn shift_e_ends_every_merged_worktree_whatever_the_selection() {
         let shift_e = KeyEvent::new(KeyCode::Char('E'), KeyModifiers::SHIFT);
         assert_eq!(action(&shift_e), Action::EndMerged);
-        assert!(HELP.contains("E end merged"), "{HELP}");
         let ending = Ok(Some((
             Task::EndMerged,
             "ending the merged worktrees…".to_string(),
@@ -467,10 +462,6 @@ pub(crate) mod tests {
     fn tab_moves_to_the_worktrees_where_e_ends_the_selected_one() {
         assert_eq!(action(&press(KeyCode::Tab)), Action::Switch);
         assert_eq!(action(&press(KeyCode::Char('e'))), Action::End);
-        assert!(
-            HELP.contains("tab panel") && HELP.contains("e end"),
-            "{HELP}"
-        );
         let v = view(
             &["bar"],
             &[("/main", Some("trunk")), ("/ws", Some("foo")), ("/d", None)],

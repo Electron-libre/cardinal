@@ -21,6 +21,7 @@ branch, each refused with its reason when the project is not ready for it; the e
 - **SUA-3** (deterministic) withdrawn: moved to SUE-1.
 - **SUA-13** (deterministic) withdrawn: moved to SUE-2.
 - **SUA-4** (deterministic) In a zellij session, the key `v`, when a milestone awaits its release (STU-1) or a release prepared is not tagged yet (an interrupted release that `skill:release` resumes), must start in the main worktree, in a new zellij tab named `release`, an interactive `claude` whose first message is `/release`, so the version, its reread, its review and its tag stay with `skill:release`; when SUA-11 refuses, it starts nothing and says why on the status line.
+- **SUA-15** (deterministic) The help line under the panels must list `q quit  r refresh  ↑↓ select  tab panel`, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUA-2: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `E end merged` (SUE-2: a row of the worktrees panel reads `merged`, whatever the selection), `v release` (SUA-4: in a zellij session, a milestone awaits its release, whatever the selection), then `g charts`, two spaces between two keys; it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on, the first issue of the queue.
 
 ### Contract
 
@@ -48,6 +49,10 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
 - **SUA-H5** (happy; SUA-4, SUA-11, SUA-12) Given the UI in a zellij session in a linked worktree, a milestone that
   reads `awaits release v0.3.0`, and a clean main worktree on `trunk` with no live session, when the user presses
   `v`, then a tab `release` runs `claude /release` in the main worktree, and the linked worktree is unchanged.
+- **SUA-H7** (happy; SUA-15) Given a queue whose first issue `foo` is taken by a claim `merge pending` and a
+  worktree of an issue `bar` whose row reads `merged`, when the user looks at the help line, then it reads `q quit  r
+  refresh  ↑↓ select  tab panel  f merge  E end merged  g charts`; when they press `Tab` and select the worktree of `bar`, it
+  reads `… tab panel  e end  E end merged  g charts`.
 - (SUA-5) Given no `ZELLIJ` variable, when `cardinal-ui --start foo` runs, then it prints `start needs zellij` on
   stderr, exits 1 and runs neither `cardinal run worktree open` nor `zellij`.
 - (SUA-5) Given an issue `foo` claimed by a live session, when `cardinal-ui --start foo` runs, then it exits 1 saying
@@ -104,6 +109,12 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
 - (SUA-11) Given a `zellij new-tab` that fails, when `cardinal-ui --release` runs, then it exits 1 naming `zellij
   action new-tab`.
 - (SUA-6) Given a release start running, when the user presses `q`, then the screen quits once it has ended.
+- (SUA-15) Given a ready issue nothing takes selected outside a zellij session, then the help line offers no `s start`
+  nor `v release`, and `s` still says `start needs zellij: run cardinal-ui in a zellij session`.
+- (SUA-15) Given an empty queue and no worktree `merged`, then the help line reads `q quit  r refresh  ↑↓ select  tab
+  panel  g charts`.
+- (SUA-15) Given the selected issue taken by a live `working` claim, then the help line offers no `s start` nor `f
+  merge`.
 
 ## Non-goals
 
@@ -113,3 +124,5 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   "Releases from the steering UI".
 - Rebasing a diverged branch, merging anything but a fast-forward, or pushing the trunk: the rebase is the issue
   session's, the push the user's.
+- Offering `v release` for a release prepared but not tagged yet, which the read of the panels does not see (`roadmap
+  --open` leaves its milestones out): the key still resumes it (SUA-4), the help line does not list it.

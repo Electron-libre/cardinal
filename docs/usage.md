@@ -359,7 +359,11 @@ worktree is detached, has uncommitted changes or untracked files, or a live sess
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `E` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
 ended, printing the result of a merge, an end or a release start. The next
-read drops the claim (CLM-6).
+read drops the claim (CLM-6). The help line under the panels offers, beside `q`, `r`, the arrows, `Tab` and `g`, only
+the keys that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
+pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in
+zellij); a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
+issue of the queue.
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose
 `cardinal check` passed; for an issue merged by hand, `e` on its worktree (`Tab` moves the selection to the worktrees

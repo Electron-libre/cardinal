@@ -3,7 +3,8 @@
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
 //! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4); a worktree that starts to wait
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
-//! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4).
+//! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
+//! the help line under the panels offers the keys of the selection (SUA-15).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -16,7 +17,7 @@ use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::charts::{head, render_charts, Chart};
 use crate::keys::{
-    action, ended, job, quits, screen_key, task, Action, Ended, Focus, Screen, Selection, Task,
+    action, ended, job, quits, screen_key, task, Action, Ended, Screen, Selection, Task,
 };
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::{Mark, Panel};
@@ -29,10 +30,6 @@ pub const REFRESH: Duration = Duration::from_secs(2);
 
 /// How long the loop waits for a key before it looks for a finished read.
 const TICK: Duration = Duration::from_millis(100);
-
-/// The help line under the panels.
-pub(crate) const HELP: &str =
-    "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  g charts";
 
 /// The help line under the table of the measures (SUC-6).
 const MEASURES_HELP: &str = "q quit  r refresh  m measure  g panels";
@@ -48,6 +45,8 @@ pub struct View {
     pub waits: Option<Vec<Wait>>,
     /// The charts of the last measure (SUC-2).
     pub charts: [Chart; 4],
+    /// The keys of the tasks that would act on each issue and worktree, for the help line (SUA-15).
+    pub keys: crate::help::Keys,
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -241,7 +240,7 @@ fn draw(
             Screen::Panels => render(
                 area,
                 buf,
-                (&v.panels[..2], HELP),
+                (&v.panels[..2], &crate::help::line(v, selected)),
                 selected.line(v),
                 status,
                 theme,
@@ -279,11 +278,7 @@ pub fn run(
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
-        let mut selected = Selection {
-            focus: Focus::Queue,
-            issue: 0,
-            worktree: 0,
-        };
+        let mut selected = Selection::default();
         let mut status = Status::new(status, Kind::Error);
         let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
@@ -360,8 +355,11 @@ pub fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::keys::reselect;
+
+    /// A help line under the panels (SUA-15).
+    const HELP: &str = "q quit  r refresh  ↑↓ select  tab panel  g charts";
     use crate::keys::tests::view;
+    use crate::keys::{reselect, Focus};
     use ratatui::style::{Color, Modifier};
 
     // spec: SUA-1, STU-34 (internal: the highlight of a screen that needs a real terminal)

@@ -87,3 +87,4 @@ The work done before this file existed is in `issues/done/`.
   - [cut_a_milestone_into_issues_from_the_ui](issues/cut_a_milestone_into_issues_from_the_ui.md)
   - [write_a_skill_to_audit_the_code](issues/write_a_skill_to_audit_the_code.md)
   - [audit_the_code_from_the_ui](issues/audit_the_code_from_the_ui.md)
+  - [rebase_a_diverged_issue_branch_before_its_merge](issues/rebase_a_diverged_issue_branch_before_its_merge.md)

@@ -23,7 +23,7 @@ The work done before this file existed is in `issues/done/`.
   (SWT-3), through a command the user can replace (`notify-send` by default), so the shared hooks stay free of the
   desktop; the merge removes the worktree directory it ends, and the worktrees already merged and free are
   ended in one go.
-- State: in issues
+- State: done
 - Issues:
   - [read_the_colors_of_the_ui_from_a_theme_file](issues/done/read_the_colors_of_the_ui_from_a_theme_file.md)
   - [show_the_issues_as_a_tree_of_their_dependencies](issues/done/show_the_issues_as_a_tree_of_their_dependencies.md)
@@ -35,7 +35,7 @@ The work done before this file existed is in `issues/done/`.
   - [close_only_the_gone_worktree_it_targets](issues/done/close_only_the_gone_worktree_it_targets.md)
   - [refuse_a_locked_worktree_before_the_ui_ends_anything](issues/done/refuse_a_locked_worktree_before_the_ui_ends_anything.md)
   - [refuse_a_worktree_holding_another_before_the_ui_ends_anything](issues/done/refuse_a_worktree_holding_another_before_the_ui_ends_anything.md)
-  - [split_the_steering_ui_actions_spec](issues/split_the_steering_ui_actions_spec.md)
+  - [split_the_steering_ui_actions_spec](issues/done/split_the_steering_ui_actions_spec.md)
   - [notify_the_desktop_when_a_session_waits](issues/done/notify_the_desktop_when_a_session_waits.md)
   - [split_the_print_tests_of_the_steering_ui](issues/done/split_the_print_tests_of_the_steering_ui.md)
 

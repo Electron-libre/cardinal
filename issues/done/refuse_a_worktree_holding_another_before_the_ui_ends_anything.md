@@ -59,7 +59,7 @@ today's path (`worktree close` skips that check too). Out of scope: splitting `s
 - done: `end_on` refuses a worktree whose directory holds another worktree, before any tab, pane or session ends;
   the checks run in the worktree's directory moved to `refuse_in` (clippy `too_many_lines`).
 - checks: tests pass, lint clean, specs pass (SUA over `spec_max_bytes`: warning, follow-up
-  `issues/split_the_steering_ui_actions_spec.md`), docs updated (`end.rs`, `docs/usage.md`, `docs/architecture.md`).
+  `issues/done/split_the_steering_ui_actions_spec.md`), docs updated (`end.rs`, `docs/usage.md`, `docs/architecture.md`).
 - red: SUA-8: `assertion left == right failed: left: Some(0) right: Some(1)` (the end succeeded).
 - Code review: no findings
 - not verified: none.

@@ -32,7 +32,7 @@ The work done before this file existed is in `issues/done/`.
   - [highlight_the_selected_line_across_its_panel](issues/done/highlight_the_selected_line_across_its_panel.md)
   - [end_every_merged_worktree_in_one_go](issues/done/end_every_merged_worktree_in_one_go.md)
   - [end_a_merged_worktree_whose_directory_is_gone](issues/done/end_a_merged_worktree_whose_directory_is_gone.md)
-  - [close_only_the_gone_worktree_it_targets](issues/close_only_the_gone_worktree_it_targets.md)
+  - [close_only_the_gone_worktree_it_targets](issues/done/close_only_the_gone_worktree_it_targets.md)
   - [refuse_a_locked_worktree_before_the_ui_ends_anything](issues/refuse_a_locked_worktree_before_the_ui_ends_anything.md)
   - [notify_the_desktop_when_a_session_waits](issues/done/notify_the_desktop_when_a_session_waits.md)
   - [split_the_print_tests_of_the_steering_ui](issues/done/split_the_print_tests_of_the_steering_ui.md)

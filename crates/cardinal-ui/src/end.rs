@@ -3,7 +3,7 @@
 //! the session's pane when the tab holds others), then `cardinal run worktree close <stem>` removes the worktree and
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
 //! `SessionEnd` hooks; a session with no pane of the UI gets that signal directly. Nothing is ended while the session
-//! is at work (no wait mark names it), nor from a dirty worktree; one whose directory is gone skips
+//! is at work (no wait mark names it), nor from a dirty or locked worktree; one whose directory is gone skips
 //! the checks that run in it, its session read from the lock its git directory keeps.
 
 use std::path::Path;
@@ -146,6 +146,13 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     if source::run("git merge-base", Path::new("git"), &ancestor, &main)?.2 != 0 {
         return Err(format!(
             "{branch} has commits {trunk} lacks: merge them first"
+        ));
+    }
+    // `worktree close` refuses it too, but only once the tab and the session are ended (SUA-8)
+    if target.locked {
+        return Err(format!(
+            "{0} is locked: run git worktree unlock {0} first",
+            path.display()
         ));
     }
     // a directory removed by hand: nothing to check in it, `worktree close` removes that worktree alone (SUA-8)

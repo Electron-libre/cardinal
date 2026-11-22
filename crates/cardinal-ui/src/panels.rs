@@ -573,6 +573,7 @@ mod tests {
                 branch: None,
                 session: Some(session(waiting)),
                 merged: false,
+                locked: false,
             });
         let (unread, _) = queue(&Ok(Milestones::default()), &Ok(q()), None);
         assert!(
@@ -619,6 +620,7 @@ mod tests {
             branch: Some("b".to_string()),
             session,
             merged,
+            locked: false,
         };
         assert_eq!(
             marked(&worktree(&w(None, true))),

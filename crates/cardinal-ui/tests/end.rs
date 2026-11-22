@@ -620,3 +620,28 @@ fn a_waiting_session_in_a_worktree_whose_directory_is_gone_ends_before_the_close
     assert!(ended(pid), "the session got SIGHUP and ended");
     assert_eq!(p.closes(), p.closed());
 }
+
+// spec: SUA-8
+#[test]
+fn a_locked_worktree_is_refused_before_its_tab_or_session_ends() {
+    let mut p = project(true);
+    let pid = p.session(true, false);
+    p.tab(false);
+    git(&p.repo, &["worktree", "lock", p.ws.to_str().unwrap()]);
+    let refused = |p: &Project| {
+        let (code, _, err) = p.end(&p.repo, "foo", true);
+        assert_eq!(code, Some(1), "{err}");
+        assert!(
+            err.contains(&format!(
+                "{0} is locked: run git worktree unlock {0} first",
+                p.ws.display()
+            )),
+            "{err}"
+        );
+        assert_eq!(p.log(), "", "no tab closed, no worktree close");
+        assert!(alive(pid), "the session still runs");
+    };
+    refused(&p);
+    std::fs::remove_dir_all(&p.ws).unwrap();
+    refused(&p);
+}

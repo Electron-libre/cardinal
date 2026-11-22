@@ -85,6 +85,8 @@ pub struct Worktree {
     pub session: Option<Session>,
     /// Whether it is a linked worktree whose branch has its close on the trunk (STU-23).
     pub merged: bool,
+    /// Locked by `git worktree lock`, which `worktree close` refuses (SUA-8).
+    pub locked: bool,
 }
 
 /// Everything the screen shows; each panel holds its error line when it could not be read (STU-6).
@@ -423,11 +425,16 @@ pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
                 branch: None,
                 session: None,
                 merged: false,
+                locked: false,
             });
         } else if let (Some(b), Some(w)) =
             (line.strip_prefix("branch refs/heads/"), list.last_mut())
         {
             w.branch = Some(b.to_string());
+        } else if line == "locked" || line.starts_with("locked ") {
+            if let Some(w) = list.last_mut() {
+                w.locked = true;
+            }
         }
     }
     for w in &mut list {

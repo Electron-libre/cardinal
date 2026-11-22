@@ -78,7 +78,7 @@ decisions needed: none
 ## Summary of deliverable 2
 done: WSL-12 amended and fixed for the 6 findings of the high review: claims matched by session or process, only those
 of the worktree of the input, moved under the mutex before the lock is written; going back to the holder stated as a
-non-goal and filed as `issues/hand_the_worktree_back_to_the_session_a_user_returns_to.md`.
+non-goal and filed as `issues/done/hand_the_worktree_back_to_the_session_a_user_returns_to.md`.
 
 | check | result |
 |---|---|

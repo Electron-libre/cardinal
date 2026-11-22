@@ -45,7 +45,7 @@ panels. `--print` keeps printing the panel under the worktrees (scripts and the 
    measures screen draws the panel over the whole screen with its help line, `docs/usage.md` updated; verified by unit
    tests of `keys.rs`, `screen.rs` and `charts.rs` (rendered buffers) and `tests/print_screen.rs`; makes true STU-1,
    STU-4, STU-16, STU-17, SUC-1, SUC-6.
-2. [ ] Docs of the whole issue and fixes of its `high` review; verified by `just check`.
+2. [x] Docs of the whole issue and fixes of its `high` review; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -69,4 +69,31 @@ of `screen.rs` to keep it under 800 lines).
 red: STU-1, SUC-1, SUC-6: cannot find function `screen_key`, type `Screen`, value `MEASURES_HELP`
 
 not verified: the screen in a real terminal (rendered on the test backend only).
+decisions needed: none.
+
+## Summary of deliverable 2
+done: `update-docs` over `deddcca..HEAD` found nothing more to change; the `high` review gave 6 nits, the 2 on docs fixed
+(module docs of `main.rs`, `screen.rs`, `print.rs`).
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | module docs fixed |
+| code review | `high` on the issue: 6 nits; `low` on this deliverable: no findings |
+
+red: none
+
+Code review: no findings
+
+High review: 6 findings
+- measure error visible only on the measures screen: intended, the user wants no measure on the main screen.
+- `m` silent on the panels: SUC-1 says it does nothing; the help line no longer offers it.
+- a table taller than the terminal shows its first rows only: SUC-6 says so; scrolling is left out of scope.
+- `render` with no panel: no caller passes one.
+- `--print` ends on the panels' help line, as before this issue: kept.
+- module docs naming the wrong file, and STU-4 cited twice: fixed.
+
+not verified: the screen in a real terminal.
 decisions needed: none.

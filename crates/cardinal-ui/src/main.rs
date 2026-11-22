@@ -4,7 +4,7 @@
 //! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
 //! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
-//! to wait for the user (`notify.rs`); `g` shows the charts of the measures, then their table (`charts.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
+//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`), then their table (`screen.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every

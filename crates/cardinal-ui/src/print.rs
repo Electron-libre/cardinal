@@ -12,7 +12,7 @@ use crate::theme::Theme;
 /// The width of the text of `--print`, unless a line needs more (STU-4).
 const PRINT_WIDTH: u16 = 100;
 
-/// The screen of `panels` as text, the measures under the panels (STU-4), whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
+/// The screen of `panels` as text, the measures under the panels, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
 /// row without its trailing spaces (STU-4). Rendered straight into a buffer: a terminal of the test backend
 /// mixes up the cells past the 65,535th.
 pub fn text(panels: &[Panel; 3]) -> String {

@@ -434,9 +434,9 @@ pub(crate) mod tests {
     // spec: STU-14 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
     fn the_selection_moves_over_the_issue_rows_only() {
-        // `One` on line 0 heads `a` and `b`, `Two` on line 3 heads `c`
+        // `One` on line 0 heads `a` and `b`, `Two` on line 4 heads `c`, under an empty line (SUQ-5)
         let mut v = view(&["a", "b", "c"], &[]);
-        v.stem_lines = vec![1, 2, 4];
+        v.stem_lines = vec![1, 2, 5];
         let mut sel = Selection {
             focus: Focus::Queue,
             issue: 1,
@@ -445,17 +445,17 @@ pub(crate) mod tests {
         sel.apply(&Action::Down, &v);
         assert_eq!(
             (sel.issue, sel.line(&v)),
-            (2, Some((0, 4))),
+            (2, Some((0, 5))),
             "the heading skipped"
         );
         sel.apply(&Action::Down, &v);
-        assert_eq!(sel.line(&v), Some((0, 4)), "kept on the last issue");
+        assert_eq!(sel.line(&v), Some((0, 5)), "kept on the last issue");
         // `b` drawn under `a` moves to the root of its section once `a` is closed
         let mut after = view(&["c", "b"], &[]);
-        after.stem_lines = vec![1, 3];
+        after.stem_lines = vec![1, 4];
         sel.issue = 1;
         sel.reread(&v, &after);
-        assert_eq!((sel.issue, sel.line(&after)), (1, Some((0, 3))));
+        assert_eq!((sel.issue, sel.line(&after)), (1, Some((0, 4))));
     }
 
     // spec: SUE-1 (internal: the keys and the selection of a screen that needs a real terminal)

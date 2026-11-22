@@ -46,6 +46,9 @@ role, no rule across the panel.
    them; verified by `tests/print.rs` (SUQ-H1 updated, STU-6 edge) and a buffer test of `screen.rs` (accent and bold,
    `(on hold)` in `warn`); makes true SUQ-5. ~120 lines; `panels.rs` (740) and `screen.rs` (757) stay under 800,
    else the new test goes to a module of its own. (autonomous)
+2. [x] Fixes of the `high` review: `queue()` tested to list its headings and never the empty line, the selection
+   fixture of `keys.rs` laid out with the empty line, the `panels.rs` row of `docs/architecture.md` completed;
+   verified by the unit tests of `panels.rs` and `keys.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -69,6 +72,32 @@ red: SUQ-5: `no line with │■ One   in` (the headings read `One` with no mark
 `roadmap: exit 3`.
 
 not verified: the look in a real terminal (the bold and the colors are proven on a Ratatui buffer).
+decisions needed: none.
+
+Code review: no findings
+
+## Summary of deliverable 2
+
+done: the three fixes of the `high` review (4 nits).
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | unchanged, SUQ-5 also traced to `an_empty_queue_says_so_under_its_milestones` |
+| docs | `docs/architecture.md` (`panels.rs`) |
+| code review | `high` of the issue: 4 nits, 3 fixed; `low` of the fixes: no findings |
+
+red: none (the new assertions hold on the code of deliverable 1).
+
+High review: 4 findings
+- `headings` of `queue()` untested: fixed.
+- `■` of ambiguous width: not fixed, the tree `│├└─` of every issue row has the same ambiguous width already, and
+  the user chose `■`.
+- `docs/architecture.md` row incomplete: fixed.
+- `keys.rs` fixture without the empty line: fixed.
+
+not verified: none.
 decisions needed: none.
 
 Code review: no findings

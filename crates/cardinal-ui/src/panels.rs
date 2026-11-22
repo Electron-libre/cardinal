@@ -523,6 +523,7 @@ mod tests {
             problems: vec!["issue without a priority: f".to_string()],
         };
         let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), Some(&[]));
+        assert_eq!(panel.headings, [0], "an issue row is no heading");
         // the words of each line drawn in a role; line 0 is the heading `No milestone`
         let rows: Vec<Styled> = (0..panel.lines.len())
             .map(|n| Styled {
@@ -658,11 +659,11 @@ mod tests {
         assert_eq!(role, Role::Warn);
     }
 
-    // spec: SUQ-1 (internal: the lines of the queue, on its data rather than a repository)
+    // spec: SUQ-1, SUQ-5 (internal: the lines of the queue, on its data rather than a repository)
     #[test]
     fn an_empty_queue_says_so_under_its_milestones() {
-        let m = Milestone {
-            name: "New".to_string(),
+        let m = |name: &str| Milestone {
+            name: name.to_string(),
             state: Some("done".to_string()),
             on_hold: false,
             open: 0,
@@ -671,11 +672,20 @@ mod tests {
             proposed: None,
         };
         let ms = Milestones {
-            list: vec![m],
+            list: vec![m("New"), m("Old")],
             release_error: None,
         };
         let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()), Some(&[]));
-        assert_eq!(panel.lines, ["■ New  done  0/1 open", "No open issue."]);
+        assert_eq!(
+            panel.lines,
+            [
+                "■ New  done  0/1 open",
+                "",
+                "■ Old  done  0/1 open",
+                "No open issue."
+            ]
+        );
+        assert_eq!(panel.headings, [0, 2], "never the empty line");
         assert_eq!(issues.len(), 0);
     }
 

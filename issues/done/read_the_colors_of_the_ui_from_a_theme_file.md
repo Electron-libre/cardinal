@@ -121,7 +121,7 @@ Means: a line-based reader instead of a TOML library, so each ignored line has i
 - red: STU-31, STU-32, STU-33: the status message drawn `Rgb(0, 0, 5)` (`muted`) instead of `text`; `theme: line 1
   ignored` for a file opening on a byte order mark.
 - High review: 7 findings; 6 fixed here, 1 pre-existing (the selected line highlighted only under its text, as
-  before this issue) filed as `issues/highlight_the_selected_line_across_its_panel.md`.
+  before this issue) filed as `issues/done/highlight_the_selected_line_across_its_panel.md`.
 - Code review: no findings
 - not verified: the colors in a real terminal.
 - decisions needed: none

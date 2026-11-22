@@ -88,3 +88,8 @@ Code review: no findings (the `low` level skips test hunks, and the diff holds o
 same 30 tests, same `// spec:` citations)
 not verified: none
 decisions needed: none
+
+## Whole issue
+- update-docs on `e133e36..HEAD`: n/a, no document names these test files.
+- `/code-review high`: no findings (fixtures and test bodies byte-identical, 30 tests, `// spec:` citations kept).
+- Done: `print.rs` 325 lines, `print_screen.rs` 165, `print_worktrees.rs` 145, `common/mod.rs` 220.

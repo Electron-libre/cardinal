@@ -1,6 +1,6 @@
 //! The keys of the screen of `cardinal-ui` (STU-2): the action of each key, the selection in the queue or the
-//! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1 to SUA-6,
-//! SUE-1, SUE-2).
+//! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1, SUA-2,
+//! SUA-4 to SUA-6, SUE-1, SUE-2).
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 

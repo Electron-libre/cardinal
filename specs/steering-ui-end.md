@@ -9,7 +9,7 @@ adrs: [0022, 0023, 0030, 0031]
 ## Intent
 
 The keys and the flags of `cardinal-ui` (STU) that end what a merged issue left, its session, its zellij tab, its
-worktree and its branch, on one worktree or on every merged one, each refused with its reason when it would lose work.
+worktree and its branch, on one worktree or on every merged one, each refused with its reason when the project is not ready for it.
 
 ## Requirements
 

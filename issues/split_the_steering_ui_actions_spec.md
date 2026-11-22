@@ -47,6 +47,9 @@ edge cases and the two non-goals about the end) to a new spec `specs/steering-ui
    `crates/cardinal-ui` and `docs/architecture.md` re-cited; both specs `accepted` again; verified by
    `cardinal run check-specs` (no unknown id, no size warning on either spec) and `cardinal run project-check`; makes
    true SUE-1 to SUE-5 (traced by the existing tests). (autonomous)
+2. [x] Fixes of the `high` review of the issue: the Intent of SUE says each end is refused when the project is not
+   ready for it, SUA-6 names `E` among the keys a running task blocks, the doc of `keys.rs` cites live ids only;
+   verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -68,6 +71,32 @@ SUA and STU ids withdrawn to it, the tests, doc comments, docs and the update-do
 red: none (a move of requirements, the existing tests trace them)
 
 Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2
+
+done: the nits of the `high` review fixed in the text of the specs and of a doc comment.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass |
+| docs | n/a (spec and doc comment wording only) |
+| code review | `low`: no findings |
+
+red: none (wording only)
+
+Code review: no findings
+
+The `high` review of the issue gave 6 nits: fixed, the Intent of SUE, the keys of SUA-6 and the ids of `keys.rs`;
+kept: the line under the Scenarios of SUA that names the moved happy paths (the form of the split of STU,
+`check-specs` accepts it), SUE-H2 naming only SUE ids (a happy path names the requirements of its own spec, SUA-2
+keeps SUA-H2 and SUE-H2 cites it in its text), the ADRs of SUE (0022 the session lock it reads, 0023 the worktrees,
+0030 the crate, 0031 zellij all govern the end).
 
 not verified: none
 

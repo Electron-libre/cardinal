@@ -488,3 +488,70 @@ fn check_takes_the_lock_of_the_session_it_continues_and_refuses_without_a_transc
     assert_eq!(code, Some(0), "{err}");
     assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
 }
+
+/// Append `line` to the transcript of `session` in `transcripts`.
+fn append(transcripts: &Path, session: &str, line: &[u8]) {
+    let path = transcripts.join(format!("{session}.jsonl"));
+    let mut text = std::fs::read(&path).unwrap_or_default();
+    text.extend_from_slice(line);
+    text.push(b'\n');
+    std::fs::write(path, text).unwrap();
+}
+
+// spec: WSL-11
+#[test]
+fn only_a_last_continued_in_record_hands_the_lock_over() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
+    let t = transcripts.path();
+    append(t, "a", b"\xff\xfe not utf-8");
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2026-11-22T20:09:24.722Z","continuedInSessionId":"b"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2026-11-22T20:09:24.646Z"}"#,
+    );
+    append(
+        t,
+        "a",
+        br#"{"type":"assistant","timestamp":"2026-11-22T20:30:00.000Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), t);
+    assert_eq!(
+        code,
+        Some(2),
+        "the user went back to a after the fork: {err}"
+    );
+    append(t, "a", br#"{"type":"continued-in","timestamp":"2026-11-22T20:31:00.000Z","continuedInSessionId":"b"}"#);
+    append(
+        t,
+        "a",
+        br#"{"type":"user","timestamp":"2026-11-22T20:30:59.000Z"}"#,
+    );
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), t);
+    assert_eq!(
+        code,
+        Some(0),
+        "a later fork, past a line that is not UTF-8: {err}"
+    );
+    assert!(lock(&r.main).contains("session b\n"));
+}
+
+// spec: WSL-11
+#[test]
+fn a_holder_session_that_is_no_file_name_has_no_transcript() {
+    let r = repo();
+    let root = tempfile::tempdir().unwrap();
+    let transcripts = root.path().join("project");
+    std::fs::create_dir_all(root.path().join("elsewhere")).unwrap();
+    std::fs::create_dir_all(&transcripts).unwrap();
+    let other = Other::new();
+    hook("check", &r.main, "../elsewhere/a", &other.pid());
+    dirty(&r.main);
+    transcript(&root.path().join("elsewhere"), "a", Some("b"));
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), &transcripts);
+    assert_eq!(code, Some(2), "{err}");
+}

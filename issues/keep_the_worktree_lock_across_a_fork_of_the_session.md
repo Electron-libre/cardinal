@@ -55,6 +55,10 @@ hook; the hook input names no parent. Out of scope: why the old process keeps ru
    holder's transcript beside the input's `transcript_path` for a `continued-in` record naming the caller, only on the
    refusal path; WSL-3 and WSL-5 messages name the caller; ADR 0032; verified by behaviour tests in
    `crates/cardinal/tests/workspace_lock.rs`; makes true WSL-11, WSL-3, WSL-5. (autonomous)
+2. [x] Fixes of the high review: only the last `continued-in` record with no `user`/`assistant` record stamped after it
+   hands the lock over, lines read as bytes (one not UTF-8 is skipped), a holder session that is no plain file name
+   has no transcript; WSL-3 and WSL-11 moved under `### Contract`; wording of the `issue-workflow` details; verified
+   by behaviour tests; makes true WSL-11. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -86,3 +90,28 @@ not verified: a real fork from the session list against the new binary (the reco
 2026-11-22).
 
 decisions needed: none
+
+## Deliverable 2 summary
+done: fixes of the high review of the issue (findings 1, 3, 4, 5, 6); finding 2 (the claim stays with the old
+session) filed as [hand_the_issue_claim_to_a_forked_session](hand_the_issue_claim_to_a_forked_session.md), outside
+WSL; measured on the origin transcript: two `user` records follow `continued-in` in the file but are stamped before
+it, hence the timestamp rule.
+
+| check | result |
+|---|---|
+| tests | pass (`workspace_lock` 17/17, `project-check`) |
+| lint | pass |
+| specs | pass, `workspace-lock` accepted |
+| docs | `docs/gates.md`, `issue-workflow` details |
+| code review | low: no findings |
+
+red: WSL-11: `a later fork, past a line that is not UTF-8: Refused: …` and `left: Some(0) right: Some(2)` (a session
+`../elsewhere/a` read a transcript outside the directory)
+
+Code review: no findings
+
+not verified: a real fork against the new binary.
+
+decisions needed: none
+
+Done: both deliverables committed; left: [hand_the_issue_claim_to_a_forked_session](hand_the_issue_claim_to_a_forked_session.md) (the claim, outside this issue).

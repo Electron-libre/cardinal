@@ -117,8 +117,8 @@ worktree (per worktree, WSL-9), holding the `session_id` of the event and the pr
   ([ADR 0027](adr/0027-any-uncommitted-change-keeps-the-worktree-lock.md)).
   A session Claude Code continued in another (a fork, from its session list, with a new session id and process while
   the old process still runs) hands the lock over to it: before refusing, `check` and `start` read the holder's
-  transcript, `<holder session>.jsonl` beside the `transcript_path` of the event, for a record `continued-in` naming
-  the calling session (WSL-11, [ADR 0032](adr/0032-a-session-continued-in-another-hands-it-its-worktree-lock.md)).
+  transcript, `<holder session>.jsonl` beside the `transcript_path` of the event, for a last record `continued-in`
+  naming the calling session, with no message stamped after it (WSL-11, [ADR 0032](adr/0032-a-session-continued-in-another-hands-it-its-worktree-lock.md)).
 - **`start`** (`SessionStart`, which cannot block) takes the lock, or tells the agent the worktree is busy.
 - **`release`** (`SessionEnd`) deletes the lock of its own session.
 

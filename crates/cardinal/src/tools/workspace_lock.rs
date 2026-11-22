@@ -8,7 +8,7 @@
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
 
-use std::io::{BufRead, BufReader, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
@@ -117,23 +117,48 @@ fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Option<String> {
     Some(work)
 }
 
-/// Whether the transcript of `holder`, beside the caller's, holds a record `continued-in` naming the caller's session
-/// (WSL-11, ADR 0032).
+/// Whether the transcript of `holder`, beside the caller's, says Claude Code continued it in the caller's session
+/// (WSL-11, ADR 0032): its last record `continued-in` names that session and no `user` or `assistant` record is stamped
+/// after it (a record stamped later means the user went back to the holder). Lines that are not JSON are skipped.
 fn continued_in(holder: &Holder, caller: &Caller) -> bool {
+    let name = &holder.session;
+    if name.is_empty() || name.contains(['/', '\\']) || name.contains("..") {
+        return false;
+    }
     let Some(dir) = caller.transcript.and_then(Path::parent) else {
         return false;
     };
-    let Ok(file) = std::fs::File::open(dir.join(format!("{}.jsonl", holder.session))) else {
+    let Ok(text) = std::fs::read(dir.join(format!("{name}.jsonl"))) else {
         return false;
     };
-    BufReader::new(file)
-        .lines()
-        .map_while(Result::ok)
-        .filter(|l| l.contains("continued-in"))
-        .filter_map(|l| serde_json::from_str::<serde_json::Value>(&l).ok())
-        .any(|r| {
-            r["type"] == "continued-in" && r["continuedInSessionId"] == caller.me.session.as_str()
-        })
+    // The session it was last continued in and the timestamp of that record, while nothing later undoes it.
+    let mut continued: Option<(String, String)> = None;
+    for line in text.split(|&b| b == b'\n') {
+        // Until a `continued-in` record, only such a record matters: skip parsing the others.
+        if continued.is_none() && !line.windows(12).any(|w| w == b"continued-in") {
+            continue;
+        }
+        let Ok(record) = serde_json::from_slice::<serde_json::Value>(line) else {
+            continue;
+        };
+        let stamp = record["timestamp"].as_str().unwrap_or_default();
+        match record["type"].as_str() {
+            Some("continued-in") => {
+                continued = record["continuedInSessionId"]
+                    .as_str()
+                    .map(|next| (next.to_string(), stamp.to_string()));
+            }
+            Some("user" | "assistant")
+                if continued
+                    .as_ref()
+                    .is_some_and(|(_, at)| stamp > at.as_str()) =>
+            {
+                continued = None;
+            }
+            _ => {}
+        }
+    }
+    continued.is_some_and(|(next, _)| next == caller.me.session)
 }
 
 /// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the

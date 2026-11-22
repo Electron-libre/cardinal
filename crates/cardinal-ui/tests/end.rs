@@ -653,6 +653,7 @@ fn a_worktree_holding_another_is_refused_before_its_tab_or_session_ends() {
     let pid = p.session(true, false);
     p.tab(false);
     // ignored, as `.claude/worktrees/` is in a project: `git status` in `ws` lists nothing
+    std::fs::create_dir_all(p.repo.join(".git/info")).unwrap();
     std::fs::write(p.repo.join(".git/info/exclude"), ".claude/worktrees/\n").unwrap();
     let inner = p.ws.join(".claude/worktrees/inner");
     git(

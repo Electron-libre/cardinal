@@ -47,6 +47,8 @@ today's path (`worktree close` skips that check too). Out of scope: splitting `s
    ignored directory of `ws`, the session waiting in its tab, `--end foo` exits 1, no tab closed, no
    `worktree close`, the session alive), docs of `end.rs`, `docs/usage.md`, `docs/architecture.md`; makes true SUA-8.
    (autonomous)
+2. [x] Fixes of the `high` review: the root check before the nested one, SUA-8 naming the nested check among those a
+   gone directory skips, the test creating `.git/info`; verified by `tests/end.rs`; makes true SUA-8. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -59,6 +61,20 @@ today's path (`worktree close` skips that check too). Out of scope: splitting `s
 - checks: tests pass, lint clean, specs pass (SUA over `spec_max_bytes`: warning, follow-up
   `issues/split_the_steering_ui_actions_spec.md`), docs updated (`end.rs`, `docs/usage.md`, `docs/architecture.md`).
 - red: SUA-8: `assertion left == right failed: left: Some(0) right: Some(1)` (the end succeeded).
+- Code review: no findings
+- Code review: no findings
+- not verified: none.
+- decisions needed: none.
+
+## Deliverable 2 summary
+- done: fixes of the `high` review of the issue (3 nits); 2 findings left as they are, below.
+- checks: tests pass, lint clean, specs pass, docs n/a (no behaviour the docs state changed).
+- red: none (a reorder and a test setup, no new test).
+- Code review (`high`): 5 findings: the order of the root and nested checks, fixed; SUA-8 not naming the nested
+  check among those a gone directory skips, fixed; `.git/info` assumed by the test, fixed; the raw path comparison
+  (a worktree reached through a symlink), not fixed: pre-existing, `worktree close` compares the same strings of the
+  same `git worktree list`; an inner worktree whose directory is gone still refused, not fixed: `worktree close`
+  refuses it the same way, and the two stay consistent.
 - Code review: no findings
 - not verified: none.
 - decisions needed: none.

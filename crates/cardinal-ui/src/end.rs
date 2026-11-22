@@ -122,6 +122,16 @@ fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result
             path.display()
         ));
     }
+    let inside = std::fs::canonicalize(root)
+        .ok()
+        .zip(std::fs::canonicalize(path).ok())
+        .is_some_and(|(here, target)| here.starts_with(target));
+    if inside {
+        return Err(format!(
+            "cardinal-ui runs in {}: run it from another worktree",
+            path.display()
+        ));
+    }
     // ignored by `git status` (`.claude/worktrees/`), refused by `worktree close` after the tab and the session
     let nested = worktrees
         .iter()
@@ -132,16 +142,6 @@ fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result
             "{} holds the worktree {}: remove that one first",
             path.display(),
             inner.display()
-        ));
-    }
-    let inside = std::fs::canonicalize(root)
-        .ok()
-        .zip(std::fs::canonicalize(path).ok())
-        .is_some_and(|(here, target)| here.starts_with(target));
-    if inside {
-        return Err(format!(
-            "cardinal-ui runs in {}: run it from another worktree",
-            path.display()
         ));
     }
     Ok(())

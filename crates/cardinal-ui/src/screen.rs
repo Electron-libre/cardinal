@@ -481,20 +481,25 @@ mod tests {
     // spec: SUS-H1, SUS-1, SUS-2 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_frame_is_drawn_in_the_roles_of_the_theme() {
-        let panel = |title, lines: &[&str]| Panel {
+        let panel = |title, lines: &[&str], marks| Panel {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
-            marks: Vec::new(),
+            marks,
             headings: Vec::new(),
             failed: false,
         };
+        let ready = crate::panels::Mark {
+            line: 0,
+            range: 5..10,
+            role: Role::Pass,
+        };
         let panels = [
-            panel("Queue", &["> b", "  a"]),
-            panel("Worktrees", &["w"]),
-            panel("Measures", &["x"]),
+            panel("Queue", &["> b  ready", "  a"], vec![ready]),
+            panel("Worktrees", &["w"], Vec::new()),
+            panel("Measures", &["x"], Vec::new()),
         ];
         let (theme, ignored) = crate::theme::parse(
-            "background = \"#000001\"\nsurface = \"#000002\"\nborder = \"#112233\"\ntext = \"#000004\"\nmuted = \"#000005\"\naccent = \"#000006\"\nselection = \"#000007\"\n",
+            "background = \"#000001\"\nsurface = \"#000002\"\nborder = \"#112233\"\ntext = \"#000004\"\nmuted = \"#000005\"\naccent = \"#000006\"\nselection = \"#000007\"\npass = \"#000008\"\n",
         );
         assert_eq!(ignored, Vec::<String>::new());
         let rgb = |n| Color::Rgb(0, 0, n);
@@ -519,6 +524,9 @@ mod tests {
         assert_eq!(buf[(u16::try_from(title).unwrap(), 0)].fg, rgb(6));
         let m = find("│w");
         assert_eq!((buf[(1, m)].fg, buf[(1, m)].bg), (rgb(4), rgb(1)));
+        let b = find("> b  ready");
+        let word = u16::try_from(row(b).chars().position(|c| c == 'r').unwrap()).unwrap();
+        assert_eq!(buf[(word, b)].fg, rgb(8), "ready in pass");
         let a = find("  a");
         assert_eq!(buf[(3, a)].bg, rgb(7));
         let border =

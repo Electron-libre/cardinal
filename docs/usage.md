@@ -268,7 +268,8 @@ projects directory given, they read the `projects/` of the configuration directo
 `cardinal-ui` (crate `crates/cardinal-ui`, ADR 0030 and 0031, [specs/steering-ui.md](../specs/steering-ui.md), its queue in
 [specs/steering-ui-queue.md](../specs/steering-ui-queue.md), its actions in
 [specs/steering-ui-actions.md](../specs/steering-ui-actions.md), the end of a merged worktree in
-[specs/steering-ui-end.md](../specs/steering-ui-end.md)) shows the
+[specs/steering-ui-end.md](../specs/steering-ui-end.md), its theme and status line in
+[specs/steering-ui-screen.md](../specs/steering-ui-screen.md)) shows the
 project of the current directory (the root of its work tree) in one terminal screen, in two panels (the measures have a screen of their own, below):
 
 | Panel | Read from | Each line |

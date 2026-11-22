@@ -43,8 +43,8 @@ status line that shows what an action did or why it refused.
 - **SUS-H1** (happy; SUS-1, SUS-4) Given a theme file that sets `border = "#112233"`, when the screen draws, then the
   borders of the panels are `#112233`, the selected line has the background of `selection` up to the right border of
   its panel, and the state `ready` of an issue is drawn in `pass`.
-- **SUS-H2** (happy; SUS-2) Given `f` on an issue whose branch diverged from the trunk, when the merge refuses, then
-  the status line, on a row of its own above the help line, reads why in `fail`; given a merge that succeeds, it reads
+- **SUS-H2** (happy; SUS-2) Given a merge of SUA-2 refused because its branch diverged from the trunk, then the status
+  line reads why in `fail` on `surface` across the whole width; given a merge that succeeds, it reads
   `merged <stem> (<branch>) into <trunk>` in `pass`.
 - (SUS-1) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (SUS-4) Given no theme file, then every role has its default and no `theme:` line is shown.
@@ -71,6 +71,6 @@ status line that shows what an action did or why it refused.
 
 ## Non-goals
 
-- The layout and the defaults of the roles of SUS-5: they may change without a requirement.
+- The layout of the panels and the defaults of the roles of SUS-5: they may change without a requirement.
 - Reading the theme again while the screen runs, other color forms than `#rrggbb` (ANSI names, 256-color indexes),
   bold or italic per role, or a theme template for a given generator: the generator writes the file.

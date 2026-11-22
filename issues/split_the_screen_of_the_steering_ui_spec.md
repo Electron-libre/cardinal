@@ -46,6 +46,10 @@ No behaviour changes. Approach 1 of the issue (the whole drawing, not the status
    `crates/cardinal-ui`, SUC-5, SUC-6 and SUQ-5, `docs/architecture.md`, `.claude/update-docs-map.md` and the open
    issues re-cited; both specs `accepted`; verified by `cardinal run check-specs` (neither spec warned of) and
    `cardinal run project-check`; makes true SUS-1 to SUS-5 (traced, no new test).
+2. [x] Docs and fixes of the `high` review: `docs/usage.md` links the new spec; the test of SUS-H1 also proves `ready`
+   drawn in `pass`; SUS-H2 worded as what its test proves (a refused and a succeeded merge on the status line, the
+   key `f` being SUA-2's); the non-goal on the layout narrowed to the panels, SUS-2 and SUS-3 fixing the status line;
+   verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -68,5 +72,21 @@ No behaviour changes. Approach 1 of the issue (the whole drawing, not the status
 | docs | `docs/architecture.md`, `.claude/update-docs-map.md` |
 
 - red: none (no new test: the existing tests re-cite the moved ids, SUS-H1 and SUS-H2 cited by the tests of their flow)
+- not verified: nothing.
+- decisions needed: none.
+
+## Summary of deliverable 2
+- done: the docs of the whole issue and the three `high` findings (plan line 2).
+
+| check | result |
+|---|---|
+| tests, lint | pass (`cardinal run project-check`) |
+| specs | pass, neither steering UI spec warned of |
+| docs | `docs/usage.md` |
+
+- red: none (a test strengthened, not a new requirement: its new assertion fails with `left: Rgb(0, 0, 8) right:
+  Rgb(0, 0, 4)` when `ready` is expected in `text`)
+- Code review: 3 findings (`high` of the issue), all fixed: SUS-H1 traced to a test that did not check `ready`, SUS-H2
+  traced to a test that never pressed `f`, the layout non-goal contradicting SUS-2 and SUS-3.
 - not verified: nothing.
 - decisions needed: none.

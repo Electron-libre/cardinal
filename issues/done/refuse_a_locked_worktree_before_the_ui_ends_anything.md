@@ -90,7 +90,7 @@ Code review: 1 finding
 
 High review of the issue (3 findings):
 - nested worktree refused only by `worktree close` (pre-existing): filed as
-  `issues/refuse_a_worktree_holding_another_before_the_ui_ends_anything.md`;
+  `issues/done/refuse_a_worktree_holding_another_before_the_ui_ends_anything.md`;
 - unquoted path in the hint (nit): fixed;
 - a lock taken while the end waits for the session (nit): not fixed, the window is the 10 s of SUA-9 and
   `worktree close` still refuses it, keeping the worktree.

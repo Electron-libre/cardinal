@@ -49,3 +49,17 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [ask_before_the_irreversible_git_actions](issues/ask_before_the_irreversible_git_actions.md)
   - [ask_the_user_through_the_question_tool](issues/done/ask_the_user_through_the_question_tool.md)
+
+## A steering UI to read at a glance
+
+- Goal: make the main screen of `cardinal-ui` say only what steering needs and say it plainly: no measures on it,
+  the milestones told from their issues, the messages and errors in a place of their own, and the keys offered for
+  what the selection allows.
+- Why: the feedback of the user on 2026-11-22: the measures take room the queue needs, a milestone reads like an
+  issue, the messages are lost in the command bar, and the help line offers actions that would only be refused.
+- State: in issues
+- Issues:
+  - [drop_the_measures_from_the_main_screen](issues/drop_the_measures_from_the_main_screen.md)
+  - [set_the_milestones_apart_from_the_issues_in_the_queue](issues/set_the_milestones_apart_from_the_issues_in_the_queue.md)
+  - [show_the_messages_of_the_ui_out_of_the_help_line](issues/show_the_messages_of_the_ui_out_of_the_help_line.md)
+  - [offer_only_the_keys_that_apply_to_the_selection](issues/offer_only_the_keys_that_apply_to_the_selection.md)

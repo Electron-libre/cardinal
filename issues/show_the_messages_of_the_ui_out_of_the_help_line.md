@@ -33,3 +33,42 @@ A steering UI to read at a glance
 # Resources
 * `crates/cardinal-ui/src/screen.rs` (`help_line`, `render`), `crates/cardinal-ui/src/theme.rs`
 * `docs/usage.md` (the theme roles)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+The status message leaves the help line for a row of its own above it, on `surface`: an error in `fail`, a success in
+`pass`, a running task in `text`, each message of the line in its role (STU-34). It already survives the reads of STU-2.
+Means: the roles `fail` and `pass` of the theme, no new role (STU-32 unchanged); the row only while a message is shown.
+
+## Plan
+1. [x] Status line of its own: a `Message` kind (error, done, other) kept by the screen loop from the task results, the refusals of the keys, the notifier and the theme lines, drawn above the help line on the panels and the charts; verified by render tests of the row, its roles and a read that leaves it; makes true STU-34 (STU-31 amended). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: cb54bbf94344d218bb56d973d9cb88f327f85d7d
+- Colors: the roles `fail` and `pass`, no new role (answer 1 a).
+- Row: drawn only while a message is shown (answer 2 a).
+
+## Deliverable 1
+done: the status line has a row of its own above the help line (panels and charts), only while it shows a message;
+an error in `fail`, a task done in `pass`, the others in `text`, each message of the line in its role (`status.rs`).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (STU-34 traced, `steering-ui.md` accepted) |
+| docs | `docs/usage.md`, `docs/architecture.md` |
+| code review | `low`: no findings |
+
+red: STU-34: `left: (Rgb(0, 0, 4), Rgb(0, 0, 2)) right: (Rgb(0, 0, 8), Rgb(0, 0, 2))` (a success drawn in `text`)
+
+Code review: no findings
+
+not verified: that a read of STU-2 leaves the message (the terminal loop needs a real terminal; no read touches the
+status, by reading of `screen::run`); the screen in a real terminal.
+
+decisions needed: none

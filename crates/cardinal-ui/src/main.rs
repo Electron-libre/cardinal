@@ -22,6 +22,7 @@ mod screen;
 mod source;
 mod spinner;
 mod start;
+mod status;
 mod theme;
 mod tree;
 

@@ -29,7 +29,8 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-26** (deterministic) withdrawn: moved to SUA-4.
 - **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) with a mark (its session and its time) no read before had found, titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
-- **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection` across the whole inner width of its panel, the help in `muted` and the status message in `text`, both on `surface`, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
+- **STU-31** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of STU-32: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection` across the whole inner width of its panel, the help in `muted` on `surface`, the status line as STU-34 says, and the words of the table under STU-33 in their role, and `--print` none of these colors nor any escape sequence.
+- **STU-34** (deterministic) The status line of the screen (what an action of SUA or SUE did or why it refused, a notification that failed (STU-30), an ignored theme line (STU-33)) must be drawn on a row of its own, above the help line and only while it holds a message, on `surface` across the whole width: an error (a task that failed or refused, a key that starts nothing, a failed notification, an ignored theme line) in `fail`, the result of a task that succeeded in `pass`, the others (a task that runs, `quitting once the task ends…`) in `text`, each message of the line in its own role when it holds several; it keeps its message until a task or a key that starts one replaces it, a read of STU-2 leaving it as it is.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
 
 ### Contract
@@ -56,14 +57,14 @@ run several commands nor open each worktree. It changes the project only through
   | Role | Default | Drawn on |
   |---|---|---|
   | `background` | the terminal's | the screen |
-  | `surface` | the terminal's | the help and status line (the status message in `text`) |
+  | `surface` | the terminal's | the help line and the status line of STU-34 |
   | `border` | the terminal's | the borders of the panels |
-  | `text` | the terminal's | the lines of the panels |
+  | `text` | the terminal's | the lines of the panels, a message of the status line that is neither an error nor a success |
   | `muted` | ANSI dark gray | the help, `free`, `ended` and `session ended` |
   | `accent` | ANSI cyan | the titles of the panels, the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
   | `selection` | reversed video | the selected line (its background when set) |
-  | `pass` | ANSI green | the state `ready`, `merged` |
-  | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files |
+  | `pass` | ANSI green | the state `ready`, `merged`, the result of a task that succeeded on the status line |
+  | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files, an error of the status line |
   | `warn` | ANSI yellow | `on hold`, `(on hold)`, `waiting since <time>: <reason>`, the waiting mark of SUQ-4 |
   | `info` | ANSI blue | `awaits release`, `merge pending`, `measuring…` |
 
@@ -168,6 +169,13 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-33) Given a `CARDINAL_UI_THEME` naming a directory, then `theme: <path>: <error>` is shown and every role keeps
   its default.
 - (STU-33) Given three ignored lines, when the screen starts, then its status line names the first with `(+2 more)`.
+- (STU-34) Given `f` on an issue whose branch diverged from the trunk, when the merge refuses, then the status line,
+  on a row of its own above the help line, reads why in `fail`; given a merge that succeeds, it reads
+  `merged <stem> (<branch>) into <trunk>` in `pass`.
+- (STU-34) Given no message, then no status line is drawn and the panels keep its row.
+- (STU-34) Given a merge that succeeded, then a notification that fails, then the status line reads the merge in
+  `pass` followed by `notify: <cause>` in `fail`.
+- (STU-34) Given a refused merge, when a read of STU-2 ends, then the status line still reads the refusal.
 
 ## Non-goals
 

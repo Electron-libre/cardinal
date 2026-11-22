@@ -11,7 +11,6 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
@@ -22,6 +21,7 @@ use crate::keys::{
 use crate::notify::{self, Notifier, Wait};
 use crate::panels::{Mark, Panel};
 use crate::spinner;
+use crate::status::{Kind, Status};
 use crate::theme::{Role, Theme};
 
 /// How often the screen reads the project again (STU-2).
@@ -79,14 +79,14 @@ pub(crate) fn styled<'a>(
 }
 
 /// Renders the panels into `buf` over `area` in the roles of `theme` (STU-31): the worktrees and the measures at
-/// their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, the help
-/// line after `status`.
+/// their height, the queue in the rest, the line `selected` (a panel and a line) highlighted, then the row of
+/// `status` while it shows a message (STU-34) and the help line.
 fn render(
     area: Rect,
     buf: &mut Buffer,
     panels: &[Panel; 3],
     selected: Option<(usize, usize)>,
-    status: &str,
+    status: &Status,
     theme: &Theme,
 ) {
     buf.set_style(area, theme.screen());
@@ -95,6 +95,7 @@ fn render(
         Constraint::Min(height(queue).min(3)),
         Constraint::Max(height(worktrees)),
         Constraint::Max(height(measures)),
+        Constraint::Length(status.rows()),
         Constraint::Length(1),
     ])
     .split(area);
@@ -102,7 +103,8 @@ fn render(
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
     }
-    help_line(HELP, status, areas[3], buf, theme);
+    status.draw(areas[3], buf, theme);
+    help_line(HELP, areas[4], buf, theme);
 }
 
 /// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the
@@ -143,19 +145,10 @@ pub(crate) fn draw_panel(
     }
 }
 
-/// The status message in `text`, then the help `help` in `muted`, both on `surface`, over `area`: the status first, so
-/// a narrow terminal cuts the help, which never changes, rather than the message.
-pub(crate) fn help_line(help: &str, status: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
-    let mut spans = Vec::new();
-    if !status.is_empty() {
-        spans.push(Span::styled(
-            format!("{status}  "),
-            Style::new().fg(theme.color(Role::Text)),
-        ));
-    }
-    spans.push(Span::raw(help));
+/// The help `help` in `muted` on `surface` over `area` (STU-31).
+pub(crate) fn help_line(help: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
     buf.set_style(area, theme.status());
-    Line::from(spans).render(area, buf);
+    Line::raw(help).render(area, buf);
 }
 
 /// The screen of `panels` as text, whole, as wide as `PRINT_WIDTH` or its longest line in display columns, each
@@ -173,7 +166,14 @@ pub fn text(panels: &[Panel; 3]) -> String {
     let area = Rect::new(0, 0, width, rows);
     let mut buf = Buffer::empty(area);
     // the colors never reach the text (STU-31)
-    render(area, &mut buf, panels, None, "", &Theme::default());
+    render(
+        area,
+        &mut buf,
+        panels,
+        None,
+        &Status::default(),
+        &Theme::default(),
+    );
     let mut out = String::new();
     for y in 0..rows {
         let mut row = String::new();
@@ -258,7 +258,7 @@ fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
     (selected, charts): (Selection, bool),
-    status: &str,
+    status: &Status,
     theme: &Theme,
 ) {
     let area = f.area();
@@ -318,7 +318,7 @@ pub fn run(
             issue: 0,
             worktree: 0,
         };
-        let mut status = status;
+        let mut status = Status::new(status, Kind::Error);
         let mut notifier = Notifier::new(notify::program());
         let mut busy = false;
         let mut quitting = false;
@@ -333,11 +333,7 @@ pub fn run(
             }
             if let Some(line) = notifier.failure() {
                 // beside the line of a task, which it must not hide
-                status = if status.is_empty() {
-                    line
-                } else {
-                    format!("{status}  {line}")
-                };
+                status.push(line, Kind::Error);
             }
             if let Ok(result) = task_result.try_recv() {
                 match ended(result, quitting) {
@@ -361,7 +357,7 @@ pub fn run(
                         return Ok(None);
                     }
                     if later && !quitting {
-                        status = "quitting once the task ends…".to_string();
+                        status = Status::new("quitting once the task ends…", Kind::Other);
                     }
                     quitting = later;
                     match key {
@@ -374,11 +370,11 @@ pub fn run(
                         k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
                             Ok(Some((job, shown, stem))) if !busy => {
                                 busy = true;
-                                status = shown;
+                                status = Status::new(shown, Kind::Other);
                                 let send = done.clone();
                                 std::thread::spawn(move || send.send(run_task(job, &stem)));
                             }
-                            Err(why) if !busy => status = why,
+                            Err(why) if !busy => status = Status::new(why, Kind::Error),
                             _ => {}
                         },
                         a => {
@@ -402,7 +398,7 @@ mod tests {
     use crate::keys::tests::view;
     use ratatui::style::{Color, Modifier};
 
-    // spec: SUA-1 (internal: the highlight of a screen that needs a real terminal)
+    // spec: SUA-1, STU-34 (internal: the highlight of a screen that needs a real terminal)
     #[test]
     fn the_selected_issue_is_highlighted_and_the_status_shown() {
         let panel = |title, lines: &[&str]| Panel {
@@ -423,7 +419,7 @@ mod tests {
             &mut buf,
             &panels,
             Some((0, 1)),
-            "started a in /w",
+            &Status::new("started a in /w", Kind::Done),
             &Theme::default(),
         );
         let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
@@ -431,10 +427,46 @@ mod tests {
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
-        assert!((0..15).any(|y| row(y).starts_with("started a in /w  q quit")));
+        let help = (0..15).find(|y| row(*y).starts_with("q quit")).unwrap();
+        assert!(
+            row(help - 1).starts_with("started a in /w "),
+            "on its own row above the help"
+        );
     }
 
-    // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
+    // spec: STU-34 (internal: the layout of a screen that needs a real terminal)
+    #[test]
+    fn with_no_message_the_panels_keep_the_row_of_the_status_line() {
+        let panel = |title, lines: &[&str]| Panel {
+            title,
+            lines: lines.iter().map(|l| (*l).to_string()).collect(),
+            marks: Vec::new(),
+            failed: false,
+        };
+        let panels = [
+            panel("Queue", &["> b", "  a"]),
+            panel("Worktrees", &["w"]),
+            panel("Measures", &["x"]),
+        ];
+        let area = Rect::new(0, 0, 120, 15);
+        let mut buf = Buffer::empty(area);
+        render(
+            area,
+            &mut buf,
+            &panels,
+            None,
+            &Status::default(),
+            &Theme::default(),
+        );
+        let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
+        assert!(row(14).starts_with("q quit"));
+        assert!(
+            row(13).starts_with('└'),
+            "the measures panel right above the help"
+        );
+    }
+
+    // spec: STU-31, STU-34 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_frame_is_drawn_in_the_roles_of_the_theme() {
         let panel = |title, lines: &[&str]| Panel {
@@ -460,7 +492,7 @@ mod tests {
             &mut buf,
             &panels,
             Some((0, 1)),
-            "theme: line 9 ignored",
+            &Status::new("theme: line 9 ignored", Kind::Error),
             &theme,
         );
         let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
@@ -481,20 +513,17 @@ mod tests {
         assert_eq!(buf[(border - 1, a)].bg, rgb(7), "up to the right border");
         assert_eq!(buf[(border, a)].bg, rgb(1), "the border keeps the screen");
         assert!(!buf[(3, a)].modifier.contains(Modifier::REVERSED));
+        let help = find("q quit");
+        assert_eq!((buf[(0, help)].fg, buf[(0, help)].bg), (rgb(5), rgb(2)));
+        assert_eq!(buf[(139, help)].bg, rgb(2), "the whole line");
         let status = find("theme: line 9 ignored");
-        let line = row(status);
-        let help = u16::try_from(line[..line.find("q quit").unwrap()].chars().count()).unwrap();
+        assert_eq!(status + 1, help, "the status line above the help");
         assert_eq!(
-            (buf[(help, status)].fg, buf[(help, status)].bg),
-            (rgb(5), rgb(2))
+            (buf[(0, status)].fg, buf[(0, status)].bg),
+            (Color::Red, rgb(2)),
+            "an error in fail on surface"
         );
-        assert_eq!(buf[(139, status)].bg, rgb(2), "the whole line");
-        let message = u16::try_from(row(status).find("theme: line").unwrap()).unwrap();
-        assert_eq!(
-            (buf[(message, status)].fg, buf[(message, status)].bg),
-            (rgb(4), rgb(2)),
-            "the status message in text"
-        );
+        assert_eq!(buf[(139, status)].bg, rgb(2), "the whole width");
     }
 
     // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
@@ -523,7 +552,14 @@ mod tests {
         let (theme, _) = crate::theme::parse("pass = \"#00aa00\"\nselection = \"#333333\"");
         let area = Rect::new(0, 0, 140, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((0, 1)), "", &theme);
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((0, 1)),
+            &Status::default(),
+            &theme,
+        );
         let row = |y: u16| (0..140).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let a = (0..15).find(|y| row(*y).contains("  a  ready")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("  b  ready")).unwrap();
@@ -574,7 +610,7 @@ mod tests {
             &mut buf,
             &panels,
             Some((0, 29)),
-            "",
+            &Status::default(),
             &Theme::default(),
         );
         let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();
@@ -616,7 +652,14 @@ mod tests {
         ];
         let area = Rect::new(0, 0, 80, 15);
         let mut buf = Buffer::empty(area);
-        render(area, &mut buf, &panels, Some((1, 1)), "", &Theme::default());
+        render(
+            area,
+            &mut buf,
+            &panels,
+            Some((1, 1)),
+            &Status::default(),
+            &Theme::default(),
+        );
         let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
         let ws = (0..15).find(|y| row(*y).contains("/ws")).unwrap();
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
@@ -646,7 +689,7 @@ mod tests {
             &mut buf,
             &panels,
             Some((1, 17)),
-            "",
+            &Status::default(),
             &Theme::default(),
         );
         let row = |y: u16| (0..40).map(|x| buf[(x, y)].symbol()).collect::<String>();

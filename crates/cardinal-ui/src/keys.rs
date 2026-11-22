@@ -5,6 +5,7 @@
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::screen::View;
+use crate::status::Status;
 
 /// The panel the selection is in (SUE-1).
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -184,19 +185,18 @@ pub(crate) fn quits(action: &Action, busy: bool, quitting: bool) -> (bool, bool)
 /// What the end of a task gives (SUA-6).
 #[derive(Debug, PartialEq)]
 pub(crate) enum Ended {
-    /// The line the status line shows.
-    Show(String),
+    /// The status line it shows: its line, in the role of its result (STU-34).
+    Show(Status),
     /// The user quit during the task: the screen quits, and this line is printed once the terminal is given back.
     Quit(String),
 }
 
 /// The end of a task with `result`, the user having quit during it or not (SUA-6).
 pub(crate) fn ended(result: Result<String, String>, quitting: bool) -> Ended {
-    let line = result.unwrap_or_else(|e| e);
     if quitting {
-        Ended::Quit(line)
+        Ended::Quit(result.unwrap_or_else(|e| e))
     } else {
-        Ended::Show(line)
+        Ended::Show(Status::of(result))
     }
 }
 
@@ -311,7 +311,7 @@ pub(crate) mod tests {
         assert_eq!(quits(&Action::Down, false, false), (false, false));
         assert_eq!(
             ended(Ok("merged".into()), false),
-            Ended::Show("merged".into())
+            Ended::Show(Status::of(Ok("merged".into())))
         );
         assert_eq!(
             ended(Err("merged; cardinal check: exit 1".into()), true),

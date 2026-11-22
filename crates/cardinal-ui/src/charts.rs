@@ -14,6 +14,7 @@ use ratatui::widgets::{Paragraph, Widget};
 use crate::measures::table;
 use crate::panels::{Mark, Panel};
 use crate::screen::{draw_panel, height, help_line, styled};
+use crate::status::Status;
 use crate::theme::Role;
 use crate::theme::Theme;
 
@@ -251,20 +252,21 @@ pub(crate) fn head(p: &Panel) -> Panel {
 }
 
 /// Renders the charts screen into `buf` over `area` (SUC-2): the lines of `head`, the charts by revision on the left
-/// and by milestone on the right, each at its height, then the help line and `status`, in the roles of `theme`.
+/// and by milestone on the right, each at its height, then the row of `status` while it shows a message (STU-34) and the help line, in the roles of `theme`.
 pub(crate) fn render_charts(
     area: Rect,
     buf: &mut Buffer,
     head: &Panel,
     charts: &[Chart; 4],
-    status: &str,
+    status: &Status,
     theme: &Theme,
 ) {
     buf.set_style(area, theme.screen());
     let rows = u16::try_from(head.lines.len()).unwrap_or(u16::MAX);
-    let [top, middle, bottom] = Layout::vertical([
+    let [top, middle, message, bottom] = Layout::vertical([
         Constraint::Length(rows),
         Constraint::Min(0),
+        Constraint::Length(status.rows()),
         Constraint::Length(1),
     ])
     .areas(area);
@@ -294,7 +296,8 @@ pub(crate) fn render_charts(
             draw_panel(&panel(&shown, width), *area, buf, None, theme);
         }
     }
-    help_line(CHARTS_HELP, status, bottom, buf, theme);
+    status.draw(message, buf, theme);
+    help_line(CHARTS_HELP, bottom, buf, theme);
 }
 
 #[cfg(test)]
@@ -427,7 +430,7 @@ mod tests {
             &mut buf,
             &head,
             &charts(Some(dir.path())),
-            "",
+            &Status::default(),
             &Theme::default(),
         );
         let screen = rows_of(&buf).join("\n");
@@ -503,7 +506,7 @@ mod tests {
         let area = Rect::new(0, 0, 140, 30);
         let mut buf = Buffer::empty(area);
         let charts = charts(Some(dir.path()));
-        render_charts(area, &mut buf, &head, &charts, "", theme);
+        render_charts(area, &mut buf, &head, &charts, &Status::default(), theme);
         buf
     }
 

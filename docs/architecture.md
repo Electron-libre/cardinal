@@ -275,6 +275,7 @@ flowchart LR
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the panels (Ratatui) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own, renders `--print` into a buffer |
+| `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on a row of its own above the help line |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |
 | `keys.rs` | the action of each key, the selection in the queue or the worktrees it moves, the task a key runs on what is selected |

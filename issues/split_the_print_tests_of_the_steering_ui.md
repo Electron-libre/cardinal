@@ -41,11 +41,11 @@ Out of scope: the fixtures of the other test files (`marks.rs`, `merge.rs`, `mea
 1. [x] Fixtures to `tests/common/mod.rs`: `git`, `Project` and its fakes, `Answer`, `ok`, `QUEUE`, `ROADMAP`,
    `git_path`, `project`, `ui`, `ui_in`, `ui_env`, `command`, `output`, `line` moved unchanged but `pub`, `print.rs`
    declares `mod common;`; verified by `cardinal run project-check` (same tests pass, same count); ~430 lines. (autonomous)
-2. [ ] Tests split by panel: `print.rs` keeps the queue and milestones (overview, release marks, errors of the tools,
+2. [x] Tests split by panel: `print.rs` keeps the queue and milestones (overview, release marks, errors of the tools,
    tree of the queue); `print_worktrees.rs` the worktrees panel (ended session, run at the root, lock, waiting
    sessions, tabs); `print_screen.rs` the screen (titled panels and width, long lines, closed output, theme); each
    under 800 lines; verified by `cardinal run project-check` (same test count), `cardinal run file-size --all` no
-   longer listing them, `cardinal run check-specs` (citations kept); ~650 lines.
+   longer listing them, `cardinal run check-specs` (citations kept); ~650 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -65,5 +65,26 @@ test file uses a part of them); `print.rs` at 622 lines.
 
 red: none (pure refactor, the existing tests stay green)
 Code review: no findings
+not verified: none
+decisions needed: none
+
+## Deliverable 2 summary
+done: the tests split by panel: `print.rs` (325 lines: milestones, queue, its tabs, errors of the tools, tree),
+`print_worktrees.rs` (145: ended session, worktrees error, run at the root, lock, waiting sessions),
+`print_screen.rs` (165: panels and width, long lines, closed output, theme); the tabs stayed with the queue, where
+they are shown. Two doc comments the cut left on the wrong side (`NINE_O_FIVE`, `open_issue`) went back to their item.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check`: pass, 16 + 7 + 7 = 30 tests as before |
+| lint | clippy `-D warnings`: clean |
+| specs | `check-specs`: pass, every `// spec:` citation kept |
+| file size | `file-size --all`: no file of `cardinal-ui` listed |
+| docs | n/a: no document names these test files |
+| code review | see below |
+
+red: none (pure refactor, the existing tests stay green)
+Code review: no findings (the `low` level skips test hunks, and the diff holds only tests: checked by hand instead,
+same 30 tests, same `// spec:` citations)
 not verified: none
 decisions needed: none

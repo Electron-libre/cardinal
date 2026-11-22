@@ -31,3 +31,34 @@ A steering UI to watch
 
 # Resources
 * `crates/cardinal-ui/src/end.rs`, `crates/cardinal/src/tools/worktree.rs` (`worktrees_inside`, `close`)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+`end_on` refuses, among its pre-checks, a target worktree whose directory exists and holds another entry of
+`git worktree list`, naming it, before any tab, pane or session is ended. A target whose directory is gone keeps
+today's path (`worktree close` skips that check too). Out of scope: splitting `specs/steering-ui-actions.md`.
+
+## Plan
+1. [x] Nested worktree refused in `end_on`: the check next to the lock check, its message that of `worktree close`
+   without its `; nothing was removed` tail; verified by a test of `tests/end.rs` (a linked worktree under an
+   ignored directory of `ws`, the session waiting in its tab, `--end foo` exits 1, no tab closed, no
+   `worktree close`, the session alive), docs of `end.rs`, `docs/usage.md`, `docs/architecture.md`; makes true SUA-8.
+   (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 233583618982152a6d7fd165c8c014dd07b68651
+- Spec over `spec_max_bytes` (25144 > 25000): keep the addition, file the split of `specs/steering-ui-actions.md` as a follow-up issue (1 a).
+
+## Deliverable 1 summary
+- done: `end_on` refuses a worktree whose directory holds another worktree, before any tab, pane or session ends;
+  the checks run in the worktree's directory moved to `refuse_in` (clippy `too_many_lines`).
+- checks: tests pass, lint clean, specs pass (SUA over `spec_max_bytes`: warning, follow-up
+  `issues/split_the_steering_ui_actions_spec.md`), docs updated (`end.rs`, `docs/usage.md`, `docs/architecture.md`).
+- red: SUA-8: `assertion left == right failed: left: Some(0) right: Some(1)` (the end succeeded).
+- Code review: no findings
+- not verified: none.
+- decisions needed: none.

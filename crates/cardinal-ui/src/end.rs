@@ -3,8 +3,8 @@
 //! the session's pane when the tab holds others), then `cardinal run worktree close <stem>` removes the worktree and
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
 //! `SessionEnd` hooks; a session with no pane of the UI gets that signal directly. Nothing is ended while the session
-//! is at work (no wait mark names it), nor from a dirty or locked worktree; one whose directory is gone skips
-//! the checks that run in it, its session read from the lock its git directory keeps.
+//! is at work (no wait mark names it), nor from a dirty or locked worktree, nor one holding another; one whose
+//! directory is gone skips the checks that run in it, its session read from the lock its git directory keeps.
 
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -114,6 +114,39 @@ fn started_after(pid: &str, lock: &Path) -> bool {
         .is_ok_and(|d| d > Duration::from_secs(2))
 }
 
+/// The checks that run in the directory of the worktree at `path`, which a directory removed by hand skips (SUA-8).
+fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result<(), String> {
+    if !git(path, &["status", "--porcelain"])?.trim().is_empty() {
+        return Err(format!(
+            "{} has uncommitted changes or untracked files",
+            path.display()
+        ));
+    }
+    // ignored by `git status` (`.claude/worktrees/`), refused by `worktree close` after the tab and the session
+    let nested = worktrees
+        .iter()
+        .map(|w| Path::new(&w.path))
+        .find(|w| *w != path && w.starts_with(path));
+    if let Some(inner) = nested {
+        return Err(format!(
+            "{} holds the worktree {}: remove that one first",
+            path.display(),
+            inner.display()
+        ));
+    }
+    let inside = std::fs::canonicalize(root)
+        .ok()
+        .zip(std::fs::canonicalize(path).ok())
+        .is_some_and(|(here, target)| here.starts_with(target));
+    if inside {
+        return Err(format!(
+            "cardinal-ui runs in {}: run it from another worktree",
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
 /// Ends what the merged issue `stem` of the project at `root` left, on the linked worktree of the branch `stem`
 /// (SUA-8).
 pub fn end(root: &Path, stem: &str) -> Result<String, String> {
@@ -158,22 +191,8 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     // a directory removed by hand: nothing to check in it, `worktree close` removes that worktree alone (SUA-8)
     // only a confirmed missing directory: one that cannot be reached keeps its checks
     let gone = !path.try_exists().unwrap_or(true);
-    if !gone && !git(path, &["status", "--porcelain"])?.trim().is_empty() {
-        return Err(format!(
-            "{} has uncommitted changes or untracked files",
-            path.display()
-        ));
-    }
-    let inside = !gone
-        && std::fs::canonicalize(root)
-            .ok()
-            .zip(std::fs::canonicalize(path).ok())
-            .is_some_and(|(here, target)| here.starts_with(target));
-    if inside {
-        return Err(format!(
-            "cardinal-ui runs in {}: run it from another worktree",
-            path.display()
-        ));
+    if !gone {
+        refuse_in(root, path, &worktrees)?;
     }
     let lock = source::worktree_git_path(root, path, "cardinal-session");
     let session = target

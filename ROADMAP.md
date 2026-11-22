@@ -35,6 +35,7 @@ The work done before this file existed is in `issues/done/`.
   - [close_only_the_gone_worktree_it_targets](issues/done/close_only_the_gone_worktree_it_targets.md)
   - [refuse_a_locked_worktree_before_the_ui_ends_anything](issues/done/refuse_a_locked_worktree_before_the_ui_ends_anything.md)
   - [refuse_a_worktree_holding_another_before_the_ui_ends_anything](issues/refuse_a_worktree_holding_another_before_the_ui_ends_anything.md)
+  - [split_the_steering_ui_actions_spec](issues/split_the_steering_ui_actions_spec.md)
   - [notify_the_desktop_when_a_session_waits](issues/done/notify_the_desktop_when_a_session_waits.md)
   - [split_the_print_tests_of_the_steering_ui](issues/done/split_the_print_tests_of_the_steering_ui.md)
 

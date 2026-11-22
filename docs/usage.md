@@ -363,7 +363,7 @@ zellij without `list-panes`) gets `SIGHUP`, unless its process started after the
 taken by another process, which gets no signal. Either
 way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 10 seconds for it. It ends nothing
 (exit 1, saying why) when no linked worktree is on that branch, the main worktree is detached, the trunk lacks
-`issues/done/<stem>.md`, the branch has commits the trunk lacks (made after its close was merged), the worktree is locked by `git worktree lock` (its directory gone or not), has uncommitted changes or untracked files, the UI runs inside it, or its
+`issues/done/<stem>.md`, the branch has commits the trunk lacks (made after its close was merged), the worktree is locked by `git worktree lock` (its directory gone or not), has uncommitted changes or untracked files, holds another worktree (one under an ignored directory, which `git status` does not list), the UI runs inside it, or its
 session is at work (it runs and does not wait for the user). A worktree whose directory was removed by hand skips
 the checks that run in it (its session is still read from the lock its git directory keeps), and `worktree close`
 removes it and its branch, leaving the other worktrees whose directory is gone. A step that fails stops the end and names what the steps

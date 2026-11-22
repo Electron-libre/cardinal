@@ -645,3 +645,37 @@ fn a_locked_worktree_is_refused_before_its_tab_or_session_ends() {
     std::fs::remove_dir_all(&p.ws).unwrap();
     refused(&p);
 }
+
+// spec: SUA-8
+#[test]
+fn a_worktree_holding_another_is_refused_before_its_tab_or_session_ends() {
+    let mut p = project(true);
+    let pid = p.session(true, false);
+    p.tab(false);
+    // ignored, as `.claude/worktrees/` is in a project: `git status` in `ws` lists nothing
+    std::fs::write(p.repo.join(".git/info/exclude"), ".claude/worktrees/\n").unwrap();
+    let inner = p.ws.join(".claude/worktrees/inner");
+    git(
+        &p.repo,
+        &[
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            "inner",
+            inner.to_str().unwrap(),
+        ],
+    );
+    let (code, _, err) = p.end(&p.repo, "foo", true);
+    assert_eq!(code, Some(1), "{err}");
+    assert!(
+        err.contains(&format!(
+            "{} holds the worktree {}: remove that one first",
+            p.ws.display(),
+            inner.display()
+        )),
+        "{err}"
+    );
+    assert_eq!(p.log(), "", "no tab closed, no worktree close");
+    assert!(alive(pid), "the session still runs");
+}

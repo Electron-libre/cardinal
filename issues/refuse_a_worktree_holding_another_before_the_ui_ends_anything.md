@@ -62,7 +62,6 @@ today's path (`worktree close` skips that check too). Out of scope: splitting `s
   `issues/split_the_steering_ui_actions_spec.md`), docs updated (`end.rs`, `docs/usage.md`, `docs/architecture.md`).
 - red: SUA-8: `assertion left == right failed: left: Some(0) right: Some(1)` (the end succeeded).
 - Code review: no findings
-- Code review: no findings
 - not verified: none.
 - decisions needed: none.
 

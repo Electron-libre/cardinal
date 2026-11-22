@@ -64,6 +64,7 @@ mod tests {
             title,
             lines: vec!["x".to_string()],
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let help = format!("q quit  {}  g charts", "k key".repeat(30));

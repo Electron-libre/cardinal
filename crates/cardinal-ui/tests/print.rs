@@ -153,7 +153,7 @@ fn a_release_of_an_unsupported_version_is_an_error_above_the_milestones() {
     assert_eq!(code, Some(1));
 }
 
-// spec: STU-6, STU-8
+// spec: STU-6, STU-8, SUQ-5
 #[test]
 fn a_tool_that_fails_shows_its_error_in_its_panel() {
     let p = project();
@@ -169,6 +169,15 @@ fn a_tool_that_fails_shows_its_error_in_its_panel() {
         "{out}"
     );
     assert!(out.contains("> b"), "the queue is still shown: {out}");
+    let lines: Vec<&str> = out.lines().collect();
+    let error = lines
+        .iter()
+        .position(|l| l.contains("roadmap: exit 3"))
+        .unwrap();
+    assert!(
+        lines[error + 1].contains("│■ "),
+        "no empty line between the error and the first heading (SUQ-5): {out}"
+    );
     assert_eq!(code, Some(1));
 }
 
@@ -275,7 +284,7 @@ fn open_issue(stem: &str, priority: &str, milestone: &str, depends_on: &str) -> 
     )
 }
 
-// spec: SUQ-H1, SUQ-1, SUQ-2, SUQ-3, STU-1
+// spec: SUQ-H1, SUQ-1, SUQ-2, SUQ-3, SUQ-5, STU-1
 #[test]
 fn the_user_reads_each_milestone_as_a_tree_of_its_issues() {
     let p = project();
@@ -297,12 +306,23 @@ fn the_user_reads_each_milestone_as_a_tree_of_its_issues() {
     let cardinal = p.cardinal(&ok(&queue), &ok(&roadmap));
     let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(code, Some(0), "{out}{err}");
-    let rows: Vec<&str> = ["One  ", "> a", "├─ b", "└─ c", "No milestone", "  d  "]
-        .iter()
-        .map(|needle| line(&out, needle))
-        .collect();
+    let rows: Vec<&str> = [
+        "│■ One  ",
+        "> a",
+        "├─ b",
+        "└─ c",
+        "│■ No milestone",
+        "  d  ",
+    ]
+    .iter()
+    .map(|needle| line(&out, needle))
+    .collect();
     let at = |row: &str| out.lines().position(|l| l == row).unwrap();
-    assert!(rows.windows(2).all(|w| at(w[0]) + 1 == at(w[1])), "{out}");
+    // an empty line above every heading but the first (SUQ-5)
+    let gaps: Vec<usize> = rows.windows(2).map(|w| at(w[1]) - at(w[0])).collect();
+    assert_eq!(gaps, [1, 1, 1, 2, 1], "{out}");
+    let empty = out.lines().nth(at(rows[4]) - 1).unwrap();
+    assert!(empty.trim_matches([' ', '│']).is_empty(), "{out}");
     assert!(rows[0].contains("in issues  3/3 open"), "{out}");
     assert!(
         rows[3]

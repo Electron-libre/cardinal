@@ -66,6 +66,7 @@ mod tests {
                 },
                 mark(2, Role::Accent),
             ],
+            headings: Vec::new(),
             failed: false,
         }
     }

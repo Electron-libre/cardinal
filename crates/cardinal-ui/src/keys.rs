@@ -337,6 +337,7 @@ pub(crate) mod tests {
             title,
             lines: Vec::new(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         View {

@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
@@ -117,7 +118,15 @@ pub(crate) fn draw_panel(
         .lines
         .iter()
         .enumerate()
-        .map(|(i, l)| styled(l, p.marks.iter().filter(|m| m.line == i), theme))
+        .map(|(i, l)| {
+            let line = styled(l, p.marks.iter().filter(|m| m.line == i), theme);
+            if p.headings.contains(&i) {
+                // the words of a heading in their role keep its bold (SUQ-5)
+                line.style(theme.fg(Role::Accent).add_modifier(Modifier::BOLD))
+            } else {
+                line
+            }
+        })
         .collect();
     let block = Block::bordered()
         .border_style(theme.fg(Role::Border))
@@ -370,6 +379,7 @@ mod tests {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -406,6 +416,7 @@ mod tests {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -438,6 +449,7 @@ mod tests {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -491,13 +503,18 @@ mod tests {
         assert_eq!(buf[(139, status)].bg, rgb(2), "the whole width");
     }
 
-    // spec: STU-31 (internal: the colors of a screen that needs a real terminal)
+    // spec: STU-31, SUQ-5 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_marked_words_are_drawn_in_their_role_also_when_selected() {
         let panel = |title, lines: &[&str], marks| Panel {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks,
+            headings: if title == "Queue" {
+                vec![0]
+            } else {
+                Vec::new()
+            },
             failed: false,
         };
         let ready = |line| crate::panels::Mark {
@@ -505,11 +522,16 @@ mod tests {
             range: 5..10,
             role: Role::Pass,
         };
+        let on_hold = crate::panels::Mark {
+            line: 0,
+            range: 8..17,
+            role: Role::Warn,
+        };
         let panels = [
             panel(
                 "Queue",
-                &["  a  ready", "  b  ready"],
-                vec![ready(0), ready(1)],
+                &["■ One (on hold)", "  a  ready", "  b  ready"],
+                vec![on_hold, ready(1), ready(2)],
             ),
             panel("Worktrees", &["w"], Vec::new()),
             panel("Measures", &["x"], Vec::new()),
@@ -521,7 +543,7 @@ mod tests {
             area,
             &mut buf,
             (&panels, HELP),
-            Some((0, 1)),
+            Some((0, 2)),
             &Status::default(),
             &theme,
         );
@@ -534,6 +556,20 @@ mod tests {
         assert_eq!(
             (buf[(6, b)].fg, buf[(6, b)].bg),
             (green, Color::Rgb(0x33, 0x33, 0x33))
+        );
+        // the heading in accent and bold, its `(on hold)` in warn and bold
+        let one = (0..15).find(|y| row(*y).contains("■ One")).unwrap();
+        let (name, hold) = (&buf[(3, one)], &buf[(7, one)]);
+        assert_eq!(
+            (name.fg, hold.fg),
+            (Color::Cyan, Color::Yellow),
+            "{}",
+            row(one)
+        );
+        assert!(name.modifier.contains(Modifier::BOLD) && hold.modifier.contains(Modifier::BOLD));
+        assert!(
+            !buf[(3, a)].modifier.contains(Modifier::BOLD),
+            "an issue row is not bold"
         );
     }
 
@@ -560,6 +596,7 @@ mod tests {
             title,
             lines,
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let queue = (1..=40).map(|i| format!("  issue{i:02}")).collect();
@@ -608,6 +645,7 @@ mod tests {
             title,
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let panels = [
@@ -639,6 +677,7 @@ mod tests {
             title,
             lines,
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let worktrees = (1..=20).map(|i| format!("/ws{i:02}")).collect();

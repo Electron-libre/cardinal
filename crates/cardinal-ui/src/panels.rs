@@ -16,6 +16,8 @@ pub struct Panel {
     pub title: &'static str,
     pub lines: Vec<String>,
     pub marks: Vec<Mark>,
+    /// The lines that head a section of the queue, drawn in `accent` and bold (SUQ-5).
+    pub headings: Vec<usize>,
     /// Whether it shows the error of STU-6, instead of its content or above it.
     pub failed: bool,
 }
@@ -33,13 +35,15 @@ pub struct Mark {
 struct Styled {
     text: String,
     marks: Vec<(Range<usize>, Role)>,
+    /// Whether it heads a section of the queue (SUQ-5).
+    heading: bool,
 }
 
 impl Styled {
     fn plain(text: impl Into<String>) -> Self {
         Self {
             text: text.into(),
-            marks: Vec::new(),
+            ..Self::default()
         }
     }
 
@@ -91,9 +95,13 @@ impl Panel {
             title,
             lines: Vec::new(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed,
         };
         for (n, line) in lines.into_iter().enumerate() {
+            if line.heading {
+                panel.headings.push(n);
+            }
             panel.lines.push(line.text);
             panel
                 .marks
@@ -312,12 +320,19 @@ fn queue(
     }
     let mut rows = rows.into_iter();
     let mut issues = Vec::new();
-    for s in &sections {
-        lines.push(match &s.heading {
+    for (k, s) in sections.iter().enumerate() {
+        if k > 0 {
+            lines.push(Styled::default());
+        }
+        // the heading apart from the issue rows (SUQ-5)
+        let mut heading = Styled::plain("■ ");
+        heading.heading = true;
+        heading.append(match &s.heading {
             Heading::Listed(n) => milestone(&listed.unwrap_or_default()[*n]),
             Heading::Named(name) => Styled::plain(name.as_str()),
             Heading::None => Styled::plain("No milestone"),
         });
+        lines.push(heading);
         for r in &s.rows {
             let Some(cells) = rows.next() else { break };
             issues.push((q.issues[r.issue].stem.clone(), lines.len()));
@@ -518,6 +533,7 @@ mod tests {
                     .filter(|m| m.line == n)
                     .map(|m| (m.range.clone(), m.role))
                     .collect(),
+                heading: panel.headings.contains(&n),
             })
             .skip(1)
             .collect();
@@ -659,7 +675,7 @@ mod tests {
             release_error: None,
         };
         let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()), Some(&[]));
-        assert_eq!(panel.lines, ["New  done  0/1 open", "No open issue."]);
+        assert_eq!(panel.lines, ["■ New  done  0/1 open", "No open issue."]);
         assert_eq!(issues.len(), 0);
     }
 

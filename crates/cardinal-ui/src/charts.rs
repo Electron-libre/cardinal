@@ -228,6 +228,7 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
         title: chart.title,
         lines,
         marks,
+        headings: Vec::new(),
         failed: false,
     }
 }
@@ -247,6 +248,7 @@ pub(crate) fn head(p: &Panel) -> Panel {
         title: p.title,
         lines: p.lines[..n].to_vec(),
         marks: p.marks.iter().filter(|m| m.line < n).cloned().collect(),
+        headings: Vec::new(),
         failed: p.failed,
     }
 }
@@ -423,6 +425,7 @@ mod tests {
             title: "Measures",
             lines: vec!["measured 19:23".to_string()],
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         render_charts(
@@ -501,6 +504,7 @@ mod tests {
             title: "Measures",
             lines: head.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         let area = Rect::new(0, 0, 140, 30);
@@ -566,6 +570,7 @@ mod tests {
                 .map(String::from)
                 .to_vec(),
             marks: Vec::new(),
+            headings: Vec::new(),
             failed: false,
         };
         assert_eq!(head(&panel).lines, ["measured 09:05"]);

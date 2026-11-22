@@ -61,7 +61,7 @@ run several commands nor open each worktree. It changes the project only through
   | `border` | the terminal's | the borders of the panels |
   | `text` | the terminal's | the lines of the panels, a message of the status line that is neither an error nor a success |
   | `muted` | ANSI dark gray | the help, `free`, `ended` and `session ended` |
-  | `accent` | ANSI cyan | the titles of the panels, the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
+  | `accent` | ANSI cyan | the titles of the panels, the headings of the queue (SUQ-5), the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
   | `selection` | reversed video | the selected line (its background when set) |
   | `pass` | ANSI green | the state `ready`, `merged`, the result of a task that succeeded on the status line |
   | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files, an error of the status line |

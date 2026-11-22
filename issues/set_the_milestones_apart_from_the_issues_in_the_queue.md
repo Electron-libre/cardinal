@@ -30,3 +30,45 @@ A steering UI to read at a glance
 # Resources
 * `crates/cardinal-ui/src/tree.rs`, `crates/cardinal-ui/src/panels.rs`, `crates/cardinal-ui/src/screen.rs`,
   `crates/cardinal-ui/src/theme.rs`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
+
+## Understanding
+Make a milestone heading of the queue unmistakable: `■ ` before it and an empty line above every heading but the
+first (readable in `--print`), plus `accent` and bold on the screen (approach 3 of the issue, SUQ-5). No new theme
+role, no rule across the panel.
+
+## Plan
+1. [x] Headings apart: `queue` in `panels.rs` prefixes `■ `, inserts the empty lines and lists the heading lines
+   (a `headings` field of `Panel`), `screen.rs` draws them in `accent` and bold, the role table of STU-33 names
+   them; verified by `tests/print.rs` (SUQ-H1 updated, STU-6 edge) and a buffer test of `screen.rs` (accent and bold,
+   `(on hold)` in `warn`); makes true SUQ-5. ~120 lines; `panels.rs` (740) and `screen.rs` (757) stay under 800,
+   else the new test goes to a module of its own. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 3ee7f33f073f6e0c1ff7c69d7f2dce84848c60dd
+- Marker: `■ ` (1 a); no empty line between an STU-6 line and the first heading (2 a)
+
+## Summary of deliverable 1
+
+done: each queue heading reads `■ <line>`, an empty line above all but the first; on the screen in `accent` and bold
+(its marked words keep their role); `Panel` lists its `headings`.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | SUQ-5 traced, `steering-ui-queue.md` accepted |
+| docs | `docs/usage.md` (Queue), `docs/architecture.md` (`panels.rs`) |
+| code review | `low`: no findings |
+
+red: SUQ-5: `no line with │■ One   in` (the headings read `One` with no mark) and no `■ ` after the line of
+`roadmap: exit 3`.
+
+not verified: the look in a real terminal (the bold and the colors are proven on a Ratatui buffer).
+decisions needed: none.
+
+Code review: no findings

@@ -91,7 +91,7 @@ notification)
 `high` review: 6 findings
 1. a failed notification lost when a task ends after it: fixed (`Status::keep`, kept until the screen quits).
 2. on a narrow terminal, a message after a long one is cut: not fixed, filed as
-   [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](../wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md).
+   [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md).
 3. a key that starts nothing silently (an empty queue) is not shown: STU-34 narrowed to a key that says why.
 4. `docs/usage.md` said any action replaces the message: reworded.
 5. the role `text` of `docs/usage.md` missed the status line: added.

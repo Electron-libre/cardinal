@@ -32,6 +32,7 @@ of cooperative agents, not bypasses (ADR 0005).
 - **WSL-7** (deterministic) `workspace-lock` must let the call through and change nothing when its input cannot be read, when its `cwd` is not in a git repository, or when `CLAUDE_PID` is unset, so that a broken hook never blocks a session.
 - **WSL-8** (deterministic) The managed entries of `.claude/settings.json` (`entries/.claude/settings.json` of the source, SYN-29) must hold `cardinal run workspace-lock check` as a `PreToolUse` hook on `Bash|Edit|Write|NotebookEdit`, `cardinal run workspace-lock start` as a `SessionStart` hook and `cardinal run workspace-lock release` as a `SessionEnd` hook.
 - **WSL-11** (deterministic) `check` and `start` must take, as WSL-1 says, the lock of a holder whose session Claude Code continued in the session of their input, whatever its work in progress: the transcript of the holder, the file `<holder session>.jsonl` in the directory of the `transcript_path` of the input, holds a record of `type` `continued-in` whose `continuedInSessionId` is the session of the input, the last such record, with no record of `type` `user` or `assistant` whose `timestamp` comes after its own; a holder session that is not a plain file name (a `/`, a `\\` or `..`) has no transcript.
+- **WSL-12** (deterministic) When `check` or `start` takes the lock as WSL-11 says, it must rewrite every claim in the state `working` (CLM-1) that names the session of the holder, by compare-and-swap with the value it read, to the session and the process of its input, keeping the worktree, the branch and the state of the claim, so the claim keeps the lock (WSL-10) and the continued session takes it back (CLM-2).
 
 ## Scenarios
 
@@ -52,6 +53,12 @@ of cooperative agents, not bypasses (ADR 0005).
 - (WSL-11) Given a lock naming session `a` whose process runs, uncommitted changes and a transcript of `a` whose
   record `continued-in` names `b`, when session `b` of another process starts or calls `Bash`, then the call passes
   and the lock names `b`; with no such record, or one naming another session, `b` is refused as WSL-3 says.
+- (WSL-12) Given a lock naming session `a` whose process runs, a claim `working` of `foo` naming `a` and a transcript of
+  `a` whose record `continued-in` names `b`, when session `b` of another process calls `Bash`, then the claim of `foo`
+  names `b` and its process, in the worktree and on the branch it named; `b` then claims `foo` again, and a session `c`
+  of a third process calling `Bash` once the worktree is clean is refused.
+- (WSL-12) Given a claim `working` naming another session than the holder, or a claim `merge pending` naming the
+  holder, when the lock is handed over as WSL-11 says, then that claim is unchanged.
 - (WSL-11) Given a lock naming session `a` and no transcript of `a` beside the transcript of `b`, or an input with no
   `transcript_path`, when `b` calls `Bash` while `a` has work in progress, then the call is refused.
 - (WSL-11) Given a transcript of `a` whose record `continued-in` names `b`, followed by an `assistant` record stamped

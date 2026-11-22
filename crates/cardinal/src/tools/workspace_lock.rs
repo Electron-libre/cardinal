@@ -3,7 +3,8 @@
 //! review marker. The lock is the file `cardinal-session` of the git directory of the worktree, holding the
 //! `session_id` of the hook event and the process of the session (`CLAUDE_PID`); a process that no longer runs frees
 //! it, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims, or a holder
-//! whose transcript says Claude Code continued it in the calling session (ADR 0032). Every change
+//! whose transcript says Claude Code continued it in the calling session (ADR 0032), which then also takes the
+//! `working` claims of that holder. Every change
 //! of the lock happens under a mutex directory beside it, created atomically.
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
@@ -103,18 +104,45 @@ struct Caller<'a> {
     transcript: Option<&'a Path>,
 }
 
-/// The work in progress that lets `holder` keep the lock of the worktree of `cwd` from the caller, when it is another
-/// session of another process that runs and was not continued in the caller (WSL-3, WSL-10, WSL-11).
-fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Option<String> {
+/// Whether a holder lets the caller take its lock.
+enum Verdict {
+    /// The caller takes it (WSL-1, WSL-2, WSL-10).
+    Free,
+    /// The caller takes it as the session the holder was continued in, with its claims (WSL-11, WSL-12).
+    Continued,
+    /// The holder keeps it for this work in progress (WSL-3).
+    Kept(String),
+}
+
+/// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
+/// that runs, has work in progress and was not continued in the caller (WSL-3, WSL-10, WSL-11).
+fn keeps(holder: &Holder, caller: &Caller, cwd: &Path) -> Verdict {
     let me = &caller.me;
     if holder.session == me.session || holder.pid == me.pid || !alive(&holder.pid) {
-        return None;
+        return Verdict::Free;
     }
-    let work = in_progress(holder, cwd)?;
+    let Some(work) = in_progress(holder, cwd) else {
+        return Verdict::Free;
+    };
     if continued_in(holder, caller) {
-        return None;
+        return Verdict::Continued;
     }
-    Some(work)
+    Verdict::Kept(work)
+}
+
+/// Rewrite the `working` claims of the session of `holder` to the caller's session and process, each by
+/// compare-and-swap with the value read (WSL-12).
+fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
+    for (stem, old, claim) in issue_claim::all(cwd) {
+        if claim.state == "working" && claim.session == holder.session {
+            let moved = issue_claim::Claim {
+                session: caller.me.session.clone(),
+                pid: caller.me.pid.clone(),
+                ..claim
+            };
+            issue_claim::write(cwd, &stem, &moved, Some(&old));
+        }
+    }
 }
 
 /// Whether the transcript of `holder`, beside the caller's, says Claude Code continued it in the caller's session
@@ -205,33 +233,39 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
         })
 }
 
-/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10): `Ok` when it holds it, else the holder that keeps it
-/// and its work in progress.
+/// Take the lock at `path` for `me` (WSL-1, WSL-2, WSL-4, WSL-10, WSL-11), with the claims of a holder continued in
+/// the caller (WSL-12): `Ok` when it holds it, else the holder that keeps it and its work in progress.
 fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)> {
     let before = read(path);
     if before.as_ref() == Some(&caller.me) {
         return Ok(());
     }
     // Read git before the mutex, so a slow status never holds it; a holder that changed meanwhile is judged under it.
-    let kept = before.as_ref().and_then(|h| keeps(h, caller, cwd));
-    let Some(_mutex) = Mutex::take(path) else {
+    let verdict = before.as_ref().map(|h| keeps(h, caller, cwd));
+    let mutex = Mutex::take(path);
+    if mutex.is_none() {
         return Ok(());
+    }
+    let holder = read(path);
+    let verdict = match (&holder, verdict) {
+        (None, _) => Verdict::Free,
+        (Some(h), Some(v)) if before.as_ref() == Some(h) => v,
+        (Some(h), _) => keeps(h, caller, cwd),
     };
-    if let Some(h) = read(path) {
-        let work = if before.as_ref() == Some(&h) {
-            kept
-        } else {
-            keeps(&h, caller, cwd)
-        };
-        if let Some(work) = work {
-            return Err((h, work));
+    match (holder, verdict) {
+        (Some(h), Verdict::Kept(work)) => Err((h, work)),
+        (holder, verdict) => {
+            let tmp = path.with_extension(format!("tmp{}", std::process::id()));
+            if std::fs::write(&tmp, caller.me.text()).is_ok() {
+                let _ = std::fs::rename(&tmp, path);
+            }
+            drop(mutex);
+            if let (Some(h), Verdict::Continued) = (holder, verdict) {
+                hand_claims(&h, caller, cwd);
+            }
+            Ok(())
         }
     }
-    let tmp = path.with_extension(format!("tmp{}", std::process::id()));
-    if std::fs::write(&tmp, caller.me.text()).is_ok() {
-        let _ = std::fs::rename(&tmp, path);
-    }
-    Ok(())
 }
 
 /// Delete the lock at `path` when `session` holds it (WSL-6).

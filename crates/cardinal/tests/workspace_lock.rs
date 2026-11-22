@@ -555,3 +555,93 @@ fn a_holder_session_that_is_no_file_name_has_no_transcript() {
     let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), &transcripts);
     assert_eq!(code, Some(2), "{err}");
 }
+
+/// The blob of the claim of `stem`, empty when there is none.
+fn claim_of(dir: &Path, stem: &str) -> String {
+    let oid = Command::new("git")
+        .args(["rev-parse", "--verify", "-q"])
+        .arg(format!("refs/cardinal/claims/{stem}"))
+        .current_dir(dir)
+        .output()
+        .unwrap();
+    let oid = String::from_utf8_lossy(&oid.stdout).trim().to_string();
+    if oid.is_empty() {
+        return String::new();
+    }
+    git(dir, &["cat-file", "blob", &oid])
+}
+
+/// Run `issue-claim issues/<stem>.md` in `dir` as `session` of process `pid`.
+fn issue_claim(dir: &Path, stem: &str, session: &str, pid: &str) -> Out {
+    let out = Command::new(env!("CARGO_BIN_EXE_cardinal"))
+        .args(["tool", "issue-claim", &format!("issues/{stem}.md")])
+        .current_dir(dir)
+        .env("CLAUDE_CODE_SESSION_ID", session)
+        .env("CLAUDE_PID", pid)
+        .output()
+        .unwrap();
+    (
+        out.status.code(),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+// spec: WSL-12
+#[test]
+fn a_session_continued_in_another_hands_it_its_working_claims() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let other = Other::new();
+    std::fs::create_dir_all(r.main.join("issues")).unwrap();
+    std::fs::write(r.main.join("issues/foo.md"), "# Foo\n").unwrap();
+    git(&r.main, &["add", "issues"]);
+    git(&r.main, &["commit", "-q", "-m", "foo"]);
+    hook("check", &r.main, "a", &other.pid());
+    claim(&r.main, "foo", "a", &other.pid());
+    transcript(transcripts.path(), "a", Some("b"));
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(
+        claim_of(&r.main, "foo"),
+        format!(
+            "session b\npid {}\nworktree {}\nbranch trunk\nstate working",
+            live(),
+            r.main.display()
+        )
+    );
+    let (code, out, err) = issue_claim(&r.main, "foo", "b", &live());
+    assert_eq!(code, Some(0), "the fork claims its issue again: {out}{err}");
+    let third = Other::new();
+    let (code, _, err) = hook("check", &r.main, "c", &third.pid());
+    assert_eq!(code, Some(2), "the moved claim keeps the lock: {err}");
+    assert!(err.contains("the issue foo"), "{err}");
+}
+
+// spec: WSL-12
+#[test]
+fn a_handover_leaves_the_claims_of_other_sessions_and_merge_pending_ones() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
+    claim(&r.main, "mine", "z", &other.pid());
+    claim(&r.main, "pending", "a", &other.pid());
+    let pending = claim_of(&r.main, "pending").replace("state working", "state merge pending");
+    let blob = r.main.join(".git").join("claim-blob");
+    std::fs::write(&blob, format!("{pending}\n")).unwrap();
+    let oid = git(&r.main, &["hash-object", "-w", blob.to_str().unwrap()]);
+    git(
+        &r.main,
+        &["update-ref", "refs/cardinal/claims/pending", &oid],
+    );
+    let before = (claim_of(&r.main, "mine"), claim_of(&r.main, "pending"));
+    transcript(transcripts.path(), "a", Some("b"));
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(
+        (claim_of(&r.main, "mine"), claim_of(&r.main, "pending")),
+        before
+    );
+}

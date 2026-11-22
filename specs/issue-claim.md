@@ -59,5 +59,6 @@ from every worktree of the clone, created by compare-and-swap, and it lives unti
 - Refusing to claim a blocked issue: `next-issue` never offers one, and `issue-workflow` warns about it.
 - Platforms where `kill -0` cannot test a process.
 - Releasing a claim whose process still runs, or handing it to a background fork of a live session (another session
-  of another process): the fork waits until that session ends, then takes the worktree and the claim back by WSL-1
-  and CLM-2.
+  of another process) whose transcript records no `continued-in` naming the fork: that fork waits until that session
+  ends, then takes the worktree and the claim back by WSL-1 and CLM-2. A fork Claude Code recorded gets the claim with
+  the worktree lock (WSL-12).

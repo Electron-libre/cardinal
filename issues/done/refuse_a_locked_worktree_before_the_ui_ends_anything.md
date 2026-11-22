@@ -94,7 +94,7 @@ High review of the issue (3 findings):
 - unquoted path in the hint (nit): fixed;
 - a lock taken while the end waits for the session (nit): not fixed, the window is the 10 s of SUA-9 and
   `worktree close` still refuses it, keeping the worktree.
-- The fork of the workspace lock: filed as `issues/keep_the_worktree_lock_across_a_fork_of_the_session.md`.
+- The fork of the workspace lock: filed as `issues/done/keep_the_worktree_lock_across_a_fork_of_the_session.md`.
 
 not verified: none
 decisions needed: none

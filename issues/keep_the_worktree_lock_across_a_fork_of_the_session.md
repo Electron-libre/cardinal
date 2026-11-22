@@ -20,6 +20,11 @@ tell a fork from a real second session.
   `cardinal-session` by hand, the next call took the lock with a new session id and a new pid.
 * `keeps` of `workspace_lock.rs` lets a call through only on the same session id or the same pid; a fork has
   neither.
+* 2026-11-22, reproduced by the user in the session working `split_the_steering_ui_actions_spec`: in Claude Code, the
+  left arrow shows a list of sessions, the right arrow comes back to the conversation; from then on the hooks
+  carried a new session id, a `SessionStart:fork` hook said the worktree was busy with the session's own former id,
+  and `check` refused every command while the process the lock named still ran. Ending that process (`/exit`) and
+  resuming the conversation freed it.
 * Not known: what the `SessionStart` event of a fork carries (a parent session id, `source: "fork"`), and why the
   old process kept running.
 

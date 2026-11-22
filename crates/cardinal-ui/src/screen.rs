@@ -80,7 +80,7 @@ pub(crate) fn styled<'a>(
 
 /// Renders `panels` one above the other into `buf` over `area` in the roles of `theme` (STU-31): the first in the
 /// rows the others leave, each other at its height, the line `selected` (a panel and a line) highlighted, then the
-/// row of `status` while it shows a message (STU-34) and the line `help`.
+/// rows of `status` while it shows a message (STU-34, STU-35) and the line `help`.
 pub(crate) fn render(
     area: Rect,
     buf: &mut Buffer,

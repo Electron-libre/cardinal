@@ -45,6 +45,9 @@ first when even that is too few. Out of scope: the help line, the panels.
    message that does not fit starts a new row, a long one wraps by column), capped at a third of the height, errors
    first when capped; `screen::render` and `charts::render_charts` pass their area; verified by unit tests of
    `status.rs` and a `render` test on an 80-column screen; makes true STU-35. (autonomous)
+2. [x] Fixes of the `high` review: a message cut between graphemes, its next row starting at the next word, the
+   surface of each wrapped row proven, STU-34 and the docs saying rows, the scenario numbers of the tests; verified by
+   the tests of `status.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -67,5 +70,24 @@ first when even that is too few. Out of scope: the help line, the panels.
 - red: STU-35: `assertion failed: row(help - 2).starts_with("ended worktree-a")`
 - Code review: no findings
 - not verified: the screen in a real narrow terminal (the tests draw into a buffer).
+- decisions needed: none.
+
+## Summary of deliverable 2
+- done: the six nits of the `high` review fixed (grapheme cut, blank at the cut trimmed, surface asserted on every
+  wrapped row, STU-34 says rows, the scenarios of STU-35 match their tests, `docs/architecture.md`, `docs/usage.md`
+  and the doc comments of `render` and `render_charts` say rows); follow-up issue
+  `split_the_screen_of_the_steering_ui_spec` opened for the size of the spec.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | pass |
+| specs | pass |
+| docs | `docs/architecture.md`, `docs/usage.md`, doc comments |
+| code review | `low` on the fixes |
+
+- red: none
+- Code review (`high`, whole issue): 6 findings, all fixed in this deliverable.
+- not verified: a ZWJ emoji at the cut (no test, the cut follows ratatui's graphemes).
 - decisions needed: none.
 

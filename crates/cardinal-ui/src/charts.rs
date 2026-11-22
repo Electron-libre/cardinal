@@ -254,7 +254,7 @@ pub(crate) fn head(p: &Panel) -> Panel {
 }
 
 /// Renders the charts screen into `buf` over `area` (SUC-2): the lines of `head`, the charts by revision on the left
-/// and by milestone on the right, each at its height, then the row of `status` while it shows a message (STU-34) and the help line, in the roles of `theme`.
+/// and by milestone on the right, each at its height, then the rows of `status` while it shows a message (STU-34, STU-35) and the help line, in the roles of `theme`.
 pub(crate) fn render_charts(
     area: Rect,
     buf: &mut Buffer,

@@ -167,20 +167,26 @@ fn wrap<'a>(
             if tail.is_empty() {
                 break;
             }
-            rest = tail;
+            // the row below starts at the next word, not at the blank of the cut
+            rest = tail.trim_start();
+            if rest.is_empty() {
+                break;
+            }
         }
     }
     rows
 }
 
-/// `text` cut after its first `width` columns, one character at least so a row always takes some.
+/// `text` cut after its first `width` columns between two graphemes, one grapheme at least so a row always takes
+/// some.
 fn split(text: &str, width: usize) -> (&str, &str) {
-    let mut used = 0;
-    for (at, c) in text.char_indices() {
-        used += columns(c.encode_utf8(&mut [0; 4]));
+    let (mut used, mut at) = (0, 0);
+    for grapheme in Span::raw(text).styled_graphemes(Style::new()) {
+        used += columns(grapheme.symbol);
         if used > width && at > 0 {
             return text.split_at(at);
         }
+        at += grapheme.symbol.len();
     }
     (text, "")
 }
@@ -265,7 +271,7 @@ mod tests {
     // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
     #[test]
     fn a_message_that_does_not_fit_starts_the_row_below() {
-        let (theme, _) = crate::theme::parse("fail = \"#000009\"\n");
+        let (theme, _) = crate::theme::parse("surface = \"#000002\"\nfail = \"#000009\"\n");
         let mut status = Status::default();
         for w in ["a", "b", "c"] {
             status.push(format!("ended worktree-{w} (branch-{w}x)"), Kind::Done);
@@ -283,11 +289,13 @@ mod tests {
         let mut buf = Buffer::empty(area);
         status.draw(area, &mut buf, &theme);
         assert_eq!(buf[(30, 1)].fg, Color::Rgb(0, 0, 9), "notify in fail");
-        assert_eq!(
-            buf[(79, 1)].bg,
-            buf[(79, 0)].bg,
-            "the whole width of each row"
-        );
+        for y in 0..2 {
+            assert_eq!(
+                buf[(79, y)].bg,
+                Color::Rgb(0, 0, 2),
+                "the whole width of each row"
+            );
+        }
     }
 
     // spec: STU-35 (internal: the status line of a screen that needs a real terminal)
@@ -296,7 +304,7 @@ mod tests {
         let status = Status::new("merged foo into main…done", Kind::Done);
         assert_eq!(
             wrapped(&status, 10, 30),
-            ["merged foo", " into main", "…done"]
+            ["merged foo", "into main…", "done"]
         );
         assert_eq!(wrapped(&status, 30, 30), ["merged foo into main…done"]);
     }
@@ -311,7 +319,7 @@ mod tests {
         status.push("foo diverged from main", Kind::Error);
         status.keep("notify: exit 1: no bus");
         let all = wrapped(&status, 24, 30);
-        assert_eq!(all.len(), 6, "five rows and more on a screen tall enough");
+        assert_eq!(all.len(), 6, "six rows on a screen tall enough");
         let rows = wrapped(&status, 24, 9);
         assert_eq!(
             rows,

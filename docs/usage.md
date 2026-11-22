@@ -307,7 +307,7 @@ issues, the fixes after per issue, the findings per review (with the reviews cou
 wait; on the panels, `m` does nothing. The numbers are trends with their sample, never a pass or a fail:
 `skill:evaluate-harness` reads the rest of the report.
 
-What an action did or why it refused, a failed notification and an ignored theme line go on the status line, a row
+What an action did or why it refused, a failed notification and an ignored theme line go on the status line, rows
 of its own above the help line, drawn only while it holds a message and kept until a task, or a key that starts one,
 replaces it (a failed notification until the screen quits): an error in `fail`, a task done in `pass`, a task that
 runs and `quitting once the task ends…` in `text`. On a narrow terminal it wraps: a message that does not fit

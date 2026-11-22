@@ -96,3 +96,35 @@ Code review: no findings
 not verified: none (8 s of the screen in a pty drew each of the ten frames 7 or 8 times, `⠿` never)
 
 decisions needed: none
+
+## Deliverable 3 (fixes of the `high` review)
+done: no mark while the worktrees cannot be read; SUQ-4 says so and names, as a non-goal, a project without the
+`session-wait` hooks.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui` pass (the role test of `panels.rs` extended) |
+| lint | clean (`project-check`) |
+| specs | SUQ-4 amended, `check-specs` clean |
+| docs | n/a (the docs name no unread case) |
+| code review | see below |
+
+red: SUQ-4: `the_mark_at_work_is_in_accent_and_the_waiting_one_in_warn` failed, `no worktrees read, no mark`, the
+two rows still marked `Accent`.
+
+`high` review, 5 findings:
+1. Claim and worktree paths compared raw (symlinks): not reproduced, `git worktree add` resolves the symlinks
+   itself (checked in a throwaway repository: the list and `--show-toplevel` both hold the real path); a symlink
+   test passed before any change, so dropped.
+2. Unread worktrees read as at work: fixed.
+3. A claim without `session_alive` counts alive (pre-existing, `source.rs`): kept, it is the documented default
+   (an unknown session is offered to resume, SUA-1), and `next-issue --json` always writes the field.
+4. `‖` of ambiguous East Asian width: not fixed, the tree of SUQ-3 (`├─`, `│`) is of the same width class, so an
+   ambiguous-wide terminal already shifts the columns.
+5. A project without the `session-wait` hooks reads every live claim at work: stated as a non-goal of SUQ.
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none

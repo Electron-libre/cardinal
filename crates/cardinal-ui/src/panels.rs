@@ -172,8 +172,9 @@ pub const AT_WORK: &str = "⠿";
 pub const WAITING: &str = "‖";
 
 /// The mark of SUQ-4 of the issue taken as `t`, with its role, among the worktrees `worktrees`: none unless a claim
-/// other than `merge pending` whose session has not ended; waiting when the worktree at its path waits (STU-13).
-fn activity(t: Option<&Taken>, worktrees: &[Worktree]) -> Option<(&'static str, Role)> {
+/// other than `merge pending` whose session has not ended, none either when the worktrees could not be read (STU-6);
+/// waiting when the worktree at its path waits (STU-13).
+fn activity(t: Option<&Taken>, worktrees: Option<&[Worktree]>) -> Option<(&'static str, Role)> {
     let Some(Taken::Claim {
         state,
         worktree,
@@ -186,7 +187,7 @@ fn activity(t: Option<&Taken>, worktrees: &[Worktree]) -> Option<(&'static str, 
     if state == "merge pending" {
         return None;
     }
-    let waits = worktrees
+    let waits = worktrees?
         .iter()
         .find(|w| &w.path == worktree)
         .and_then(|w| w.session.as_ref())
@@ -214,7 +215,7 @@ fn cells(
     q: &Queue,
     n: usize,
     (tree, also_after): (&str, &[String]),
-    worktrees: &[Worktree],
+    worktrees: Option<&[Worktree]>,
 ) -> [Styled; 4] {
     let i = &q.issues[n];
     let mut stem = Styled::default();
@@ -272,7 +273,7 @@ fn cells(
 fn queue(
     milestones: &Result<Milestones, String>,
     queue: &Result<Queue, String>,
-    worktrees: &[Worktree],
+    worktrees: Option<&[Worktree]>,
 ) -> (Panel, Vec<(String, usize)>) {
     let mut lines: Vec<Styled> = Vec::new();
     let mut errors = Vec::new();
@@ -414,7 +415,7 @@ fn measures(measure: &[String], running: bool, error: Option<&str>) -> Panel {
 
 /// The panels of `state`, in the order of the screen, with the stem of each issue row of the queue and its line.
 pub fn panels(state: &State) -> ([Panel; 3], Vec<(String, usize)>) {
-    let worktrees = state.worktrees.as_deref().unwrap_or_default();
+    let worktrees = state.worktrees.as_deref().ok();
     let (queue, issues) = queue(&state.milestones, &state.queue, worktrees);
     let panels = [
         queue,
@@ -506,7 +507,7 @@ mod tests {
             ],
             problems: vec!["issue without a priority: f".to_string()],
         };
-        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), &[]);
+        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), Some(&[]));
         // the words of each line drawn in a role; line 0 is the heading `No milestone`
         let rows: Vec<Styled> = (0..panel.lines.len())
             .map(|n| Styled {
@@ -552,7 +553,7 @@ mod tests {
                 alive: true,
             })
         };
-        let q = Queue {
+        let q = || Queue {
             next: None,
             issues: vec![
                 issue("a", "ready", claim("/a")),
@@ -573,7 +574,13 @@ mod tests {
                 session: Some(session(waiting)),
                 merged: false,
             });
-        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q), &worktrees);
+        let (unread, _) = queue(&Ok(Milestones::default()), &Ok(q()), None);
+        assert!(
+            unread.marks.iter().all(|m| m.role == Role::Pass),
+            "no worktrees read, no mark: {:?}",
+            unread.marks
+        );
+        let (panel, _) = queue(&Ok(Milestones::default()), &Ok(q()), Some(&worktrees));
         let first = |line: usize| {
             let m = panel.marks.iter().find(|m| m.line == line).unwrap();
             (&panel.lines[line][m.range.clone()], m.role)
@@ -649,7 +656,7 @@ mod tests {
             list: vec![m],
             release_error: None,
         };
-        let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()), &[]);
+        let (panel, issues) = queue(&Ok(ms), &Ok(Queue::default()), Some(&[]));
         assert_eq!(panel.lines, ["New  done  0/1 open", "No open issue."]);
         assert_eq!(issues.len(), 0);
     }
@@ -676,7 +683,7 @@ mod tests {
         let (failed, _) = queue(
             &Ok(Milestones::default()),
             &Err("next-issue: not JSON".to_string()),
-            &[],
+            Some(&[]),
         );
         assert_eq!(
             failed.marks,
@@ -691,7 +698,7 @@ mod tests {
             release_error: Some("release: exit 3".to_string()),
         };
         assert_eq!(
-            queue(&Ok(ms), &Err("next-issue: exit 3".to_string()), &[])
+            queue(&Ok(ms), &Err("next-issue: exit 3".to_string()), Some(&[]))
                 .0
                 .marks,
             [
@@ -712,12 +719,12 @@ mod tests {
             list: Vec::new(),
             release_error: None,
         };
-        assert!(queue(&Ok(ms), &Err("x".to_string()), &[]).0.failed);
+        assert!(queue(&Ok(ms), &Err("x".to_string()), Some(&[])).0.failed);
         assert_eq!(
             queue(
                 &Err("roadmap: exit 3".to_string()),
                 &Ok(Queue::default()),
-                &[]
+                Some(&[])
             )
             .0
             .marks,

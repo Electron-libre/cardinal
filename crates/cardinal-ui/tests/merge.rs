@@ -358,7 +358,7 @@ fn a_bare_repository_has_no_main_worktree_to_merge_in() {
     assert_eq!(p.log(), "");
 }
 
-// spec: SUA-H4, STU-23
+// spec: SUE-H1, STU-23
 #[test]
 fn a_linked_worktree_whose_close_is_on_the_trunk_reads_merged() {
     let p = project();

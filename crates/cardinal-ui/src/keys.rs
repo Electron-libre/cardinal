@@ -1,19 +1,19 @@
 //! The keys of the screen of `cardinal-ui` (STU-2): the action of each key, the selection in the queue or the
-//! worktrees it moves (STU-14, SUA-3), and the task a key runs on what is selected, one at a time (SUA-1 to SUA-6,
-//! SUA-13).
+//! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1 to SUA-6,
+//! SUE-1, SUE-2).
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 use crate::screen::View;
 
-/// The panel the selection is in (SUA-3).
+/// The panel the selection is in (SUE-1).
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) enum Focus {
     Queue,
     Worktrees,
 }
 
-/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUA-3).
+/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUE-1).
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Selection {
     pub(crate) focus: Focus,
@@ -35,7 +35,7 @@ impl Selection {
     }
 
     /// Keeps the selection on the same issue and the same worktree path from the read `before` to the read `after`
-    /// (STU-14, SUA-3).
+    /// (STU-14, SUE-1).
     pub(crate) fn reread(&mut self, before: &View, after: &View) {
         self.issue = reselect(&before.stems, self.issue, &after.stems);
         let paths = |v: &View| v.worktrees.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
@@ -95,9 +95,9 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
-/// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUA-3). The release covers every
+/// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUE-1). The release covers every
 /// milestone awaiting it, the end of the merged worktrees every one of them: they need no selection nor read (SUA-4,
-/// SUA-13).
+/// SUE-2).
 pub(crate) fn job(
     action: &Action,
     sel: Selection,
@@ -380,7 +380,7 @@ pub(crate) mod tests {
         assert!(HELP.contains("g charts"), "{HELP}");
     }
 
-    // spec: SUA-13 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUE-2 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn shift_e_ends_every_merged_worktree_whatever_the_selection() {
         let shift_e = KeyEvent::new(KeyCode::Char('E'), KeyModifiers::SHIFT);
@@ -428,7 +428,7 @@ pub(crate) mod tests {
         assert_eq!((sel.issue, sel.line(&after)), (1, Some((0, 3))));
     }
 
-    // spec: SUA-3 (internal: the keys and the selection of a screen that needs a real terminal)
+    // spec: SUE-1 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
     fn tab_moves_to_the_worktrees_where_e_ends_the_selected_one() {
         assert_eq!(action(&press(KeyCode::Tab)), Action::Switch);

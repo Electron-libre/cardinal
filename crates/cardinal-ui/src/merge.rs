@@ -71,7 +71,7 @@ pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     merge_branch(root, stem).map(|(_, merged)| merged)
 }
 
-/// The merge of `merge`, with the branch of the claim it merged when it succeeded (SUA-3).
+/// The merge of `merge`, with the branch of the claim it merged when it succeeded (SUE-1).
 pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String> {
     let branch = pending_branch(root, stem)?;
     // the full name: a tag of the same name would win over the branch

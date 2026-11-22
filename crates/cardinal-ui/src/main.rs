@@ -103,7 +103,7 @@ fn print() -> i32 {
     i32::from(panels.iter().any(|p| p.failed))
 }
 
-/// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUA-3), or
+/// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUE-1), or
 /// starts its release session (SUA-4).
 fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
     match task {
@@ -115,7 +115,7 @@ fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
     }
 }
 
-/// Ends every merged worktree of the project of the current directory: the status line of SUA-13, an error when it
+/// Ends every merged worktree of the project of the current directory: the status line of SUE-2, an error when it
 /// kept one.
 fn end_merged_status() -> Result<String, String> {
     let (lines, all_ended) = end::end_merged(&source::root(Path::new(".")))?;
@@ -123,7 +123,7 @@ fn end_merged_status() -> Result<String, String> {
 }
 
 /// Prints one line per merged worktree on stdout, exit code 0 when it ended them all, 1 when it kept one; or why it
-/// ends nothing on stderr, exit code 1 (SUA-14).
+/// ends nothing on stderr, exit code 1 (SUE-5).
 fn end_merged() -> i32 {
     match end::end_merged(&source::root(Path::new("."))) {
         Ok((lines, all_ended)) => {
@@ -144,7 +144,7 @@ fn merge_in_project(stem: &str) -> Result<String, String> {
     merge::merge(&source::root(Path::new(".")), stem)
 }
 
-/// Merges the issue `stem`, then ends what it left once its check passed (SUA-2, SUA-3).
+/// Merges the issue `stem`, then ends what it left once its check passed (SUA-2, SUE-1).
 fn merge_then_end(stem: &str) -> Result<String, String> {
     let root = source::root(Path::new("."));
     end::after_merge(merge::merge_branch(&root, stem), |branch| {

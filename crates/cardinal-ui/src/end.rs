@@ -1,4 +1,4 @@
-//! The end of what a merged issue left (SUA-3, SUA-8, SUA-9): once the trunk holds the close of the issue `<stem>`,
+//! The end of what a merged issue left (SUE-1, SUE-3, SUE-4): once the trunk holds the close of the issue `<stem>`,
 //! the session of the linked worktree on the branch `<stem>` ends, the zellij tab the UI opened for it closes (only
 //! the session's pane when the tab holds others), then `cardinal run worktree close <stem>` removes the worktree and
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
@@ -14,11 +14,11 @@ use serde_json::Value;
 use crate::merge::{git, main_worktree};
 use crate::source;
 
-/// How long the session may take to end once signalled (SUA-9).
+/// How long the session may take to end once signalled (SUE-4).
 const WAIT: Duration = Duration::from_secs(10);
 
 /// The pane of the session of `stem` in the panes `list-panes --json` printed: the tab id and the pane id, and
-/// whether it is the only terminal pane of its tab (SUA-9).
+/// whether it is the only terminal pane of its tab (SUE-4).
 fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
     let panes = panes.as_array()?;
     let terminal = |p: &&Value| p["is_plugin"] == false;
@@ -38,7 +38,7 @@ fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
     Some((tab, pane["id"].as_u64()?, alone))
 }
 
-/// Runs `zellij args` in `dir`, failing with the line of SUA-9.
+/// Runs `zellij args` in `dir`, failing with the line of SUE-4.
 fn zellij(dir: &Path, args: &[&str]) -> Result<String, String> {
     let name = format!("zellij {}", args.join(" "));
     let (out, err, code) = source::run(&name, &source::zellij(), args, dir)?;
@@ -68,7 +68,7 @@ fn close_pane(dir: &Path, stem: &str) -> Result<Option<String>, String> {
     }
 }
 
-/// Ends the session `id` of process `pid`, its pane closed or not, then waits for it to end (SUA-9).
+/// Ends the session `id` of process `pid`, its pane closed or not, then waits for it to end (SUE-4).
 fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), String> {
     if !signalled {
         let kill = "kill -HUP";
@@ -92,7 +92,7 @@ fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), S
 }
 
 /// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
-/// that took the number of the session (SUA-9).
+/// that took the number of the session (SUE-4).
 fn started_after(pid: &str, lock: &Path) -> bool {
     let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
         return false;
@@ -114,7 +114,7 @@ fn started_after(pid: &str, lock: &Path) -> bool {
         .is_ok_and(|d| d > Duration::from_secs(2))
 }
 
-/// The checks that run in the directory of the worktree at `path`, which a directory removed by hand skips (SUA-8).
+/// The checks that run in the directory of the worktree at `path`, which a directory removed by hand skips (SUE-3).
 fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result<(), String> {
     if !git(path, &["status", "--porcelain"])?.trim().is_empty() {
         return Err(format!(
@@ -148,13 +148,13 @@ fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result
 }
 
 /// Ends what the merged issue `stem` of the project at `root` left, on the linked worktree of the branch `stem`
-/// (SUA-8).
+/// (SUE-3).
 pub fn end(root: &Path, stem: &str) -> Result<String, String> {
     end_on(root, stem, stem)
 }
 
 /// Ends what the merged issue `stem` left on the linked worktree of the branch `branch`: `ended <stem>`, or why
-/// nothing was ended, or the step that failed after what the steps before it did (SUA-3, SUA-8, SUA-9).
+/// nothing was ended, or the step that failed after what the steps before it did (SUE-1, SUE-3, SUE-4).
 pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     let (main, trunk) = main_worktree(root)?;
     let worktrees = source::worktrees(root)?;
@@ -181,14 +181,14 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
             "{branch} has commits {trunk} lacks: merge them first"
         ));
     }
-    // `worktree close` refuses it too, but only once the tab and the session are ended (SUA-8)
+    // `worktree close` refuses it too, but only once the tab and the session are ended (SUE-3)
     if target.locked {
         return Err(format!(
             "{0} is locked: run `git worktree unlock '{0}'` first",
             path.display()
         ));
     }
-    // a directory removed by hand: nothing to check in it, `worktree close` removes that worktree alone (SUA-8)
+    // a directory removed by hand: nothing to check in it, `worktree close` removes that worktree alone (SUE-3)
     // only a confirmed missing directory: one that cannot be reached keeps its checks
     let gone = !path.try_exists().unwrap_or(true);
     if !gone {
@@ -235,8 +235,8 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
 
 /// Ends what each merged issue left, on every linked worktree whose branch has its close on the trunk, going on
 /// after one it refuses or fails on: one line per such worktree, `ended <branch>` or `kept <branch>: <why>`, and
-/// whether it kept none; why it ends nothing when the main worktree cannot be read or is not on a branch (SUA-13,
-/// SUA-14).
+/// whether it kept none; why it ends nothing when the main worktree cannot be read or is not on a branch (SUE-2,
+/// SUE-5).
 pub fn end_merged(root: &Path) -> Result<(Vec<String>, bool), String> {
     let (_, trunk) = main_worktree(root)?;
     trunk.ok_or("main worktree not on a branch")?;
@@ -257,7 +257,7 @@ pub fn end_merged(root: &Path) -> Result<(Vec<String>, bool), String> {
     Ok((lines, all_ended))
 }
 
-/// The status line of `E`: the lines of `end_merged` joined by ` | `, an error when it kept one (SUA-13).
+/// The status line of `E`: the lines of `end_merged` joined by ` | `, an error when it kept one (SUE-2).
 pub fn merged_status(lines: &[String], all_ended: bool) -> Result<String, String> {
     let line = merged_lines(lines).join(" | ");
     if all_ended {
@@ -267,7 +267,7 @@ pub fn merged_status(lines: &[String], all_ended: bool) -> Result<String, String
     }
 }
 
-/// The lines of `end_merged`, `no merged worktree` when it has none (SUA-14).
+/// The lines of `end_merged`, `no merged worktree` when it has none (SUE-5).
 pub fn merged_lines(lines: &[String]) -> Vec<String> {
     if lines.is_empty() {
         vec!["no merged worktree".to_string()]
@@ -276,7 +276,7 @@ pub fn merged_lines(lines: &[String]) -> Vec<String> {
     }
 }
 
-/// The result of the merge of SUA-2 followed, once its `cardinal check` passed, by the end of its issue (SUA-3).
+/// The result of the merge of SUA-2 followed, once its `cardinal check` passed, by the end of its issue (SUE-1).
 pub fn after_merge(
     merged: Result<(String, String), String>,
     end: impl FnOnce(&str) -> Result<String, String>,
@@ -291,7 +291,7 @@ pub fn after_merge(
 mod tests {
     use super::{after_merge, merged_status};
 
-    // spec: SUA-13, SUA-H6 (internal: the status line of the key `E`, drawn in the terminal loop)
+    // spec: SUE-2, SUE-H3 (internal: the status line of the key `E`, drawn in the terminal loop)
     #[test]
     fn the_status_line_of_e_parts_each_worktree_and_fails_when_one_is_kept() {
         let ended = |s: &str| s.to_string();
@@ -315,7 +315,7 @@ mod tests {
         );
     }
 
-    // spec: SUA-3 (internal: the key `f` runs in the terminal loop, which no binary test drives)
+    // spec: SUE-1 (internal: the key `f` runs in the terminal loop, which no binary test drives)
     #[test]
     fn a_merge_whose_check_passed_chains_the_end_on_its_branch_and_a_failed_one_does_not() {
         let merged = || {

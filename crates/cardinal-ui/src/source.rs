@@ -85,7 +85,7 @@ pub struct Worktree {
     pub session: Option<Session>,
     /// Whether it is a linked worktree whose branch has its close on the trunk (STU-23).
     pub merged: bool,
-    /// Locked by `git worktree lock`, which `worktree close` refuses (SUA-8).
+    /// Locked by `git worktree lock`, which `worktree close` refuses (SUE-3).
     pub locked: bool,
 }
 
@@ -339,7 +339,7 @@ pub fn git_path(path: &Path, name: &str) -> Option<PathBuf> {
 
 /// The path of the file `name` of the git directory of the worktree `path` of the repository of `repo`, also when
 /// the directory `path` is gone: then the one of the directories of `<common dir>/worktrees` whose `gitdir` names
-/// `<path>/.git` (SUA-8).
+/// `<path>/.git` (SUE-3).
 pub fn worktree_git_path(repo: &Path, path: &Path, name: &str) -> Option<PathBuf> {
     if path.try_exists().unwrap_or(true) {
         return git_path(path, name);
@@ -375,7 +375,7 @@ pub fn session(path: &Path) -> Option<Session> {
     session_of(path, path)
 }
 
-/// The session of SUA-8: that of `session` for the worktree `path` of the repository of `repo`, read also when the
+/// The session of SUE-3: that of `session` for the worktree `path` of the repository of `repo`, read also when the
 /// directory `path` is gone.
 fn session_of(repo: &Path, path: &Path) -> Option<Session> {
     let file = |name| std::fs::read_to_string(worktree_git_path(repo, path, name)?).ok();
@@ -398,7 +398,7 @@ fn session_of(repo: &Path, path: &Path) -> Option<Session> {
 }
 
 /// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (SUA-7, STU-23,
-/// SUA-8); the error line of STU-6 when git cannot run.
+/// SUE-3); the error line of STU-6 when git cannot run.
 pub fn holds_close(dir: &Path, trunk: &str, stem: &str) -> Result<bool, String> {
     let close = format!("refs/heads/{trunk}:issues/done/{stem}.md");
     let args = ["cat-file", "-e", &close];

@@ -34,7 +34,7 @@ The work done before this file existed is in `issues/done/`.
   - [end_a_merged_worktree_whose_directory_is_gone](issues/done/end_a_merged_worktree_whose_directory_is_gone.md)
   - [close_only_the_gone_worktree_it_targets](issues/close_only_the_gone_worktree_it_targets.md)
   - [notify_the_desktop_when_a_session_waits](issues/done/notify_the_desktop_when_a_session_waits.md)
-  - [split_the_print_tests_of_the_steering_ui](issues/split_the_print_tests_of_the_steering_ui.md)
+  - [split_the_print_tests_of_the_steering_ui](issues/done/split_the_print_tests_of_the_steering_ui.md)
 
 ## User control
 

@@ -92,7 +92,7 @@ decisions needed: none.
 Follow-ups:
 - `crates/cardinal-ui/tests/print.rs` is at 827 lines, over the file size limit: not split here, as the move of its
   fixtures would push the deliverable over its size limit; filed as
-  [split_the_print_tests_of_the_steering_ui](../split_the_print_tests_of_the_steering_ui.md).
+  [split_the_print_tests_of_the_steering_ui](split_the_print_tests_of_the_steering_ui.md).
 
 ## Deliverable 2
 

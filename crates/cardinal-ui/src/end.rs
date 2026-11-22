@@ -3,7 +3,8 @@
 //! the session's pane when the tab holds others), then `cardinal run worktree close <stem>` removes the worktree and
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
 //! `SessionEnd` hooks; a session with no pane of the UI gets that signal directly. Nothing is ended while the session
-//! is at work (no wait mark names it), nor from a dirty worktree.
+//! is at work (no wait mark names it), nor from a dirty worktree; one whose directory is gone skips
+//! the checks that run in it, its session (whose lock cannot be read there) counting as ended.
 
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -147,16 +148,19 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
             "{branch} has commits {trunk} lacks: merge them first"
         ));
     }
-    if !git(path, &["status", "--porcelain"])?.trim().is_empty() {
+    // a directory removed by hand: nothing to check in it, `worktree close` prunes it (SUA-8)
+    let gone = !path.exists();
+    if !gone && !git(path, &["status", "--porcelain"])?.trim().is_empty() {
         return Err(format!(
             "{} has uncommitted changes or untracked files",
             path.display()
         ));
     }
-    let inside = std::fs::canonicalize(root)
-        .ok()
-        .zip(std::fs::canonicalize(path).ok())
-        .is_some_and(|(here, target)| here.starts_with(target));
+    let inside = !gone
+        && std::fs::canonicalize(root)
+            .ok()
+            .zip(std::fs::canonicalize(path).ok())
+            .is_some_and(|(here, target)| here.starts_with(target));
     if inside {
         return Err(format!(
             "cardinal-ui runs in {}: run it from another worktree",

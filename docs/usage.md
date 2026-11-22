@@ -364,7 +364,8 @@ taken by another process, which gets no signal. Either
 way `claude` runs its `SessionEnd` hooks before it exits; the end waits at most 10 seconds for it. It ends nothing
 (exit 1, saying why) when no linked worktree is on that branch, the main worktree is detached, the trunk lacks
 `issues/done/<stem>.md`, the branch has commits the trunk lacks (made after its close was merged), the worktree has uncommitted changes or untracked files, the UI runs inside it, or its
-session is at work (it runs and does not wait for the user). A step that fails stops the end and names what the steps
+session is at work (it runs and does not wait for the user). A worktree whose directory was removed by hand skips
+the checks that run in it, and `worktree close` prunes it and removes its branch. A step that fails stops the end and names what the steps
 before it did.
 `E`, whatever is selected, or `cardinal-ui --end-merged`, runs that end on every linked worktree marked `merged`
 (the trunk holds the close of its branch), one after the other, going on after one it refuses: it says `ended

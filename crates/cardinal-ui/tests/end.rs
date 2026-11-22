@@ -581,3 +581,14 @@ fn a_branch_with_commits_the_trunk_lacks_keeps_its_session() {
         "kept foo: foo has commits trunk lacks: merge them first\n"
     );
 }
+
+// spec: SUA-8, SUA-14
+#[test]
+fn a_merged_worktree_whose_directory_is_gone_ends() {
+    let p = project(true);
+    std::fs::remove_dir_all(&p.ws).unwrap();
+    let (code, out, err) = p.end_merged(&p.repo);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(out, "ended foo\n");
+    assert_eq!(p.closes(), p.closed());
+}

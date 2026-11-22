@@ -93,7 +93,7 @@ decisions needed: none
 
 ## Deliverable 2 summary
 done: fixes of the high review of the issue (findings 1, 3, 4, 5, 6); finding 2 (the claim stays with the old
-session) filed as [hand_the_issue_claim_to_a_forked_session](../hand_the_issue_claim_to_a_forked_session.md), outside
+session) filed as [hand_the_issue_claim_to_a_forked_session](hand_the_issue_claim_to_a_forked_session.md), outside
 WSL; measured on the origin transcript: two `user` records follow `continued-in` in the file but are stamped before
 it, hence the timestamp rule.
 
@@ -114,4 +114,4 @@ not verified: a real fork against the new binary.
 
 decisions needed: none
 
-Done: both deliverables committed; left: [hand_the_issue_claim_to_a_forked_session](../hand_the_issue_claim_to_a_forked_session.md) (the claim, outside this issue).
+Done: both deliverables committed; left: [hand_the_issue_claim_to_a_forked_session](hand_the_issue_claim_to_a_forked_session.md) (the claim, outside this issue).

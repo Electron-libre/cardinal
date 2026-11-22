@@ -148,7 +148,7 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
             "{branch} has commits {trunk} lacks: merge them first"
         ));
     }
-    // a directory removed by hand: nothing to check in it, `worktree close` prunes it (SUA-8)
+    // a directory removed by hand: nothing to check in it, `worktree close` removes that worktree alone (SUA-8)
     // only a confirmed missing directory: one that cannot be reached keeps its checks
     let gone = !path.try_exists().unwrap_or(true);
     if !gone && !git(path, &["status", "--porcelain"])?.trim().is_empty() {

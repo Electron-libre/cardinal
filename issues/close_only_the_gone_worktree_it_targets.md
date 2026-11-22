@@ -42,6 +42,10 @@ anything is removed, the message naming `git worktree unlock`. Out of scope: the
    `git worktree list --porcelain` and refuses it, and replaces the bare prune by a remove of the target; verified by
    binary tests in `crates/cardinal/tests/worktree.rs` (two gone worktrees, the close of one; a locked one, gone and
    present); makes true PAR-20, PAR-21. Spec subsections `### Behaviour` / `### Contract` added to the spec (ids unchanged). (autonomous)
+2. [x] Fixes of the `high` review: a directory `close` cannot read is not gone (`try_exists`) and keeps its checks,
+   the remove of a gone one drops `--force`; the unlock command quotes the path; `docs/usage.md`, the comment of
+   `end.rs` and the Behaviour subsection of the spec reworded; verified by a binary test of an unreadable worktree;
+   makes true PAR-20. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -66,5 +70,31 @@ red: PAR-20, PAR-21: `FAIL - close of a gone worktree removes it and its branch,
 Code review: no findings
 
 not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 2
+done: fixes of the `high` review (6 findings): an unreadable worktree directory keeps the checks (`try_exists`), the
+remove of a gone one without `--force`, the unlock command quotes its path, docs, comment and spec layout reworded;
+the finding on `end.rs` (a locked worktree loses its session before the refusal, pre-existing) became
+[refuse_a_locked_worktree_before_the_ui_ends_anything](refuse_a_locked_worktree_before_the_ui_ends_anything.md).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: PAR-20: `panicked at crates/cardinal/tests/worktree.rs:25:5` (the close had removed the unreadable worktree, so
+its cleanup `git worktree remove` failed).
+
+Code review: 1 finding
+- `git worktree remove` without `--force` on a missing directory would fail: not fixed, refuted; git 2.56 removes it
+  (exit 0, run by hand), PAR-20's test passes, and git skips its clean check when the directory is missing (since 2.17,
+  older than the 2.38 the squash detection needs).
+
+not verified: the unreadable-directory test is a no-op when run as root (it reads the directory anyway)
 
 decisions needed: none

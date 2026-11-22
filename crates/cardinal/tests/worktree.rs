@@ -555,6 +555,42 @@ fn close_removes_only_the_gone_worktree_it_targets(c: &Ctx) -> Checks {
     )]
 }
 
+// spec: PAR-20
+fn close_keeps_a_worktree_it_cannot_reach(c: &Ctx) -> Checks {
+    use std::os::unix::fs::PermissionsExt;
+    let parent = c.root.join("sealed");
+    std::fs::create_dir(&parent).unwrap();
+    let dir = parent.join("wt");
+    git_ok(
+        &c.repo,
+        &[
+            "worktree",
+            "add",
+            "-q",
+            "-b",
+            "sealed",
+            dir.to_str().unwrap(),
+        ],
+    );
+    std::fs::write(dir.join("draft.txt"), "uncommitted").unwrap();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    // root reads it anyway: the directory is then reachable and the check says nothing
+    let unreachable = dir.try_exists().is_err();
+    let (closed, _) = c.run(&c.repo, &["close", dir.to_str().unwrap(), "--force"]);
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let kept = listed(&c.repo, &dir) && branch_exists(&c.repo, "sealed");
+    git_ok(
+        &c.repo,
+        &["worktree", "remove", "--force", dir.to_str().unwrap()],
+    );
+    git_ok(&c.repo, &["branch", "-D", "sealed"]);
+    std::fs::remove_dir_all(&parent).unwrap();
+    vec![(
+        "close refuses a worktree whose directory it cannot read, keeping it and its branch",
+        !unreachable || (!closed && kept),
+    )]
+}
+
 /// Whether `git worktree list` names `dir`.
 fn listed(repo: &Path, dir: &Path) -> bool {
     let out = Command::new("git")
@@ -631,6 +667,7 @@ fn worktree() {
         close_refuses_from_inside_the_worktree(&c),
         close_removes_only_the_gone_worktree_it_targets(&c),
         close_refuses_a_locked_worktree(&c),
+        close_keeps_a_worktree_it_cannot_reach(&c),
     ] {
         for (name, ok) in checks {
             println!("{} - {name}", if ok { "ok  " } else { "FAIL" });

@@ -304,7 +304,7 @@ fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
         }
         if target.locked {
             return Err(format!(
-                "{0} is locked: run `git worktree unlock {0}` first; nothing was removed",
+                "{0} is locked: run `git worktree unlock '{0}'` first; nothing was removed",
                 dir.display()
             ));
         }
@@ -324,12 +324,10 @@ fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
         return Err(format!("{what} is not merged into {trunk}: merge it first, or pass --force to drop it (it deletes work that is not on {trunk}; squash detection needs git 2.38); nothing was removed"));
     }
     match &target.dir {
-        // the target alone: a bare `prune` would also drop every other worktree whose directory is gone
-        Some(dir) if !dir.exists() => {
-            git(
-                &main,
-                &["worktree", "remove", "--force", &dir.to_string_lossy()],
-            )?;
+        // the target alone: a bare `prune` would also drop every other worktree whose directory is gone; a directory
+        // it cannot read (`Err`) is not gone and goes through the checks below, which fail on it
+        Some(dir) if matches!(dir.try_exists(), Ok(false)) => {
+            git(&main, &["worktree", "remove", &dir.to_string_lossy()])?;
         }
         Some(dir) => {
             if !git(dir, &["status", "--porcelain"])?.is_empty() {

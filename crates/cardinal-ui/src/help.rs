@@ -62,8 +62,8 @@ impl Keys {
     }
 }
 
-/// The help line of the panels of `v` with `sel` selected (SUA-15).
-pub(crate) fn line(v: &View, sel: Selection) -> String {
+/// The help line of the panels of `v` with `sel` selected, no key of a task while one runs (`busy`, SUA-6, SUA-15).
+pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
     let at = |flags: &[bool], i: usize| flags.get(i).copied().unwrap_or(false);
     let keys = &v.keys;
     let queue = sel.focus == Focus::Queue;
@@ -75,7 +75,12 @@ pub(crate) fn line(v: &View, sel: Selection) -> String {
         (keys.release, "v release"),
     ];
     std::iter::once(ALWAYS)
-        .chain(offered.iter().filter(|(on, _)| *on).map(|(_, key)| *key))
+        .chain(
+            offered
+                .iter()
+                .filter(|(on, _)| *on && !busy)
+                .map(|(_, key)| *key),
+        )
         .chain(std::iter::once(LAST))
         .collect::<Vec<_>>()
         .join("  ")
@@ -113,25 +118,25 @@ mod tests {
         };
         let always = "q quit  r refresh  ↑↓ select  tab panel";
         assert_eq!(
-            line(&v, on(Focus::Queue, 0, 0)),
+            line(&v, on(Focus::Queue, 0, 0), false),
             format!("{always}  s start  E end merged  g charts")
         );
         assert_eq!(
-            line(&v, on(Focus::Queue, 1, 0)),
+            line(&v, on(Focus::Queue, 1, 0), false),
             format!("{always}  f merge  E end merged  g charts")
         );
         assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 1)),
+            line(&v, on(Focus::Worktrees, 0, 1), false),
             format!("{always}  e end  E end merged  g charts")
         );
         assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 2)),
+            line(&v, on(Focus::Worktrees, 0, 2), false),
             format!("{always}  E end merged  g charts")
         );
         v.keys.release = true;
         v.keys.merged = vec![false; 3];
         assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 0)),
+            line(&v, on(Focus::Worktrees, 0, 0), false),
             format!("{always}  v release  g charts")
         );
     }
@@ -149,14 +154,30 @@ mod tests {
         };
         let mut sel = Selection::default();
         assert_eq!(
-            line(&v, sel),
+            line(&v, sel, false),
             "q quit  r refresh  ↑↓ select  tab panel  f merge  E end merged  g charts"
         );
         sel.apply(&Action::Switch, &v);
         sel.apply(&Action::Down, &v);
         assert_eq!(
-            line(&v, sel),
+            line(&v, sel, false),
             "q quit  r refresh  ↑↓ select  tab panel  e end  E end merged  g charts"
+        );
+    }
+
+    // spec: SUA-15 (internal: a task runs only in a screen that needs a real terminal)
+    #[test]
+    fn no_key_of_a_task_while_one_runs() {
+        let mut v = view(&["foo"], &[("/main", Some("trunk")), ("/bar", Some("bar"))]);
+        v.keys = Keys {
+            start: vec![true],
+            merge: vec![true],
+            merged: vec![false, true],
+            release: true,
+        };
+        assert_eq!(
+            line(&v, Selection::default(), true),
+            "q quit  r refresh  ↑↓ select  tab panel  g charts"
         );
     }
 
@@ -165,7 +186,7 @@ mod tests {
     fn an_empty_read_offers_only_the_keys_that_always_work() {
         let v = view(&[], &[]);
         let always = "q quit  r refresh  ↑↓ select  tab panel  g charts";
-        assert_eq!(line(&v, on(Focus::Queue, 3, 0)), always);
-        assert_eq!(line(&v, on(Focus::Worktrees, 0, 5)), always);
+        assert_eq!(line(&v, on(Focus::Queue, 3, 0), false), always);
+        assert_eq!(line(&v, on(Focus::Worktrees, 0, 5), false), always);
     }
 }

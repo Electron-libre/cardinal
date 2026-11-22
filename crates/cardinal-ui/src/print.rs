@@ -20,6 +20,7 @@ pub fn text(panels: &[Panel; 3], help: &str) -> String {
         .iter()
         .flat_map(|p| p.lines.iter())
         .map(|l| Line::raw(l.as_str()).width().saturating_add(2))
+        .chain(std::iter::once(Line::raw(help).width()))
         .max()
         .unwrap_or(0);
     let width = PRINT_WIDTH.max(u16::try_from(longest).unwrap_or(u16::MAX));
@@ -50,4 +51,26 @@ pub fn text(panels: &[Panel; 3], help: &str) -> String {
         out.push('\n');
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // spec: STU-4, SUA-15 (internal: no read gives a help line wider than 100 columns yet)
+    #[test]
+    fn a_help_line_wider_than_the_panels_is_printed_whole() {
+        let panel = |title| Panel {
+            title,
+            lines: vec!["x".to_string()],
+            marks: Vec::new(),
+            failed: false,
+        };
+        let help = format!("q quit  {}  g charts", "k key".repeat(30));
+        let out = text(
+            &[panel("Queue"), panel("Worktrees"), panel("Measures")],
+            &help,
+        );
+        assert_eq!(out.lines().last(), Some(help.as_str()), "{out}");
+    }
 }

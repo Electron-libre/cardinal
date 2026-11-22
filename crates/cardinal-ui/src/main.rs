@@ -104,7 +104,7 @@ fn print() -> i32 {
     };
     let view = read(false, error);
     // the help line of the selection the screen starts on (SUA-15)
-    let help = help::line(&view, keys::Selection::default());
+    let help = help::line(&view, keys::Selection::default(), false);
     let text = print::text(&view.panels, &help);
     // a reader that closed the output early (`| head`) is no failure
     let _ = std::io::Write::write_all(&mut std::io::stdout(), text.as_bytes());

@@ -209,12 +209,13 @@ fn received(
 }
 
 /// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
-/// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1), or `reading the
+/// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1) over the help line of
+/// the selection, no key of a task while one runs (`busy`, SUA-15), or `reading the
 /// project…` before the first read, in the roles of `theme` (STU-31).
 fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    (selected, shown): (Selection, Screen),
+    (selected, shown, busy): (Selection, Screen, bool),
     status: &Status,
     theme: &Theme,
 ) {
@@ -240,7 +241,7 @@ fn draw(
             Screen::Panels => render(
                 area,
                 buf,
-                (&v.panels[..2], &crate::help::line(v, selected)),
+                (&v.panels[..2], &crate::help::line(v, selected, busy)),
                 selected.line(v),
                 status,
                 theme,
@@ -308,7 +309,7 @@ pub fn run(
                 // the mark at work turns at each tick, a read or not (SUQ-4)
                 spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
-            terminal.draw(|f| draw(f, view.as_ref(), (selected, shown), &status, &theme))?;
+            terminal.draw(|f| draw(f, view.as_ref(), (selected, shown, busy), &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
                     let (screen, key) = screen_key(shown, action(&key));
@@ -686,7 +687,7 @@ mod tests {
                 draw(
                     f,
                     Some(&v),
-                    (selected, shown),
+                    (selected, shown, false),
                     &Status::default(),
                     &Theme::default(),
                 );

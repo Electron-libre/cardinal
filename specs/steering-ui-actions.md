@@ -21,7 +21,7 @@ branch, each refused with its reason when the project is not ready for it; the e
 - **SUA-3** (deterministic) withdrawn: moved to SUE-1.
 - **SUA-13** (deterministic) withdrawn: moved to SUE-2.
 - **SUA-4** (deterministic) In a zellij session, the key `v`, when a milestone awaits its release (STU-1) or a release prepared is not tagged yet (an interrupted release that `skill:release` resumes), must start in the main worktree, in a new zellij tab named `release`, an interactive `claude` whose first message is `/release`, so the version, its reread, its review and its tag stay with `skill:release`; when SUA-11 refuses, it starts nothing and says why on the status line.
-- **SUA-15** (deterministic) The help line under the panels must list `q quit  r refresh  ↑↓ select  tab panel`, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUA-2: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `E end merged` (SUE-2: a row of the worktrees panel reads `merged`, whatever the selection), `v release` (SUA-4: in a zellij session, a milestone awaits its release, whatever the selection), then `g charts`, two spaces between two keys; it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on, the first issue of the queue.
+- **SUA-15** (deterministic) The help line under the panels must list `q quit  r refresh  ↑↓ select  tab panel`, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUA-2: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `E end merged` (SUE-2: a row of the worktrees panel reads `merged`, whatever the selection), `v release` (SUA-4: in a zellij session, a milestone awaits its release, whatever the selection), then `g charts`, two spaces between two keys, none of `s`, `f`, `e`, `E` and `v` while a task runs (SUA-6); it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on, the first issue of the queue.
 
 ### Contract
 
@@ -111,6 +111,8 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
 - (SUA-6) Given a release start running, when the user presses `q`, then the screen quits once it has ended.
 - (SUA-15) Given a ready issue nothing takes selected outside a zellij session, then the help line offers no `s start`
   nor `v release`, and `s` still says `start needs zellij: run cardinal-ui in a zellij session`.
+- (SUA-15) Given a merge running on the selected issue `merge pending`, then the help line offers no `f merge` nor
+  any other key of a task until it ends.
 - (SUA-15) Given an empty queue and no worktree `merged`, then the help line reads `q quit  r refresh  ↑↓ select  tab
   panel  g charts`.
 - (SUA-15) Given the selected issue taken by a live `working` claim, then the help line offers no `s start` nor `f
@@ -126,3 +128,5 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   session's, the push the user's.
 - Offering `v release` for a release prepared but not tagged yet, which the read of the panels does not see (`roadmap
   --open` leaves its milestones out): the key still resumes it (SUA-4), the help line does not list it.
+- Foreseeing in the help line every refusal of SUA-5, SUA-11 or SUE-3 (a worktree gone, a dirty main worktree, the
+  skill `release` turned off): the line reads the conditions SUA-15 names, the key says the rest when pressed.

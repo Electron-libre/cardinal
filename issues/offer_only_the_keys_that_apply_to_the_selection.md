@@ -51,6 +51,9 @@ Out of scope: the help lines of the charts and of the measures, `v` for a releas
    worktree: merged; any worktree merged; a milestone awaiting its release; in zellij), a new module `help.rs` builds
    the line from the view and the selection, the screen draws it at each draw, `--print` with the selection it starts
    on; verified by unit tests of `help.rs` and the `--print` tests of `tests/print_help.rs`; makes true SUA-15. (autonomous)
+2. [x] The fixes of the `high` review: no task key while a task runs, the refusals the line does not foresee as a
+   non-goal, the help line counted in the width of `--print`; verified by unit tests of `help.rs` and `print.rs`;
+   makes true SUA-15. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -73,6 +76,24 @@ Out of scope: the help lines of the charts and of the measures, `v` for a releas
 
 - red: SUA-15: `left: "q quit  r refresh  ↑↓ select  tab panel  s start  f merge  e end  E end merged  v release  g charts"`
   `right: "q quit  r refresh  ↑↓ select  tab panel  g charts"`
-- Code review: no findings
+- Code review: no findings (low); `high` on the issue: 3 nits, fixed in deliverable 2
 - not verified: the help line in a live terminal (drawn by the same `render` the `--print` tests read)
+- decisions needed: none
+
+## Deliverable 2
+- done: the fixes of the `high` review (3 nits): no key of a task on the help line while one runs, the refusals
+  the line does not foresee stated as a non-goal of SUA, the help line counted in the width of `--print`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md`, `screen.rs` doc of `draw` |
+| code review | see below |
+
+- red: SUA-15: `this function takes 2 arguments but 3 arguments were supplied` (busy); STU-4, SUA-15: the help line
+  cut at 100 columns in `--print`
+- Code review: no findings
+- not verified: none
 - decisions needed: none

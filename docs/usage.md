@@ -362,7 +362,7 @@ ended, printing the result of a merge, an end or a release start. The next
 read drops the claim (CLM-6). The help line under the panels offers, beside `q`, `r`, the arrows, `Tab` and `g`, only
 the keys that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in
-zellij); a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
+zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
 issue of the queue.
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose

@@ -77,7 +77,7 @@ decisions needed: none
 done: fixes of the `high` review (6 findings): an unreadable worktree directory keeps the checks (`try_exists`), the
 remove of a gone one without `--force`, the unlock command quotes its path, docs, comment and spec layout reworded;
 the finding on `end.rs` (a locked worktree loses its session before the refusal, pre-existing) became
-[refuse_a_locked_worktree_before_the_ui_ends_anything](../refuse_a_locked_worktree_before_the_ui_ends_anything.md).
+[refuse_a_locked_worktree_before_the_ui_ends_anything](refuse_a_locked_worktree_before_the_ui_ends_anything.md).
 
 | check | result |
 |---|---|

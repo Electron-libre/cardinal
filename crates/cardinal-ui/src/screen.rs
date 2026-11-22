@@ -147,7 +147,7 @@ pub(crate) fn draw_panel(
 
 /// The help `help` in `muted` on `surface` over `area` (STU-31).
 pub(crate) fn help_line(help: &str, area: Rect, buf: &mut Buffer, theme: &Theme) {
-    buf.set_style(area, theme.status());
+    buf.set_style(area, theme.help());
     Line::raw(help).render(area, buf);
 }
 
@@ -332,13 +332,13 @@ pub fn run(
                 schedule.ended(Instant::now());
             }
             if let Some(line) = notifier.failure() {
-                // beside the line of a task, which it must not hide
-                status.push(line, Kind::Error);
+                // beside the line of a task, which it must not hide, nor the task that ends after it
+                status.keep(line);
             }
             if let Ok(result) = task_result.try_recv() {
                 match ended(result, quitting) {
                     Ended::Quit(line) => return Ok(Some(line)),
-                    Ended::Show(line) => status = line,
+                    Ended::Show(line) => status.set(line),
                 }
                 busy = false;
                 schedule.asked = true;
@@ -357,7 +357,7 @@ pub fn run(
                         return Ok(None);
                     }
                     if later && !quitting {
-                        status = Status::new("quitting once the task ends…", Kind::Other);
+                        status.set(Status::new("quitting once the task ends…", Kind::Other));
                     }
                     quitting = later;
                     match key {
@@ -370,11 +370,11 @@ pub fn run(
                         k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
                             Ok(Some((job, shown, stem))) if !busy => {
                                 busy = true;
-                                status = Status::new(shown, Kind::Other);
+                                status.set(Status::new(shown, Kind::Other));
                                 let send = done.clone();
                                 std::thread::spawn(move || send.send(run_task(job, &stem)));
                             }
-                            Err(why) if !busy => status = Status::new(why, Kind::Error),
+                            Err(why) if !busy => status.set(Status::new(why, Kind::Error)),
                             _ => {}
                         },
                         a => {

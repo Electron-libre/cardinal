@@ -27,9 +27,13 @@ impl Kind {
     }
 }
 
-/// The messages of the status line, in the order they came; empty when it shows none.
+/// The messages of the status line, in the order they came, then the failed notification it keeps (STU-30); empty
+/// when it shows none.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Status(Vec<(String, Kind)>);
+pub struct Status {
+    messages: Vec<(String, Kind)>,
+    kept: Option<String>,
+}
 
 impl Status {
     /// The status line of the single message `text` of `kind`, empty when `text` is.
@@ -47,16 +51,30 @@ impl Status {
         }
     }
 
-    /// Adds the message `text` of `kind` after those it shows, beside them rather than over them (STU-30).
+    /// Adds the message `text` of `kind` after those it shows.
     pub fn push(&mut self, text: impl Into<String>, kind: Kind) {
         let text = text.into();
         if !text.is_empty() {
-            self.0.push((text, kind));
+            self.messages.push((text, kind));
         }
     }
 
+    /// Keeps the error `text` after the messages, those set later included: a notification fails once only, so a
+    /// task that ends after it must not hide it (STU-30).
+    pub fn keep(&mut self, text: impl Into<String>) {
+        let text = text.into();
+        if !text.is_empty() {
+            self.kept = Some(text);
+        }
+    }
+
+    /// Replaces the messages by those of `next`, the error it keeps left as it is.
+    pub fn set(&mut self, next: Status) {
+        self.messages = next.messages;
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.messages.is_empty() && self.kept.is_none()
     }
 
     /// The rows the status line takes: one while it shows a message, none otherwise.
@@ -70,7 +88,9 @@ impl Status {
             return;
         }
         let mut spans = Vec::new();
-        for (n, (text, kind)) in self.0.iter().enumerate() {
+        let messages = self.messages.iter().map(|(text, kind)| (text, *kind));
+        let kept = self.kept.iter().map(|text| (text, Kind::Error));
+        for (n, (text, kind)) in messages.chain(kept).enumerate() {
             if n > 0 {
                 spans.push(Span::raw("  "));
             }
@@ -117,6 +137,21 @@ mod tests {
         assert_eq!(buf[(0, 0)].fg, rgb(9));
         let buf = drawn(&Status::new("merging foo…", Kind::Other), &theme);
         assert_eq!(buf[(0, 0)].fg, rgb(4));
+    }
+
+    // spec: STU-30, STU-34 (internal: the status line of a screen that needs a real terminal)
+    #[test]
+    fn a_failed_notification_outlives_the_task_that_ends_after_it() {
+        let (theme, _) = crate::theme::parse("pass = \"#000008\"\nfail = \"#000009\"\n");
+        let mut status = Status::new("merging foo…", Kind::Other);
+        status.keep("notify: exit 1: no bus");
+        status.set(Status::of(Ok("merged foo (foo) into main".into())));
+        let buf = drawn(&status, &theme);
+        let row: String = (0..60).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(row.starts_with("merged foo (foo) into main  notify: exit 1: no bus"));
+        assert_eq!(buf[(at(&buf, "notify"), 0)].fg, Color::Rgb(0, 0, 9));
+        status.set(Status::default());
+        assert_eq!(status.rows(), 1, "kept until the screen quits");
     }
 
     // spec: STU-34 (internal: the status line of a screen that needs a real terminal)

@@ -45,6 +45,7 @@ Means: the roles `fail` and `pass` of the theme, no new role (STU-32 unchanged);
 
 ## Plan
 1. [x] Status line of its own: a `Message` kind (error, done, other) kept by the screen loop from the task results, the refusals of the keys, the notifier and the theme lines, drawn above the help line on the panels and the charts; verified by render tests of the row, its roles and a read that leaves it; makes true STU-34 (STU-31 amended). (autonomous)
+2. [x] Fixes of the `high` review: a failed notification kept past the task that ends after it, the wording of STU-34 and `docs/usage.md`, `Theme::help`; verified by a test of the kept message; makes true STU-30, STU-34. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -70,5 +71,36 @@ Code review: no findings
 
 not verified: that a read of STU-2 leaves the message (the terminal loop needs a real terminal; no read touches the
 status, by reading of `screen::run`); the screen in a real terminal.
+
+decisions needed: none
+
+## Deliverable 2
+done: the fixes of the `high` review of the issue (6 findings).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (STU-34 reworded: a refusal that says why, a failed notification kept until the screen quits) |
+| docs | `docs/usage.md` (when a message is replaced, the role `text`) |
+| code review | `low`: 2 findings |
+
+red: STU-30, STU-34: `no method named keep found for struct status::Status` (a task that ended replaced the failed
+notification)
+
+`high` review: 6 findings
+1. a failed notification lost when a task ends after it: fixed (`Status::keep`, kept until the screen quits).
+2. on a narrow terminal, a message after a long one is cut: not fixed, filed as
+   [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md).
+3. a key that starts nothing silently (an empty queue) is not shown: STU-34 narrowed to a key that says why.
+4. `docs/usage.md` said any action replaces the message: reworded.
+5. the role `text` of `docs/usage.md` missed the status line: added.
+6. `Theme::status` styles the help line only: renamed `Theme::help`.
+
+Code review: 2 findings
+1. `keep` stored an empty line, a blank row for good: fixed (an empty line is dropped, as `push` does).
+2. a second failed notification would replace the first: no change, `Notifier::failure` gives one failure only (STU-30).
+
+not verified: the screen in a real terminal.
 
 decisions needed: none

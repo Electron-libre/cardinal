@@ -305,8 +305,9 @@ wait. The numbers are trends with their sample, never a pass or a fail:
 `skill:evaluate-harness` reads the rest of the report.
 
 What an action did or why it refused, a failed notification and an ignored theme line go on the status line, a row
-of its own above the help line, drawn only while it holds a message and kept until the next action replaces it: an
-error in `fail`, a task done in `pass`, a task that runs in `text`.
+of its own above the help line, drawn only while it holds a message and kept until a task, or a key that starts one,
+replaces it (a failed notification until the screen quits): an error in `fail`, a task done in `pass`, a task that
+runs and `quitting once the task ends…` in `text`.
 
 It draws in the colors of a theme file, read once when it starts and never written: the file
 `CARDINAL_UI_THEME` names, else `$XDG_CONFIG_HOME/cardinal-ui/theme.toml` (`~/.config/...` when unset or relative),
@@ -319,7 +320,7 @@ accent = "#89b4fa"   # titles, the issue offered
 
 | Role | Default | Drawn on |
 |---|---|---|
-| `background`, `text` | the terminal's | the screen, the lines of the panels |
+| `background`, `text` | the terminal's | the screen, the lines of the panels, a message of the status line that is neither an error nor a success |
 | `surface` | the terminal's | the help line and the status line above it |
 | `border` | the terminal's | the borders of the panels |
 | `muted` | dark gray | the help, `free`, `ended` |

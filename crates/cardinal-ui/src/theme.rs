@@ -80,7 +80,7 @@ impl Theme {
     }
 
     /// The help line: `muted` on `surface`.
-    pub fn status(&self) -> Style {
+    pub fn help(&self) -> Style {
         Style::new()
             .fg(self.color(Role::Muted))
             .bg(self.color(Role::Surface))

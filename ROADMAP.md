@@ -27,7 +27,7 @@ The work done before this file existed is in `issues/done/`.
 - Issues:
   - [read_the_colors_of_the_ui_from_a_theme_file](issues/done/read_the_colors_of_the_ui_from_a_theme_file.md)
   - [show_the_issues_as_a_tree_of_their_dependencies](issues/done/show_the_issues_as_a_tree_of_their_dependencies.md)
-  - [animate_the_issue_at_work](issues/animate_the_issue_at_work.md)
+  - [animate_the_issue_at_work](issues/done/animate_the_issue_at_work.md)
   - [chart_the_measures_on_a_screen_of_their_own](issues/done/chart_the_measures_on_a_screen_of_their_own.md)
   - [highlight_the_selected_line_across_its_panel](issues/highlight_the_selected_line_across_its_panel.md)
   - [end_every_merged_worktree_in_one_go](issues/done/end_every_merged_worktree_in_one_go.md)

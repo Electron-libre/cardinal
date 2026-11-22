@@ -49,7 +49,9 @@ other animation. Working or waiting is read by joining the claim to the worktree
    `panels.rs`; makes true SUQ-4 (print part), SUQ-3. (autonomous)
 2. [x] The spinner turns on the screen: the panel keeps where its turning marks are, the draw writes the frame of the
    time elapsed since the screen started (100 ms a frame, no read needed), the CPU of the redraw measured; verified
-   by an internal test of `screen.rs` that draws two ticks apart; makes true SUQ-4 (screen part), SUQ-H2. (autonomous)
+   by an internal test of `spinner.rs` that turns the marks two ticks apart; makes true SUQ-4 (screen part), SUQ-H2. (autonomous)
+3. [x] Fixes of the `high` review: no mark while the worktrees cannot be read; verified by the role test of
+   `panels.rs`; makes true SUQ-4. (autonomous)
 
 ## Decisions
 - Mode: autonomous

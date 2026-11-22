@@ -105,6 +105,8 @@ High review findings:
 5. No `start` case for WSL-13: fixed.
 6. Lines over 120 columns: fixed in the doc comment, the details and the spec intent.
 
+Code review: 6 findings (high), then no findings (low of the fixes)
+
 not verified: a real return to the origin session against the new binary.
 
 decisions needed: none

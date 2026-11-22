@@ -539,6 +539,60 @@ fn close_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
     ]
 }
 
+// spec: PAR-20
+fn close_removes_only_the_gone_worktree_it_targets(c: &Ctx) -> Checks {
+    let (opened_a, _) = c.run(&c.repo, &["open", "gone-a"]);
+    let (opened_b, _) = c.run(&c.repo, &["open", "gone-b"]);
+    std::fs::remove_dir_all(c.wt("gone-a")).unwrap();
+    std::fs::remove_dir_all(c.wt("gone-b")).unwrap();
+    let (closed, _) = c.run(&c.repo, &["close", "gone-a"]);
+    let other_listed = listed(&c.repo, &c.wt("gone-b"));
+    let target_gone = !listed(&c.repo, &c.wt("gone-a")) && !branch_exists(&c.repo, "gone-a");
+    let (closed_b, _) = c.run(&c.repo, &["close", "gone-b"]);
+    vec![(
+        "close of a gone worktree removes it and its branch, and leaves another gone worktree listed",
+        opened_a && opened_b && closed && target_gone && other_listed && closed_b,
+    )]
+}
+
+/// Whether `git worktree list` names `dir`.
+fn listed(repo: &Path, dir: &Path) -> bool {
+    let out = Command::new("git")
+        .args(["worktree", "list", "--porcelain"])
+        .current_dir(repo)
+        .output()
+        .unwrap();
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .any(|l| l.strip_prefix("worktree ") == Some(&*dir.to_string_lossy()))
+}
+
+// spec: PAR-21
+fn close_refuses_a_locked_worktree(c: &Ctx) -> Checks {
+    let mut checks = Vec::new();
+    for (name, remove_dir) in [("locked-here", false), ("locked-gone", true)] {
+        let (opened, _) = c.run(&c.repo, &["open", name]);
+        let dir = c.wt(name);
+        git_ok(&c.repo, &["worktree", "lock", dir.to_str().unwrap()]);
+        if remove_dir {
+            std::fs::remove_dir_all(&dir).unwrap();
+        }
+        let (closed, msg) = c.run(&c.repo, &["close", name, "--force"]);
+        let kept = listed(&c.repo, &dir) && branch_exists(&c.repo, name);
+        git_ok(&c.repo, &["worktree", "unlock", dir.to_str().unwrap()]);
+        let (after, _) = c.run(&c.repo, &["close", name]);
+        checks.push((
+            if remove_dir {
+                "close refuses a locked worktree whose directory is gone, naming git worktree unlock"
+            } else {
+                "close refuses a locked worktree, naming git worktree unlock"
+            },
+            opened && !closed && msg.contains("git worktree unlock") && kept && after,
+        ));
+    }
+    checks
+}
+
 #[test]
 fn worktree() {
     let script = std::path::PathBuf::from("/tools").join("worktree.rs");
@@ -575,6 +629,8 @@ fn worktree() {
         close_accepts_a_squash_of_several_commits(&c),
         close_forces_work_that_is_not_on_trunk(&c),
         close_refuses_from_inside_the_worktree(&c),
+        close_removes_only_the_gone_worktree_it_targets(&c),
+        close_refuses_a_locked_worktree(&c),
     ] {
         for (name, ok) in checks {
             println!("{} - {name}", if ok { "ok  " } else { "FAIL" });

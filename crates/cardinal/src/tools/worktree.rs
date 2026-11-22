@@ -57,6 +57,8 @@ struct Worktree {
     path: PathBuf,
     branch: Option<String>,
     head: Option<String>,
+    /// Locked by `git worktree lock`: git refuses to remove or prune it.
+    locked: bool,
 }
 
 /// Every worktree, the main one first.
@@ -70,6 +72,9 @@ fn worktrees(cwd: &Path) -> Result<Vec<Worktree>, String> {
                 path: PathBuf::from(field("worktree ")?),
                 branch: field("branch refs/heads/").map(str::to_string),
                 head: field("HEAD ").map(str::to_string),
+                locked: record
+                    .lines()
+                    .any(|l| l == "locked" || l.starts_with("locked ")),
             })
         })
         .collect())
@@ -201,6 +206,7 @@ fn open(
 /// HEAD of the worktree, whose work must be on trunk when it has no branch.
 struct Target {
     dir: Option<PathBuf>,
+    locked: bool,
     branch: Option<String>,
     head: Option<String>,
 }
@@ -209,6 +215,7 @@ impl Target {
     fn of(w: &Worktree) -> Self {
         Target {
             dir: Some(w.path.clone()),
+            locked: w.locked,
             branch: w.branch.clone(),
             head: w.head.clone(),
         }
@@ -249,6 +256,7 @@ fn designate(cwd: &Path, main: &Path, all: &[Worktree], arg: &str) -> Result<Tar
     if is_branch {
         return Ok(Target {
             dir: None,
+            locked: false,
             branch: Some(arg.to_string()),
             head: None,
         });
@@ -294,6 +302,12 @@ fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
         if inside {
             return Err(format!("the current directory is inside {}: run close-worktree from the main worktree {}; nothing was removed", dir.display(), main.display()));
         }
+        if target.locked {
+            return Err(format!(
+                "{0} is locked: run `git worktree unlock {0}` first; nothing was removed",
+                dir.display()
+            ));
+        }
     }
     // the branch, or the HEAD of a detached worktree, even one whose directory is gone
     let head = match &target.branch {
@@ -310,8 +324,12 @@ fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
         return Err(format!("{what} is not merged into {trunk}: merge it first, or pass --force to drop it (it deletes work that is not on {trunk}; squash detection needs git 2.38); nothing was removed"));
     }
     match &target.dir {
+        // the target alone: a bare `prune` would also drop every other worktree whose directory is gone
         Some(dir) if !dir.exists() => {
-            git(&main, &["worktree", "prune"])?;
+            git(
+                &main,
+                &["worktree", "remove", "--force", &dir.to_string_lossy()],
+            )?;
         }
         Some(dir) => {
             if !git(dir, &["status", "--porcelain"])?.is_empty() {

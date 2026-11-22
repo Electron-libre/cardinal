@@ -38,19 +38,25 @@ Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-22
 ## Understanding
 A merged linked worktree whose directory was removed by hand must be ended by `e`, `E` and `--end-merged`: `end_on`
 skips the dirty and the inside checks (and the session lock read) when the path does not exist, and lets
-`cardinal run worktree close` prune it and remove its branch (already covered by its own tests). Out of scope: a
-session still running with its directory deleted (no lock can be read there; it counts as ended).
+`cardinal run worktree close` prune it and remove its branch (already covered by its own tests). The session of such
+a worktree is read from the lock of its git directory.
 
 ## Plan
 1. [x] End a worktree whose directory is gone: `end_on` tests `Path::exists` (what `worktree close` tests) before the
    checks that run in the path; verified by a binary test of `crates/cardinal-ui/tests/end.rs` (directory removed,
    `--end-merged` prints `ended foo`, exits 0, runs `worktree close <path>` in the main worktree); makes true SUA-8
    (amended). (autonomous)
+2. [x] Fixes of the `high` review: the session of a gone worktree read from the lock of its git directory, only a
+   confirmed missing directory skipping the checks; verified by two binary tests of `crates/cardinal-ui/tests/end.rs`;
+   makes true SUA-8, SUA-9. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: 4a6bce09bf728532ee771f3beaed5a0a0940c84f
 - A session whose directory is gone counts as ended: its tab still closes (SUA-9), no SIGHUP without a tab (answer 1 a).
+- Superseded after the `high` review (answer 1 a): the session of a gone worktree is read from the lock of its git
+  directory (`<common dir>/worktrees/*/gitdir`), refused while at work, signalled and waited for (SUA-9). The
+  global `prune` of `worktree close` becomes an issue (answer 2 a).
 
 ## Deliverable 1 summary
 - done: `end_on` skips `git status --porcelain` and the inside check when the worktree's directory is gone; the end
@@ -59,3 +65,12 @@ session still running with its directory deleted (no lock can be read there; it 
 - Code review: no findings
 - not verified: the real `cardinal run worktree close` on a gone directory from the UI (the test fakes it; its own
   tests in `crates/cardinal/tests/worktree.rs` cover the prune).
+
+## Deliverable 2 summary (fixes of the `high` review)
+- done: the session of a worktree whose directory is gone is read from `<common dir>/worktrees/*/` (refused at work,
+  signalled and waited for); only a confirmed missing directory skips the checks (`try_exists`); architecture row
+  reworded.
+- red: SUA-8, SUA-9: `a_session_at_work_in_a_worktree_whose_directory_is_gone_is_refused` and
+  `a_waiting_session_in_a_worktree_whose_directory_is_gone_ends_before_the_close` panicked (no session read, so no
+  refusal and no SIGHUP).
+- Code review: no findings (low); high review: 6 findings; 1, 2, 3, 5, 6 fixed; 4 (global `prune` of `worktree close`, pre-existing) filed as an issue.

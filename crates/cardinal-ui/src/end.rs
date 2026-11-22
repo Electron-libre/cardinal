@@ -4,7 +4,7 @@
 //! the branch from the main worktree. Closing a tab sends `SIGHUP` to its process, on which `claude` runs its
 //! `SessionEnd` hooks; a session with no pane of the UI gets that signal directly. Nothing is ended while the session
 //! is at work (no wait mark names it), nor from a dirty worktree; one whose directory is gone skips
-//! the checks that run in it, its session (whose lock cannot be read there) counting as ended.
+//! the checks that run in it, its session read from the lock its git directory keeps.
 
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -149,7 +149,8 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
         ));
     }
     // a directory removed by hand: nothing to check in it, `worktree close` prunes it (SUA-8)
-    let gone = !path.exists();
+    // only a confirmed missing directory: one that cannot be reached keeps its checks
+    let gone = !path.try_exists().unwrap_or(true);
     if !gone && !git(path, &["status", "--porcelain"])?.trim().is_empty() {
         return Err(format!(
             "{} has uncommitted changes or untracked files",
@@ -167,7 +168,7 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
             path.display()
         ));
     }
-    let lock = source::git_path(path, "cardinal-session");
+    let lock = source::worktree_git_path(root, path, "cardinal-session");
     let session = target
         .session
         .as_ref()

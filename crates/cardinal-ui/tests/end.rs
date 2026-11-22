@@ -592,3 +592,31 @@ fn a_merged_worktree_whose_directory_is_gone_ends() {
     assert_eq!(out, "ended foo\n");
     assert_eq!(p.closes(), p.closed());
 }
+
+// spec: SUA-8
+#[test]
+fn a_session_at_work_in_a_worktree_whose_directory_is_gone_is_refused() {
+    let mut p = project(true);
+    let pid = p.session(false, false);
+    std::fs::remove_dir_all(&p.ws).unwrap();
+    let (code, _, err) = p.end(&p.repo, "foo", false);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains(&format!("session s1 is at work in {}", p.ws.display())),
+        "{err}"
+    );
+    assert_eq!(p.log(), "");
+    assert!(alive(pid), "the session still runs");
+}
+
+// spec: SUA-8, SUA-9
+#[test]
+fn a_waiting_session_in_a_worktree_whose_directory_is_gone_ends_before_the_close() {
+    let mut p = project(true);
+    let pid = p.session(true, false);
+    std::fs::remove_dir_all(&p.ws).unwrap();
+    let (code, out, err) = p.end(&p.repo, "foo", false);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(ended(pid), "the session got SIGHUP and ended");
+    assert_eq!(p.closes(), p.closed());
+}

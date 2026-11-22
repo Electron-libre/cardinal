@@ -335,9 +335,28 @@ pub fn git_path(path: &Path, name: &str) -> Option<PathBuf> {
     (code == 0).then(|| PathBuf::from(out.trim()))
 }
 
-/// The file `name` of the git directory of the worktree `path`.
-fn git_file(path: &Path, name: &str) -> Option<String> {
-    std::fs::read_to_string(git_path(path, name)?).ok()
+/// The path of the file `name` of the git directory of the worktree `path` of the repository of `repo`, also when
+/// the directory `path` is gone: then the one of the directories of `<common dir>/worktrees` whose `gitdir` names
+/// `<path>/.git` (SUA-8).
+pub fn worktree_git_path(repo: &Path, path: &Path, name: &str) -> Option<PathBuf> {
+    if path.try_exists().unwrap_or(true) {
+        return git_path(path, name);
+    }
+    let args = ["rev-parse", "--path-format=absolute", "--git-common-dir"];
+    let (out, _, code) = run("git", Path::new("git"), &args, repo).ok()?;
+    if code != 0 {
+        return None;
+    }
+    let dot_git = path.join(".git");
+    std::fs::read_dir(Path::new(out.trim()).join("worktrees"))
+        .ok()?
+        .flatten()
+        .map(|entry| entry.path())
+        .find(|admin| {
+            std::fs::read_to_string(admin.join("gitdir"))
+                .is_ok_and(|gitdir| Path::new(gitdir.trim()) == dot_git)
+        })
+        .map(|admin| admin.join(name))
 }
 
 /// The value of the line `<key> <value>` of `text`.
@@ -351,11 +370,18 @@ fn field(text: &str, key: &str) -> Option<String> {
 /// (WSL-9), with the wait mark `cardinal-waiting` that names it while it runs (SWT-3); `None` when there is none
 /// (STU-7, STU-13).
 pub fn session(path: &Path) -> Option<Session> {
-    let text = git_file(path, "cardinal-session")?;
+    session_of(path, path)
+}
+
+/// The session of SUA-8: that of `session` for the worktree `path` of the repository of `repo`, read also when the
+/// directory `path` is gone.
+fn session_of(repo: &Path, path: &Path) -> Option<Session> {
+    let file = |name| std::fs::read_to_string(worktree_git_path(repo, path, name)?).ok();
+    let text = file("cardinal-session")?;
     let id = field(&text, "session")?;
     let pid = field(&text, "pid")?;
     let alive = alive(&pid);
-    let waiting = git_file(path, "cardinal-waiting")
+    let waiting = file("cardinal-waiting")
         .filter(|mark| alive && field(mark, "session").as_deref() == Some(id.as_str()))
         .and_then(|mark| {
             let since = field(&mark, "since")?.parse().ok()?;
@@ -405,7 +431,7 @@ pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
         }
     }
     for w in &mut list {
-        w.session = session(Path::new(&w.path));
+        w.session = session_of(dir, Path::new(&w.path));
     }
     let trunk = list.first().and_then(|m| m.branch.clone());
     if let Some(trunk) = trunk {

@@ -78,7 +78,7 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [show_the_cardinal_logo_in_the_ui](issues/show_the_cardinal_logo_in_the_ui.md)
-  - [fold_the_summary_of_the_selected_issue](issues/fold_the_summary_of_the_selected_issue.md)
+  - [fold_the_summary_of_the_selected_issue](issues/done/fold_the_summary_of_the_selected_issue.md)
   - [draw_the_progress_of_a_milestone_as_a_bar](issues/draw_the_progress_of_a_milestone_as_a_bar.md)
   - [draw_the_progress_of_an_issue_as_a_bar](issues/draw_the_progress_of_an_issue_as_a_bar.md)
   - [select_the_next_issue_with_a_key](issues/select_the_next_issue_with_a_key.md)

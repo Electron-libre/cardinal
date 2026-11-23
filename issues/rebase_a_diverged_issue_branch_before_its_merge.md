@@ -54,3 +54,43 @@ A steering UI to command
 * Never rebase a pushed branch, and never in a worktree held by a running session (STU-7): the session there would
   find its history rewritten under it.
 * Git runs with the worktree of the issue as its directory, never the main one from a linked worktree (SUA-7).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+A diverged issue branch reaches the trunk in one step: a tool `cardinal run rebase-issue <stem>` rebases the branch
+of a `merge pending` issue in its worktree, settles the conflicts that only add lines on both sides, refuses the rest
+(pushed, dirty, held by another live session, other conflicts, aborted). The issue session runs it before printing the
+merge; the key `f` runs it, then the project check, then the fast-forward. Measure (transcripts, 2026-11-23): 4 of 39
+closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list on both sides).
+
+## Plan
+1. [x] Tool `rebase-issue`: the rebase of RBI in `crates/cardinal/src/tools/rebase_issue.rs`, registered in
+   `cardinal run`; verified by `crates/cardinal/tests/rebase_issue.rs` on temp repositories; makes true RBI-1..RBI-5. (autonomous)
+2. [ ] issue-workflow "Merge back" (`files/.claude/skills/issue-workflow/details.md`, then `just sync`): with
+   `"local"`, a diverged unpushed branch is rebased by `rebase-issue` with no stop, the project check and
+   `cardinal check` run again; stop only on its refusal; verified by `crates/cardinal/tests/skills.rs` on the text.
+3. [ ] Split `specs/steering-ui-actions.md` (over `spec_max_bytes`): move the merge (SUA-2, SUA-7, SUA-22 and their
+   scenarios) to `specs/steering-ui-merge.md` (SUM), the old ids `withdrawn: moved to SUM-n`, the tests retagged;
+   no change of behaviour; verified by `cardinal run check-specs`.
+4. [ ] Key `f` on a diverged branch (`crates/cardinal-ui/src/merge.rs`): `rebase-issue`, then `project-check` in the
+   issue worktree, then the fast-forward; verified by the `--merge` tests of `crates/cardinal-ui/tests/`; makes true
+   SUA-22 (SUM-n after 3), SUA-7 amended.
+
+## Decisions
+- Mode: autonomous
+- Base commit: a4eec3a423edf8d9121a575fc95c610f35e47f15
+- Split of `steering-ui-actions.md`: the merge moves to `specs/steering-ui-merge.md` (deliverable 3).
+- Add-only conflicts are settled in every text file; the project check after the rebase catches the rest.
+- The key `f` rebases a diverged branch with no second press.
+- The UI runs `project-check` in the issue worktree after the rebase, before the fast-forward.
+
+## Deliverable 1 summary
+- done: `cardinal run rebase-issue <stem>` rebases the branch of a `merge pending` issue onto the trunk in its
+  worktree, settles add-only conflicts, aborts the others, refuses dirty, locked and pushed; row in `docs/usage.md`.
+- checks: tests pass (13 behaviour + 3 unit), clippy clean, `check-specs` passes (RBI accepted), docs updated.
+- red: RBI-1, RBI-2, RBI-3, RBI-4, RBI-5: `cardinal: unknown tool `rebase-issue``
+- Code review: no findings
+- not verified: a rebase of a real issue branch of this repository (deliverable 2 runs it at the close).

@@ -1,6 +1,6 @@
 ---
 id: SUA
-status: accepted
+status: draft
 adrs: [0022, 0023, 0030, 0031]
 ---
 
@@ -30,7 +30,7 @@ branch, each refused with its reason when the project is not ready for it; the e
 
 - **SUA-5** (deterministic) `cardinal-ui --start <stem>` must start the session of SUA-1 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1: outside a zellij session (no `ZELLIJ` variable: `start needs zellij: run cardinal-ui in a zellij session`), an issue that is not open, not `ready`, or taken other than by a claim whose session ended, a claim whose session ended in a worktree that `git worktree list` no longer lists (`<stem>: worktree <path> gone: cardinal run issue-claim --release <stem>`) or whose lock (STU-7) names a session that runs (`<stem>: session <id> works in <path>`), or a step that fails (its command, its exit code and the first line of its stderr), running no step after a failed one; the key `s` shows the same message on the status line.
 - **SUA-6** (deterministic) `q`, `Esc` or `Ctrl+C` pressed during a start (of an issue, of the release, of the review of the priorities or of a cut), a merge or an end (SUE-1) must quit once it has ended, so a start never stops between the worktree and the tab, a merge before its `cardinal check` nor an end between the session and the worktree, whose result is then printed on stderr once the terminal is given back; `s`, `f`, `e`, `c`, `E`, `v` and `p` start nothing while one runs.
-- **SUA-7** (deterministic) `cardinal-ui --merge <stem>` must do the merge of SUA-2 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1, running no `git merge` when: `<stem>` is not open or no claim in the state `merge pending` takes it (`<stem>: not merge pending`); `<branch>` does not hold `issues/done/<stem>.md` (`<branch> does not hold the close of <stem>: commit it first`); the repository is bare (`no main worktree: the repository is bare`); the main worktree has no branch checked out (`main worktree not on a branch`); `git status --porcelain` lists anything there (`main worktree has uncommitted changes or untracked files`); its lock (STU-7) names a session whose process runs (`session <id> works in the main worktree`); the trunk is not an ancestor of `<branch>` (`<branch> diverged from <trunk>: rebase it in its worktree`); a git command it runs fails (its command, its exit code and the first line of its stderr). A `cardinal check` that fails after the merge keeps the merge, exits 1 and prints `merged <stem> (<branch>) into <trunk>; cardinal check: exit <n>: <first line of its stderr>`, the line that names the install it needs. The key `f` shows the same message on the status line.
+- **SUA-7** (deterministic) `cardinal-ui --merge <stem>` must do the merge of SUA-2 on the issue `<stem>` and exit 0, or print on stderr why it does not and exit 1, running no `git merge` when: `<stem>` is not open or no claim in the state `merge pending` takes it (`<stem>: not merge pending`); `<branch>` does not hold `issues/done/<stem>.md` (`<branch> does not hold the close of <stem>: commit it first`); the repository is bare (`no main worktree: the repository is bare`); the main worktree has no branch checked out (`main worktree not on a branch`); `git status --porcelain` lists anything there (`main worktree has uncommitted changes or untracked files`); its lock (STU-7) names a session whose process runs (`session <id> works in the main worktree`); the trunk is not an ancestor of `<branch>` and SUA-22 refuses or fails (its line); a git command it runs fails (its command, its exit code and the first line of its stderr). A `cardinal check` that fails after the merge keeps the merge, exits 1 and prints `merged <stem> (<branch>) into <trunk>; cardinal check: exit <n>: <first line of its stderr>`, the line that names the install it needs. The key `f` shows the same message on the status line.
 - **SUA-8** (deterministic) withdrawn: moved to SUE-3.
 - **SUA-9** (deterministic) withdrawn: moved to SUE-4.
 - **SUA-10** (deterministic) The `zellij` it runs must be the program named by `CARDINAL_UI_ZELLIJ`, else `zellij` found on the `PATH`, the tab opened with `zellij action new-tab --cwd <worktree path> --name <stem> -- claude "/issue-workflow issues/<stem>.md"`; outside a zellij session, or when `list-tabs` fails, the queue shows no `tab` and no error.
@@ -41,6 +41,7 @@ branch, each refused with its reason when the project is not ready for it; the e
 - **SUA-20** (deterministic) `cardinal-ui --cut <milestone>` must start the session of SUA-19 on the milestone `<milestone>` and exit 0, printing `started the cut of <milestone> in <main worktree path>`, or print on stderr why it does not and exit 1, opening no tab when: outside a zellij session (`cut needs zellij: run cardinal-ui in a zellij session`); the repository is bare, the main worktree has no branch checked out, `git status --porcelain` lists anything there, or its lock (STU-7) names a session whose process runs (the lines of SUA-11); `cardinal run roadmap --open --json`, run in the main worktree, lists no milestone of that name (`<milestone>: no open milestone of that name`), or cannot be read (the line of STU-6); its state is neither `shaped` nor `idea` (`<milestone>: <state>, not shaped nor idea`); the main worktree has no `.claude/skills/create-issue/SKILL.md` (`the skill create-issue is turned off`); a tab named `<milestone>` holds a terminal pane running the `claude` of SUA-21 that has not `exited` (`a tab <milestone> is already open`); a step that fails (its command, its exit code and the first line of its stderr). The key `c` shows the same message on the status line.
 - **SUA-21** (deterministic) The tab of SUA-19 must be opened with `zellij action new-tab --cwd <main worktree path> --name <milestone> -- claude "/create-issue cut the milestone <milestone> into issues"`, the `zellij` of SUA-10, run once every check of SUA-20 passed.
 - **SUA-14** (deterministic) withdrawn: moved to SUE-5.
+- **SUA-22** (deterministic) When the trunk is not an ancestor of `<branch>` once every other check of SUA-7 passed, the merge must first run `cardinal run rebase-issue <stem>` (RBI-1) in the main worktree, then `cardinal run project-check` in the worktree that has `<branch>` checked out, and fast-forward only once both exit 0, saying `rebased and merged <stem> (<branch>) into <trunk>`; a `rebase-issue` that exits non-zero merges nothing and its first stderr line is the message (a conflict leaves the rebase aborted, RBI-3); a `project-check` that exits non-zero keeps the rebase, merges nothing and says `rebased <branch> onto <trunk>; project-check: exit <n>: <first line of its stderr>`.
 
 ## Scenarios
 
@@ -67,6 +68,10 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   worktree of an issue `bar` whose row reads `merged`, when the user looks at the help line, then it reads `: commands  ↑↓
   select  tab panel  q quit  i summary  f merge`; when they press `Tab` and select the worktree of `bar`, it reads `…
   q quit  e end`.
+- **SUA-H10** (happy; SUA-2, SUA-22) Given an issue `foo` closed on branch `foo` of a clean linked worktree no
+  session runs in, its claim `merge pending`, and a commit on `trunk` that `foo` lacks, when the user selects `foo` and
+  presses `f`, then `foo` is rebased onto `trunk`, the project check ran in its worktree, `trunk` points at the
+  rebased `foo`, and the status line reads `rebased and merged foo (foo) into trunk`.
 - (SUA-5) Given no `ZELLIJ` variable, when `cardinal-ui --start foo` runs, then it prints `start needs zellij` on
   stderr, exits 1 and runs neither `cardinal run worktree open` nor `zellij`.
 - (SUA-5) Given an issue `foo` claimed by a live session, when `cardinal-ui --start foo` runs, then it exits 1 saying
@@ -93,8 +98,12 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   not on a branch`.
 - (SUA-7) Given a lock of the main worktree naming a session whose process runs, when `cardinal-ui --merge foo`
   runs, then it exits 1 naming that session; given one whose process ended, it merges.
-- (SUA-7) Given a commit on `trunk` that `foo` lacks, when `cardinal-ui --merge foo` runs, then it exits 1 with `foo
-  diverged from trunk: rebase it in its worktree` and the trunk is unchanged.
+- (SUA-22) Given a line changed differently on `trunk` and on `foo`, when `cardinal-ui --merge foo` runs, then it
+  exits 1 with the conflict line of RBI-3, `foo` and `trunk` are unchanged and no rebase is in progress.
+- (SUA-22) Given the worktree of `foo` locked by a session whose process runs, when `cardinal-ui --merge foo` runs on
+  a diverged `foo`, then it exits 1 with `session <id> works in <path>` and rewrites nothing.
+- (SUA-22) Given a project check that exits 1 after the rebase, when `cardinal-ui --merge foo` runs, then `foo` holds
+  `trunk`, `trunk` is unchanged, and it exits 1 with `rebased foo onto trunk; project-check: exit 1:` and its line.
 - (SUA-7) Given a `cardinal check` that exits 1 with `the installed cardinal cannot run the hook ...: install it
   with ...`, when `cardinal-ui --merge foo` runs, then the trunk holds `foo`, and it exits 1 printing `merged foo
   (foo) into trunk; cardinal check: exit 1:` and that line.
@@ -174,8 +183,8 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   starting it from a linked worktree's branch not merged yet, or showing a release prepared but not tagged yet (its
   milestones hold their `Released:` line, `roadmap --open` leaves them out): later issues of the milestone
   "Releases from the steering UI".
-- Rebasing a diverged branch, merging anything but a fast-forward, or pushing the trunk: the rebase is the issue
-  session's, the push the user's.
+- Settling in the UI a conflict `rebase-issue` refuses (RBI-3), rebasing in a worktree a running session holds,
+  merging anything but a fast-forward, or pushing the trunk: the conflict is the issue session's, the push the user's.
 - Offering `v release` for a release prepared but not tagged yet, which the read of the panels does not see (`roadmap
   --open` leaves its milestones out): the key still resumes it (SUA-4), the palette (SUP-1) does not list it.
 - Foreseeing in the help line every refusal of SUA-5, SUA-11 or SUE-3 (a worktree gone, a dirty main worktree, the

@@ -25,6 +25,7 @@ mod lint_gate;
 mod next_issue;
 mod project_check;
 mod read_hint;
+mod rebase_issue;
 mod release;
 mod repo_files;
 mod review_gate;
@@ -149,6 +150,11 @@ pub const TOOLS: &[Tool] = &[
         name: "read-hint",
         about: "PreToolUse hook: send the agent back once before a whole Read of a file over 25,000 bytes",
         main: read_hint::main,
+    },
+    Tool {
+        name: "rebase-issue",
+        about: "<stem>: rebase the branch of a merge pending issue onto the trunk in its worktree",
+        main: rebase_issue::main,
     },
     Tool {
         name: "release",

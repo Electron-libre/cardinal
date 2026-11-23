@@ -130,7 +130,6 @@ impl Project {
         std::fs::read_to_string(&self.log).unwrap()
     }
 
-    /// Writes the lock of the main worktree, naming the session `s1` and the process `pid`.
     /// Writes the lock of the main worktree naming the session `s1` of process `pid`: its path.
     fn lock(&self, pid: u32) -> PathBuf {
         let path = git(

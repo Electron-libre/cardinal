@@ -2,9 +2,10 @@
 //! runs, and the others are refused their edits and commands, so two sessions never share its files, index and
 //! review marker. The lock is the file `cardinal-session` of the git directory of the worktree, holding the
 //! `session_id` of the hook event and the process of the session (`CLAUDE_PID`); a process that no longer runs frees
-//! it, as does one that took its number after the lock was written, and so does a holder with no work in progress (ADR 0024): a clean worktree and no issue it claims, or a holder
-//! whose transcript says Claude Code continued it in the calling session (ADR 0032), or a fork the user left to go
-//! back to the calling session, which then also takes the `working` claims of that holder. Every change
+//! it, as does one that took its number after the lock was written, and so does a holder with no work in progress
+//! (ADR 0024): a clean worktree and no issue it claims, or a holder whose transcript says Claude Code continued it in
+//! the calling session (ADR 0032), or a fork the user left to go back to the calling session, which then also takes
+//! the `working` claims of that holder. Every change
 //! of the lock happens under a mutex directory beside it, created atomically.
 //! A gate for cooperative agents (ADR 0005): a broken input or environment lets the call through.
 //! Usage: hooks `cardinal run workspace-lock check` (`PreToolUse`), `start` (`SessionStart`), `release` (`SessionEnd`).
@@ -122,8 +123,8 @@ fn stale(holder: &Holder, lock: &Path) -> bool {
 }
 
 /// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
-/// whose lock is not stale, has work in progress, was not continued in the caller and is not a session the user left to go back to
-/// the caller (WSL-3, WSL-10, WSL-11, WSL-13).
+/// whose lock is not stale, has work in progress, was not continued in the caller and is not a session the user left
+/// to go back to the caller (WSL-3, WSL-10, WSL-11, WSL-13).
 fn keeps(holder: &Holder, caller: &Caller, cwd: &Path, lock: &Path) -> Verdict {
     let me = &caller.me;
     if holder.session == me.session || holder.pid == me.pid || stale(holder, lock) {

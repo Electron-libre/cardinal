@@ -213,7 +213,8 @@ fn check_refuses_while_the_holder_started_before_the_last_write() {
     let other = Other::new();
     hook("check", &r.main, "a", &other.pid());
     dirty(&r.main);
-    written_at(&r.main, SystemTime::now() + Duration::from_hours(1));
+    // half a second before now, once `other` runs: written after it started, by less than the 2 s margin
+    written_at(&r.main, SystemTime::now() - Duration::from_millis(500));
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(2), "{err}");
     assert!(lock(&r.main).contains("session a\n"));

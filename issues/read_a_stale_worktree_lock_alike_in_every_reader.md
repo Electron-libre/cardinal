@@ -55,6 +55,10 @@ Out of scope: the `/proc/<pid>/stat` reading of the hint (a forward clock step s
    `running` reduced to `alive`), so `--print`, `--merge` and `--start` read it ended; verified by `tests/print_worktrees.rs`,
    `tests/merge.rs`, `tests/start.rs`; makes true STU-7 (SUM-2, SUA-5, SUE-4, RBI-4 cite WSL-1), specs back to `accepted`. (autonomous)
 
+3. [x] high review fixes: the WSL-1 refusal test catches an inverted margin, the SUA-5 test checks the resume, doc
+   comments rewrapped, a doubled doc line and the `(as WSL)` of a non-goal of SSC removed; verified by the tests and a
+   manual inversion of `started_after` (17 tests fail). (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: b195ca08a0699b0164e0e91bf0341be252ee7187
@@ -96,6 +100,37 @@ done: `source::session` of `cardinal-ui` reads a stale lock as ended (`started_a
 | code review | `low`: no findings |
 
 red: STU-7: `--print` did not show `session s1 ended`; SUM-2: `session s1 works in the main worktree` (exit 1); SUA-5: `d: session s9 works in …` (exit 1)
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## High review
+| finding | done |
+|---|---|
+| claims read `kill -0` only: `--start` says `taken` after a reuse | out of scope (Understanding); already `issues/release_a_claim_whose_pid_another_process_took.md` |
+| a forward clock step frees a live lock | decision 1 a, a non-goal of WSL |
+| two `started_after`, lock parsers differ on a trailing space | one per crate as the Approach says; the trim, pre-existing, left |
+| WSL-1 refusal test passes with an inverted check | fixed (deliverable 3) |
+| SUA-5 stale half checks only the exit code | fixed |
+| ADR 0022 says a reused pid keeps a lock alive | left: an ADR records its time, no decision changed |
+| `(as WSL)` in a non-goal of session-scratch | fixed |
+| doubled doc line, unwrapped doc comments | fixed |
+
+## Deliverable 3 summary
+done: the fixes of the `high` review above.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a |
+| code review | `low`: no findings |
+
+red: none
 
 Code review: no findings
 

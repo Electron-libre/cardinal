@@ -307,6 +307,15 @@ fn a_claim_whose_worktree_a_live_session_holds_does_not_resume_a_stale_lock_does
         .unwrap();
     let (code, out, err) = s.ui(&cardinal, Some(&zellij), &["--start", "d"]);
     assert_eq!(code, Some(0), "a stale lock holds nothing: {out}{err}");
+    assert!(
+        out.contains(&format!("resumed d in {}", wt.display())),
+        "{out}"
+    );
+    assert!(
+        s.log().contains(&format!("--cwd\n{}\n", wt.display())),
+        "{}",
+        s.log()
+    );
 }
 
 // spec: SUA-5

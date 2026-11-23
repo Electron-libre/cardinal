@@ -44,7 +44,7 @@ goes back to the first (ADR 0032). It catches the mistakes of cooperative agents
 - (WSL-1) Given a lock naming session `a` and a process that no longer runs, when session `b` calls `Edit`, then the call passes and the lock names `b`.
 - (WSL-1) Given a lock naming session `a` and a pid that a process started after the last write of the lock took, when
   session `b` of another process with uncommitted changes in the worktree calls `Bash`, then the call passes and the lock names `b`.
-- (WSL-1) Given a lock last written an hour after its process started and not since, when session `b` of another process
+- (WSL-1) Given a lock last written after its process started and not since, when session `b` of another process
   calls `Bash` while `a` has work in progress, then the call is refused as WSL-3 says.
 - (WSL-3) Given a lock naming session `a` whose process runs, when session `b` of another process calls `Bash`, then the call is refused and the lock still names `a`.
 - (WSL-10) Given a lock naming session `a` whose process runs, a clean worktree and no claim of `a`, when session `b`

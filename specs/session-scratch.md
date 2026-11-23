@@ -63,4 +63,4 @@ habit, removed when the session ends.
   it (BRE-24); a hint hook on such a command waits for the measure to show the rule is not enough.
 - Removing a directory of another user, nor one the sweep cannot read: left as is.
 - A size quota of the scratch directory, or a removal of the files before the session ends.
-- A process id reused after the session died (as WSL), and platforms where `kill -0` cannot test a process.
+- A process id reused after the session died, and platforms where `kill -0` cannot test a process.

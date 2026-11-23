@@ -45,4 +45,4 @@ The work done before this file existed is in `issues/done/`.
   - [read_a_stale_worktree_lock_alike_in_every_reader](issues/read_a_stale_worktree_lock_alike_in_every_reader.md)
   - [split_the_screen_module_of_the_ui](issues/done/split_the_screen_module_of_the_ui.md)
   - [end_a_task_that_panics_in_the_ui](issues/done/end_a_task_that_panics_in_the_ui.md)
-  - [end_a_measure_or_a_notification_that_panics_in_the_ui](issues/end_a_measure_or_a_notification_that_panics_in_the_ui.md)
+  - [end_a_measure_or_a_notification_that_panics_in_the_ui](issues/done/end_a_measure_or_a_notification_that_panics_in_the_ui.md)

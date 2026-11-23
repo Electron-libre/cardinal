@@ -72,7 +72,7 @@ being at its size bound.
 ## Summary of deliverable 2
 - done: the hook passes over only the first panic of a task thread; the hook tests share a lock and restore the hook;
   the pre-existing panics of a measure and of a notification filed as
-  `issues/end_a_measure_or_a_notification_that_panics_in_the_ui.md`.
+  `issues/done/end_a_measure_or_a_notification_that_panics_in_the_ui.md`.
 
   | check | result |
   |---|---|

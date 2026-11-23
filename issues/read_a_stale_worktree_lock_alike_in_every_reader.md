@@ -37,3 +37,48 @@ A steering UI to command
 # Hints
 * `started_after` reads `ps -o etimes=` against the wall clock: a forward clock step can make a live session look
   ended; reading `/proc/<pid>/stat` against the boot time avoids it on Linux.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+Every reader of a worktree lock counts it stale (its session ended) when no process of its `pid` runs or that process
+started more than 2 seconds after the lock was last written. WSL-1 states it once; WSL-3, STU-7, SUE-4 and RBI-4 cite it.
+Out of scope: the `/proc/<pid>/stat` reading of the hint (a forward clock step stays a non-goal of WSL), the claims (CLM).
+
+## Plan
+1. [x] workspace-lock: `keeps` (and the take of WSL-1) frees a lock whose `pid` `issue_claim::started_after` the lock;
+   verified by `tests/workspace_lock.rs` (a pid started after the write is taken, a holder started before it keeps it);
+   makes true WSL-1, WSL-3. (autonomous)
+2. [ ] cardinal-ui: `source::session` sets `Session::alive` false for such a lock (`started_after` moved from `end.rs`,
+   `running` reduced to `alive`), so `--print`, `--merge` and `--start` read it ended; verified by `tests/print_worktrees.rs`,
+   `tests/merge.rs`, `tests/start.rs`; makes true STU-7 (SUM-2, SUA-5, SUE-4, RBI-4 cite WSL-1), specs back to `accepted`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: b195ca08a0699b0164e0e91bf0341be252ee7187
+- 1 a: the hook reads a stale lock as the other readers, the clock step a non-goal.
+- 2 a: the `/proc/<pid>/stat` of the hint is set aside (reason below), no issue.
+- A wall clock stepped forward by more than ~2 s after a session took its lock (the hook does not rewrite an unchanged
+  lock) makes that live lock look stale: kept a non-goal of WSL. The `/proc/<pid>/stat` of the hint does not avoid it:
+  the boot time it is read against (`btime`) is itself the wall clock minus the uptime, so it moves with the step.
+
+## Deliverable 1 summary
+done: `workspace-lock` frees a lock whose `pid` a process started after the lock's last write (`stale`, WSL-1).
+
+| check | result |
+|---|---|
+| tests | pass (`tests/workspace_lock.rs`, 24) |
+| lint | pass |
+| specs | pass |
+| docs | n/a: docs say "live session", still true |
+| code review | `low`: no findings |
+
+red: WSL-1: `a stale lock is free: Refused: another live session (a) of process … works in this worktree` (exit 2, expected 0)
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none

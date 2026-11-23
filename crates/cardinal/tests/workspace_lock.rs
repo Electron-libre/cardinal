@@ -5,6 +5,7 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 fn git(dir: &Path, args: &[&str]) -> String {
     let out = Command::new("git")
@@ -95,8 +96,8 @@ fn hook(mode: &str, cwd: &Path, session: &str, pid: &str) -> Out {
 }
 
 /// The lock of the worktree of `dir`, empty when there is none.
-fn lock(dir: &Path) -> String {
-    let path = git(
+fn lock_path(dir: &Path) -> PathBuf {
+    PathBuf::from(git(
         dir,
         &[
             "rev-parse",
@@ -104,8 +105,21 @@ fn lock(dir: &Path) -> String {
             "--git-path",
             "cardinal-session",
         ],
-    );
-    std::fs::read_to_string(path).unwrap_or_default()
+    ))
+}
+
+fn lock(dir: &Path) -> String {
+    std::fs::read_to_string(lock_path(dir)).unwrap_or_default()
+}
+
+/// Set the time the lock of `dir` was last written.
+fn written_at(dir: &Path, time: SystemTime) {
+    std::fs::File::options()
+        .write(true)
+        .open(lock_path(dir))
+        .unwrap()
+        .set_modified(time)
+        .unwrap();
 }
 
 /// Leave work in progress in `dir`: an untracked file.
@@ -176,6 +190,33 @@ fn check_takes_a_free_or_stale_lock_and_lets_the_call_through() {
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(0), "a dead holder frees the lock: {err}");
     assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
+}
+
+// spec: WSL-1
+#[test]
+fn check_takes_a_lock_whose_pid_a_later_process_took() {
+    let r = repo();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
+    // long before `other` started: the session that wrote it ended and `other` took its number
+    written_at(&r.main, UNIX_EPOCH + Duration::from_hours(24));
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(0), "a stale lock is free: {err}");
+    assert_eq!(lock(&r.main), format!("session b\npid {}\n", live()));
+}
+
+// spec: WSL-1, WSL-3
+#[test]
+fn check_refuses_while_the_holder_started_before_the_last_write() {
+    let r = repo();
+    let other = Other::new();
+    hook("check", &r.main, "a", &other.pid());
+    dirty(&r.main);
+    written_at(&r.main, SystemTime::now() + Duration::from_hours(1));
+    let (code, _, err) = hook("check", &r.main, "b", &live());
+    assert_eq!(code, Some(2), "{err}");
+    assert!(lock(&r.main).contains("session a\n"));
 }
 
 // spec: WSL-2

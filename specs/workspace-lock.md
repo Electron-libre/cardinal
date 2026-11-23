@@ -1,6 +1,6 @@
 ---
 id: WSL
-status: accepted
+status: draft
 adrs: [0005, 0022, 0024, 0027, 0032]
 ---
 
@@ -24,9 +24,9 @@ goes back to the first (ADR 0032). It catches the mistakes of cooperative agents
 
 ### Contract
 
-- **WSL-1** (deterministic) `cardinal run workspace-lock check`, run as a `PreToolUse` hook, must take the lock of the worktree of the `cwd` of its input when there is none, or when the process it names no longer runs, by writing the `session_id` of its input and the process of the session (`CLAUDE_PID`) to the file `git rev-parse --git-path cardinal-session` gives there, and let the call through.
+- **WSL-1** (deterministic) `cardinal run workspace-lock check`, run as a `PreToolUse` hook, must take the lock of the worktree of the `cwd` of its input when there is none, or when it is stale: no process of the `pid` it names runs, or that process started more than 2 seconds after the lock was last written (another process took the number of the session that wrote it); it takes it by writing the `session_id` of its input and the process of the session (`CLAUDE_PID`) to the file `git rev-parse --git-path cardinal-session` gives there, and let the call through.
 - **WSL-2** (deterministic) `check` must let through, rewriting the lock with its own session and process, a call of the session the lock names, or of another session of the same process (a cleared session).
-- **WSL-3** (deterministic) `check` must refuse, with exit code 2 and a message on stderr that says another live session works in this worktree, names its session and its process next to the session and the process of the call, says what keeps the lock (the uncommitted paths, indented, at most ten and the count of the others, with how to commit, `git stash -u` or delete them; or the issue it claims) and tells the agent to stop and let the user open another worktree or end that session, a call of any other session while the process of the lock runs and the holder has work in progress as WSL-10 says.
+- **WSL-3** (deterministic) `check` must refuse, with exit code 2 and a message on stderr that says another live session works in this worktree, names its session and its process next to the session and the process of the call, says what keeps the lock (the uncommitted paths, indented, at most ten and the count of the others, with how to commit, `git stash -u` or delete them; or the issue it claims) and tells the agent to stop and let the user open another worktree or end that session, a call of any other session while the lock is not stale (WSL-1) and the holder has work in progress as WSL-10 says.
 - **WSL-4** (deterministic) Two sessions of two processes taking a free or stale lock at once, in a worktree with uncommitted changes, must leave exactly one of them holding it, the other refused as WSL-3 says.
 - **WSL-6** (deterministic) `cardinal run workspace-lock release`, run as a `SessionEnd` hook, must delete the lock when it names the session of its input, and leave a lock of another session untouched.
 - **WSL-7** (deterministic) `workspace-lock` must let the call through and change nothing when its input cannot be read, when its `cwd` is not in a git repository, or when `CLAUDE_PID` is unset, so that a broken hook never blocks a session.
@@ -42,6 +42,10 @@ goes back to the first (ADR 0032). It catches the mistakes of cooperative agents
   next call of `b` goes through and `b` holds the lock.
 
 - (WSL-1) Given a lock naming session `a` and a process that no longer runs, when session `b` calls `Edit`, then the call passes and the lock names `b`.
+- (WSL-1) Given a lock naming session `a` and a pid that a process started after the last write of the lock took, when
+  session `b` of another process with uncommitted changes in the worktree calls `Bash`, then the call passes and the lock names `b`.
+- (WSL-1) Given a lock last written an hour after its process started and not since, when session `b` of another process
+  calls `Bash` while `a` has work in progress, then the call is refused as WSL-3 says.
 - (WSL-3) Given a lock naming session `a` whose process runs, when session `b` of another process calls `Bash`, then the call is refused and the lock still names `a`.
 - (WSL-10) Given a lock naming session `a` whose process runs, a clean worktree and no claim of `a`, when session `b`
   calls `Bash`, then the call passes and the lock names `b`; when `a` then calls `Edit` after `b` changed a file,
@@ -84,7 +88,9 @@ goes back to the first (ADR 0032). It catches the mistakes of cooperative agents
 ## Non-goals
 
 - Refusing the read-only tools (`Read`, `Grep`, `Glob`) to a second session: it can still read, never change.
-- A process id reused after the holder died, and platforms where `kill -0` cannot test a process.
+- A process id reused, after the holder died, by a process that started within 2 seconds of the last write of the lock;
+  a wall clock stepped forward by more than 2 seconds after the holder took its lock, which makes that lock look
+  stale; platforms where `kill -0` cannot test a process or `ps -o etimes=` cannot give its age (no reuse detected).
 - A lock seen from another clone or machine.
 - Telling who made a change: any uncommitted change counts as the holder's, so a file the user edits by hand (an
   issue of the trunk) keeps an idle holder holding the lock; the refusal names the holder's process and the paths, and

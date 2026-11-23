@@ -62,7 +62,7 @@ pub(super) fn alive(pid: &str) -> bool {
 }
 
 /// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process that
-/// took the number of the session that wrote it (RBI-4, as SUE-4 reads it); false when either time cannot be read.
+/// took the number of the session that wrote it, a stale lock (WSL-1, RBI-4); false when either time cannot be read.
 /// The start is read from `ps -o etimes=` (procps) against the wall clock: a `ps` without that field gives false, and a
 /// wall clock stepped forward after the lock was written can give true for the session that wrote it.
 pub(super) fn started_after(pid: &str, lock: &Path) -> bool {

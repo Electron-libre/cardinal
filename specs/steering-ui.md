@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -39,7 +39,7 @@ run several commands nor open each worktree. It changes the project only through
 
 - **STU-5** (deterministic) The `cardinal` it runs must be the program named by the environment variable `CARDINAL_UI_CARDINAL`, else `cardinal` found on the `PATH`, run in the root of the work tree of the current directory (the current directory outside a git repository), as are the git commands.
 - **STU-6** (deterministic) A tool of STU-3 that cannot be run, exits with a code other than 0 (other than 0 and 1 for `next-issue`), prints no JSON object, or one whose `version` is not `1`, must leave its panel showing one line naming the tool and the cause (the exit code and the first line of its stderr, `not JSON`, or `version <n> unsupported`), the other panels shown as usual; the exit code 1 of `next-issue` (a problem of the issue files, NXT-2) is no such error: the queue is shown with the lines of its stderr under it. A `release` in such an error leaves the milestones of `roadmap` shown, none of them marked `awaits release`, with its line above them (SUQ-1), the panel counting as failed for STU-8.
-- **STU-7** (deterministic) The worktrees must be those `git worktree list --porcelain` lists, in its order, each with its branch (`detached` when it has none); the session of a worktree is the `session` and `pid` of the file `cardinal-session` of its git directory (WSL-9), ended when no process of that `pid` runs, `free` when the file is missing or lacks the `session` or the `pid` (as `workspace-lock` reads it).
+- **STU-7** (deterministic) The worktrees must be those `git worktree list --porcelain` lists, in its order, each with its branch (`detached` when it has none); the session of a worktree is the `session` and `pid` of the file `cardinal-session` of its git directory (WSL-9), ended when the lock is stale as `workspace-lock` reads it (WSL-1: no process of that `pid` runs, or it started more than 2 seconds after the file was last written), `free` when the file is missing or lacks the `session` or the `pid` (as `workspace-lock` reads it).
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and `cardinal-ui` 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
 - **STU-11** (deterministic) withdrawn: moved to SUA-5.
@@ -100,6 +100,8 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-4) Given 700 open issues, when `cardinal-ui --print` runs, then the first and the last issues are both printed.
 - (STU-5) Given the user in a subdirectory of the project, when `cardinal-ui --print` runs, then the tools run at the root and the panels are those of the project.
 - (STU-7) Given a lock file that holds a `session` and no `pid`, when `cardinal-ui --print` runs, then the worktree reads `free`.
+- (STU-7) Given a lock whose pid a process started after the last write of the lock took, when `cardinal-ui --print`
+  runs, then the session of the worktree reads ended, and `--merge` and `--start` count it ended.
 - (STU-8) Given `cardinal-ui --print | head -1`, then it exits 0 or 1, never on a panic.
 - (STU-13) Given a session waiting since the day before, when the UI reads the project, then the worktree reads
   `waiting since <YYYY-MM-DD> <HH:MM>`.

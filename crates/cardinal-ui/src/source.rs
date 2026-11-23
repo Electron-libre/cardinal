@@ -5,6 +5,7 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::time::{Duration, SystemTime};
 
 use serde_json::Value;
 
@@ -74,6 +75,7 @@ pub struct Session {
     pub id: String,
     /// The process of the session, as the lock names it.
     pub pid: String,
+    /// Whether the session has not ended: its lock is not stale (STU-7, WSL-1).
     pub alive: bool,
     /// Since when (seconds since the Unix epoch) and why it waits for the user, when it runs and the mark of the
     /// worktree names it (STU-13).
@@ -335,6 +337,29 @@ pub fn alive(pid: &str) -> bool {
             .is_ok_and(|s| s.success())
 }
 
+/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
+/// that took the number of the session: a stale lock (WSL-1, STU-7).
+fn started_after(pid: &str, lock: &Path) -> bool {
+    let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
+        return false;
+    };
+    let Ok((out, _, 0)) = run(
+        "ps",
+        Path::new("ps"),
+        &["-o", "etimes=", "-p", pid],
+        lock.parent().unwrap_or(lock),
+    ) else {
+        return false;
+    };
+    let Ok(elapsed) = out.trim().parse::<u64>() else {
+        return false;
+    };
+    let started = SystemTime::now() - Duration::from_secs(elapsed);
+    started
+        .duration_since(written)
+        .is_ok_and(|d| d > Duration::from_secs(2))
+}
+
 /// The path of the file `name` of the git directory of the worktree `path`.
 pub fn git_path(path: &Path, name: &str) -> Option<PathBuf> {
     let args = ["rev-parse", "--path-format=absolute", "--git-path", name];
@@ -384,10 +409,11 @@ pub fn session(path: &Path) -> Option<Session> {
 /// directory `path` is gone.
 fn session_of(repo: &Path, path: &Path) -> Option<Session> {
     let file = |name| std::fs::read_to_string(worktree_git_path(repo, path, name)?).ok();
-    let text = file("cardinal-session")?;
+    let lock = worktree_git_path(repo, path, "cardinal-session")?;
+    let text = std::fs::read_to_string(&lock).ok()?;
     let id = field(&text, "session")?;
     let pid = field(&text, "pid")?;
-    let alive = alive(&pid);
+    let alive = alive(&pid) && !started_after(&pid, &lock);
     let waiting = file("cardinal-waiting")
         .filter(|mark| alive && field(mark, "session").as_deref() == Some(id.as_str()))
         .and_then(|mark| {

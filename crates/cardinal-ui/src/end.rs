@@ -91,29 +91,6 @@ fn end_session(id: &str, pid: &str, signalled: bool, dir: &Path) -> Result<(), S
     Ok(())
 }
 
-/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
-/// that took the number of the session (SUE-4).
-fn started_after(pid: &str, lock: &Path) -> bool {
-    let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
-        return false;
-    };
-    let Ok((out, _, 0)) = source::run(
-        "ps",
-        Path::new("ps"),
-        &["-o", "etimes=", "-p", pid],
-        lock.parent().unwrap_or(lock),
-    ) else {
-        return false;
-    };
-    let Ok(elapsed) = out.trim().parse::<u64>() else {
-        return false;
-    };
-    let started = std::time::SystemTime::now() - Duration::from_secs(elapsed);
-    started
-        .duration_since(written)
-        .is_ok_and(|d| d > Duration::from_secs(2))
-}
-
 /// The checks that run in the directory of the worktree at `path`, which a directory removed by hand skips (SUE-3).
 fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result<(), String> {
     if !git(path, &["status", "--porcelain"])?.trim().is_empty() {
@@ -147,14 +124,9 @@ fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result
     Ok(())
 }
 
-/// The session of the worktree `target` whose process runs, unless another process took the number of its `pid`
-/// (SUE-4).
-fn running<'a>(root: &Path, target: &'a source::Worktree) -> Option<&'a source::Session> {
-    let lock = source::worktree_git_path(root, Path::new(&target.path), "cardinal-session");
-    target
-        .session
-        .as_ref()
-        .filter(|s| s.alive && !lock.as_deref().is_some_and(|l| started_after(&s.pid, l)))
+/// The session of the worktree `target` that has not ended (STU-7, SUE-4).
+fn running(target: &source::Worktree) -> Option<&source::Session> {
+    target.session.as_ref().filter(|s| s.alive)
 }
 
 /// `e` after what the steps of the end did, so the user knows what is left (SUE-4).
@@ -200,7 +172,7 @@ pub fn end_waiting(root: &Path, stem: &str, branch: &str) -> Result<Vec<String>,
     };
     let clean = git(Path::new(&target.path), &["status", "--porcelain"])
         .is_ok_and(|out| out.trim().is_empty());
-    match running(root, target).filter(|s| s.waiting.is_some()) {
+    match running(target).filter(|s| s.waiting.is_some()) {
         Some(session) if clean => end_steps(root, stem, Some(session)),
         _ => Ok(Vec::new()),
     }
@@ -253,7 +225,7 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     if !gone {
         refuse_in(root, path, &worktrees)?;
     }
-    let session = running(root, target);
+    let session = running(target);
     if let Some(s) = session.filter(|s| s.waiting.is_none()) {
         return Err(format!("session {} is at work in {}", s.id, path.display()));
     }

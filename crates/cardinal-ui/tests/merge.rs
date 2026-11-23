@@ -131,7 +131,8 @@ impl Project {
     }
 
     /// Writes the lock of the main worktree, naming the session `s1` and the process `pid`.
-    fn lock(&self, pid: u32) {
+    /// Writes the lock of the main worktree naming the session `s1` of process `pid`: its path.
+    fn lock(&self, pid: u32) -> PathBuf {
         let path = git(
             &self.repo,
             &[
@@ -141,7 +142,8 @@ impl Project {
                 "cardinal-session",
             ],
         );
-        std::fs::write(path, format!("session s1\npid {pid}\n")).unwrap();
+        std::fs::write(&path, format!("session s1\npid {pid}\n")).unwrap();
+        path.into()
     }
 }
 
@@ -272,6 +274,24 @@ fn a_live_session_in_the_main_worktree_is_refused_an_ended_one_is_not() {
     );
     assert_eq!(p.trunk(), before);
     p.lock(ENDED_PID);
+    let (code, out, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert_eq!(p.trunk(), p.foo());
+}
+
+// spec: SUM-2
+#[test]
+fn a_session_whose_pid_a_later_process_took_does_not_refuse_the_merge() {
+    let p = project();
+    let cardinal = p.cardinal("exit 0");
+    let lock = p.lock(std::process::id());
+    // long before the test binary started: the session that wrote it ended and the test took its number
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_hours(24))
+        .unwrap();
     let (code, out, err) = p.merge(&cardinal, "foo");
     assert_eq!(code, Some(0), "{out}{err}");
     assert_eq!(p.trunk(), p.foo());

@@ -279,7 +279,7 @@ fn a_claim_whose_worktree_is_gone_or_merge_pending_does_not_resume() {
 
 // spec: SUA-5
 #[test]
-fn a_claim_whose_worktree_a_live_session_holds_does_not_resume() {
+fn a_claim_whose_worktree_a_live_session_holds_does_not_resume_a_stale_lock_does() {
     let s = setup();
     let (queue, wt) = ended_queue(&s);
     let out = Command::new("git")
@@ -298,6 +298,15 @@ fn a_claim_whose_worktree_a_live_session_holds_does_not_resume() {
         "{err}"
     );
     assert_eq!(s.log(), "");
+    // written long before the test binary started: the session that wrote it ended and the test took its number
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_hours(24))
+        .unwrap();
+    let (code, out, err) = s.ui(&cardinal, Some(&zellij), &["--start", "d"]);
+    assert_eq!(code, Some(0), "a stale lock holds nothing: {out}{err}");
 }
 
 // spec: SUA-5

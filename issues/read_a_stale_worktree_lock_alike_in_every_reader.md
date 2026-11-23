@@ -51,9 +51,9 @@ Out of scope: the `/proc/<pid>/stat` reading of the hint (a forward clock step s
 1. [x] workspace-lock: `keeps` (and the take of WSL-1) frees a lock whose `pid` `issue_claim::started_after` the lock;
    verified by `tests/workspace_lock.rs` (a pid started after the write is taken, a holder started before it keeps it);
    makes true WSL-1, WSL-3. (autonomous)
-2. [ ] cardinal-ui: `source::session` sets `Session::alive` false for such a lock (`started_after` moved from `end.rs`,
+2. [x] cardinal-ui: `source::session` sets `Session::alive` false for such a lock (`started_after` moved from `end.rs`,
    `running` reduced to `alive`), so `--print`, `--merge` and `--start` read it ended; verified by `tests/print_worktrees.rs`,
-   `tests/merge.rs`, `tests/start.rs`; makes true STU-7 (SUM-2, SUA-5, SUE-4, RBI-4 cite WSL-1), specs back to `accepted`.
+   `tests/merge.rs`, `tests/start.rs`; makes true STU-7 (SUM-2, SUA-5, SUE-4, RBI-4 cite WSL-1), specs back to `accepted`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -76,6 +76,26 @@ done: `workspace-lock` frees a lock whose `pid` a process started after the lock
 | code review | `low`: no findings |
 
 red: WSL-1: `a stale lock is free: Refused: another live session (a) of process … works in this worktree` (exit 2, expected 0)
+
+Code review: no findings
+
+not verified: none
+
+decisions needed: none
+
+## Deliverable 2 summary
+done: `source::session` of `cardinal-ui` reads a stale lock as ended (`started_after` moved from `end.rs`), so `--print`,
+`--merge`, `--start` and the end agree; specs back to `accepted`.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal-ui`, all) |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no page names the liveness test of the lock |
+| code review | `low`: no findings |
+
+red: STU-7: `--print` did not show `session s1 ended`; SUM-2: `session s1 works in the main worktree` (exit 1); SUA-5: `d: session s9 works in …` (exit 1)
 
 Code review: no findings
 

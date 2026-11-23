@@ -23,6 +23,27 @@ fn an_ended_session_is_shown_ended() {
     );
 }
 
+// spec: STU-7
+#[test]
+fn a_session_whose_pid_a_later_process_took_is_shown_ended() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    Project::lock(&p.ws, "s1", &std::process::id().to_string());
+    let lock = common::git_path(&p.ws, "cardinal-session");
+    // long before the test binary started: the session that wrote it ended and the test took its number
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + std::time::Duration::from_hours(24))
+        .unwrap();
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    assert!(
+        line(&out, &format!("│{}  ", p.ws.display())).contains("session s1 ended"),
+        "{out}"
+    );
+}
+
 // spec: STU-8
 #[test]
 fn outside_a_repository_the_worktrees_panel_shows_an_error() {

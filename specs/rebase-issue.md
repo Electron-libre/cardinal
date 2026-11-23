@@ -1,6 +1,6 @@
 ---
 id: RBI
-status: draft
+status: accepted
 adrs: [0022]
 ---
 

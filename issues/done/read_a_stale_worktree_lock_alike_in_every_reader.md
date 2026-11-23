@@ -110,7 +110,7 @@ decisions needed: none
 ## High review
 | finding | done |
 |---|---|
-| claims read `kill -0` only: `--start` says `taken` after a reuse | out of scope (Understanding); already `issues/release_a_claim_whose_pid_another_process_took.md` |
+| claims read `kill -0` only: `--start` says `taken` after a reuse | out of scope (Understanding); already `issues/done/release_a_claim_whose_pid_another_process_took.md` |
 | a forward clock step frees a live lock | decision 1 a, a non-goal of WSL |
 | two `started_after`, lock parsers differ on a trailing space | one per crate as the Approach says; the trim, pre-existing, left |
 | WSL-1 refusal test passes with an inverted check | fixed (deliverable 3) |

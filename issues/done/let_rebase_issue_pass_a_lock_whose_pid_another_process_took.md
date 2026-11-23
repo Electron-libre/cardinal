@@ -67,7 +67,7 @@ Out of scope: the `workspace-lock` hook (a holder with no work in progress alrea
 ## Deliverable 2 summary
 - done: fixes of the `high` review of the issue; pre-existing findings filed as
   `issues/done/read_a_stale_worktree_lock_alike_in_every_reader.md` (merge, UI, `workspace-lock`) and
-  `issues/release_a_claim_whose_pid_another_process_took.md` (claims).
+  `issues/done/release_a_claim_whose_pid_another_process_took.md` (claims).
 - red: none
 - Code review: no findings (`low` of this deliverable).
 - High review: 7 findings: 3 pre-existing filed as the two issues above; test backdating and duplicate doc line fixed;

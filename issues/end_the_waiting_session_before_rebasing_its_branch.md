@@ -40,3 +40,43 @@ A steering UI to command
 # Hints
 * Never end a session that is working, nor one whose worktree has uncommitted changes (SUE-3).
 * A rebase that then fails on a conflict leaves the session ended: say so on the status line.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+Before the `rebase-issue` of SUM-3, the merge ends the session of the branch's worktree when it only waits (wait mark,
+clean worktree), with the steps of SUE-4 short of `worktree close`; a working session or a dirty worktree keeps the
+refusal of RBI-4. Out of scope: a dry run of the other RBI-4 refusals (a pushed branch is refused after the end, said).
+
+## Plan
+1. [x] End the waiting session before the rebase: `end.rs` exposes the session end of SUE-4 (tab or pane, `SIGHUP`,
+   wait) without the `worktree close`, `merge.rs` calls it before `rebase-issue` and prefixes what it did to any later
+   failure; verified by binary tests of `--merge` in a new `tests/rebase_waiting.rs` (waiting session in a tab, at
+   work, dirty worktree, conflict after the end, deaf to `SIGHUP`); makes true SUM-4. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 4605550c93405e0553a5ba174f66c7cca13aee4e
+- Pushed branch: no dry run of RBI-4 before the end; the session only waited and can be resumed (1 a).
+- Success line of `--merge`: unchanged, SUM-3's; `f` adds `; ended <stem>` (2 a).
+
+## Deliverable 1 summary
+done: before the `rebase-issue` of a diverged branch, `--merge` and `f` end the session of its worktree when it waits
+in a clean worktree (tab or pane closed, else `SIGHUP`, 10 s wait); a failure after that end names it.
+
+| check | result |
+|---|---|
+| tests | `cargo test -p cardinal-ui` pass (5 new in `tests/rebase_waiting.rs`) |
+| lint | clippy clean (`project-check`) |
+| specs | SUM-4, SUM-H3 traced, spec `accepted` |
+| docs | README, `docs/architecture.md` |
+| code review | `low`: no findings |
+
+red: SUM-4, SUM-H3: `cardinal-ui: session s1 works in <ws>` (exit 1 where 0 was expected)
+Code review: no findings
+
+not verified: the key `f` in a real zellij session (proved through `--merge` then `--end`, the two halves `f` chains).
+
+decisions needed: none

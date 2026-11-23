@@ -147,6 +147,65 @@ fn refuse_in(root: &Path, path: &Path, worktrees: &[source::Worktree]) -> Result
     Ok(())
 }
 
+/// The session of the worktree `target` whose process runs, unless another process took the number of its `pid`
+/// (SUE-4).
+fn running<'a>(root: &Path, target: &'a source::Worktree) -> Option<&'a source::Session> {
+    let lock = source::worktree_git_path(root, Path::new(&target.path), "cardinal-session");
+    target
+        .session
+        .as_ref()
+        .filter(|s| s.alive && !lock.as_deref().is_some_and(|l| started_after(&s.pid, l)))
+}
+
+/// `e` after what the steps of the end did, so the user knows what is left (SUE-4).
+pub fn failed(done: &[String], e: String) -> String {
+    if done.is_empty() {
+        e
+    } else {
+        format!("{}; {e}", done.join("; "))
+    }
+}
+
+/// The steps of SUE-4 before the `worktree close`: the tab or the pane of the session of `stem` closed, else the
+/// `SIGHUP` of `session`, then the wait for it to end; what they did, or the step that failed after them.
+fn end_steps(
+    root: &Path,
+    stem: &str,
+    session: Option<&source::Session>,
+) -> Result<Vec<String>, String> {
+    let mut done: Vec<String> = Vec::new();
+    if source::in_zellij() {
+        if let Some(closed) = close_pane(root, stem)? {
+            done.push(closed);
+        }
+    }
+    if let Some(s) = session {
+        end_session(&s.id, &s.pid, !done.is_empty(), root).map_err(|e| failed(&done, e))?;
+        done.push(format!("ended session {}", s.id));
+    }
+    Ok(done)
+}
+
+/// Ends the session of the worktree of `branch` when it waits for the user and `git status --porcelain` lists
+/// nothing there, before the rebase of the issue `stem` (SUM-4): what the end did, empty when it ended nothing, or
+/// the step that failed after what the steps before it did. A session at work, a dirty worktree or a directory gone
+/// are left to the refusal of `rebase-issue` (RBI-4).
+pub fn end_waiting(root: &Path, stem: &str, branch: &str) -> Result<Vec<String>, String> {
+    let worktrees = source::worktrees(root)?;
+    let Some(target) = worktrees
+        .iter()
+        .find(|w| w.branch.as_deref() == Some(branch))
+    else {
+        return Ok(Vec::new());
+    };
+    let clean = git(Path::new(&target.path), &["status", "--porcelain"])
+        .is_ok_and(|out| out.trim().is_empty());
+    match running(root, target).filter(|s| s.waiting.is_some()) {
+        Some(session) if clean => end_steps(root, stem, Some(session)),
+        _ => Ok(Vec::new()),
+    }
+}
+
 /// Ends what the merged issue `stem` of the project at `root` left, on the linked worktree of the branch `stem`
 /// (SUE-3).
 pub fn end(root: &Path, stem: &str) -> Result<String, String> {
@@ -194,31 +253,11 @@ pub fn end_on(root: &Path, stem: &str, branch: &str) -> Result<String, String> {
     if !gone {
         refuse_in(root, path, &worktrees)?;
     }
-    let lock = source::worktree_git_path(root, path, "cardinal-session");
-    let session = target
-        .session
-        .as_ref()
-        .filter(|s| s.alive && !lock.as_deref().is_some_and(|l| started_after(&s.pid, l)));
+    let session = running(root, target);
     if let Some(s) = session.filter(|s| s.waiting.is_none()) {
         return Err(format!("session {} is at work in {}", s.id, path.display()));
     }
-    let mut done: Vec<String> = Vec::new();
-    let failed = |done: &[String], e: String| {
-        if done.is_empty() {
-            e
-        } else {
-            format!("{}; {e}", done.join("; "))
-        }
-    };
-    if source::in_zellij() {
-        if let Some(closed) = close_pane(root, stem)? {
-            done.push(closed);
-        }
-    }
-    if let Some(s) = session {
-        end_session(&s.id, &s.pid, !done.is_empty(), root).map_err(|e| failed(&done, e))?;
-        done.push(format!("ended session {}", s.id));
-    }
+    let done = end_steps(root, stem, session)?;
     let name = "worktree close";
     let (_, err, code) = source::run(
         name,

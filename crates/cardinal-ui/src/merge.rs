@@ -1,11 +1,13 @@
 //! The merge of an issue closed on its branch (SUM-1, SUM-2): when a claim in the state `merge pending` takes it,
 //! the trunk of the main worktree is fast-forwarded to the branch of that claim, then `cardinal check` runs there.
 //! Nothing is merged from a detached, dirty or locked main worktree; a branch the trunk cannot fast-forward to is
-//! first rebased by `cardinal run rebase-issue` and checked by `cardinal run project-check` in its worktree (SUM-3);
+//! first rebased by `cardinal run rebase-issue` and checked by `cardinal run project-check` in its worktree (SUM-3),
+//! once the session of that worktree that only waits for the merge ended (SUM-4);
 //! the UI's own git commands run with the main worktree as their directory, never a linked one.
 
 use std::path::{Path, PathBuf};
 
+use crate::end;
 use crate::source::{self, Taken};
 
 /// Runs `git args` in `dir`: its stdout, or the failure line of SUM-2.
@@ -132,17 +134,21 @@ pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String>
         &["merge-base", "--is-ancestor", "HEAD", &head],
         &main,
     )?;
+    // what the end of the waiting session did before the rebase, named in any failure that follows (SUM-4)
+    let mut ended = Vec::new();
     let rebased = match code {
         0 => false,
         1 => {
-            rebase(&main, stem, &branch, &trunk)?;
-            // the rebase and its check take minutes: the main worktree is checked again before the merge
-            free_main_worktree(root)?;
+            ended = end::end_waiting(root, stem, &branch)?;
+            rebase(&main, stem, &branch, &trunk)
+                // the rebase and its check take minutes: the main worktree is checked again before the merge
+                .and_then(|()| free_main_worktree(root))
+                .map_err(|e| end::failed(&ended, e))?;
             true
         }
         _ => return Err(source::failure(ancestor, code, &err)),
     };
-    git(&main, &["merge", "--ff-only", "--quiet", &head])?;
+    git(&main, &["merge", "--ff-only", "--quiet", &head]).map_err(|e| end::failed(&ended, e))?;
     let merged = if rebased {
         format!("rebased and merged {stem} ({branch}) into {trunk}")
     } else {

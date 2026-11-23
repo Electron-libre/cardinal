@@ -94,8 +94,8 @@ goes back to the first (ADR 0032). It catches the mistakes of cooperative agents
 
 - Refusing the read-only tools (`Read`, `Grep`, `Glob`) to a second session: it can still read, never change.
 - A process id reused, after the holder died, by a process that started within 2 seconds of the last write of the lock;
-  a wall clock stepped forward by more than 2 seconds after the holder took its lock, which makes that lock look
-  stale; platforms where `kill -0` cannot test a process or `ps -o etimes=` cannot give its age (no reuse detected).
+  a wall clock stepped forward by more than 2 seconds after the holder took its lock or wrote a claim, which makes
+  that lock look stale or that claim, matched by process alone, not the holder's (WSL-10, WSL-12); platforms where `kill -0` cannot test a process or `ps -o etimes=` cannot give its age (no reuse detected).
 - A lock seen from another clone or machine.
 - Telling who made a change: any uncommitted change counts as the holder's, so a file the user edits by hand (an
   issue of the trunk) keeps an idle holder holding the lock; the refusal names the holder's process and the paths, and

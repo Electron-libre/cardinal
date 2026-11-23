@@ -160,9 +160,9 @@ fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
         return;
     };
     for (stem, old, claim) in issue_claim::all(cwd) {
-        let ours = owns(holder, &claim);
         let here = canonical(Path::new(&claim.worktree)).as_ref() == Some(&top);
-        if claim.state == "working" && ours && here {
+        // `owns` last: a match by pid alone reads the start of its process (`ps`)
+        if claim.state == "working" && here && owns(holder, &claim) {
             let moved = issue_claim::Claim {
                 session: caller.me.session.clone(),
                 pid: caller.me.pid.clone(),

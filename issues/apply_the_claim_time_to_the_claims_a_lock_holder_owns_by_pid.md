@@ -43,6 +43,8 @@ A `working` claim matched to the lock holder by pid only (not by session) counts
    used by both matches in `workspace_lock.rs`; verified by two tests of `tests/workspace_lock.rs` (a crashed
    session's claim under a reused pid lets a third session take the clean worktree; a hand-over leaves it
    unchanged); makes true WSL-10, WSL-12 (~80 lines). (autonomous)
+2. [x] Fixes of the `high` review: `owns` called last in `hand_claims`, `docs/gates.md` worded as WSL-10, the
+   wall clock non-goal extended to the claims; verified by project-check. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -57,4 +59,17 @@ A `working` claim matched to the lock holder by pid only (not by session) counts
   twice and goes in a deliverable of its own: follow-up issue.
 - checks: project-check green (fmt, clippy, tests, specs); deliverable-size 95 lines.
 - Code review: no findings
+- not verified: none. decisions needed: none.
+
+## Deliverable 2 summary (high review of dc99b77..HEAD)
+- done: the fixes above; no behaviour change.
+- red: none (no test: a reorder, docs and a non-goal).
+- Code review: 4 findings (high)
+  1. Tests need `ps -o etimes=` (BSD, busybox): not fixed: the binary reads the start of a process with procps only, a
+     non-goal of CLM-11 and WSL; the WSL-1 and CLM-11 tests already rely on it the same way.
+  2. Clock stepped forward can drop a live holder's claim: accepted, the non-goal of `specs/workspace-lock.md` now
+     names the claims.
+  3. `owns` spawned `ps` for claims skipped anyway: fixed, called last.
+  4. `docs/gates.md` wording off the spec: fixed.
+- checks: project-check green.
 - not verified: none. decisions needed: none.

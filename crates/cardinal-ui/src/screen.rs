@@ -4,7 +4,8 @@
 //! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4); a worktree that starts to wait
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
 //! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
-//! the help line under the panels offers the keys of the selection (SUA-15).
+//! `i` unfolds the summary of the selected issue under the queue (SUQ-6); the help line under the panels offers the
+//! keys of the selection (SUA-15).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -48,6 +49,8 @@ pub struct View {
     pub charts: [Chart; 4],
     /// The keys of the tasks that would act on each issue and worktree, for the help line (SUA-15).
     pub keys: crate::help::Keys,
+    /// The summary of each issue of the queue, in the order of its stems (SUQ-6).
+    pub summaries: Vec<crate::summary::Summary>,
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -220,11 +223,12 @@ fn received(
 /// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
 /// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1) over the help line of
 /// the selection, no key of a task while one runs (`busy`, SUA-15), or `reading the
-/// project…` before the first read, in the roles of `theme` (SUS-1).
-fn draw(
+/// project…` before the first read, in the roles of `theme` (SUS-1); the summary of the selected issue under the
+/// queue when it is `unfolded` (SUQ-6).
+pub(crate) fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    (selected, shown, busy): (Selection, Screen, bool),
+    (selected, shown, busy, unfolded): (Selection, Screen, bool, bool),
     status: &Status,
     theme: &Theme,
 ) {
@@ -250,7 +254,10 @@ fn draw(
             Screen::Panels => render(
                 area,
                 buf,
-                (&v.panels[..2], &crate::help::line(v, selected, busy)),
+                (
+                    &crate::summary::panels(v, selected, unfolded, area),
+                    &crate::help::line(v, selected, busy),
+                ),
                 selected.line(v),
                 status,
                 theme,
@@ -294,6 +301,7 @@ pub fn run(
         let mut busy = false;
         let mut quitting = false;
         let mut shown = Screen::Panels;
+        let mut unfolded = false;
         let started = Instant::now();
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
@@ -318,7 +326,8 @@ pub fn run(
                 // the mark at work turns at each tick, a read or not (SUQ-4)
                 spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
-            terminal.draw(|f| draw(f, view.as_ref(), (selected, shown, busy), &status, &theme))?;
+            let state = (selected, shown, busy, unfolded);
+            terminal.draw(|f| draw(f, view.as_ref(), state, &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
                     let (screen, key) = screen_key(shown, action(&key));
@@ -334,6 +343,9 @@ pub fn run(
                     match key {
                         Action::Quit | Action::Charts => {}
                         Action::Refresh => schedule.asked = true,
+                        Action::Summary => {
+                            unfolded = crate::summary::toggle(unfolded, selected, view.as_ref());
+                        }
                         Action::Measure => {
                             measure();
                             schedule.asked = true;
@@ -375,8 +387,8 @@ mod tests {
     // spec: SUA-1, SUS-2 (internal: the highlight of a screen that needs a real terminal)
     #[test]
     fn the_selected_issue_is_highlighted_and_the_status_shown() {
-        let panel = |title, lines: &[&str]| Panel {
-            title,
+        let panel = |title: &'static str, lines: &[&str]| Panel {
+            title: title.into(),
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -413,7 +425,7 @@ mod tests {
     #[test]
     fn on_a_narrow_screen_the_status_line_wraps_above_the_help() {
         let panel = |title: &'static str| Panel {
-            title,
+            title: title.into(),
             lines: vec!["x".to_string()],
             marks: Vec::new(),
             headings: Vec::new(),
@@ -448,8 +460,8 @@ mod tests {
     // spec: SUS-2 (internal: the layout of a screen that needs a real terminal)
     #[test]
     fn with_no_message_the_panels_keep_the_row_of_the_status_line() {
-        let panel = |title, lines: &[&str]| Panel {
-            title,
+        let panel = |title: &'static str, lines: &[&str]| Panel {
+            title: title.into(),
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -481,8 +493,8 @@ mod tests {
     // spec: SUS-H1, SUS-1, SUS-2 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_frame_is_drawn_in_the_roles_of_the_theme() {
-        let panel = |title, lines: &[&str], marks| Panel {
-            title,
+        let panel = |title: &'static str, lines: &[&str], marks| Panel {
+            title: title.into(),
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks,
             headings: Vec::new(),
@@ -550,8 +562,8 @@ mod tests {
     // spec: SUS-1, SUQ-5 (internal: the colors of a screen that needs a real terminal)
     #[test]
     fn the_marked_words_are_drawn_in_their_role_also_when_selected() {
-        let panel = |title, lines: &[&str], marks| Panel {
-            title,
+        let panel = |title: &'static str, lines: &[&str], marks| Panel {
+            title: title.into(),
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks,
             headings: if title == "Queue" {
@@ -636,8 +648,8 @@ mod tests {
         assert_eq!(offset(5, 15), 0);
         assert_eq!(offset(29, 15), 15);
         assert_eq!(offset(3, 0), 3);
-        let panel = |title, lines: Vec<String>| Panel {
-            title,
+        let panel = |title: &'static str, lines: Vec<String>| Panel {
+            title: title.into(),
             lines,
             marks: Vec::new(),
             headings: Vec::new(),
@@ -685,8 +697,8 @@ mod tests {
         };
         sel.reread(&before, &after);
         assert_eq!(sel.worktree, 2);
-        let panel = |title, lines: &[&str]| Panel {
-            title,
+        let panel = |title: &'static str, lines: &[&str]| Panel {
+            title: title.into(),
             lines: lines.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -717,8 +729,8 @@ mod tests {
     // spec: SUE-1 (internal: the layout of a screen that needs a real terminal)
     #[test]
     fn the_selected_worktree_stays_visible_in_a_short_panel() {
-        let panel = |title, lines: Vec<String>| Panel {
-            title,
+        let panel = |title: &'static str, lines: Vec<String>| Panel {
+            title: title.into(),
             lines,
             marks: Vec::new(),
             headings: Vec::new(),
@@ -770,7 +782,7 @@ mod tests {
                 draw(
                     f,
                     Some(&v),
-                    (selected, shown, false),
+                    (selected, shown, false, false),
                     &Status::default(),
                     &Theme::default(),
                 );

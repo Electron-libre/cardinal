@@ -60,8 +60,8 @@ mod tests {
     // spec: STU-4, SUA-15 (internal: no read gives a help line wider than 100 columns yet)
     #[test]
     fn a_help_line_wider_than_the_panels_is_printed_whole() {
-        let panel = |title| Panel {
-            title,
+        let panel = |title: &'static str| Panel {
+            title: title.into(),
             lines: vec!["x".to_string()],
             marks: Vec::new(),
             headings: Vec::new(),

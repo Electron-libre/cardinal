@@ -69,6 +69,8 @@ pub enum Action {
     Release,
     Measure,
     Charts,
+    /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
+    Summary,
     /// `Esc`: back to the panels from the charts and the measures (SUC-1), else quit (STU-2).
     Back,
     Nothing,
@@ -148,6 +150,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('v') => Action::Release,
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
+        KeyCode::Char('i') => Action::Summary,
         _ => Action::Nothing,
     }
 }
@@ -333,8 +336,8 @@ pub(crate) mod tests {
     }
 
     pub(crate) fn view(stems: &[&str], worktrees: &[(&str, Option<&str>)]) -> View {
-        let panel = |title| Panel {
-            title,
+        let panel = |title: &'static str| Panel {
+            title: title.into(),
             lines: Vec::new(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -351,6 +354,7 @@ pub(crate) mod tests {
             waits: Some(Vec::new()),
             charts: crate::charts::charts(None),
             keys: crate::help::Keys::default(),
+            summaries: Vec::new(),
         }
     }
 

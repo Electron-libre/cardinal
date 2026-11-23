@@ -46,7 +46,7 @@ mod tests {
             role,
         };
         Panel {
-            title: "Queue",
+            title: "Queue".into(),
             lines: vec![
                 format!("  {AT_WORK} a"),
                 format!("  {WAITING} b"),

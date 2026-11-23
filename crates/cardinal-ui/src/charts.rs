@@ -225,7 +225,7 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
         lines.push(line);
     }
     Panel {
-        title: chart.title,
+        title: chart.title.into(),
         lines,
         marks,
         headings: Vec::new(),
@@ -245,7 +245,7 @@ pub(crate) fn head(p: &Panel) -> Panel {
         .position(|l| l == "by revision:")
         .unwrap_or(p.lines.len());
     Panel {
-        title: p.title,
+        title: p.title.clone(),
         lines: p.lines[..n].to_vec(),
         marks: p.marks.iter().filter(|m| m.line < n).cloned().collect(),
         headings: Vec::new(),
@@ -422,7 +422,7 @@ mod tests {
         let area = Rect::new(0, 0, 100, 24);
         let mut buf = Buffer::empty(area);
         let head = Panel {
-            title: "Measures",
+            title: "Measures".into(),
             lines: vec!["measured 19:23".to_string()],
             marks: Vec::new(),
             headings: Vec::new(),
@@ -501,7 +501,7 @@ mod tests {
     fn charts_screen(head: &[&str], theme: &Theme) -> Buffer {
         let dir = screen_measure();
         let head = Panel {
-            title: "Measures",
+            title: "Measures".into(),
             lines: head.iter().map(|l| (*l).to_string()).collect(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -565,7 +565,7 @@ mod tests {
         assert!(rows[0].starts_with("session-metrics: exit 3"), "{rows:?}");
         assert!(rows[1].starts_with("measuring…"), "{rows:?}");
         let panel = Panel {
-            title: "Measures",
+            title: "Measures".into(),
             lines: ["measured 09:05", "by revision:", "r1  12 sessions"]
                 .map(String::from)
                 .to_vec(),

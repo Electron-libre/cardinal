@@ -140,7 +140,7 @@ impl Status {
 const GAP: &str = "  ";
 
 /// The display columns of `text`.
-fn columns(text: &str) -> usize {
+pub(crate) fn columns(text: &str) -> usize {
     Line::raw(text).width()
 }
 
@@ -179,7 +179,7 @@ fn wrap<'a>(
 
 /// `text` cut after its first `width` columns between two graphemes, one grapheme at least so a row always takes
 /// some.
-fn split(text: &str, width: usize) -> (&str, &str) {
+pub(crate) fn split(text: &str, width: usize) -> (&str, &str) {
     let (mut used, mut at) = (0, 0);
     for grapheme in Span::raw(text).styled_graphemes(Style::new()) {
         used += columns(grapheme.symbol);

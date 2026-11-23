@@ -48,6 +48,9 @@ pub enum Taken {
 /// An open issue of `next-issue --json` (NXT-19).
 pub struct Issue {
     pub stem: String,
+    /// Its `title` and its `goal`, for its summary (SUQ-6).
+    pub title: Option<String>,
+    pub goal: Option<String>,
     pub priority: Option<String>,
     pub state: String,
     pub milestone: Option<String>,
@@ -305,6 +308,8 @@ pub fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
                     .as_str()
                     .is_some_and(|s| tabs.iter().any(|t| t == s)),
                 stem: string(&i["stem"]).unwrap_or_default(),
+                title: string(&i["title"]),
+                goal: string(&i["goal"]),
                 priority: string(&i["priority"]),
                 state: string(&i["state"]).unwrap_or_default(),
                 milestone: string(&i["milestone"]),

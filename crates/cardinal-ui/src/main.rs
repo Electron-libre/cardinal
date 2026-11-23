@@ -25,6 +25,7 @@ mod source;
 mod spinner;
 mod start;
 mod status;
+mod summary;
 mod theme;
 mod tree;
 
@@ -48,6 +49,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     let (panels, issues) = panels::panels(&state);
     let (stems, stem_lines): (Vec<String>, _) = issues.into_iter().unzip();
     let keys = help::Keys::of(&state, &stems, source::in_zellij());
+    let summaries = summary::of(state.queue.as_ref().ok(), &stems);
     screen::View {
         panels,
         stems,
@@ -56,6 +58,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         waits,
         charts: state.charts,
         keys,
+        summaries,
     }
 }
 

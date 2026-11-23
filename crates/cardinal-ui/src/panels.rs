@@ -12,8 +12,9 @@ use crate::theme::Role;
 use crate::tree::{sections, Heading};
 
 /// A panel: its title, its lines and the words of its lines drawn in a role.
+#[derive(Clone)]
 pub struct Panel {
-    pub title: &'static str,
+    pub title: std::borrow::Cow<'static, str>,
     pub lines: Vec<String>,
     pub marks: Vec<Mark>,
     /// The lines that head a section of the queue, drawn in `accent` and bold (SUQ-5).
@@ -92,7 +93,7 @@ fn width(text: &str) -> usize {
 impl Panel {
     fn of(title: &'static str, lines: Vec<Styled>, failed: bool) -> Self {
         let mut panel = Self {
-            title,
+            title: title.into(),
             lines: Vec::new(),
             marks: Vec::new(),
             headings: Vec::new(),
@@ -481,6 +482,8 @@ mod tests {
     fn issue(stem: &str, state: &str, taken: Option<Taken>) -> crate::source::Issue {
         crate::source::Issue {
             stem: stem.to_string(),
+            title: None,
+            goal: None,
             priority: Some("high".to_string()),
             state: state.to_string(),
             milestone: None,

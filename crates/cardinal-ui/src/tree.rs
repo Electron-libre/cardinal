@@ -158,6 +158,8 @@ mod tests {
     fn issue(stem: &str, milestone: Option<&str>, depends_on: &[&str]) -> Issue {
         Issue {
             stem: stem.to_string(),
+            title: None,
+            goal: None,
             priority: Some("low".to_string()),
             state: "ready".to_string(),
             milestone: milestone.map(str::to_string),

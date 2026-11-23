@@ -48,10 +48,10 @@ summary shows the issue file of the work tree `cardinal-ui` reads (the trunk's f
 ## Plan
 1. [x] Goal in the JSON: `next-issue --json` gives each issue its `goal`; verified by a test of the binary in a new
    `crates/cardinal/tests/next_issue_goal.rs` (`tests/next_issue.rs` is over the file size limit); makes true NXT-19. (autonomous)
-2. [ ] Summary panel: `i` folds and unfolds a panel under the queue with the title and the wrapped goal of the selected
+2. [x] Summary panel: `i` folds and unfolds a panel under the queue with the title and the wrapped goal of the selected
    issue; the new code in a module `crates/cardinal-ui/src/summary.rs` (`screen.rs` is over the file size limit, it
    only gets the call), `source.rs` reads `title` and `goal`, `keys.rs` maps `i`; verified by Ratatui tests of the
-   drawn screen; makes true SUQ-6, SUQ-7, SUQ-H3.
+   drawn screen; makes true SUQ-6, SUQ-7, SUQ-H3. (autonomous)
 3. [ ] Help line: `i summary` after `tab panel` when the selection is on an issue of the queue; verified by the tests
    of `help.rs`; makes true SUA-15, SUA-H7.
 
@@ -80,3 +80,25 @@ Code review: 1 findings
   from the top of the body, and the test holds such a block.
 
 not verified: none. decisions needed: none.
+
+### 2. Summary panel
+done: `i` folds and unfolds, between the queue and the worktrees, a panel titled with the title of the selected issue
+holding its goal wrapped (`summary.rs`); the title of a panel became a `Cow` to hold it.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass; `next-issue.md` and `steering-ui-queue.md` set `accepted` |
+| docs | README, `docs/usage.md`, `docs/architecture.md` (module table) |
+| code review | see below |
+
+red: SUQ-H3, SUQ-6, SUQ-7: `a summary titled Do a: ┌ Queue ───…` (no panel drawn), `shown again`, `left: [] right: ["one two", "three"]`
+- `screen.rs` stays over the file size limit (840 lines before, 852 now: the call of the summary and the fold
+  state): its split by responsibility is a refactor of its own, proposed as a follow-up.
+
+Code review: 1 findings
+- The last row cut to a panel of one column kept a grapheme before its `…` (two columns): fixed, it holds `…` alone,
+  with a test.
+
+not verified: the screen in a real terminal (the tests draw it in Ratatui's test backend). decisions needed: none.

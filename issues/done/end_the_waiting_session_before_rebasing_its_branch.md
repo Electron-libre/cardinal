@@ -105,7 +105,7 @@ High review: 7 findings
 - every wait reason counts (a permission prompt too): kept, the same rule as the end of SUE-3.
 - the mark is not re-read right before the close: kept, the same window of milliseconds as SUE-4.
 - a pushed branch is refused after the end: kept, decision 1 a.
-- a reused pid passes SUE-4 but not RBI-4 (pre-existing): filed as `issues/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md`.
+- a reused pid passes SUE-4 but not RBI-4 (pre-existing): filed as `issues/done/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md`.
 
 Code review: no findings
 

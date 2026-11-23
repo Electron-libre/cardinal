@@ -41,7 +41,7 @@ The work done before this file existed is in `issues/done/`.
   - [audit_the_code_from_the_ui](issues/done/audit_the_code_from_the_ui.md)
   - [rebase_a_diverged_issue_branch_before_its_merge](issues/done/rebase_a_diverged_issue_branch_before_its_merge.md)
   - [end_the_waiting_session_before_rebasing_its_branch](issues/done/end_the_waiting_session_before_rebasing_its_branch.md)
-  - [let_rebase_issue_pass_a_lock_whose_pid_another_process_took](issues/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md)
+  - [let_rebase_issue_pass_a_lock_whose_pid_another_process_took](issues/done/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md)
   - [read_a_stale_worktree_lock_alike_in_every_reader](issues/read_a_stale_worktree_lock_alike_in_every_reader.md)
   - [split_the_screen_module_of_the_ui](issues/done/split_the_screen_module_of_the_ui.md)
   - [end_a_task_that_panics_in_the_ui](issues/done/end_a_task_that_panics_in_the_ui.md)

@@ -46,6 +46,9 @@ Out of scope: the `workspace-lock` hook (a holder with no work in progress alrea
    (`ps -o etimes=` against the mtime of the lock), used by `refusal`; verified by a test of
    `crates/cardinal/tests/rebase_issue.rs` (lock mtime set ten minutes back, pid of a running process: it rebases);
    makes true RBI-4. (autonomous)
+2. [x] Fixes of the `high` review: the test lock backdated to a day after the epoch, the duplicate doc line of the
+   test helper, the limits of `started_after` (clock step, `ps` without `etimes`) in its doc, two issues for the
+   pre-existing findings; verified by `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -60,3 +63,12 @@ Out of scope: the `workspace-lock` hook (a holder with no work in progress alrea
 - Code review: no findings
 - checks: `project-check` green, `deliverable-size` 76 lines, `file-size` none.
 - not verified: a `ps` without `etimes` (BSD) keeps the old behaviour (the lock counts as live).
+
+## Deliverable 2 summary
+- done: fixes of the `high` review of the issue; pre-existing findings filed as
+  `issues/read_a_stale_worktree_lock_alike_in_every_reader.md` (merge, UI, `workspace-lock`) and
+  `issues/release_a_claim_whose_pid_another_process_took.md` (claims).
+- red: none
+- Code review: no findings (`low` of this deliverable).
+- High review: 7 findings: 3 pre-existing filed as the two issues above; test backdating and duplicate doc line fixed;
+  clock step and `ps` without `etimes` stated in the doc of `started_after` (procps on Linux, as `end.rs`), not fixed.

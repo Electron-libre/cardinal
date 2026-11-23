@@ -77,7 +77,6 @@ impl Repo {
         git(&self.main, &["rev-parse", name])
     }
 
-    /// Writes the lock of the worktree `foo` (WSL-9).
     /// Writes the lock of the worktree of `foo` (WSL-9) and returns its path.
     fn lock(&self, session: &str, pid: u32) -> PathBuf {
         let dir = git(&self.ws, &["rev-parse", "--absolute-git-dir"]);
@@ -303,7 +302,8 @@ fn rebases_a_worktree_whose_pid_another_process_took() {
     commit(&r.ws, "feature.txt", "f\n");
     commit(&r.main, "other.txt", "o\n");
     let lock = r.lock("gone", std::process::id());
-    let written = std::time::SystemTime::now() - std::time::Duration::from_secs(600);
+    // long before the test binary started, however long it ran
+    let written = std::time::UNIX_EPOCH + std::time::Duration::from_hours(24);
     std::fs::File::options()
         .write(true)
         .open(&lock)

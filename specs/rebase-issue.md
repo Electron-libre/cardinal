@@ -45,7 +45,7 @@ so the fast-forward of its merge can run: the issue session runs it before print
 - (RBI-4) Given the lock of the worktree of `foo` naming a session whose process runs, when `rebase-issue foo` runs
   from another session, then it exits 1 naming it; run from that session (its `CLAUDE_CODE_SESSION_ID`), or once its
   process ended, it rebases.
-- (RBI-4) Given the lock of the worktree of `foo` written ten minutes before the process of its `pid` started, when
+- (RBI-4) Given the lock of the worktree of `foo` written long before the process of its `pid` started, when
   `rebase-issue foo` runs from another session, then it rebases.
 - (RBI-4) Given `refs/remotes/origin/foo` pointing at a commit of `foo` the trunk lacks, when `rebase-issue foo` runs,
   then it exits 1 with `foo was pushed: rebase it by hand`.

@@ -46,3 +46,4 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_screen_module_of_the_ui](issues/done/split_the_screen_module_of_the_ui.md)
   - [end_a_task_that_panics_in_the_ui](issues/done/end_a_task_that_panics_in_the_ui.md)
   - [end_a_measure_or_a_notification_that_panics_in_the_ui](issues/done/end_a_measure_or_a_notification_that_panics_in_the_ui.md)
+  - [keep_the_ui_working_after_a_zellij_session_is_renamed](issues/keep_the_ui_working_after_a_zellij_session_is_renamed.md)

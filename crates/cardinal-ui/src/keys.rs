@@ -354,7 +354,13 @@ pub(crate) mod tests {
             waits: Some(Vec::new()),
             charts: crate::charts::charts(None),
             keys: crate::help::Keys::default(),
-            summaries: Vec::new(),
+            summaries: stems
+                .iter()
+                .map(|s| crate::summary::Summary {
+                    title: (*s).to_string(),
+                    goal: None,
+                })
+                .collect(),
         }
     }
 

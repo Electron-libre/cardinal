@@ -252,7 +252,7 @@ release workflow does not build it.
 
 ```mermaid
 flowchart LR
-  ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims"]
+  ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims, goals"]
   ui -->|"cardinal run roadmap --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]

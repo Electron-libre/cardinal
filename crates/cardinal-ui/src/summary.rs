@@ -8,8 +8,9 @@ use ratatui::layout::Rect;
 
 use crate::keys::{Focus, Selection};
 use crate::panels::Panel;
-use crate::screen::View;
+use crate::screen::{layout, View};
 use crate::source::Queue;
+use crate::status::Status;
 use crate::status::{columns, split};
 
 /// What the summary of an issue shows: its title, its stem when it has none, and its goal (NXT-19).
@@ -37,8 +38,8 @@ pub fn of(queue: Option<&Queue>, stems: &[String]) -> Vec<Summary> {
 }
 
 /// The summary of the issue `sel` selects in `v`: none while the selection is in the worktrees or the queue holds no
-/// issue (an empty queue, or the error of STU-6).
-fn selected(v: &View, sel: Selection) -> Option<&Summary> {
+/// issue (an empty queue, or a `next-issue` that cannot be read, STU-6); the help line offers `i` on it (SUA-15).
+pub(crate) fn selected(v: &View, sel: Selection) -> Option<&Summary> {
     if sel.focus == Focus::Queue {
         v.summaries.get(sel.issue)
     } else {
@@ -52,24 +53,40 @@ pub(crate) fn toggle(unfolded: bool, sel: Selection, v: Option<&View>) -> bool {
     unfolded ^ v.and_then(|v| selected(v, sel)).is_some()
 }
 
-/// The panels of the screen over `area`: the queue, the summary of the selected issue when it is `unfolded`, then
-/// the worktrees.
-pub(crate) fn panels(v: &View, sel: Selection, unfolded: bool, area: Rect) -> Vec<Panel> {
-    let mut panels = v.panels[..2].to_vec();
-    if let Some(s) = selected(v, sel).filter(|_| unfolded) {
-        let width = usize::from(area.width.saturating_sub(2).max(1));
-        let room = usize::from(area.height / 3).max(1);
-        let goal = s.goal.as_deref().unwrap_or("no goal");
-        let summary = Panel {
-            title: Cow::Owned(s.title.clone()),
-            lines: rows(goal, width, room),
-            marks: Vec::new(),
-            headings: Vec::new(),
-            failed: false,
-        };
-        panels.insert(1, summary);
+/// The panels of the screen over `area`, with `status` under them: the queue, the summary of the selected issue when
+/// it is `unfolded`, then the worktrees; its rows of text at most a third of the screen and no more than the layout
+/// gives it, so its `…` stays shown (SUQ-7).
+pub(crate) fn panels<'a>(
+    v: &'a View,
+    sel: Selection,
+    unfolded: bool,
+    (area, status): (Rect, &Status),
+) -> Cow<'a, [Panel]> {
+    let shown = &v.panels[..2];
+    let Some(s) = selected(v, sel).filter(|_| unfolded) else {
+        return Cow::Borrowed(shown);
+    };
+    let width = usize::from(area.width.saturating_sub(2).max(1));
+    let goal = s.goal.as_deref().unwrap_or("no goal");
+    let summary = |room| Panel {
+        title: Cow::Owned(s.title.clone()),
+        lines: rows(goal, width, room),
+        marks: Vec::new(),
+        headings: Vec::new(),
+        failed: false,
+    };
+    let mut room = usize::from(area.height / 3).max(1);
+    let mut panels = vec![shown[0].clone(), summary(room), shown[1].clone()];
+    // the layout shares a short screen between the panels: fewer rows until the summary gets what it holds
+    for _ in 0..3 {
+        let given = usize::from(layout(area, &panels, status)[1].height.saturating_sub(2)).max(1);
+        if given >= panels[1].lines.len() {
+            break;
+        }
+        room = given;
+        panels[1] = summary(room);
     }
-    panels
+    Cow::Owned(panels)
 }
 
 /// `goal` wrapped at the words to `width` columns, a wider word cut across the rows, each paragraph from a row of
@@ -178,7 +195,7 @@ mod tests {
             .join("\n")
     }
 
-    // spec: SUQ-H3, SUQ-6 (internal: the screen needs a real terminal)
+    // spec: SUQ-H3, SUQ-6, STU-1 (internal: the screen needs a real terminal)
     #[test]
     fn i_unfolds_the_summary_of_the_selected_issue_under_the_queue_and_folds_it() {
         let i = KeyEvent::new(KeyCode::Char('i'), KeyModifiers::NONE);
@@ -261,5 +278,27 @@ mod tests {
             rows[title + 6].starts_with('└') && !drawn.contains("line 6"),
             "{drawn}"
         );
+    }
+
+    // spec: SUQ-7 (internal: the screen needs a real terminal)
+    #[test]
+    fn on_a_short_screen_the_last_row_shown_keeps_its_ellipsis() {
+        let mut v = queue_view();
+        v.panels[1].lines = (1..=8).map(|n| format!("/ws{n}")).collect();
+        v.summaries[0].goal = Some(
+            (1..=20)
+                .map(|n| format!("line {n}"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
+        let drawn = screen(&v, Selection::default(), true, 15);
+        let rows: Vec<&str> = drawn.lines().collect();
+        let title = rows.iter().position(|r| r.contains("┌ Do a ")).unwrap();
+        let bottom = rows[title..]
+            .iter()
+            .position(|r| r.starts_with('└'))
+            .unwrap();
+        assert!(bottom > 1, "{drawn}");
+        assert!(rows[title + bottom - 1].contains('…'), "{drawn}");
     }
 }

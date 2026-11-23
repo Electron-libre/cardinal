@@ -30,33 +30,50 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
         })
 }
 
-/// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `#` outside a code
-/// block, the lines of each paragraph trimmed and joined by one space, the paragraphs by a newline; `None` when the
-/// section is missing or holds no text.
+/// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `# ` outside a
+/// code block, its code blocks left out, the lines of each paragraph trimmed and joined by one space, a list item
+/// opening a paragraph, the paragraphs joined by a newline; `None` when the section is missing or holds no text.
 fn goal(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
     let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
-    let (mut fenced, mut inside) = (false, false);
+    // the marker of the code block the line is in, closed only by the same one
+    let mut fence: Option<&str> = None;
+    let mut inside = false;
     let mut paragraphs: Vec<Vec<&str>> = vec![Vec::new()];
-    for line in text[body..].lines() {
-        let line = line.trim();
-        if line.starts_with("```") {
-            fenced = !fenced;
-        } else if !fenced && line.starts_with('#') {
+    for raw in text[body..].lines() {
+        let line = raw.trim();
+        if let Some(marker) = ["```", "~~~"].into_iter().find(|m| line.starts_with(m)) {
+            fence = match fence {
+                None => Some(marker),
+                Some(open) if open == marker => None,
+                open => open,
+            };
+            continue;
+        }
+        if fence.is_some() {
+            continue;
+        }
+        if raw.starts_with("# ") || raw.trim_end() == "#" {
             if inside {
                 break;
             }
-            // a heading outside a code block opens the section or another one
-            inside = line == "# Goal";
+            inside = raw.trim_end() == "# Goal";
             continue;
         }
         if !inside {
             continue;
         }
-        match paragraphs.last_mut() {
-            Some(p) if !line.is_empty() => p.push(line),
-            Some(p) if !p.is_empty() => paragraphs.push(Vec::new()),
-            _ => {}
+        let Some(last) = paragraphs.last_mut() else {
+            continue;
+        };
+        if line.is_empty() {
+            if !last.is_empty() {
+                paragraphs.push(Vec::new());
+            }
+        } else if list_item(line) && !last.is_empty() {
+            paragraphs.push(vec![line]);
+        } else {
+            last.push(line);
         }
     }
     let goal = paragraphs
@@ -66,6 +83,14 @@ fn goal(dir: &Path, stem: &str) -> Option<String> {
         .collect::<Vec<_>>()
         .join("\n");
     (!goal.is_empty()).then_some(goal)
+}
+
+/// Whether `line` opens a list item: `* `, `- `, or digits then `. `.
+fn list_item(line: &str) -> bool {
+    let digits = line.len() - line.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    line.starts_with("* ")
+        || line.starts_with("- ")
+        || (digits > 0 && line[digits..].starts_with(". "))
 }
 
 fn title(dir: &Path, stem: &str) -> String {

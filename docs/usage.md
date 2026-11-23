@@ -280,7 +280,7 @@ project of the current directory (the root of its work tree) in one terminal scr
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `i` unfolds, between the queue and the worktrees, a panel titled
 with the title of the selected issue that holds its goal (the `# Goal` section of the issue file of this work tree,
-wrapped, at most a third of the screen) and folds it again; folded when the screen starts, it follows the selection
+its code blocks left out, a row per paragraph and list item, wrapped, at most a third of the screen) and folds it again; folded when the screen starts, it follows the selection
 and waits while the selection is in the worktrees. `cardinal-ui --print`
 prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`

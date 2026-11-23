@@ -75,7 +75,7 @@ pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
         (keys.merged.contains(&true), "E end merged"),
         (keys.release, "v release"),
     ];
-    let summary = (queue && sel.issue < v.stems.len()).then_some("i summary");
+    let summary = crate::summary::selected(v, sel).map(|_| "i summary");
     std::iter::once(ALWAYS)
         .chain(summary)
         .chain(

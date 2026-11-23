@@ -93,11 +93,7 @@ pub(crate) fn render(
     theme: &Theme,
 ) {
     buf.set_style(area, theme.screen());
-    let first = panels.first().map_or(0, |p| height(p).min(3));
-    let constraints = std::iter::once(Constraint::Min(first))
-        .chain(panels.iter().skip(1).map(|p| Constraint::Max(height(p))))
-        .chain([Constraint::Length(status.rows(area)), Constraint::Length(1)]);
-    let areas = Layout::vertical(constraints).split(area);
+    let areas = layout(area, panels, status);
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
@@ -105,6 +101,15 @@ pub(crate) fn render(
     let n = panels.len();
     status.draw(areas[n], buf, theme);
     help_line(help, areas[n + 1], buf, theme);
+}
+
+/// The areas of `panels` over `area` as [`render`] lays them out, then those of the status line and of the help.
+pub(crate) fn layout(area: Rect, panels: &[Panel], status: &Status) -> std::rc::Rc<[Rect]> {
+    let first = panels.first().map_or(0, |p| height(p).min(3));
+    let constraints = std::iter::once(Constraint::Min(first))
+        .chain(panels.iter().skip(1).map(|p| Constraint::Max(height(p))))
+        .chain([Constraint::Length(status.rows(area)), Constraint::Length(1)]);
+    Layout::vertical(constraints).split(area)
 }
 
 /// Draws `p` bordered over `area`, its line `selected` highlighted across the inner width and kept visible, in the
@@ -255,7 +260,7 @@ pub(crate) fn draw(
                 area,
                 buf,
                 (
-                    &crate::summary::panels(v, selected, unfolded, area),
+                    &crate::summary::panels(v, selected, unfolded, (area, status)),
                     &crate::help::line(v, selected, busy),
                 ),
                 selected.line(v),

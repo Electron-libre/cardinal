@@ -54,6 +54,8 @@ summary shows the issue file of the work tree `cardinal-ui` reads (the trunk's f
    drawn screen; makes true SUQ-6, SUQ-7, SUQ-H3. (autonomous)
 3. [x] Help line: `i summary` after `tab panel` when the selection is on an issue of the queue; verified by the tests
    of `help.rs`; makes true SUA-15, SUA-H7. (autonomous)
+4. [x] Docs and high review: the docs of the whole issue (STU-1, the architecture diagram) and the fixes of the
+   `high` review; verified by the tests of `goal` and of the summary; makes true NXT-19, SUQ-6, SUQ-7, STU-1. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -120,3 +122,34 @@ red: SUA-15, SUA-H7: `left: "q quit  r refresh  ↑↓ select  tab panel  f merg
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+### 4. Docs and high review
+done: STU-1 names the summary between the two panels, the architecture diagram the goals; the fixes of the `high`
+review of the issue (below), NXT-19, SUQ-6 and SUQ-7 reworded to match.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md`, `docs/architecture.md`, `specs/steering-ui.md` |
+| code review | see below |
+
+red: SUQ-7, NXT-19: the short screen showed its last rows without `…` (checked by disabling the fix); `left: "First line second line.\nThird. ``` # not a heading ``` ~~~"`
+- `screen.rs` stays over the file size limit (857 lines; the layout taken out of `render` for the summary): its split
+  is the follow-up proposed in deliverable 2.
+
+High review (`499a13f..`): 7 findings
+- important: on a short screen the layout cut the summary without its `…`: fixed, the summary takes no more rows than
+  the layout gives it (`screen::layout` shared with `render`), with a test of the case.
+- `goal` ended at any line opening with `#`: fixed, only at `# ` as `check-issue` reads a section.
+- list items were joined into one line: fixed, each opens a paragraph.
+- code blocks were copied as words and `~~~` not read: fixed, both fences read, the blocks left out.
+- the panels were cloned at each tick: fixed, borrowed while the summary is folded.
+- the help line and `i` used two predicates: fixed, both use `summary::selected`.
+- SUQ-6 said the summary hides on any error of STU-6: reworded, it hides when `next-issue` cannot be read (the queue
+  then holds no issue); a failed `roadmap` still lists the issues.
+
+Code review: no findings
+
+not verified: the screen in a real terminal (the tests draw it in Ratatui's test backend). decisions needed: none.

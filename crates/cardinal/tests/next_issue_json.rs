@@ -239,7 +239,7 @@ fn the_goal_joins_the_lines_of_each_paragraph() {
     let r = repo(&[
         (
             "a",
-            "---\npriority: low\n---\n# A\n```\n# Goal\nfenced\n```\n# Goal\n  First line\nsecond line.\n\nThird.\n```\n# not a heading\n```\n# Findings\n* x\n",
+            "---\npriority: low\n---\n# A\n```\n# Goal\nfenced\n```\n# Goal\n  First line\nsecond line.\n\nThird.\n```\n# not a heading\n```\n~~~\n# install\n~~~\n* one\n- two\n10. ten\n## Sub\nmore\n# Findings\n* x\n",
         ),
         ("b", "---\npriority: low\n---\n# B\n"),
         ("c", "---\npriority: low\n---\n# C\n# Goal\n\n# Findings\nx\n"),
@@ -247,7 +247,7 @@ fn the_goal_joins_the_lines_of_each_paragraph() {
     let (doc, _, _) = document(r.path());
     assert_eq!(
         issue(&doc, "a")["goal"],
-        json!("First line second line.\nThird. ``` # not a heading ```")
+        json!("First line second line.\nThird.\n* one\n- two\n10. ten ## Sub more")
     );
     assert_eq!(issue(&doc, "b")["goal"], Value::Null, "no section");
     assert_eq!(issue(&doc, "c")["goal"], Value::Null, "an empty section");

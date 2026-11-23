@@ -44,6 +44,9 @@ being at its size bound.
 1. [x] Catch the panic of a task: the task thread named and run under `catch_unwind`, its panic sent as the `Err` line,
    the panic hook of `run` passing over that thread; verified by tests of `terminal.rs` (a panicking task gives its
    line on the channel, the hook leaves a task thread to nobody); makes true SUS-7. (autonomous)
+2. [x] Fixes of the `high` review: a second panic of a task thread (an abort) reaches Ratatui's hook so the terminal
+   is given back; the tests that panic on a task thread or set the hook take turns and give the hook back;
+   verified by `a_second_panic_of_a_task_reaches_the_hook_of_the_terminal`; makes true SUS-7. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -64,4 +67,28 @@ being at its size bound.
 - red: SUS-7: `left: Err(Disconnected)`, `right: Ok(Err("the task panicked: boom on foo"))`
 - Code review: no findings
 - not verified: the screen in a real terminal with a panicking task (no manual run).
+- decisions needed: none.
+
+## Summary of deliverable 2
+- done: the hook passes over only the first panic of a task thread; the hook tests share a lock and restore the hook;
+  the pre-existing panics of a measure and of a notification filed as
+  `issues/end_a_measure_or_a_notification_that_panics_in_the_ui.md`.
+
+  | check | result |
+  |---|---|
+  | tests | pass (`cardinal run project-check`, the crate's tests run 5 times) |
+  | lint | pass |
+  | specs | SUS-7 traced |
+  | docs | doc comment of `pass_over_tasks` |
+  | code review | high: 7 findings; low on the fixes below |
+- red: SUS-7: `assertion left == right failed: []`, `left: 0`, `right: 1`
+- Code review: 7 findings (high)
+  1. abort path skipped Ratatui's restore: fixed (second panic of the thread reaches it).
+  2. racy hook test: fixed (shared lock).
+  3. hook never restored by the test: fixed.
+  4. a thread a task starts is not passed over: not fixed, no task starts one today; said in the doc comment.
+  5. no location in the line: not fixed, SUS-7 states the line `the task panicked: <message>`; the status line wraps
+     a long message (SUS-3).
+  6, 7. measure and notification threads (pre-existing): new issue.
+- not verified: the abort path itself (it ends the test process); the screen in a real terminal.
 - decisions needed: none.

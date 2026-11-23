@@ -82,7 +82,7 @@ The work done before this file existed is in `issues/done/`.
   - [draw_the_progress_of_a_milestone_as_a_bar](issues/draw_the_progress_of_a_milestone_as_a_bar.md)
   - [draw_the_progress_of_an_issue_as_a_bar](issues/draw_the_progress_of_an_issue_as_a_bar.md)
   - [select_the_next_issue_with_a_key](issues/select_the_next_issue_with_a_key.md)
-  - [prioritize_the_issues_from_the_ui](issues/prioritize_the_issues_from_the_ui.md)
+  - [prioritize_the_issues_from_the_ui](issues/done/prioritize_the_issues_from_the_ui.md)
   - [rethink_the_commands_of_the_ui](issues/rethink_the_commands_of_the_ui.md)
   - [cut_a_milestone_into_issues_from_the_ui](issues/cut_a_milestone_into_issues_from_the_ui.md)
   - [write_a_skill_to_audit_the_code](issues/write_a_skill_to_audit_the_code.md)

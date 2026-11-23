@@ -4,6 +4,71 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [6.2.0] - 2026-11-23
+
+### Milestones
+
+- A steering UI to watch
+- A steering UI to read at a glance
+
+### Added
+
+- end every merged worktree with the key E or --end-merged
+- notify the desktop when a worktree starts to wait
+- read the colors of the screen from a theme file
+- draw the states of the panels in the roles of the theme
+- keep twelve groups of revisions for the charts of the measures
+- chart the measures on a screen of their own behind g
+- show the issues of each milestone as a tree in the queue
+- mark the issues whose session works or waits in the queue
+- turn the mark of an issue at work at each tick
+- show the status message on a row of its own
+- move the measures off the main screen to a screen of their own
+- offer only the keys that apply to the selection
+- set the milestone headings apart in the queue
+- wrap the status line on a narrow terminal
+- give each issue its goal in the JSON of next-issue
+- fold the summary of the selected issue under the queue
+- offer the key of the summary in the help line
+- start the review of the priorities with a key
+- open a command palette on `:`
+- shorten the help line to the keys of the selection
+- let the selection rest on the milestone headings
+- cut a milestone into issues with c
+- audit the code of a repository with skill audit-code
+
+### Fixed
+
+- keep a merged worktree whose branch went on after the merge
+- notify a wait once even when a read missed it
+- keep the status line readable and name a missing named theme
+- keep the newest rows and the status line readable on the charts
+- draw a long chain of dependencies of the queue at once
+- mark no issue while the worktrees cannot be read
+- end a merged worktree whose directory is gone
+- read the session of a worktree whose directory is gone
+- highlight the selected line across its panel
+- close only the gone worktree it targets
+- keep the checks of a worktree close cannot read
+- refuse a locked worktree before the end closes anything
+- quote the path of the unlock hint of a locked worktree
+- refuse a worktree holding another before the end closes it
+- check the root before the worktrees inside the one to end
+- keep the worktree lock across a fork of the session
+- hand the lock only to the session a holder was last continued in
+- hand the issue claims to the session a holder was continued in
+- move only the claims of the holder in its worktree, before the lock
+- give the worktree back to the session a user returns to
+- give the lock back only to a return after the fork took it
+- keep a failed notification past the task that ends after it
+- hide the task keys of the help line while a task runs
+- cut a wrapped status message between graphemes
+- keep the ellipsis of the summary on a short screen
+- complete the docs and the key test of the priorities review
+- ignore modified letters and scroll the palette list
+- start on the first issue after a read with no row
+- keep audit-code useful without issue files or specs
+
 ## [6.1.0] - 2026-11-20
 
 ### Milestones

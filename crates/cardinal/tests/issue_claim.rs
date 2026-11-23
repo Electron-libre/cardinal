@@ -530,8 +530,8 @@ fn a_claim_whose_pid_another_process_took_counts_as_ended() {
     assert_eq!(claim_text(&r.main, "a"), no_since, "unchanged");
     assert!(!next(&r.main).contains("session ended"));
 
-    // the process of the test started long after a claim written an hour before it
-    let old = format!("{no_since}since {}\n", now() - elapsed() - 3600);
+    // the process of the test started long after a claim written on 2 January 1970
+    let old = format!("{no_since}since 86400\n");
     set_claim(&r.main, "a", &old);
     let out = next(&r.main);
     assert!(out.contains("session ended"), "{out}");
@@ -542,13 +542,4 @@ fn a_claim_whose_pid_another_process_took_counts_as_ended() {
     assert_eq!(code, Some(0), "{out}");
     assert!(out.contains("released a"), "{out}");
     assert!(claim_text(&r.main, "a").is_empty(), "deleted");
-}
-
-/// The seconds this test process has run, from `ps -o etimes=`.
-fn elapsed() -> u64 {
-    let out = Command::new("ps")
-        .args(["-o", "etimes=", "-p", &live()])
-        .output()
-        .unwrap();
-    String::from_utf8_lossy(&out.stdout).trim().parse().unwrap()
 }

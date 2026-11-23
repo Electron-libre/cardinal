@@ -42,6 +42,9 @@ Approach 1 is out: the claim ref points at a blob, it has no commit time, and th
    when the process of its pid started more than 2 s after it (`started_after` takes a time, shared with the lock);
    verified by tests of `crates/cardinal/tests/issue_claim.rs` (release and `next-issue` of a claim whose `since` is
    an hour before the test process started; a claim with no `since` stays live); makes true CLM-1, CLM-11.
+2. [x] High review fixes: the CLM-11 test uses a fixed old `since` (no `ps`); the module doc rewrapped; the
+   pre-existing finding filed as `issues/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`;
+   verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -57,7 +60,7 @@ ended; the hand-over of WSL-12 rewrites `since`; `started_after` takes a time, `
 | lint | pass |
 | specs | CLM-11 traced, `issue-claim.md` accepted; WSL-12 says the move rewrites `since` |
 | docs | `docs/architecture.md` (Claim); ADR 0022 left as the record of its time |
-| code review | see below |
+| code review | no findings (low); high: 4 findings, below |
 
 red: CLM-1, CLM-11: `a since line` (`expect` on a claim with no `since` line)
 
@@ -65,5 +68,32 @@ not verified:
 - a real crash with a reused pid (simulated by a `since` an hour before the test process started).
 - `crates/cardinal/tests/workspace_lock.rs` is 801 lines (+3 here), over 800: not split here, a test file of another
   capability.
+
+decisions needed: none
+
+## Summary of deliverable 2
+done: the fixes of the `high` review of `b189583..07c1a11` (4 findings).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | unchanged |
+| docs | module doc of `issue_claim.rs` |
+| code review | no findings (low); high: 4 findings, below |
+
+red: none
+
+Code review: no findings
+
+High review: 4 findings
+- wall clock stepped after a claim was written: not fixed, a non-goal of `specs/issue-claim.md`, as for the lock
+  (WSL-1); the start ticks of `/proc` would tie the claim to Linux.
+- a claim the lock holder owns by pid alone ignores CLM-11 (pre-existing): filed as
+  `issues/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`.
+- the CLM-11 test needed `ps -o etimes=`: fixed, a fixed `since 86400`.
+- a doc line over 120 columns: fixed.
+
+not verified: none
 
 decisions needed: none

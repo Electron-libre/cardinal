@@ -1,7 +1,8 @@
 //! Claim an issue for the Claude Code session that works it (ADR 0022): the ref `refs/cardinal/claims/<stem>`,
 //! created by compare-and-swap, points at a blob naming the session (`CLAUDE_CODE_SESSION_ID`), its process
-//! (`CLAUDE_PID`), the worktree, the branch, the state of the claim and when it was written (`since`, CLM-11). A ref is seen from every worktree of the clone
-//! and never pushed by the default refspecs. `next-issue` reads the claims, `close-issue` frees them.
+//! (`CLAUDE_PID`), the worktree, the branch, the state of the claim and when it was written (`since`, CLM-11). A
+//! ref is seen from every worktree of the clone and never pushed by the default refspecs. `next-issue` reads the
+//! claims, `close-issue` frees them.
 //! Usage: `cardinal run issue-claim issues/<stem>.md` (from a Claude Code session), or `cardinal run issue-claim
 //! --release <stem>` to delete a `working` claim whose process no longer runs (CLM-10), from anywhere.
 

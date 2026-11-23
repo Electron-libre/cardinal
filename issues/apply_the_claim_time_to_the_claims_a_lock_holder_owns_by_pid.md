@@ -28,3 +28,33 @@ by pid only counts as the holder's only when that pid was not taken after the cl
 * `crates/cardinal/src/tools/workspace_lock.rs`, `crates/cardinal/src/tools/issue_claim.rs` (`Claim::alive`,
   `started_after`)
 * `specs/issue-claim.md` (CLM-11), `specs/workspace-lock.md`
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+A `working` claim matched to the lock holder by pid only (not by session) counts as the holder's, in `in_progress`
+(WSL-10) and `hand_claims` (WSL-12), only when its process did not start more than 2 s after the claim's `since`
+(CLM-11 without `kill -0`). Out of scope: the session match, the lock's own staleness (WSL-1).
+
+## Plan
+1. [x] Pid match honours `since`: a `Claim` helper (the `started_after` test of `Claim::alive`, without `kill -0`)
+   used by both matches in `workspace_lock.rs`; verified by two tests of `tests/workspace_lock.rs` (a crashed
+   session's claim under a reused pid lets a third session take the clean worktree; a hand-over leaves it
+   unchanged); makes true WSL-10, WSL-12 (~80 lines). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: dc99b772e3abada2b5c02e3d8da8cd95542c91fa
+
+## Deliverable 1 summary
+- done: `Claim::pid_taken` (the `since` test of CLM-11), used by `owns` in `workspace_lock.rs` for `in_progress` and
+  `hand_claims`; spec WSL-10 and WSL-12 amended and `accepted` again; `docs/gates.md` says it.
+- red: WSL-10, WSL-12: `the claim of a pid taken later is not the holder's: Refused: another live session (h)`; the
+  hand-over rewrote the claim to `session b` (`not the holder's claim`).
+- file-size: `crates/cardinal/tests/workspace_lock.rs` goes to 847 lines (limit 800); not split here, a move counts
+  twice and goes in a deliverable of its own: follow-up issue.
+- checks: project-check green (fmt, clippy, tests, specs); deliverable-size 95 lines.
+- Code review: no findings
+- not verified: none. decisions needed: none.

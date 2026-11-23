@@ -120,7 +120,8 @@ worktree (per worktree, WSL-9), holding the `session_id` of the event and the pr
   transcript, `<holder session>.jsonl` beside the `transcript_path` of the event, for a last record `continued-in`
   naming the calling session, with no message stamped after it (WSL-11, [ADR 0032](adr/0032-a-session-continued-in-another-hands-it-its-worktree-lock.md)).
   The fork also takes the `working` issue claims of the holder's session or process in that worktree (WSL-12), so it claims its issue again and that
-  claim keeps the lock. A user who goes back to the session the fork continues gives it the lock and the claims
+  claim keeps the lock; a claim of the holder's process whose `since` is older than that process (a crashed session whose
+  pid it took, CLM-11) is not the holder's, and neither keeps the lock nor moves. A user who goes back to the session the fork continues gives it the lock and the claims
   back: its own transcript holds a record `continued-in` naming the holder and a first message after its last such
   record stamped after the fork took the lock (WSL-13); the fork it left is then refused.
 - **`start`** (`SessionStart`, which cannot block) takes the lock, or tells the agent the worktree is busy.

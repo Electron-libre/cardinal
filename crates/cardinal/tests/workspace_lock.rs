@@ -150,6 +150,19 @@ fn claim_as(dir: &Path, stem: &str, session: &str, pid: &str, worktree: &Path, s
     );
 }
 
+/// Claim `stem` like `claim`, written at `since` (Unix seconds, CLM-11): before any process of the test started.
+fn claim_since(dir: &Path, stem: &str, session: &str, pid: &str, since: u64) {
+    claim(dir, stem, session, pid);
+    let blob = dir.join(".git").join("claim-blob");
+    let text = std::fs::read_to_string(&blob).unwrap();
+    std::fs::write(&blob, format!("{text}since {since}\n")).unwrap();
+    let oid = git(dir, &["hash-object", "-w", blob.to_str().unwrap()]);
+    git(
+        dir,
+        &["update-ref", &format!("refs/cardinal/claims/{stem}"), &oid],
+    );
+}
+
 fn live() -> String {
     std::process::id().to_string()
 }
@@ -362,6 +375,23 @@ fn a_holder_with_a_working_claim_keeps_the_lock_in_a_clean_worktree() {
     let (code, _, err) = hook("check", &r.main, "b", &live());
     assert_eq!(code, Some(0), "a claim of another session: {err}");
     assert!(lock(&r.main).contains("session b\n"));
+}
+
+// spec: WSL-10
+#[test]
+fn a_claim_whose_pid_the_holder_took_later_keeps_no_lock() {
+    let r = repo();
+    let holder = Other::new();
+    hook("check", &r.main, "h", &holder.pid());
+    // session `a` claimed `foo` on 2 January 1970 and crashed; `h` took its pid since
+    claim_since(&r.main, "foo", "a", &holder.pid(), 86400);
+    let (code, _, err) = hook("check", &r.main, "c", &live());
+    assert_eq!(
+        code,
+        Some(0),
+        "the claim of a pid taken later is not the holder's: {err}"
+    );
+    assert!(lock(&r.main).contains("session c\n"));
 }
 
 // spec: WSL-H1
@@ -700,6 +730,22 @@ fn a_handover_moves_only_the_working_claims_of_the_holder_in_its_worktree() {
         ["theirs", "pending", "elsewhere"].map(|s| claim_of(&r.main, s)),
         unchanged
     );
+}
+
+// spec: WSL-12
+#[test]
+fn a_handover_leaves_a_claim_whose_pid_the_holder_took_later() {
+    let r = repo();
+    let transcripts = tempfile::tempdir().unwrap();
+    let holder = Other::new();
+    hook("check", &r.main, "h", &holder.pid());
+    dirty(&r.main);
+    claim_since(&r.main, "foo", "a", &holder.pid(), 86400);
+    let before = claim_of(&r.main, "foo");
+    transcript(transcripts.path(), "h", Some("b"));
+    let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(claim_of(&r.main, "foo"), before, "not the holder's claim");
 }
 
 // spec: WSL-13

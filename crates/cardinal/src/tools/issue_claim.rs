@@ -58,13 +58,18 @@ impl Claim {
     /// Whether the process of the claim still runs: a process of its pid runs (`kill -0`) and did not start after
     /// the claim was written, when the claim says when (CLM-11).
     pub fn alive(&self) -> bool {
-        alive(&self.pid)
-            && !self.since.is_some_and(|s| {
-                started_after(
-                    &self.pid,
-                    std::time::UNIX_EPOCH + std::time::Duration::from_secs(s),
-                )
-            })
+        alive(&self.pid) && !self.pid_taken()
+    }
+
+    /// Whether a process of its `pid` started more than 2 seconds after the claim was written: another process took
+    /// the number of the session that wrote it (CLM-11); false with no `since` or a start that cannot be read.
+    pub fn pid_taken(&self) -> bool {
+        self.since.is_some_and(|s| {
+            started_after(
+                &self.pid,
+                std::time::UNIX_EPOCH + std::time::Duration::from_secs(s),
+            )
+        })
     }
 }
 

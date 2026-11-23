@@ -139,8 +139,14 @@ fn keeps(holder: &Holder, caller: &Caller, cwd: &Path, lock: &Path) -> Verdict {
     Verdict::Kept(work)
 }
 
-/// Rewrite the `working` claims of the worktree of `cwd` that name the session or the process of `holder` (the claims
-/// `in_progress` counts) to the caller's session and process, each by compare-and-swap with the value read (WSL-12).
+/// Whether `claim` is the holder's (WSL-10): it names its session, or its process when no later process took that
+/// number since the claim was written (CLM-11).
+fn owns(holder: &Holder, claim: &issue_claim::Claim) -> bool {
+    claim.session == holder.session || (claim.pid == holder.pid && !claim.pid_taken())
+}
+
+/// Rewrite the `working` claims of the worktree of `cwd` that are the holder's (`owns`, the claims `in_progress`
+/// counts) to the caller's session and process, each by compare-and-swap with the value read (WSL-12).
 fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
     let canonical = |p: &Path| std::fs::canonicalize(p).ok();
     let Some(top) = Command::new("git")
@@ -154,7 +160,7 @@ fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
         return;
     };
     for (stem, old, claim) in issue_claim::all(cwd) {
-        let ours = claim.session == holder.session || claim.pid == holder.pid;
+        let ours = owns(holder, &claim);
         let here = canonical(Path::new(&claim.worktree)).as_ref() == Some(&top);
         if claim.state == "working" && ours && here {
             let moved = issue_claim::Claim {
@@ -256,7 +262,7 @@ fn returned_from(holder: &Holder, caller: &Caller, lock: &Path) -> bool {
 }
 
 /// The work in progress of `holder` (WSL-10), described for the refusal: the changes and untracked files of the
-/// worktree of `cwd`, or an issue claimed `working` by its session or process; an unreadable status counts as work in
+/// worktree of `cwd`, or an issue it claims `working` (`owns`); an unreadable status counts as work in
 /// progress. Any change counts, whoever made it (ADR 0027).
 fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
     let status = Command::new("git")
@@ -291,9 +297,7 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
     }
     issue_claim::all(cwd)
         .into_iter()
-        .find(|(_, _, c)| {
-            c.state == "working" && (c.session == holder.session || c.pid == holder.pid)
-        })
+        .find(|(_, _, c)| c.state == "working" && owns(holder, c))
         .map(|(stem, _, _)| {
             format!("the issue {stem} it claims, until that session closes it or ends")
         })

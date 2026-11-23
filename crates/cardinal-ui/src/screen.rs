@@ -1,7 +1,7 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2), once as text by
 //! `print.rs` (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
-//! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4); a worktree that starts to wait
+//! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4), `p` the review of the priorities (SUA-16); a worktree that starts to wait
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
 //! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
 //! `i` unfolds the summary of the selected issue under the queue (SUQ-6); the help line under the panels offers the

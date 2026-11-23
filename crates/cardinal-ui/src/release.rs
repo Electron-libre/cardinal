@@ -6,9 +6,7 @@
 
 use std::path::Path;
 
-use serde_json::Value;
-
-use crate::{merge, source};
+use crate::{merge, skill_tab, source};
 
 /// Why nothing starts outside zellij (SUA-11).
 pub const NEEDS_ZELLIJ: &str = "release needs zellij: run cardinal-ui in a zellij session";
@@ -16,21 +14,8 @@ pub const NEEDS_ZELLIJ: &str = "release needs zellij: run cardinal-ui in a zelli
 /// The name of the tab of the release session (SUA-12).
 const TAB: &str = "release";
 
-/// Whether a tab `release` holds a terminal pane still running `claude /release`; `false` when the panes cannot be
-/// listed (SUA-11).
-fn tab_open(dir: &Path) -> bool {
-    let args = ["action", "list-panes", "--json", "--all"];
-    let Ok((out, _, 0)) = source::run("zellij", &source::zellij(), &args, dir) else {
-        return false;
-    };
-    let panes = serde_json::from_str::<Value>(out.trim()).unwrap_or_default();
-    source::array(&panes).iter().any(|p| {
-        p["is_plugin"] == false
-            && p["tab_name"] == TAB
-            && p["terminal_command"] == "claude /release"
-            && p["exited"] != true
-    })
-}
+/// The first message of its session (SUA-4).
+const MESSAGE: &str = "/release";
 
 /// Starts the release session of the project at `root`: what was started, or why nothing was.
 pub fn start(root: &Path) -> Result<String, String> {
@@ -49,17 +34,9 @@ pub fn start(root: &Path) -> Result<String, String> {
                 .to_string(),
         );
     }
-    if tab_open(&main) {
+    if skill_tab::running(&main, TAB, MESSAGE) {
         return Err("a release tab is already open".to_string());
     }
-    let cwd = main.display().to_string();
-    let tab = "zellij action new-tab";
-    let args = [
-        "action", "new-tab", "--cwd", &cwd, "--name", TAB, "--", "claude", "/release",
-    ];
-    let (_, err, code) = source::run(tab, &source::zellij(), &args, &main)?;
-    if code != 0 {
-        return Err(source::failure(tab, code, &err));
-    }
+    let cwd = skill_tab::open(&main, TAB, MESSAGE)?;
     Ok(format!("started the release in {cwd}"))
 }

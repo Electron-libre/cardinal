@@ -34,7 +34,7 @@ fn outside_zellij_a_ready_issue_offers_only_the_keys_that_always_work() {
     );
 }
 
-// spec: SUA-15
+// spec: SUA-15, SUA-16
 #[test]
 fn in_zellij_a_ready_issue_nothing_takes_offers_its_start() {
     let p = project();
@@ -43,7 +43,7 @@ fn in_zellij_a_ready_issue_nothing_takes_offers_its_start() {
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  s start  g charts",
+        "q quit  r refresh  ↑↓ select  tab panel  i summary  s start  p prioritize  g charts",
         "{out}"
     );
 }
@@ -58,7 +58,9 @@ fn a_working_claim_whose_session_ended_offers_its_start_and_a_live_one_nothing()
         let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
         assert_eq!(
             help(&out),
-            format!("q quit  r refresh  ↑↓ select  tab panel  i summary  {keys}g charts"),
+            format!(
+                "q quit  r refresh  ↑↓ select  tab panel  i summary  {keys}p prioritize  g charts"
+            ),
             "{out}"
         );
     }
@@ -81,14 +83,29 @@ fn a_merge_pending_issue_a_merged_worktree_and_a_milestone_to_release_offer_thei
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  v release  g charts",
+        "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  v release  p prioritize  g charts",
         "{out}"
     );
-    // outside zellij, the release would be refused (SUA-4)
+    // outside zellij, the release and the review of the priorities would be refused (SUA-4, SUA-16)
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(
         help(&out),
         "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  g charts",
+        "{out}"
+    );
+}
+
+// spec: SUA-15
+#[test]
+fn in_zellij_an_empty_queue_offers_no_review_of_the_priorities() {
+    let p = project();
+    let empty = r#"{"version":1,"next":null,"issues":[]}"#;
+    let cardinal = p.cardinal(&ok(empty), &ok(ROADMAP));
+    let zellij = p.zellij("[]", 0);
+    let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
+    assert_eq!(
+        help(&out),
+        "q quit  r refresh  ↑↓ select  tab panel  g charts",
         "{out}"
     );
 }

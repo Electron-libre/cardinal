@@ -363,12 +363,12 @@ the install it needs (exit 1). It merges nothing (exit 1, saying why) when the i
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
-why nothing was; `s`, `f`, `e`, `E` and `v` start nothing while a start, a merge, an end or a release start runs, and `q` then quits once it
+why nothing was; `s`, `f`, `e`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start or a review start runs, and `q` then quits once it
 ended, printing the result of a merge, an end or a release start. The next
 read drops the claim (CLM-6). The help line under the panels offers, beside `q`, `r`, the arrows, `Tab` and `g`, `i` on an issue of the queue, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in
-zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
+zellij), `p` while the queue lists an open issue (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
 issue of the queue.
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose
@@ -399,7 +399,13 @@ zellij, when the repository is bare, the main worktree is detached, has uncommit
 live session holds its lock, the project turned the skill `release` off (run the steps `cardinal run release`
 prints), a tab `release` still runs `claude /release` (`zellij action list-panes`), or `cardinal run release --json`,
 run in the main worktree, lists no milestone and is not `prepared`, or fails.
-Apart from a start, a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
+`p`, whatever is selected, or `cardinal-ui --prioritize`, starts the review of the order of the queue the same way: a
+zellij tab named `prioritize` in the main worktree running `claude /prioritize-issues`, so `skill:prioritize-issues`
+proposes the changes of `priority` and `depends_on`, waits for the user and commits them; the UI writes no front
+matter itself. It opens nothing (exit 1, saying why) outside zellij, from a bare, detached, dirty or locked main
+worktree (as the release), when `cardinal run next-issue --json`, run there, lists no open issue or fails, the
+project turned the skill `prioritize-issues` off, or a tab `prioritize` still runs `claude /prioritize-issues`.
+Apart from a start (of an issue, a release or a review), a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

@@ -247,7 +247,7 @@ documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), c
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to
 merge an issue closed on its branch (SUA-2), then ends the session, the tab and the worktree that issue left (SUE-3), or
-starts a release session in the main worktree (SUA-4). It is not managed content and a consumer does not need it; the
+starts a release session or a review of the priorities in the main worktree (SUA-4, SUA-16). It is not managed content and a consumer does not need it; the
 release workflow does not build it.
 
 ```mermaid
@@ -261,6 +261,7 @@ flowchart LR
   ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
   ui -->|"list-panes, close-tab-by-id or SIGHUP,<br/>cardinal run worktree close (merged)"| ended["session, tab, worktree"]
   ui -->|"release --json, zellij action new-tab<br/>claude /release (awaiting release)"| release["release tab in the main worktree"]
+  ui -->|"next-issue --json, zellij action new-tab<br/>claude /prioritize-issues (p)"| prioritize["prioritize tab in the main worktree"]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
@@ -275,7 +276,7 @@ flowchart LR
 | `tree.rs` | the sections of the queue: the open issues grouped by milestone, each section a tree of their dependencies |
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
-| `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release starts on threads of their own |
+| `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release and review starts on threads of their own |
 | `summary.rs` | the summary of the selected issue, its title and its goal wrapped at the words under the queue, that `i` folds and unfolds |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
@@ -285,7 +286,9 @@ flowchart LR
 | `keys.rs` | the action of each key, the selection in the queue or the worktrees it moves, the task a key runs on what is selected |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |
-| `release.rs` | starts a release session: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), nothing to release (no milestone listed, no release `prepared`), a project without `skill:release`, a `release` tab still running `claude /release`, then `zellij action new-tab` running `claude /release` in the main worktree |
+| `release.rs` | starts a release session: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), nothing to release (no milestone listed, no release `prepared`), a project without `skill:release`, a `release` tab still running `claude /release`, then `zellij action new-tab` running `claude /release` in the main worktree (`skill_tab.rs`) |
+| `prioritize.rs` | starts a review of the priorities: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), an empty queue, a project without `skill:prioritize-issues`, a `prioritize` tab still running `claude /prioritize-issues`, then opens that tab in the main worktree (`skill_tab.rs`) |
+| `skill_tab.rs` | the tab of a skill session in the main worktree: whether a pane of that tab still runs its `claude` (`zellij action list-panes`), then `zellij action new-tab` running it |
 | `end.rs` | ends what a merged issue left: refuses a session at work, a dirty or locked worktree, one holding another (a worktree whose directory is gone skips the checks run in it), a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree; `E` and `--end-merged` run it on every merged worktree in turn |
 
 ## The cost of a turn

@@ -2,13 +2,15 @@
 //! directory, in one terminal screen (`specs/steering-ui.md`, its actions in `specs/steering-ui-actions.md`, ADR 0030).
 //! It reads the project through `cardinal run <tool> --json` and git, keeps its measures in the cache directory of the
 //! user (`measures.rs`), and changes the project only to start an issue session in a zellij tab (`start.rs`), to start
-//! the release session of the milestones awaiting it (`release.rs`), to merge into the trunk an issue closed on its
+//! the release session of the milestones awaiting it (`release.rs`) or the review of the priorities of the issues
+//! (`prioritize.rs`), each in a tab of its own (`skill_tab.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
 //! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`), then their table (`screen.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
-//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]`: with no argument the
+//! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release | --prioritize]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
-//! merged worktree; `--release` starts the release session in the main worktree.
+//! merged worktree; `--release` starts the release session in the main worktree; `--prioritize` the review of the
+//! priorities there.
 
 mod charts;
 mod end;
@@ -19,8 +21,10 @@ mod merge;
 mod notify;
 mod panels;
 mod print;
+mod prioritize;
 mod release;
 mod screen;
+mod skill_tab;
 mod source;
 mod spinner;
 mod start;
@@ -32,7 +36,7 @@ mod tree;
 use std::path::Path;
 
 const USAGE: &str =
-    "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release]";
+    "usage: cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release | --prioritize]";
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
@@ -122,6 +126,7 @@ fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
         keys::Task::Merge => merge_then_end(stem),
         keys::Task::End => end::end(&source::root(Path::new(".")), stem),
         keys::Task::Release => release::start(&source::root(Path::new("."))),
+        keys::Task::Prioritize => prioritize::start(&source::root(Path::new("."))),
         keys::Task::EndMerged => end_merged_status(),
     }
 }
@@ -184,6 +189,7 @@ fn main() {
         [a] if a == "--print" => print(),
         [a] if a == "--end-merged" => end_merged(),
         [a] if a == "--release" => report(release::start(&source::root(Path::new(".")))),
+        [a] if a == "--prioritize" => report(prioritize::start(&source::root(Path::new(".")))),
         [a, stem] if a == "--start" => report(start_in_project(stem)),
         [a, stem] if a == "--merge" => report(merge_in_project(stem)),
         [a, stem] if a == "--end" => report(end::end(&source::root(Path::new(".")), stem)),

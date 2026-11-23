@@ -13,7 +13,7 @@ const ALWAYS: &str = "q quit  r refresh  ↑↓ select  tab panel";
 /// The last key of the help line, which always works.
 const LAST: &str = "g charts";
 
-/// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUE-1, SUE-2).
+/// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUA-16, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Keys {
     /// For each issue of the queue, in the order of its stems: whether `s` would start it (SUA-1).
@@ -24,6 +24,8 @@ pub struct Keys {
     pub merged: Vec<bool>,
     /// Whether `v` would start the release: in zellij, a milestone awaits its release (SUA-4).
     pub release: bool,
+    /// Whether `p` would start the review of the priorities: in zellij, the queue lists an open issue (SUA-16).
+    pub prioritize: bool,
 }
 
 impl Keys {
@@ -58,6 +60,7 @@ impl Keys {
                     .milestones
                     .as_ref()
                     .is_ok_and(|m| m.list.iter().any(|m| m.awaits_release)),
+            prioritize: zellij && !issues.is_empty(),
         }
     }
 }
@@ -74,6 +77,7 @@ pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
         (!queue && at(&keys.merged, sel.worktree), "e end"),
         (keys.merged.contains(&true), "E end merged"),
         (keys.release, "v release"),
+        (keys.prioritize, "p prioritize"),
     ];
     let summary = crate::summary::selected(v, sel).map(|_| "i summary");
     std::iter::once(ALWAYS)
@@ -118,6 +122,7 @@ mod tests {
             merge: vec![false, true],
             merged: vec![false, true, false],
             release: false,
+            prioritize: false,
         };
         let always = "q quit  r refresh  ↑↓ select  tab panel";
         assert_eq!(
@@ -142,6 +147,11 @@ mod tests {
             line(&v, on(Focus::Worktrees, 0, 0), false),
             format!("{always}  v release  g charts")
         );
+        v.keys.prioritize = true;
+        assert_eq!(
+            line(&v, on(Focus::Worktrees, 0, 0), false),
+            format!("{always}  v release  p prioritize  g charts")
+        );
     }
 
     // spec: SUA-H7 (internal: `Tab` and the arrows move the selection only in a screen that needs a real terminal)
@@ -154,6 +164,7 @@ mod tests {
             merge: vec![true],
             merged: vec![false, true],
             release: false,
+            prioritize: false,
         };
         let mut sel = Selection::default();
         assert_eq!(
@@ -177,6 +188,7 @@ mod tests {
             merge: vec![true],
             merged: vec![false, true],
             release: true,
+            prioritize: true,
         };
         assert_eq!(
             line(&v, Selection::default(), true),

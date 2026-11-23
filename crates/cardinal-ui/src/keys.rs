@@ -1,6 +1,6 @@
 //! The keys of the screen of `cardinal-ui` (STU-2): the action of each key, the selection in the queue or the
 //! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1, SUA-2,
-//! SUA-4 to SUA-6, SUE-1, SUE-2).
+//! SUA-4 to SUA-6, SUA-16, SUE-1, SUE-2).
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
@@ -67,6 +67,8 @@ pub enum Action {
     End,
     EndMerged,
     Release,
+    /// `p`: starts the review of the priorities (SUA-16).
+    Prioritize,
     Measure,
     Charts,
     /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
@@ -84,6 +86,7 @@ pub enum Task {
     End,
     EndMerged,
     Release,
+    Prioritize,
 }
 
 /// The task `action` runs on the issue `stem`, with the status line shown while it runs.
@@ -94,6 +97,10 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
         Action::End => Some((Task::End, format!("ending {stem}…"))),
         Action::EndMerged => Some((Task::EndMerged, "ending the merged worktrees…".to_string())),
         Action::Release => Some((Task::Release, "starting the release…".to_string())),
+        Action::Prioritize => Some((
+            Task::Prioritize,
+            "starting the review of the priorities…".to_string(),
+        )),
         _ => None,
     }
 }
@@ -101,14 +108,17 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
 /// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUE-1). The release covers every
-/// milestone awaiting it, the end of the merged worktrees every one of them: they need no selection nor read (SUA-4,
-/// SUE-2).
+/// milestone awaiting it, the review of the priorities every open issue, the end of the merged worktrees every one
+/// of them: they need no selection nor read (SUA-4, SUA-16, SUE-2).
 pub(crate) fn job(
     action: &Action,
     sel: Selection,
     v: Option<&View>,
 ) -> Result<Option<(Task, String, String)>, String> {
-    if matches!(action, Action::Release | Action::EndMerged) {
+    if matches!(
+        action,
+        Action::Release | Action::Prioritize | Action::EndMerged
+    ) {
         return Ok(task(action, "").map(|(t, shown)| (t, shown, String::new())));
     }
     let Some(v) = v else { return Ok(None) };
@@ -148,6 +158,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('e') => Action::End,
         KeyCode::Char('E') => Action::EndMerged,
         KeyCode::Char('v') => Action::Release,
+        KeyCode::Char('p') => Action::Prioritize,
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
         KeyCode::Char('i') => Action::Summary,
@@ -317,6 +328,32 @@ pub(crate) mod tests {
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
     }
 
+    // spec: SUA-16, SUA-6 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn p_starts_the_review_of_the_priorities_from_either_panel_and_before_the_first_read() {
+        assert_eq!(action(&press(KeyCode::Char('p'))), Action::Prioritize);
+        let v = view(&["bar"], &[("/main", Some("trunk"))]);
+        for (focus, read) in [
+            (Focus::Queue, Some(&v)),
+            (Focus::Worktrees, Some(&v)),
+            (Focus::Queue, None),
+        ] {
+            let sel = Selection {
+                focus,
+                issue: 0,
+                worktree: 0,
+            };
+            assert_eq!(
+                job(&Action::Prioritize, sel, read),
+                Ok(Some((
+                    Task::Prioritize,
+                    "starting the review of the priorities…".to_string(),
+                    String::new()
+                )))
+            );
+        }
+    }
+
     // spec: SUA-6 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn quit_during_a_start_or_a_merge_waits_for_it() {
@@ -388,6 +425,7 @@ pub(crate) mod tests {
                 Action::End,
                 Action::EndMerged,
                 Action::Release,
+                Action::Prioritize,
                 Action::Up,
                 Action::Down,
                 Action::Switch,

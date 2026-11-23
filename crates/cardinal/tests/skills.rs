@@ -122,6 +122,41 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "a rule kept for a past incident is read with its issue before it goes",
     ),
     (
+        "audit-code",
+        "one subagent per axis",
+        "the reading of the whole repository is delegated, so the main context keeps the findings only",
+    ),
+    (
+        "audit-code",
+        "`file:line`",
+        "a finding without a place in the code is no evidence",
+    ),
+    (
+        "audit-code",
+        "reread the cited lines",
+        "a subagent's finding is checked before the user sees it",
+    ),
+    (
+        "audit-code",
+        "already tracks",
+        "an audit does not propose an issue that exists",
+    ),
+    (
+        "audit-code",
+        "`architecture`",
+        "the architecture is read from the project's own document, nothing specific to one project",
+    ),
+    (
+        "audit-code",
+        "proposing nothing is a valid outcome",
+        "the audit does not invent debt to fill the table",
+    ),
+    (
+        "audit-code",
+        "skill:create-issue",
+        "the validated findings become issues through the checked template",
+    ),
+    (
         "evaluate-harness",
         "no change is a valid conclusion",
         "the measure does not invent a change to make",

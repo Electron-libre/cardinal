@@ -9,6 +9,7 @@ procedure (`.claude/skills/<name>/SKILL.md`); this page shows how they fit toget
 flowchart LR
   roadmap["ROADMAP.md<br/>milestones"] -->|create-issue| file["issues/NAME.md"]
   idea["idea, smoke run,<br/>review finding"] -->|create-issue| file
+  audit["audit-code<br/>validated findings"] -->|create-issue| file
   file -->|prioritized| queue["priority and depends_on<br/>in its front matter"]
   queue -.->|prioritize-issues| queue
   queue -->|cardinal run next-issue| work["issue-workflow"]
@@ -20,6 +21,7 @@ flowchart LR
 |---|---|---|
 | Plan the milestones | user orders them, agent drafts | the `roadmap` documents of `.claude/cardinal.toml` (`ROADMAP.md` when seeded); `skill:create-issue` cuts a shaped one into issues |
 | Write the issue (Goal, Findings, Approach, Resources) | agent, attached to a milestone | `skill:create-issue`, checked by `cardinal run check-issue` |
+| Audit the code | agent proposes, user validates | `skill:audit-code`: one read-only subagent per axis (architecture, size and duplication, dead code, tests, drift from the specs and ADRs), each finding at a `file:line` the agent rereads, a table to validate, then one issue per kept finding through `skill:create-issue` |
 | Prioritize it | agent proposes, user decides | `priority`, `depends_on` and `why` in the front matter of the issue (ADR 0021), `skill:prioritize-issues` to review them all; `on_hold: '<reason>'` (or `- On hold: <reason>` on its milestone) defers it |
 | Pick the next one | anyone | `cardinal run next-issue`: the first ready issue (by milestone, priority, age) no claim, branch or worktree has taken, then the blocked ones and those on hold |
 | Drive it to done | agent, with one validation stop | `skill:issue-workflow` |

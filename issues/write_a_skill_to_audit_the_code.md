@@ -30,3 +30,37 @@ A steering UI to command
 
 # Hints
 * A new skill grows the fixed context of every project (`fixed_context_budget`): keep its description short.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+A shared skill `audit-code` that reviews a whole repository on five axes (architecture against the `architecture`
+document and the ADRs, size and duplication, dead code, test coverage of the specs, drift from the specs and ADRs),
+reads through one subagent per axis, verifies and ranks the findings, stops on a table, then writes the validated
+ones through `skill:create-issue`. Out of scope: a feature to turn it off (FEA non-goal: each feature has its own
+issue), a `cardinal run` tool, the UI command (`audit_the_code_from_the_ui`).
+
+## Plan
+1. [x] Skill `audit-code`: `files/.claude/skills/audit-code/SKILL.md` (short description, axes, evidence `file:line`,
+   one subagent per axis, verify and rank, report then STOP, issues through `skill:create-issue`, project values
+   through `.claude/cardinal.toml`), synced copy, README and docs; verified by required passages in
+   `crates/cardinal/tests/skills.rs` and the structural skill checks (cited skills, docs) and `fixed-context` under
+   `fixed_context_budget`. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 18ad8c68562b4501b6802e9a2e5f4bb0cbcaafa0
+- Name: `audit-code`; no feature to turn it off; one subagent per axis, five at most.
+
+## Deliverable 1 summary
+- done: skill `audit-code` (`files/.claude/skills/audit-code/SKILL.md`, synced), its required passages in
+  `crates/cardinal/tests/skills.rs`, the `README.md` skill list and the issue lifecycle of `docs/workflow.md`.
+- checks: tests ok, lint ok, specs ok (no spec: harness), docs updated, fixed context of the skill descriptions
+  +330 bytes, under `fixed_context_budget`.
+- red: none (no spec id); the test failed first with `audit-code: skill missing, cannot hold 'one subagent per axis'`.
+- Code review: no findings
+- not verified: the skill run on a real repository (a billed session).
+- file-size: `crates/cardinal/tests/skills.rs` was already over the limit (1212 lines) before this deliverable; its
+  split is a refactor of its own, not part of this skill.

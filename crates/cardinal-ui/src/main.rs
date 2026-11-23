@@ -81,7 +81,6 @@ fn start_in_project(stem: &str) -> Result<String, String> {
 /// Runs the screen in the terminal (STU-2).
 fn interactive() -> i32 {
     let measurer = measures::Measurer::new(source::root(Path::new(".")));
-    measurer.start_if_stale();
     let reader = measurer.clone();
     let read = move || {
         let (running, error) = reader.status();
@@ -89,7 +88,12 @@ fn interactive() -> i32 {
     };
     let (theme, ignored) = theme::load();
     let status = theme::status(&ignored);
-    match terminal::run(read, run_task, || measurer.start(), (theme, status)) {
+    match terminal::run(
+        read,
+        run_task,
+        (|| measurer.start_if_stale(), || measurer.start()),
+        (theme, status),
+    ) {
         Ok(None) => 0,
         // the result of a task the user quit during (SUA-6)
         Ok(Some(line)) => {

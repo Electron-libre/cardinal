@@ -266,7 +266,10 @@ mod tests {
     // spec: SUS-8 (internal: the thread of a notification of a screen that needs a real terminal)
     #[test]
     fn a_notification_that_panics_is_shown_once_as_a_failure() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static CALLS: AtomicUsize = AtomicUsize::new(0);
         fn panics(_: &Path, _: &str, _: &str) -> Result<(), String> {
+            CALLS.fetch_add(1, Ordering::SeqCst);
             panic!("boom")
         }
         let _turn = crate::panics::tests::turn();
@@ -286,6 +289,11 @@ mod tests {
             std::thread::sleep(Duration::from_millis(20));
         };
         assert_eq!(line, "notify: the notification panicked: boom");
+        while CALLS.load(Ordering::SeqCst) < 2 {
+            assert!(Instant::now() < end, "the second notification never ran");
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        // the second failure, sent once its panic unwound
         std::thread::sleep(Duration::from_millis(200));
         assert_eq!(n.failure(), None, "the first time only");
     }

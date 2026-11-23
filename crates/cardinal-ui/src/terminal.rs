@@ -131,7 +131,7 @@ fn start(
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
-/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
+/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `if_stale` starts the measure of a missing or old one once the panic hook is set, and `measure` a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
 /// is given back as it was, also on a panic of the loop or of the reads (Ratatui's hook); a task, a measure or a
@@ -139,7 +139,7 @@ fn start(
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
-    measure: impl Fn(),
+    (if_stale, measure): (impl FnOnce(), impl Fn()),
     (theme, status): (Theme, String),
 ) -> std::io::Result<Option<String>> {
     let (ask, asked) = mpsc::channel::<()>();
@@ -154,6 +154,8 @@ pub fn run(
     let (done, task_result) = mpsc::channel::<Result<String, String>>();
     let mut terminal = ratatui::try_init()?;
     panics::pass_over_caught();
+    // after the hook, so a measure that panics at once prints nothing over the screen (SUS-8)
+    if_stale();
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();

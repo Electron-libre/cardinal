@@ -116,19 +116,26 @@ pub fn measure(root: &Path, dir: &Path) -> Result<(), String> {
     std::fs::create_dir_all(dir)
         .map_err(|e| format!("measures: cannot create {}: {e}", dir.display()))?;
     sweep(dir);
-    let result = steps(root, dir).and_then(|()| {
-        FILES.iter().try_for_each(|name| {
-            std::fs::rename(temporary(dir, name), dir.join(name))
-                .map_err(|e| format!("measures: cannot write {name}: {e}"))
-        })
-    });
-    if result.is_err() {
-        // no temporary file outlives a failed measure
+    let temporaries = Temporaries(dir);
+    steps(root, dir)?;
+    FILES.iter().try_for_each(|name| {
+        std::fs::rename(temporary(dir, name), dir.join(name))
+            .map_err(|e| format!("measures: cannot write {name}: {e}"))
+    })?;
+    std::mem::forget(temporaries);
+    Ok(())
+}
+
+/// Removes the temporary files of a measure of its directory when dropped: no temporary file outlives a measure
+/// that failed or panicked (SUS-8); a measure that succeeded forgets it.
+struct Temporaries<'a>(&'a Path);
+
+impl Drop for Temporaries<'_> {
+    fn drop(&mut self) {
         for name in FILES {
-            let _ = std::fs::remove_file(temporary(dir, name));
+            let _ = std::fs::remove_file(temporary(self.0, name));
         }
     }
-    result
 }
 
 /// The steps of a measure, each writing its file under its temporary name.
@@ -399,6 +406,20 @@ mod tests {
             }
             std::thread::sleep(Duration::from_millis(20));
         }
+    }
+
+    // spec: SUS-8 (internal: a panic in the steps of a measure, which run external tools)
+    #[test]
+    fn a_measure_that_panics_leaves_no_temporary_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let written = temporary(dir.path(), "sessions.tsv");
+        let unwound = std::panic::catch_unwind(|| {
+            let _temporaries = Temporaries(dir.path());
+            std::fs::write(&written, "").unwrap();
+            panic!("boom");
+        });
+        assert!(unwound.is_err());
+        assert!(!written.exists());
     }
 
     // spec: SUS-8 (internal: the thread of a measure of a screen that needs a real terminal)

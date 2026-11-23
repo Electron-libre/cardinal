@@ -48,6 +48,10 @@ hook passing over the first panic of its threads), used by the tasks, the measur
    internal tests (a panicking measure leaves `the measure panicked: boom` and `running` false, then starts again; a
    panicking notification gives `notify: the notification panicked: boom` once; neither reaches the hook of the
    terminal); makes true SUS-8. (autonomous)
+2. [x] Fixes of the `high` review: the stale measure starts once the panic hook is set, a measure that panics
+   leaves no temporary file (a drop guard), the notification test waits for its second panic; verified by
+   `a_measure_that_panics_leaves_no_temporary_file` and the strengthened notification test; makes true SUS-8.
+   (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -70,3 +74,25 @@ hook passing over the first panic of its threads), used by the tasks, the measur
 - Code review: no findings
 - not verified: a panic on the real screen of `cardinal-ui` (needs a terminal).
 - decisions needed: none
+
+## Deliverable 2 summary
+- done: `run` starts the stale measure after `pass_over_caught`; `Temporaries` removes the temporary files of a measure
+  that fails or panics; the notification test waits until both notifications ran.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | doc comments of `run` and `measure` |
+| code review | no findings |
+
+- red: SUS-8: `assertion failed: !written.exists()` (the guard's removal disabled)
+- High review: 4 findings: the early stale measure, fixed; the temporary files of a panic, fixed; the hook passing
+  over a panic outside `catch_unwind` (in `end`), not fixed: no `end` can panic today and a second panic still reaches
+  the hook; the weak "first time only" test, fixed.
+- Code review: no findings
+- not verified: the order of the hook and the stale measure on a real terminal (no test drives `run`).
+- decisions needed: none
+
+Issue done: both deliverables committed; nothing left.

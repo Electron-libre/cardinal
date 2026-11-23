@@ -133,7 +133,7 @@ fn pane(tab: &str, command: &str, exited: bool) -> String {
     )
 }
 
-// spec: SUA-H10, SUA-23, SUA-24, SUA-25
+// spec: SUA-H11, SUA-23, SUA-24, SUA-25
 #[test]
 fn an_audit_tab_opens_in_the_main_worktree() {
     let p = project();

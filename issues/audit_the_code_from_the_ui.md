@@ -55,11 +55,24 @@ done: `a` (palette `a audit`) and `cardinal-ui --audit` open a zellij tab `audit
 |---|---|
 | tests | `cargo test -p cardinal-ui` green (8 new in `tests/audit.rs`, 1 in `keys.rs`) |
 | lint | `project-check` green |
-| specs | SUA-23, SUA-24, SUA-25, SUA-H10 traced; SUA, SUP, STU back to `accepted` |
+| specs | SUA-23, SUA-24, SUA-25, SUA-H11 traced; SUA, SUP, STU back to `accepted` |
 | docs | README, `docs/usage.md`, `docs/architecture.md` |
 | code review | `low`: no findings |
 
-red: SUA-H10, SUA-23, SUA-24, SUA-25: `usage: cardinal-ui [--print | … | --cut <milestone>]` (exit 2, flag unknown)
+red: SUA-H11, SUA-23, SUA-24, SUA-25: `usage: cardinal-ui [--print | … | --cut <milestone>]` (exit 2, flag unknown)
 Code review: no findings
 not verified: the key `a` in a real zellij session (the fake `zellij` of `tests/audit.rs` stands for it).
+decisions needed: none
+
+## High review fixes
+done: the happy path of the audit takes SUA-H11 (SUA-H10 had moved to SUM-H2), the doc of `Keys` cites SUA-23.
+
+| check | result |
+|---|---|
+| tests, lint, specs | `project-check` green |
+| code review | `high` on `c9b1121..HEAD`: 2 findings, both fixed; `low` on the fixes: see below |
+
+red: none
+Code review: no findings
+not verified: none
 decisions needed: none

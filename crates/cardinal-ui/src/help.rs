@@ -22,7 +22,7 @@ const OF_THE_SELECTION: [Action; 6] = [
     Action::Cut,
 ];
 
-/// The keys of the tasks that would act in a read (SUA-1, SUM-1, SUA-4, SUA-16, SUE-1, SUE-2).
+/// The keys of the tasks that would act in a read (SUA-1, SUM-1, SUA-4, SUA-16, SUA-23, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Keys {
     /// For each row of the queue: whether `s` would start its issue (SUA-1), never on a milestone.

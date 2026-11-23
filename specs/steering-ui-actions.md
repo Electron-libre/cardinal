@@ -62,7 +62,7 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   `Two` in the state `idea` with no open issue, and a clean main worktree on `trunk` with no live session, when the
   user selects the heading `■ Two` and presses `c`, then a tab `Two` runs `claude "/create-issue cut the milestone Two
   into issues"` in the main worktree, and the linked worktree is unchanged.
-- **SUA-H10** (happy; SUA-23, SUA-24, SUA-25) Given the UI in a zellij session in a linked worktree and a clean
+- **SUA-H11** (happy; SUA-23, SUA-24, SUA-25) Given the UI in a zellij session in a linked worktree and a clean
   main worktree on `trunk` with no live session, when the user opens the palette and picks `a audit`, then a tab
   `audit` runs `claude /audit-code` in the main worktree, and the linked worktree is unchanged.
 - **SUA-H7** (happy; SUA-15) Given a queue whose first issue `foo` is taken by a claim `merge pending` and a

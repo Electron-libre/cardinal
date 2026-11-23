@@ -17,7 +17,7 @@ from every worktree of the clone, created by compare-and-swap, and it lives unti
 
 ### Behaviour
 
-- **CLM-1** (deterministic) `cardinal run issue-claim issues/<stem>.md` must create the ref `refs/cardinal/claims/<stem>` only if it does not exist (a compare-and-swap: `git update-ref <ref> <new> ""`), pointing at a blob whose lines `session <id>`, `pid <pid>`, `worktree <path>`, `branch <name>` and `state working` give the session (`CLAUDE_CODE_SESSION_ID`), the process of that session (`CLAUDE_PID`), the top level of the worktree it runs in and the branch checked out there (`HEAD` when detached), then print the claim and exit 0.
+- **CLM-1** (deterministic) `cardinal run issue-claim issues/<stem>.md` must create the ref `refs/cardinal/claims/<stem>` only if it does not exist (a compare-and-swap: `git update-ref <ref> <new> ""`), pointing at a blob whose lines `session <id>`, `pid <pid>`, `worktree <path>`, `branch <name>`, `state working` and `since <seconds>` give the session (`CLAUDE_CODE_SESSION_ID`), the process of that session (`CLAUDE_PID`), the top level of the worktree it runs in and the branch checked out there (`HEAD` when detached), the state and the time it was written (Unix seconds), then print the claim and exit 0.
 - **CLM-2** (deterministic) When the claim exists, `issue-claim` must rewrite it by compare-and-swap with its current value as the old one, and succeed, only when the claim names the same session, or the same worktree and either the same process or a process that no longer runs (a resumed or cleared session, a crashed one); for any other claim it fails with exit 1, changes nothing, and names the worktree, the branch, the state of the claim and whether its session still runs.
 - **CLM-5** (deterministic) `next-issue` must count as taken an open issue whose claim is in the state `working`, never offer it, and list it on its taken line with the worktree of the claim; when the process of the claim no longer runs, that line also says `session ended` and how to get out: when the worktree of the claim still exists, `resume: claude "/issue-workflow issues/<stem>.md" in <worktree>`, else `worktree gone`, then in both cases `give up: cardinal run issue-claim --release <stem>`.
 - **CLM-10** (deterministic) `cardinal run issue-claim --release <stem>` must delete the claim of `<stem>` by compare-and-swap with the value it read, print `released <stem>` and exit 0, only when that claim is in the state `working` and its process no longer runs, from any worktree and whether or not it runs in a Claude Code session; with no claim, a claim in the state `merge pending`, or one whose process runs, it fails with exit 1, change nothing and say why (for a live process, its worktree and its session).
@@ -29,6 +29,7 @@ from every worktree of the clone, created by compare-and-swap, and it lives unti
 - **CLM-4** (deterministic) Two `issue-claim` of the same issue run at once by two sessions of two worktrees must leave exactly one of them succeeding and the claim naming it.
 - **CLM-6** (deterministic) `next-issue` must list an open issue whose claim is in the state `merge pending` on a line `Merge pending: <stem> (<branch>)`, never offer it, and delete that claim (compare-and-swap with the value it read) once the trunk (the branch of the main worktree) holds `issues/done/<stem>.md`, whether or not `<stem>` is still open where it runs.
 - **CLM-8** (deterministic) A claim must never be pushed by the default refspecs: its ref stays under `refs/cardinal/`, outside `refs/heads/` and `refs/tags/`.
+- **CLM-11** (deterministic) Wherever this spec says the process of a claim runs, it must mean that a process of its `pid` runs (`kill -0`) and did not start more than 2 seconds after the `since` time of the claim: a process that started later took the number of a session that crashed, and the claim counts as ended, as a stale worktree lock does (WSL-1); a claim with no `since` line (written by an older `cardinal`), or a process whose start cannot be read, keeps the test of `kill -0` alone.
 - **CLM-9** (deterministic) `issue-claim` must refuse with exit 1, creating nothing, a new claim (no claim of the issue exists) when the worktree has uncommitted changes to tracked files outside `issues/`; taking back a claim as CLM-2 says checks nothing, so a resumed session keeps its work in progress.
 
 ## Scenarios
@@ -48,14 +49,20 @@ from every worktree of the clone, created by compare-and-swap, and it lives unti
 - (CLM-10) Given a claim of `foo` whose process no longer runs, when `issue-claim --release foo` runs in another worktree, then it prints `released foo`, exits 0 and `next-issue` offers `foo` again.
 - (CLM-10) Given a claim of `foo` whose process runs, when `issue-claim --release foo` runs, then it exits 1 naming the worktree and the session of the claim, and the claim is unchanged.
 - (CLM-10) Given no claim of `foo`, or a claim of `foo` in the state `merge pending`, when `issue-claim --release foo` runs, then it exits 1 and changes nothing.
+- (CLM-11) Given a `working` claim of `foo` whose `pid` names a process that started an hour after its `since` time,
+  when `next-issue` runs, then its taken line says `session ended`, and `issue-claim --release foo` prints
+  `released foo`.
+- (CLM-11) Given a `working` claim of `foo` with no `since` line whose `pid` names a process that runs, when
+  `issue-claim --release foo` runs, then it exits 1 and the claim is unchanged.
 - (CLM-6) Given a claim of `foo` in the state `merge pending` on branch `ws`, when the trunk does not hold `issues/done/foo.md`, then `next-issue` lists `Merge pending: foo (ws)` and keeps the claim; once a merge brings `issues/done/foo.md` to the trunk, it deletes the claim.
 - (CLM-7) Given a linked worktree on branch `ws` with a claim of `foo`, when `close-issue issues/foo.md` runs there, then `issues/foo.md` moves to `issues/done/` and the claim is in the state `merge pending` on `ws`.
 
 ## Non-goals
 
 - A claim seen from another clone: the ref is local; a pushed branch or pull request is the shared mark of a team.
-- A process id reused by another process after the session died: the claim then counts as live until that process
-  ends.
+- A process id reused by another process after the session died, in a claim with no `since` line: the claim then
+  counts as live until that process ends.
+- A wall clock stepped forward after a claim was written: its live process can then count as ended (CLM-11).
 - Refusing to claim a blocked issue: `next-issue` never offers one, and `issue-workflow` warns about it.
 - Platforms where `kill -0` cannot test a process.
 - Releasing a claim whose process still runs, or handing it to a background fork of a live session (another session

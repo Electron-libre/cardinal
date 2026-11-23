@@ -112,6 +112,14 @@ fn dead() -> String {
     pid
 }
 
+/// The wall clock in Unix seconds.
+fn now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
 fn next(cwd: &Path) -> String {
     tool(cwd, "", "", &["next-issue", "issues"]).1
 }
@@ -127,14 +135,18 @@ fn a_claim_names_the_session_its_process_worktree_branch_and_state() {
     let (code, out) = claim(&r.ws, "s1", &live(), "a");
     assert_eq!(code, Some(0), "{out}");
     assert!(out.contains("claimed a"), "{out}");
+    let text = claim_text(&r.main, "a");
+    let (head, since) = text.rsplit_once("since ").expect("a since line");
     assert_eq!(
-        claim_text(&r.main, "a"),
+        head,
         format!(
             "session s1\npid {}\nworktree {}\nbranch ws\nstate working\n",
             live(),
             top(&r.ws)
         )
     );
+    let since: u64 = since.trim_end().parse().expect("Unix seconds");
+    assert!(now().abs_diff(since) < 60, "written now: {since}");
     git(&r.main, &["checkout", "-q", "--detach"]);
     let (code, out) = claim(&r.main, "s2", &live(), "b");
     assert_eq!(code, Some(0), "{out}");
@@ -326,13 +338,18 @@ fn a_merge_pending_claim_is_listed_until_the_trunk_holds_the_closed_issue() {
 fn close_issue_frees_the_claim_on_the_trunk_and_marks_it_merge_pending_elsewhere() {
     let r = repo();
     claim(&r.ws, "s1", &live(), "a");
+    let since = claim_text(&r.main, "a")
+        .rsplit_once("since ")
+        .unwrap()
+        .1
+        .to_string();
     let (code, out) = tool(&r.ws, "", "", &["close-issue", "issues/a.md"]);
     assert_eq!(code, Some(0), "{out}");
     assert!(r.ws.join("issues/done/a.md").is_file());
     assert_eq!(
         claim_text(&r.main, "a"),
         format!(
-            "session s1\npid {}\nworktree {}\nbranch ws\nstate merge pending\n",
+            "session s1\npid {}\nworktree {}\nbranch ws\nstate merge pending\nsince {since}",
             live(),
             top(&r.ws)
         )
@@ -489,4 +506,49 @@ fn release_frees_only_a_working_claim_whose_process_ended() {
     assert!(out.contains("released a"), "{out}");
     assert!(claim_text(&r.main, "a").is_empty(), "deleted");
     assert!(next(&r.main).contains("Next: issues/a.md"), "offered again");
+}
+
+/// Point the claim of `stem` at a blob of `text`.
+fn set_claim(repo: &Path, stem: &str, text: &str) {
+    let blob = git_stdin(repo, &["hash-object", "-w", "--stdin"], text);
+    git(
+        repo,
+        &["update-ref", &format!("refs/cardinal/claims/{stem}"), &blob],
+    );
+}
+
+// spec: CLM-11
+#[test]
+fn a_claim_whose_pid_another_process_took_counts_as_ended() {
+    let r = repo();
+    claim(&r.ws, "s1", &live(), "a");
+    let written = claim_text(&r.main, "a");
+    let no_since = written.rsplit_once("since ").unwrap().0.to_string();
+    set_claim(&r.main, "a", &no_since);
+    let (code, out) = tool(&r.main, "", "", &["issue-claim", "--release", "a"]);
+    assert_eq!(code, Some(1), "no since line: kill -0 alone: {out}");
+    assert_eq!(claim_text(&r.main, "a"), no_since, "unchanged");
+    assert!(!next(&r.main).contains("session ended"));
+
+    // the process of the test started long after a claim written an hour before it
+    let old = format!("{no_since}since {}\n", now() - elapsed() - 3600);
+    set_claim(&r.main, "a", &old);
+    let out = next(&r.main);
+    assert!(out.contains("session ended"), "{out}");
+    let (code, out) = claim(&r.main, "s2", &live(), "a");
+    assert_eq!(code, Some(1), "another worktree never takes it: {out}");
+    assert!(out.contains("session ended"), "{out}");
+    let (code, out) = tool(&r.main, "", "", &["issue-claim", "--release", "a"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(out.contains("released a"), "{out}");
+    assert!(claim_text(&r.main, "a").is_empty(), "deleted");
+}
+
+/// The seconds this test process has run, from `ps -o etimes=`.
+fn elapsed() -> u64 {
+    let out = Command::new("ps")
+        .args(["-o", "etimes=", "-p", &live()])
+        .output()
+        .unwrap();
+    String::from_utf8_lossy(&out.stdout).trim().parse().unwrap()
 }

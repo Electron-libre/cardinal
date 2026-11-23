@@ -649,8 +649,11 @@ fn a_session_continued_in_another_hands_it_its_working_claims() {
     transcript(transcripts.path(), "a", Some("b"));
     let (code, _, err) = hook_with_transcript("check", &r.main, "b", &live(), transcripts.path());
     assert_eq!(code, Some(0), "{err}");
+    let moved = claim_of(&r.main, "foo");
+    let (moved, since) = moved.rsplit_once("\nsince ").expect("the time of the move");
+    assert!(since.parse::<u64>().is_ok(), "{since}");
     assert_eq!(
-        claim_of(&r.main, "foo"),
+        moved,
         format!(
             "session b\npid {}\nworktree {}\nbranch trunk\nstate working",
             live(),

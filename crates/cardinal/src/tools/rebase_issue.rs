@@ -100,7 +100,7 @@ fn refusal(wt: &Path, branch: &str, trunk: &str) -> Result<Option<String>, Strin
         };
         if let (Some(session), Some(pid)) = (field("session"), field("pid")) {
             let caller = std::env::var("CLAUDE_CODE_SESSION_ID").unwrap_or_default();
-            let runs = issue_claim::alive(pid) && !issue_claim::started_after(pid, &path);
+            let runs = issue_claim::alive(pid) && !issue_claim::lock_taken(pid, &path);
             if session != caller && runs {
                 return Ok(Some(format!("session {session} works in {}", wt.display())));
             }

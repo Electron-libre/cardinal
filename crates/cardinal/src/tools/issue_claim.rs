@@ -1,6 +1,6 @@
 //! Claim an issue for the Claude Code session that works it (ADR 0022): the ref `refs/cardinal/claims/<stem>`,
 //! created by compare-and-swap, points at a blob naming the session (`CLAUDE_CODE_SESSION_ID`), its process
-//! (`CLAUDE_PID`), the worktree, the branch and the state of the claim. A ref is seen from every worktree of the clone
+//! (`CLAUDE_PID`), the worktree, the branch, the state of the claim and when it was written (`since`, CLM-11). A ref is seen from every worktree of the clone
 //! and never pushed by the default refspecs. `next-issue` reads the claims, `close-issue` frees them.
 //! Usage: `cardinal run issue-claim issues/<stem>.md` (from a Claude Code session), or `cardinal run issue-claim
 //! --release <stem>` to delete a `working` claim whose process no longer runs (CLM-10), from anywhere.
@@ -19,6 +19,8 @@ pub(super) struct Claim {
     pub worktree: String,
     pub branch: String,
     pub state: String,
+    /// When the claim was written for its process, in Unix seconds: `None` for a claim of an older `cardinal`.
+    pub since: Option<u64>,
 }
 
 impl Claim {
@@ -35,20 +37,42 @@ impl Claim {
             worktree: field("worktree"),
             branch: field("branch"),
             state: field("state"),
+            since: field("since").parse().ok(),
         }
     }
 
     fn text(&self) -> String {
+        let since = self.since.map(|s| format!("since {s}\n"));
         format!(
-            "session {}\npid {}\nworktree {}\nbranch {}\nstate {}\n",
-            self.session, self.pid, self.worktree, self.branch, self.state
+            "session {}\npid {}\nworktree {}\nbranch {}\nstate {}\n{}",
+            self.session,
+            self.pid,
+            self.worktree,
+            self.branch,
+            self.state,
+            since.unwrap_or_default()
         )
     }
 
-    /// Whether the process of the claim still runs (`kill -0`).
+    /// Whether the process of the claim still runs: a process of its pid runs (`kill -0`) and did not start after
+    /// the claim was written, when the claim says when (CLM-11).
     pub fn alive(&self) -> bool {
         alive(&self.pid)
+            && !self.since.is_some_and(|s| {
+                started_after(
+                    &self.pid,
+                    std::time::UNIX_EPOCH + std::time::Duration::from_secs(s),
+                )
+            })
     }
+}
+
+/// The wall clock in Unix seconds, the `since` of a claim written now.
+pub(super) fn now() -> Option<u64> {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_secs())
 }
 
 /// Whether the process `pid` runs; false for an empty or invalid id.
@@ -62,13 +86,18 @@ pub(super) fn alive(pid: &str) -> bool {
 }
 
 /// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process that
-/// took the number of the session that wrote it, a stale lock (WSL-1, RBI-4); false when either time cannot be read.
-/// The start is read from `ps -o etimes=` (procps) against the wall clock: a `ps` without that field gives false, and a
-/// wall clock stepped forward after the lock was written can give true for the session that wrote it.
-pub(super) fn started_after(pid: &str, lock: &Path) -> bool {
-    let Ok(written) = std::fs::metadata(lock).and_then(|m| m.modified()) else {
-        return false;
-    };
+/// took the number of the session that wrote it, a stale lock (WSL-1, RBI-4); false when its mtime cannot be read.
+pub(super) fn lock_taken(pid: &str, lock: &Path) -> bool {
+    std::fs::metadata(lock)
+        .and_then(|m| m.modified())
+        .is_ok_and(|written| started_after(pid, written))
+}
+
+/// Whether the process `pid` started more than 2 seconds after `written`: another process that took the number of
+/// the session that wrote a lock or a claim then; false when its start cannot be read. The start is read from
+/// `ps -o etimes=` (procps) against the wall clock: a `ps` without that field gives false, and a wall clock stepped
+/// forward after `written` can give true for the session that wrote it.
+fn started_after(pid: &str, written: std::time::SystemTime) -> bool {
     let Ok(out) = Command::new("ps")
         .args(["-o", "etimes=", "-p", pid])
         .stderr(Stdio::null())
@@ -226,6 +255,7 @@ fn claim(issue: &str) -> Result<String, String> {
         worktree: top.clone(),
         branch: current_branch(here),
         state: "working".into(),
+        since: now(),
     };
     let done = |c: &Claim| {
         format!(

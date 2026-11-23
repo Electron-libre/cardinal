@@ -119,7 +119,7 @@ enum Verdict {
 /// Whether the lock at `lock` naming `holder` is stale: no process of its pid runs, or another process took the number
 /// after the lock was last written (WSL-1).
 fn stale(holder: &Holder, lock: &Path) -> bool {
-    !alive(&holder.pid) || issue_claim::started_after(&holder.pid, lock)
+    !alive(&holder.pid) || issue_claim::lock_taken(&holder.pid, lock)
 }
 
 /// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
@@ -160,6 +160,7 @@ fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
             let moved = issue_claim::Claim {
                 session: caller.me.session.clone(),
                 pid: caller.me.pid.clone(),
+                since: issue_claim::now(),
                 ..claim
             };
             issue_claim::write(cwd, &stem, &moved, Some(&old));

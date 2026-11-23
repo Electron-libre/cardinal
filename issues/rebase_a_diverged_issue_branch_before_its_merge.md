@@ -75,9 +75,9 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 3. [x] Split `specs/steering-ui-actions.md` (over `spec_max_bytes`): move the merge (SUA-2, SUA-7, SUA-22 and their
    scenarios) to `specs/steering-ui-merge.md` (SUM), the old ids `withdrawn: moved to SUM-n`, the tests retagged;
    no change of behaviour; verified by `cardinal run check-specs`. (autonomous)
-4. [ ] Key `f` on a diverged branch (`crates/cardinal-ui/src/merge.rs`): `rebase-issue`, then `project-check` in the
+4. [x] Key `f` on a diverged branch (`crates/cardinal-ui/src/merge.rs`): `rebase-issue`, then `project-check` in the
    issue worktree, then the fast-forward; verified by the `--merge` tests of `crates/cardinal-ui/tests/`; makes true
-   SUA-22 (SUM-n after 3), SUA-7 amended.
+   SUA-22 (SUM-n after 3), SUA-7 amended. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -111,3 +111,13 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 - red: none (no change of behaviour)
 - Code review: no findings
 - not verified: nothing.
+
+## Deliverable 4 summary
+- done: the key `f` and `--merge` on a diverged branch run `rebase-issue` in the main worktree, then `project-check`
+  in the worktree of the branch, then the fast-forward (`rebased and merged ...`); a refusal or a conflict merges
+  nothing; a failing check keeps the rebase. SUM accepted; `docs/usage.md`, `README.md`, `docs/architecture.md`.
+- checks: tests pass (14 merge tests), clippy clean, specs pass, docs updated.
+- red: SUM-3, SUM-H2: `cardinal-ui: foo diverged from trunk: rebase it in its worktree`
+- Code review: 1 findings: `head` computed before the rebase would merge the old commit; not fixed: it is the ref
+  name `refs/heads/<branch>`, read at the merge, and `a_diverged_branch_is_rebased_checked_then_merged` proves it.
+- not verified: the key `f` pressed on the screen of a real zellij session (the `--merge` path is the same task).

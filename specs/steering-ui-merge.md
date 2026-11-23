@@ -1,6 +1,6 @@
 ---
 id: SUM
-status: draft
+status: accepted
 adrs: [0022, 0030]
 ---
 

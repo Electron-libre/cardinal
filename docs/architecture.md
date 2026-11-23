@@ -248,7 +248,7 @@ actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), th
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to
-merge an issue closed on its branch (SUM-1), then ends the session, the tab and the worktree that issue left (SUE-3), or
+merge an issue closed on its branch (SUM-1), after `cardinal run rebase-issue` and `project-check` when the branch diverged (SUM-3), then ends the session, the tab and the worktree that issue left (SUE-3), or
 starts a release session or a review of the priorities in the main worktree (SUA-4, SUA-16). It is not managed content and a consumer does not need it; the
 release workflow does not build it.
 

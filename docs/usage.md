@@ -364,8 +364,11 @@ An issue closed on its branch with `merge_back = "local"` waits `merge pending` 
 <branch>` (the branch of its claim), then `cardinal check`, whose failure keeps the merge and prints the line naming
 the install it needs (exit 1). It merges nothing (exit 1, saying why) when the issue is not `merge pending`, its
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
-worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
-trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
+worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock. When the trunk
+is not an ancestor of the branch (another issue was merged since), it first runs `cardinal run rebase-issue <stem>`,
+then `cardinal run project-check` in the worktree of the branch, and merges only once both pass (`rebased and merged
+...`); a conflict `rebase-issue` cannot settle, a live session in that worktree or a pushed branch merges nothing,
+the rebase aborted, and a failing project check keeps the rebase but merges nothing. The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `c`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start, a review start or a cut start runs, and `q` then quits once it
 ended, printing the result of a merge, an end, a release start or a review start. The next
 read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, and only

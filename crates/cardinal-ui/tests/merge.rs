@@ -70,9 +70,15 @@ impl Project {
     /// The fake `cardinal`: a queue of `bar` and, while the trunk does not hold its close, `foo` `merge pending`, as
     /// CLM-6 prunes it; `check` logs its directory, then runs `check`; `roadmap` lists no milestone.
     fn cardinal(&self, check: &str) -> PathBuf {
+        self.cardinal_rebasing(check, "echo \"bad call: $*\" >&2; exit 9", "exit 9")
+    }
+
+    /// The fake `cardinal` of `cardinal`, whose `run rebase-issue` and `run project-check` log their directory, then
+    /// run `rebase` and `project_check`.
+    fn cardinal_rebasing(&self, check: &str, rebase: &str, project_check: &str) -> PathBuf {
         let path = self.root.path().join("cardinal");
         let body = format!(
-            "#!/bin/sh\ncase \"$1 $2\" in\n  'run next-issue') if git cat-file -e trunk:issues/done/foo.md 2>/dev/null; then printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR}]}}'; else printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR},{FOO}]}}'; fi; exit 0 ;;\n  'run roadmap') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics'|'run delivered-quality') exit 3 ;;\n  'check ') echo \"check in $(pwd)\" >> '{log}'; {check} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\ncase \"$1 $2\" in\n  'run rebase-issue') echo \"rebase-issue $3 in $(pwd)\" >> '{log}'; {rebase} ;;\n  'run project-check') echo \"project-check in $(pwd)\" >> '{log}'; {project_check} ;;\n  'run next-issue') if git cat-file -e trunk:issues/done/foo.md 2>/dev/null; then printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR}]}}'; else printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR},{FOO}]}}'; fi; exit 0 ;;\n  'run roadmap') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics'|'run delivered-quality') exit 3 ;;\n  'check ') echo \"check in $(pwd)\" >> '{log}'; {check} ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             log = self.log.display()
         );
         std::fs::write(&path, body).unwrap();
@@ -271,24 +277,87 @@ fn a_live_session_in_the_main_worktree_is_refused_an_ended_one_is_not() {
     assert_eq!(p.trunk(), p.foo());
 }
 
-// spec: SUM-2
+/// Commits `README.md` holding `text` in `dir`.
+fn commit_readme(dir: &Path, text: &str) {
+    std::fs::write(dir.join("README.md"), text).unwrap();
+    git(dir, &["add", "README.md"]);
+    git(dir, &["commit", "-qm", "readme", "--no-verify"]);
+}
+
+// spec: SUM-H2, SUM-3
 #[test]
-fn a_diverged_branch_is_refused() {
+fn a_diverged_branch_is_rebased_checked_then_merged() {
     let p = project();
-    let cardinal = p.cardinal("exit 0");
-    git(
-        &p.repo,
-        &["commit", "-qm", "other", "--allow-empty", "--no-verify"],
+    let rebase = format!(
+        "git -c user.email=t@t -c user.name=t -C '{}' rebase -q trunk; exit $?",
+        p.ws.display()
     );
+    let cardinal = p.cardinal_rebasing("exit 0", &rebase, "exit 0");
+    commit_readme(&p.repo, "trunk\n");
+    let before = p.trunk();
+    let (code, out, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(
+        out.contains("rebased and merged foo (foo) into trunk"),
+        "{out}"
+    );
+    assert_eq!(p.trunk(), p.foo());
+    assert_eq!(git(&p.repo, &["merge-base", "trunk^", &before]), before);
+    assert_eq!(
+        p.log(),
+        format!(
+            "rebase-issue foo in {repo}\nproject-check in {ws}\ncheck in {repo}\n",
+            repo = p.repo.display(),
+            ws = p.ws.display()
+        )
+    );
+}
+
+// spec: SUM-3
+#[test]
+fn a_rebase_that_meets_a_conflict_merges_nothing() {
+    let p = project();
+    let cardinal = p.cardinal_rebasing(
+        "exit 0",
+        "echo 'foo: conflict in README.md: rebase aborted, settle it in ws' >&2; exit 1",
+        "exit 0",
+    );
+    commit_readme(&p.repo, "trunk\n");
     let before = p.trunk();
     let (code, _, err) = p.merge(&cardinal, "foo");
     assert_eq!(code, Some(1));
     assert!(
-        err.contains("foo diverged from trunk: rebase it in its worktree"),
+        err.contains("foo: conflict in README.md: rebase aborted, settle it in ws"),
         "{err}"
     );
     assert_eq!(p.trunk(), before);
-    assert_eq!(p.log(), "");
+    assert!(!p.log().contains("project-check"), "{}", p.log());
+}
+
+// spec: SUM-3
+#[test]
+fn a_project_check_that_fails_after_the_rebase_keeps_it_and_merges_nothing() {
+    let p = project();
+    let rebase = format!(
+        "git -c user.email=t@t -c user.name=t -C '{}' rebase -q trunk; exit $?",
+        p.ws.display()
+    );
+    let cardinal = p.cardinal_rebasing("exit 0", &rebase, "echo 'clippy failed' >&2; exit 1");
+    commit_readme(&p.repo, "trunk\n");
+    let before = p.trunk();
+    let (code, _, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains("rebased foo onto trunk; project-check: exit 1: clippy failed"),
+        "{err}"
+    );
+    assert_eq!(p.trunk(), before);
+    assert_eq!(git(&p.repo, &["merge-base", "trunk", "foo"]), before);
+    assert!(
+        !p.log().lines().any(|l| l.starts_with("check in")),
+        "{}",
+        p.log()
+    );
 }
 
 // spec: SUM-2

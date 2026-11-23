@@ -47,6 +47,9 @@ worktree, refused as the release is (Approach 1). Out of scope: editing the `pri
    `--prioritize` in `main.rs`; no code added to `screen.rs` (over the file size limit, split by its own issue);
    verified by `crates/cardinal-ui/tests/prioritize.rs` (fake `cardinal` and `zellij`, as `tests/release.rs`) and
    the unit tests of `keys.rs` and `help.rs`; makes true SUA-16, SUA-17, SUA-18, SUA-6, SUA-15, STU-3. ~500 lines. (autonomous)
+2. [x] The fixes of the `high` review of the issue: the result of a review start printed on `q` (`docs/usage.md`),
+   the doc of `run_task`, the key `p` on an empty queue still runs its task; verified by the unit test of `keys.rs`;
+   makes true SUA-15, SUA-17. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -72,5 +75,33 @@ red: SUA-H8, SUA-16, SUA-17, SUA-18: `cardinal-ui --prioritize` exited 2 with th
 Code review: no findings
 
 not verified: the key `p` in a real zellij session (the fakes prove the commands it runs).
+
+decisions needed: none.
+
+## Summary of deliverable 2
+done: the three fixes of the `high` review of `a89ebfb..bd253b8`.
+
+| check | result |
+|---|---|
+| tests | pass (`p_starts_the_review_of_the_priorities_…` with an empty queue) |
+| lint | pass |
+| specs | no change |
+| docs | `docs/usage.md` (what `q` prints) |
+| code review | low: no findings |
+
+red: none (the added case passed at once: it guards the key path against a later regression).
+
+Code review (high, whole issue): 5 findings
+- the help line hints from the queue read in the current worktree, `p` reads the main one: kept, SUA-15 reads "the
+  read shown" and its non-goal leaves the other refusals to the key.
+- a review committed on the trunk makes the open branches diverge before their merge: kept, as the release does;
+  tracked by `issues/rebase_a_diverged_issue_branch_before_its_merge.md`.
+- `docs/usage.md` left out the result of a review start on `q`: fixed.
+- the doc of `run_task` left out the review: fixed.
+- no test of `p` on an empty queue through the key: fixed.
+
+Code review: no findings
+
+not verified: none.
 
 decisions needed: none.

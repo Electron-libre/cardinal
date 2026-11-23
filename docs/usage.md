@@ -364,7 +364,7 @@ branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the 
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start or a review start runs, and `q` then quits once it
-ended, printing the result of a merge, an end or a release start. The next
+ended, printing the result of a merge, an end, a release start or a review start. The next
 read drops the claim (CLM-6). The help line under the panels offers, beside `q`, `r`, the arrows, `Tab` and `g`, `i` on an issue of the queue, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in

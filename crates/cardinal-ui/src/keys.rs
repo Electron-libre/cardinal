@@ -328,15 +328,18 @@ pub(crate) mod tests {
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
     }
 
-    // spec: SUA-16, SUA-6 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUA-16, SUA-6, SUA-15 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn p_starts_the_review_of_the_priorities_from_either_panel_and_before_the_first_read() {
         assert_eq!(action(&press(KeyCode::Char('p'))), Action::Prioritize);
         let v = view(&["bar"], &[("/main", Some("trunk"))]);
+        // an empty queue still runs the task, which says why it starts nothing (SUA-15, SUA-17)
+        let empty = view(&[], &[]);
         for (focus, read) in [
             (Focus::Queue, Some(&v)),
             (Focus::Worktrees, Some(&v)),
             (Focus::Queue, None),
+            (Focus::Queue, Some(&empty)),
         ] {
             let sel = Selection {
                 focus,

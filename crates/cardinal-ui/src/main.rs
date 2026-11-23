@@ -119,7 +119,7 @@ fn print() -> i32 {
 }
 
 /// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUE-1), or
-/// starts its release session (SUA-4).
+/// starts its release session (SUA-4) or the review of its priorities (SUA-16).
 fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
     match task {
         keys::Task::Start => start_in_project(stem),

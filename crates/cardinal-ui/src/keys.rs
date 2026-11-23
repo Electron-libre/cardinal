@@ -128,6 +128,8 @@ pub enum Action {
     Release,
     /// `p`: starts the review of the priorities (SUA-16).
     Prioritize,
+    /// `a`: starts the audit of the code (SUA-23).
+    Audit,
     /// `c`: starts the cut of the selected milestone into issues (SUA-19).
     Cut,
     Measure,
@@ -150,6 +152,7 @@ pub enum Task {
     EndMerged,
     Release,
     Prioritize,
+    Audit,
     Cut,
 }
 
@@ -165,6 +168,7 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
             Task::Prioritize,
             "starting the review of the priorities…".to_string(),
         )),
+        Action::Audit => Some((Task::Audit, "starting the audit of the code…".to_string())),
         Action::Cut => Some((Task::Cut, format!("starting the cut of {stem}…"))),
         _ => None,
     }
@@ -173,8 +177,8 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
 /// belongs to the other panel or the worktree is detached (SUA-1, SUM-1, SUE-1). The release covers every
-/// milestone awaiting it, the review of the priorities every open issue, the end of the merged worktrees every one
-/// of them: they need no selection nor read (SUA-4, SUA-16, SUE-2).
+/// milestone awaiting it, the review of the priorities every open issue, the audit the whole repository, the end of the merged worktrees every one
+/// of them: they need no selection nor read (SUA-4, SUA-16, SUA-23, SUE-2).
 pub(crate) fn job(
     action: &Action,
     sel: Selection,
@@ -182,7 +186,7 @@ pub(crate) fn job(
 ) -> Result<Option<(Task, String, String)>, String> {
     if matches!(
         action,
-        Action::Release | Action::Prioritize | Action::EndMerged
+        Action::Release | Action::Prioritize | Action::Audit | Action::EndMerged
     ) {
         return Ok(task(action, "").map(|(t, shown)| (t, shown, String::new())));
     }
@@ -234,6 +238,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('E') => Action::EndMerged,
         KeyCode::Char('v') => Action::Release,
         KeyCode::Char('p') => Action::Prioritize,
+        KeyCode::Char('a') => Action::Audit,
         KeyCode::Char('c') => Action::Cut,
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
@@ -405,6 +410,32 @@ pub(crate) mod tests {
         assert_eq!(quits(&Action::Quit, true, false), (false, true));
     }
 
+    // spec: SUA-23 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn a_starts_the_audit_from_either_panel_and_before_the_first_read() {
+        assert_eq!(action(&press(KeyCode::Char('a'))), Action::Audit);
+        let v = view(&["bar"], &[("/main", Some("trunk"))]);
+        for (focus, read) in [
+            (Focus::Queue, Some(&v)),
+            (Focus::Worktrees, Some(&v)),
+            (Focus::Queue, None),
+        ] {
+            let sel = Selection {
+                focus,
+                row: 0,
+                worktree: 0,
+            };
+            assert_eq!(
+                job(&Action::Audit, sel, read),
+                Ok(Some((
+                    Task::Audit,
+                    "starting the audit of the code…".to_string(),
+                    String::new()
+                )))
+            );
+        }
+    }
+
     // spec: SUA-16, SUA-6, SUA-15 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn p_starts_the_review_of_the_priorities_from_either_panel_and_before_the_first_read() {
@@ -509,6 +540,7 @@ pub(crate) mod tests {
                 Action::EndMerged,
                 Action::Release,
                 Action::Prioritize,
+                Action::Audit,
                 Action::Up,
                 Action::Down,
                 Action::Switch,

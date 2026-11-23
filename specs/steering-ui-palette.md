@@ -19,7 +19,7 @@ keys of SUA, SUE, SUQ and SUC stay its shortcuts.
 - **SUP-1** (deterministic) On the panels, the key `:` must open the palette over them: a top line `: ` followed by
   the text typed, then one line per command that would act in the read shown on what is selected, each its key, two
   spaces and its name, in this order: `i summary`, `n next`, `s start`, `f merge`, `e end`, `c cut`, `E end merged`, `v release`,
-  `p prioritize` (each under the condition SUA-15 gives its key in the help line, none of the tasks while one runs,
+  `p prioritize`, `a audit` (each under the condition SUA-15 gives its key in the help line, none of the tasks while one runs,
   SUA-6), then `r refresh`, `g charts` and `q quit`, which always act; the first line of the list highlighted.
 - **SUP-2** (deterministic) While the palette is open, a printable character typed (a letter held with `Ctrl` or `Alt`
   is none) must append itself to the text of the top line and `Backspace` remove its last character, the list then holding only the commands whose name contains

@@ -213,6 +213,7 @@ mod tests {
             merged: vec![false, true],
             release: true,
             prioritize: true,
+            audit: true,
         };
         v
     }
@@ -231,6 +232,7 @@ mod tests {
                 "E end merged",
                 "v release",
                 "p prioritize",
+                "a audit",
                 "r refresh",
                 "g charts",
                 "q quit"
@@ -434,7 +436,7 @@ mod tests {
     fn on_a_short_screen_the_list_scrolls_to_keep_the_highlight_drawn() {
         let all = commands(Some(&every_key()), Selection::default(), false);
         let mut p = Palette::default();
-        for _ in 0..7 {
+        for _ in 0..8 {
             p.key(&press(KeyCode::Down), &all);
         }
         assert_eq!(p.shown(&all)[p.highlighted(&p.shown(&all))].name, "charts");

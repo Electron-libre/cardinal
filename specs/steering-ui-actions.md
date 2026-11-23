@@ -9,7 +9,7 @@ adrs: [0022, 0023, 0030, 0031]
 ## Intent
 
 The keys and the flags of `cardinal-ui` (STU) that change the project: start a session on a ready issue, on the
-release of the milestones awaiting it, on the review of the order of the issues or on the cut of a milestone into
+release of the milestones awaiting it, on the review of the order of the issues, on the audit of the code or on the cut of a milestone into
 issues, in a zellij tab of its own, each refused with its reason when the project is not ready for it; the merge of an issue closed on its branch is SUM, the end of what it left SUE.
 
 ## Requirements
@@ -22,8 +22,9 @@ issues, in a zellij tab of its own, each refused with its reason when the projec
 - **SUA-13** (deterministic) withdrawn: moved to SUE-2.
 - **SUA-4** (deterministic) In a zellij session, the key `v`, when a milestone awaits its release (STU-1) or a release prepared is not tagged yet (an interrupted release that `skill:release` resumes), must start in the main worktree, in a new zellij tab named `release`, an interactive `claude` whose first message is `/release`, so the version, its reread, its review and its tag stay with `skill:release`; when SUA-11 refuses, it starts nothing and says why on the status line.
 - **SUA-16** (deterministic) In a zellij session, the key `p`, whatever the selection, must start in the main worktree, in a new zellij tab named `prioritize`, an interactive `claude` whose first message is `/prioritize-issues`, so the review of the `priority` and `depends_on` of the open issues, its proposal, its stop and its commit stay with `skill:prioritize-issues`; when SUA-17 refuses, it starts nothing and says why on the status line.
+- **SUA-23** (deterministic) In a zellij session, the key `a`, whatever the selection, must start in the main worktree, in a new zellij tab named `audit`, an interactive `claude` whose first message is `/audit-code`, so the audit of the repository, its proposal, its stop and the issues it writes stay with `skill:audit-code`; when SUA-24 refuses, it starts nothing and says why on the status line.
 - **SUA-19** (deterministic) In a zellij session, the key `c` on the heading of a milestone selected in the queue (STU-14) whose state is `shaped` or `idea` must start in the main worktree, in a new zellij tab named after the milestone, an interactive `claude` whose first message is `/create-issue cut the milestone <name> into issues`, so the proposal of the issues, its stop and their commit stay with `skill:create-issue`, which agrees the goal of an `idea` one with the user; with the selection on an issue or a worktree it starts nothing and says `c acts on a milestone: select its heading`; when SUA-20 refuses, it starts nothing and says why on the status line.
-- **SUA-15** (deterministic) The help line under the panels must list `: commands  ↑↓ select  tab panel  q quit`, then `i summary` when the selection is in the queue on an issue (SUQ-6), then `n next` when `next-issue` offers an issue (STU-36) and the selection is not on its row of the queue, both a task running or not, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUM-1: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `c cut` (SUA-19: in a zellij session, the selection on the heading of a milestone `shaped` or `idea`), two spaces between two keys, none of `s`, `f`, `e` and `c` while a task runs (SUA-6); the keys that act whatever the selection (`E`, `v`, `p`, `r`, `g`) are found in the palette (SUP-1), not on the line; it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on (STU-14).
+- **SUA-15** (deterministic) The help line under the panels must list `: commands  ↑↓ select  tab panel  q quit`, then `i summary` when the selection is in the queue on an issue (SUQ-6), then `n next` when `next-issue` offers an issue (STU-36) and the selection is not on its row of the queue, both a task running or not, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUM-1: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `c cut` (SUA-19: in a zellij session, the selection on the heading of a milestone `shaped` or `idea`), two spaces between two keys, none of `s`, `f`, `e` and `c` while a task runs (SUA-6); the keys that act whatever the selection (`E`, `v`, `p`, `a`, `r`, `g`) are found in the palette (SUP-1), not on the line; it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on (STU-14).
 
 ### Contract
 
@@ -40,6 +41,8 @@ issues, in a zellij tab of its own, each refused with its reason when the projec
 - **SUA-20** (deterministic) `cardinal-ui --cut <milestone>` must start the session of SUA-19 on the milestone `<milestone>` and exit 0, printing `started the cut of <milestone> in <main worktree path>`, or print on stderr why it does not and exit 1, opening no tab when: outside a zellij session (`cut needs zellij: run cardinal-ui in a zellij session`); the repository is bare, the main worktree has no branch checked out, `git status --porcelain` lists anything there, or its lock (STU-7) names a session whose process runs (the lines of SUA-11); `cardinal run roadmap --open --json`, run in the main worktree, lists no milestone of that name (`<milestone>: no open milestone of that name`), or cannot be read (the line of STU-6); its state is neither `shaped` nor `idea` (`<milestone>: <state>, not shaped nor idea`); the main worktree has no `.claude/skills/create-issue/SKILL.md` (`the skill create-issue is turned off`); a tab named `<milestone>` holds a terminal pane running the `claude` of SUA-21 that has not `exited` (`a tab <milestone> is already open`); a step that fails (its command, its exit code and the first line of its stderr). The key `c` shows the same message on the status line.
 - **SUA-21** (deterministic) The tab of SUA-19 must be opened with `zellij action new-tab --cwd <main worktree path> --name <milestone> -- claude "/create-issue cut the milestone <milestone> into issues"`, the `zellij` of SUA-10, run once every check of SUA-20 passed.
 - **SUA-14** (deterministic) withdrawn: moved to SUE-5.
+- **SUA-24** (deterministic) `cardinal-ui --audit` must start the session of SUA-23 and exit 0, printing `started the audit of the code in <main worktree path>`, or print on stderr why it does not and exit 1, opening no tab when: outside a zellij session (`audit needs zellij: run cardinal-ui in a zellij session`); the repository is bare, the main worktree has no branch checked out, `git status --porcelain` lists anything there, or its lock (STU-7) names a session whose process runs (the lines of SUA-11); the main worktree has no `.claude/skills/audit-code/SKILL.md` (`the skill audit-code is missing: run cardinal sync`); a tab named `audit` holds a terminal pane whose command is `claude /audit-code` and has not `exited` (read from `list-panes`, one that fails counting as no such pane) (`an audit tab is already open`); a step that fails (its command, its exit code and the first line of its stderr). The key `a` shows the same message on the status line.
+- **SUA-25** (deterministic) The tab of SUA-23 must be opened with `zellij action new-tab --cwd <main worktree path> --name audit -- claude /audit-code`, the `zellij` of SUA-10, run once every check of SUA-24 passed.
 - **SUA-22** (deterministic) withdrawn: moved to SUM-3.
 
 ## Scenarios
@@ -59,6 +62,9 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   `Two` in the state `idea` with no open issue, and a clean main worktree on `trunk` with no live session, when the
   user selects the heading `■ Two` and presses `c`, then a tab `Two` runs `claude "/create-issue cut the milestone Two
   into issues"` in the main worktree, and the linked worktree is unchanged.
+- **SUA-H10** (happy; SUA-23, SUA-24, SUA-25) Given the UI in a zellij session in a linked worktree and a clean
+  main worktree on `trunk` with no live session, when the user opens the palette and picks `a audit`, then a tab
+  `audit` runs `claude /audit-code` in the main worktree, and the linked worktree is unchanged.
 - **SUA-H7** (happy; SUA-15) Given a queue whose first issue `foo` is taken by a claim `merge pending` and a
   worktree of an issue `bar` whose row reads `merged`, when the user looks at the help line, then it reads `: commands  ↑↓
   select  tab panel  q quit  i summary  f merge`; when they press `Tab` and select the worktree of `bar`, it reads `…
@@ -127,6 +133,19 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   `zellij action new-tab`.
 - (SUA-15) Given an empty queue in a zellij session, then neither the help line nor the palette (SUP-1) offers `p
   prioritize`, and `p` still says `no open issue to prioritize`.
+
+- (SUA-24) Given no `ZELLIJ` variable, when `cardinal-ui --audit` runs, then it prints `audit needs zellij` on
+  stderr, exits 1 and runs neither `git` nor `zellij`.
+- (SUA-24) Given a main worktree with no `.claude/skills/audit-code/SKILL.md`, when `cardinal-ui --audit` runs, then
+  it exits 1 with `the skill audit-code is missing: run cardinal sync` and opens no tab.
+- (SUA-24) Given an untracked file in the main worktree, or a lock of the main worktree naming a session whose
+  process runs, when `cardinal-ui --audit` runs, then it exits 1 saying why and opens no tab.
+- (SUA-24) Given a tab `audit` whose pane runs `claude /audit-code`, when `cardinal-ui --audit` runs, then it exits 1
+  with `an audit tab is already open`; given that pane exited, it opens the tab.
+- (SUA-24) Given a `zellij new-tab` that fails, when `cardinal-ui --audit` runs, then it exits 1 naming `zellij
+  action new-tab`.
+- (SUA-15) Given a zellij session and nothing running, then the palette (SUP-1) offers `a audit`, the help line does
+  not; outside zellij, neither offers it and `a` still says `audit needs zellij: run cardinal-ui in a zellij session`.
 
 - (SUA-19) Given an issue selected, when the user presses `c`, then the status line reads `c acts on a milestone:
   select its heading` and nothing opens.

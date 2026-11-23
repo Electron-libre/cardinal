@@ -37,6 +37,8 @@ pub struct Keys {
     pub release: bool,
     /// Whether `p` would start the review of the priorities: in zellij, the queue lists an open issue (SUA-16).
     pub prioritize: bool,
+    /// Whether `a` would start the audit of the code: in zellij (SUA-23).
+    pub audit: bool,
 }
 
 impl Keys {
@@ -76,6 +78,7 @@ impl Keys {
                     .as_ref()
                     .is_ok_and(|m| m.list.iter().any(|m| m.awaits_release)),
             prioritize: zellij && !issues.is_empty(),
+            audit: zellij,
         }
     }
 }
@@ -118,6 +121,7 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
         ),
         (keys.release, "v release", Action::Release),
         (keys.prioritize, "p prioritize", Action::Prioritize),
+        (keys.audit, "a audit", Action::Audit),
     ];
     [
         (summary, "i summary", Action::Summary),
@@ -178,6 +182,7 @@ mod tests {
             merged: vec![false, true, false],
             release: false,
             prioritize: false,
+            audit: false,
         };
         let always = ": commands  ↑↓ select  tab panel  q quit";
         assert_eq!(
@@ -197,6 +202,7 @@ mod tests {
         v.keys.merged = vec![false; 3];
         assert_eq!(line(&v, on(Focus::Worktrees, 0, 0), false), always);
         v.keys.prioritize = true;
+        v.keys.audit = true;
         assert_eq!(line(&v, on(Focus::Worktrees, 0, 0), false), always);
     }
 
@@ -212,6 +218,7 @@ mod tests {
             merged: vec![false, true],
             release: false,
             prioritize: false,
+            audit: false,
         };
         let mut sel = Selection::default();
         assert_eq!(
@@ -302,6 +309,7 @@ mod tests {
             merged: vec![false, true],
             release: true,
             prioritize: true,
+            audit: true,
         };
         assert_eq!(
             line(&v, Selection::default(), true),
@@ -371,8 +379,8 @@ mod tests {
         ];
         let k = Keys::of(&state(vec![issue]), &rows, true);
         assert_eq!(
-            (k.release, k.prioritize, k.merged),
-            (true, true, vec![false, true])
+            (k.release, k.prioritize, k.audit, k.merged),
+            (true, true, true, vec![false, true])
         );
         assert_eq!(k.start, [false, true], "never on a milestone");
         let k = Keys::of(&state(Vec::new()), &[], true);
@@ -382,7 +390,11 @@ mod tests {
             "no open issue to prioritize"
         );
         let k = Keys::of(&state(Vec::new()), &[], false);
-        assert_eq!((k.release, k.prioritize), (false, false), "outside zellij");
+        assert_eq!(
+            (k.release, k.prioritize, k.audit),
+            (false, false, false),
+            "outside zellij"
+        );
     }
 
     // spec: SUA-15 (internal: the selection moves only in a screen that needs a real terminal)

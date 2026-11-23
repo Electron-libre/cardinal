@@ -264,6 +264,7 @@ flowchart LR
   ui -->|"list-panes, close-tab-by-id or SIGHUP,<br/>cardinal run worktree close (merged)"| ended["session, tab, worktree"]
   ui -->|"release --json, zellij action new-tab<br/>claude /release (awaiting release)"| release["release tab in the main worktree"]
   ui -->|"next-issue --json, zellij action new-tab<br/>claude /prioritize-issues (p)"| prioritize["prioritize tab in the main worktree"]
+  ui -->|"zellij action new-tab<br/>claude /audit-code (a)"| audit["audit tab in the main worktree"]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
@@ -278,7 +279,7 @@ flowchart LR
 | `tree.rs` | the sections of the queue: the open issues grouped by milestone, each section a tree of their dependencies |
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
-| `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release, review and cut starts on threads of their own |
+| `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release, review, audit and cut starts on threads of their own |
 | `mark.rs` | the mark ` ✦ Cardinal ` against the right corner of the top border of the queue, in `accent`, left out when the border cannot hold it next to the title (SUS-6) |
 | `summary.rs` | the summary of the selected issue, its title and its goal wrapped at the words under the queue, that `i` folds and unfolds |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
@@ -293,6 +294,7 @@ flowchart LR
 | `release.rs` | starts a release session: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), nothing to release (no milestone listed, no release `prepared`), a project without `skill:release`, a `release` tab still running `claude /release`, then `zellij action new-tab` running `claude /release` in the main worktree (`skill_tab.rs`) |
 | `cut.rs` | starts the cut of a milestone into issues: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), a milestone `roadmap --open` does not list or neither `shaped` nor `idea`, a project without `skill:create-issue`, a tab of the milestone still running its `claude`, then opens a tab named after it in the main worktree running `claude "/create-issue cut the milestone <name> into issues"` (`skill_tab.rs`) |
 | `prioritize.rs` | starts a review of the priorities: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), an empty queue, a project without `skill:prioritize-issues`, a `prioritize` tab still running `claude /prioritize-issues`, then opens that tab in the main worktree (`skill_tab.rs`) |
+| `audit.rs` | starts an audit of the code: refuses outside zellij, a detached, dirty or locked main worktree (the checks of `merge.rs`), a main worktree without `skill:audit-code`, an `audit` tab still running `claude /audit-code`, then opens that tab in the main worktree (`skill_tab.rs`) |
 | `skill_tab.rs` | the tab of a skill session in the main worktree: whether a pane of that tab still runs its `claude` (`zellij action list-panes`), then `zellij action new-tab` running it |
 | `end.rs` | ends what a merged issue left: refuses a session at work, a dirty or locked worktree, one holding another (a worktree whose directory is gone skips the checks run in it), a trunk without the close; closes the tab (or the pane) of the session, else sends it `SIGHUP`, waits for it, then `cardinal run worktree close` in the main worktree; `E` and `--end-merged` run it on every merged worktree in turn |
 

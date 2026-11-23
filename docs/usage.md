@@ -420,6 +420,11 @@ proposes the changes of `priority` and `depends_on`, waits for the user and comm
 matter itself. It opens nothing (exit 1, saying why) outside zellij, from a bare, detached, dirty or locked main
 worktree (as the release), when `cardinal run next-issue --json`, run there, lists no open issue or fails, the
 project turned the skill `prioritize-issues` off, or a tab `prioritize` still runs `claude /prioritize-issues`.
+`a`, whatever is selected, or `cardinal-ui --audit`, starts the audit of the code the same way: a zellij tab named
+`audit` in the main worktree running `claude /audit-code`, so `skill:audit-code` audits the repository, proposes its
+findings, waits for the user and writes the issues they validate. It opens nothing (exit 1, saying why) outside
+zellij, from a bare, detached, dirty or locked main worktree (as the release), when the main worktree has no
+`skill:audit-code` (`run cardinal sync`), or a tab `audit` still runs `claude /audit-code`.
 `c` on the heading of a milestone `shaped` or `idea`, or `cardinal-ui --cut <milestone>`, starts its cut into issues
 the same way: a zellij tab named after the milestone in the main worktree running `claude "/create-issue cut the
 milestone <milestone> into issues"`, so `skill:create-issue` proposes the issues, agrees the goal of an `idea` one
@@ -427,7 +432,7 @@ with the user, waits for their agreement and commits them. It opens nothing (exi
 a bare, detached, dirty or locked main worktree (as the release), when `cardinal run roadmap --open --json`, run
 there, lists no milestone of that name or fails, its state is neither `shaped` nor `idea`, the project turned the
 skill `create-issue` off, or a tab of that milestone still runs that `claude`.
-Apart from a start (of an issue, a release, a review or a cut), a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
+Apart from a start (of an issue, a release, a review, an audit or a cut), a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

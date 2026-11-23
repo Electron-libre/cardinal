@@ -1,4 +1,4 @@
-//! A skill session in a zellij tab of the main worktree (SUA-4, SUA-12, SUA-16, SUA-18): an interactive `claude`
+//! A skill session in a zellij tab of the main worktree (SUA-4, SUA-12, SUA-16, SUA-18, SUA-23, SUA-25): an interactive `claude`
 //! whose first message names the skill, in a tab of its own, never opened twice while its pane still runs.
 
 use std::path::Path;

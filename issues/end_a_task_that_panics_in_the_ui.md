@@ -10,7 +10,7 @@ the screen stays busy, no other task starts, and `q` only waits for the task, so
 expected outcome is a panicking task reported on the status line as an error, the screen free again, and `q` quitting.
 
 # Findings
-* Found by the `high` review of `issues/split_the_screen_module_of_the_ui.md`, read from the code, not reproduced.
+* Found by the `high` review of `issues/done/split_the_screen_module_of_the_ui.md`, read from the code, not reproduced.
 * `run` of `crates/cardinal-ui/src/terminal.rs` spawns `std::thread::spawn(move || send.send(run_task(job, &stem)))`:
   a panic in `run_task` sends nothing, so `busy` stays `true`.
 * The loop keeps the `done` sender, so `task_result.try_recv()` never reports `Disconnected` either.

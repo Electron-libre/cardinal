@@ -42,5 +42,5 @@ The work done before this file existed is in `issues/done/`.
   - [rebase_a_diverged_issue_branch_before_its_merge](issues/done/rebase_a_diverged_issue_branch_before_its_merge.md)
   - [end_the_waiting_session_before_rebasing_its_branch](issues/done/end_the_waiting_session_before_rebasing_its_branch.md)
   - [let_rebase_issue_pass_a_lock_whose_pid_another_process_took](issues/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md)
-  - [split_the_screen_module_of_the_ui](issues/split_the_screen_module_of_the_ui.md)
+  - [split_the_screen_module_of_the_ui](issues/done/split_the_screen_module_of_the_ui.md)
   - [end_a_task_that_panics_in_the_ui](issues/end_a_task_that_panics_in_the_ui.md)

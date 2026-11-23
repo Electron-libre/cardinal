@@ -122,7 +122,7 @@ fn print() -> i32 {
     i32::from(view.panels.iter().any(|p| p.failed))
 }
 
-/// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUA-2, SUE-1), or
+/// Runs the task of a key on the issue `stem` of the project of the current directory (SUA-1, SUM-1, SUE-1), or
 /// starts its release session (SUA-4), the review of its priorities (SUA-16) or the cut of its milestone `stem`
 /// (SUA-19).
 fn run_task(task: keys::Task, stem: &str) -> Result<String, String> {
@@ -161,12 +161,12 @@ fn end_merged() -> i32 {
     }
 }
 
-/// Merges the issue `stem` of the project of the current directory into its trunk (SUA-7).
+/// Merges the issue `stem` of the project of the current directory into its trunk (SUM-2).
 fn merge_in_project(stem: &str) -> Result<String, String> {
     merge::merge(&source::root(Path::new(".")), stem)
 }
 
-/// Merges the issue `stem`, then ends what it left once its check passed (SUA-2, SUE-1).
+/// Merges the issue `stem`, then ends what it left once its check passed (SUM-1, SUE-1).
 fn merge_then_end(stem: &str) -> Result<String, String> {
     let root = source::root(Path::new("."));
     end::after_merge(merge::merge_branch(&root, stem), |branch| {
@@ -174,7 +174,7 @@ fn merge_then_end(stem: &str) -> Result<String, String> {
     })
 }
 
-/// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (SUA-5, SUA-7).
+/// Prints what `done` did on stdout, exit code 0, or why it did not on stderr, exit code 1 (SUA-5, SUM-2).
 fn report(done: Result<String, String>) -> i32 {
     match done {
         Ok(done) => {

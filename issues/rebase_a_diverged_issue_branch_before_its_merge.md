@@ -72,9 +72,9 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 2. [x] issue-workflow "Merge back" (`files/.claude/skills/issue-workflow/details.md`, then `just sync`): with
    `"local"`, a diverged unpushed branch is rebased by `rebase-issue` with no stop, the project check and
    `cardinal check` run again; stop only on its refusal; verified by `crates/cardinal/tests/skills.rs` on the text. (autonomous)
-3. [ ] Split `specs/steering-ui-actions.md` (over `spec_max_bytes`): move the merge (SUA-2, SUA-7, SUA-22 and their
+3. [x] Split `specs/steering-ui-actions.md` (over `spec_max_bytes`): move the merge (SUA-2, SUA-7, SUA-22 and their
    scenarios) to `specs/steering-ui-merge.md` (SUM), the old ids `withdrawn: moved to SUM-n`, the tests retagged;
-   no change of behaviour; verified by `cardinal run check-specs`.
+   no change of behaviour; verified by `cardinal run check-specs`. (autonomous)
 4. [ ] Key `f` on a diverged branch (`crates/cardinal-ui/src/merge.rs`): `rebase-issue`, then `project-check` in the
    issue worktree, then the fast-forward; verified by the `--merge` tests of `crates/cardinal-ui/tests/`; makes true
    SUA-22 (SUM-n after 3), SUA-7 amended.
@@ -103,3 +103,11 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
   `cardinal run rebase-issue <stem>` in "Merge back"
 - Code review: no findings
 - not verified: the session of a real close following the new text.
+
+## Deliverable 3 summary
+- done: the merge of the UI (SUA-2, SUA-7, SUA-22 and their scenarios) moved to `specs/steering-ui-merge.md` as
+  SUM-1, SUM-2, SUM-3 (draft until SUM-3 is traced), the old ids withdrawn; every citation retagged; the docs link it.
+- checks: tests pass, clippy clean, specs pass (`steering-ui-actions.md` back under `spec_max_bytes`), docs updated.
+- red: none (no change of behaviour)
+- Code review: no findings
+- not verified: nothing.

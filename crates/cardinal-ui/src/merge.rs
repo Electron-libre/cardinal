@@ -1,4 +1,4 @@
-//! The merge of an issue closed on its branch (SUA-2, SUA-7): when a claim in the state `merge pending` takes it,
+//! The merge of an issue closed on its branch (SUM-1, SUM-2): when a claim in the state `merge pending` takes it,
 //! the trunk of the main worktree is fast-forwarded to the branch of that claim, then `cardinal check` runs there.
 //! Nothing is merged from a detached, dirty or locked main worktree, nor onto a branch the trunk cannot
 //! fast-forward to; git always runs with the main worktree as its directory, never a linked one.
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::source::{self, Taken};
 
-/// Runs `git args` in `dir`: its stdout, or the failure line of SUA-7.
+/// Runs `git args` in `dir`: its stdout, or the failure line of SUM-2.
 pub fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
     let name = format!("git {}", args.join(" "));
     let (out, err, code) = source::run(&name, Path::new("git"), args, dir)?;
@@ -36,7 +36,7 @@ pub fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
 }
 
 /// The main worktree of the repository of `dir` and its trunk, once it is on a branch, clean and held by no running
-/// session; else why not (SUA-7, SUA-11).
+/// session; else why not (SUM-2, SUA-11).
 pub fn free_main_worktree(dir: &Path) -> Result<(PathBuf, String), String> {
     let (main, trunk) = main_worktree(dir)?;
     let trunk = trunk.ok_or("main worktree not on a branch")?;
@@ -66,7 +66,7 @@ fn pending_branch(root: &Path, stem: &str) -> Result<String, String> {
 }
 
 /// Merges the issue `stem` of the project at `root` into the trunk: what was merged, or why nothing was, or why the
-/// check after the merge failed (SUA-2, SUA-7).
+/// check after the merge failed (SUM-1, SUM-2).
 pub fn merge(root: &Path, stem: &str) -> Result<String, String> {
     merge_branch(root, stem).map(|(_, merged)| merged)
 }

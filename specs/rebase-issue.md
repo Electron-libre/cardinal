@@ -10,7 +10,7 @@ adrs: [0022]
 
 `rebase-issue` brings an issue closed on its branch back onto the trunk when another issue reached the trunk first,
 so the fast-forward of its merge can run: the issue session runs it before printing the merge (issue-workflow,
-"Merge back") and the key `f` of `cardinal-ui` runs it on a diverged branch (SUA-22).
+"Merge back") and the key `f` of `cardinal-ui` runs it on a diverged branch (SUM-3).
 
 ## Requirements
 
@@ -54,7 +54,7 @@ so the fast-forward of its merge can run: the issue session runs it before print
 
 ## Non-goals
 
-- Running the project check or `cardinal check` after the rebase: the caller does (issue-workflow, SUA-22).
+- Running the project check or `cardinal check` after the rebase: the caller does (issue-workflow, SUM-3).
 - Settling a conflict that changes a line of the base, even when both sides look compatible, or ordering the lines
   it keeps otherwise than trunk then branch.
 - Rebasing a branch with no `merge pending` claim (an issue still worked), or rebasing onto anything but the local

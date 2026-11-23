@@ -20,12 +20,12 @@ const OF_THE_SELECTION: [Action; 5] = [
     Action::Cut,
 ];
 
-/// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUA-16, SUE-1, SUE-2).
+/// The keys of the tasks that would act in a read (SUA-1, SUM-1, SUA-4, SUA-16, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Keys {
     /// For each row of the queue: whether `s` would start its issue (SUA-1), never on a milestone.
     pub start: Vec<bool>,
-    /// For each row of the queue: whether `f` would merge its issue (SUA-2), never on a milestone.
+    /// For each row of the queue: whether `f` would merge its issue (SUM-1), never on a milestone.
     pub merge: Vec<bool>,
     /// For each row of the queue: whether `c` would cut its milestone, in zellij one `shaped` or `idea` (SUA-19).
     pub cut: Vec<bool>,

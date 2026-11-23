@@ -402,7 +402,7 @@ fn session_of(repo: &Path, path: &Path) -> Option<Session> {
     })
 }
 
-/// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (SUA-7, STU-23,
+/// Whether the branch `trunk` holds the close of the issue `stem`, `issues/done/<stem>.md` (SUM-2, STU-23,
 /// SUE-3); the error line of STU-6 when git cannot run.
 pub fn holds_close(dir: &Path, trunk: &str, stem: &str) -> Result<bool, String> {
     let close = format!("refs/heads/{trunk}:issues/done/{stem}.md");

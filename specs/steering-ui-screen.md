@@ -43,7 +43,7 @@ status line that shows what an action did or why it refused.
 - **SUS-H1** (happy; SUS-1, SUS-4) Given a theme file that sets `border = "#112233"`, when the screen draws, then the
   borders of the panels are `#112233`, the selected line has the background of `selection` up to the right border of
   its panel, and the state `ready` of an issue is drawn in `pass`.
-- **SUS-H2** (happy; SUS-2) Given a merge of SUA-2 refused because its branch diverged from the trunk, then the status
+- **SUS-H2** (happy; SUS-2) Given a merge of SUM-1 refused because the rebase of its branch met a conflict, then the status
   line reads why in `fail` on `surface` across the whole width; given a merge that succeeds, it reads
   `merged <stem> (<branch>) into <trunk>` in `pass`.
 - (SUS-1) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.

@@ -15,7 +15,7 @@ worktree and its branch, on one worktree or on every merged one, each refused wi
 
 ### Behaviour
 
-- **SUE-1** (deterministic) The key `e` on the worktree selected in the worktrees panel (`Tab` moves the selection between the queue and the worktrees, the arrow keys, `j` and `k` within the panel, kept on the same path across reads and visible as STU-14 keeps an issue), when it is a linked worktree whose branch `<stem>` has its close on the trunk, must end its session, close the zellij tab the UI opened for it, and remove the worktree with its branch through `cardinal run worktree close`, and say on the status line `ended <stem>`; the merge of SUA-2 chains the same end on its issue, on the linked worktree of the branch of its claim, once its `cardinal check` passed, its status line `merged <stem> (<branch>) into <trunk>; ended <stem>`; on another worktree, or when SUE-3 refuses, it ends nothing and says why on the status line.
+- **SUE-1** (deterministic) The key `e` on the worktree selected in the worktrees panel (`Tab` moves the selection between the queue and the worktrees, the arrow keys, `j` and `k` within the panel, kept on the same path across reads and visible as STU-14 keeps an issue), when it is a linked worktree whose branch `<stem>` has its close on the trunk, must end its session, close the zellij tab the UI opened for it, and remove the worktree with its branch through `cardinal run worktree close`, and say on the status line `ended <stem>`; the merge of SUM-1 chains the same end on its issue, on the linked worktree of the branch of its claim, once its `cardinal check` passed, its status line `merged <stem> (<branch>) into <trunk>; ended <stem>`; on another worktree, or when SUE-3 refuses, it ends nothing and says why on the status line.
 - **SUE-2** (deterministic) The key `E`, whatever the selection, must run the end of SUE-1 on each linked worktree whose row reads `merged` (STU-23), in the order of the worktrees panel, going on after one it refuses or fails on, and say on the status line one part per such worktree, `ended <stem>` or `kept <stem>: <why>` (the line of SUE-3 or SUE-4), joined by ` | `, or `no merged worktree`; like `s`, `f`, `e` and `v`, it starts nothing while another task runs, and `q`, `Esc` or `Ctrl+C` pressed during it quit once it has ended (SUA-6).
 
 ### Contract
@@ -29,8 +29,8 @@ worktree and its branch, on one worktree or on every merged one, each refused wi
 - **SUE-H1** (happy; SUE-1, SUE-3) Given an issue `foo` merged into the trunk by hand, its worktree still
   open, when the user moves the selection to the worktrees panel, the row of `foo` reads `merged` (STU-23), and pressing `e`
   on it closes its tab and removes the worktree and the branch.
-- **SUE-H2** (happy; SUE-1, SUE-4) Given the issue `foo` of SUA-H2 worked by a session waiting for the user
-  in the tab `foo` the UI opened, when the user presses `f` on it (SUA-2), then the trunk holds `foo`, the tab `foo` is
+- **SUE-H2** (happy; SUE-1, SUE-4) Given the issue `foo` of SUM-H1 worked by a session waiting for the user
+  in the tab `foo` the UI opened, when the user presses `f` on it (SUM-1), then the trunk holds `foo`, the tab `foo` is
   closed, the session ran its `SessionEnd` hooks and ended, the worktree and the branch `foo` are removed, and the
   status line reads `merged foo (foo) into trunk; ended foo`.
 - **SUE-H3** (happy; SUE-2, SUE-5, SUE-3, SUE-4) Given the issues `foo` and `bar` merged into the trunk by hand,

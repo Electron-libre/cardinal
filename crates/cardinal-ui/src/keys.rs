@@ -1,5 +1,5 @@
 //! The keys of the screen of `cardinal-ui` (STU-2): the action of each key, the selection in the queue or the
-//! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1, SUA-2,
+//! worktrees it moves (STU-14, SUE-1), and the task a key runs on what is selected, one at a time (SUA-1, SUM-1,
 //! SUA-4 to SUA-6, SUA-16, SUE-1, SUE-2).
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -150,7 +150,7 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
 
 /// The task `action` runs on what `sel` selects in `v` (`None` before the first read): the task, the status line
 /// while it runs and the stem; `None` for another key, an empty panel or no read yet; why it runs none when the key
-/// belongs to the other panel or the worktree is detached (SUA-1, SUA-2, SUE-1). The release covers every
+/// belongs to the other panel or the worktree is detached (SUA-1, SUM-1, SUE-1). The release covers every
 /// milestone awaiting it, the review of the priorities every open issue, the end of the merged worktrees every one
 /// of them: they need no selection nor read (SUA-4, SUA-16, SUE-2).
 pub(crate) fn job(
@@ -340,7 +340,7 @@ pub(crate) mod tests {
         assert_eq!(select(0, 0, &Action::Down), 0);
     }
 
-    // spec: SUA-2 (internal: the keys of a screen that needs a real terminal)
+    // spec: SUM-1 (internal: the keys of a screen that needs a real terminal)
     #[test]
     fn f_merges_the_selected_issue() {
         assert_eq!(action(&press(KeyCode::Char('f'))), Action::Merge);

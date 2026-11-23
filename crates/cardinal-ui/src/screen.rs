@@ -1,6 +1,6 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2), once as text by
 //! `print.rs` (STU-4); in the terminal, an issue or a milestone of the queue is selected (STU-14), `s` starts its session (SUA-1), `f` merges it into the
-//! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
+//! trunk (SUM-1); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
 //! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4), `p` the review of the priorities (SUA-16), `c` the cut of the selected milestone (SUA-19); a worktree that starts to wait
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
 //! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
@@ -280,7 +280,7 @@ pub(crate) fn draw(
 
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
-/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUA-2, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
+/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
 /// is given back as it was, also on a panic (Ratatui's hook).

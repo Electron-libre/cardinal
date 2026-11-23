@@ -276,7 +276,7 @@ pub fn merged_lines(lines: &[String]) -> Vec<String> {
     }
 }
 
-/// The result of the merge of SUA-2 followed, once its `cardinal check` passed, by the end of its issue (SUE-1).
+/// The result of the merge of SUM-1 followed, once its `cardinal check` passed, by the end of its issue (SUE-1).
 pub fn after_merge(
     merged: Result<(String, String), String>,
     end: impl FnOnce(&str) -> Result<String, String>,

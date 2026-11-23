@@ -60,3 +60,13 @@ selected. Out of scope: any other key or command of the UI.
 - `crates/cardinal-ui/src/screen.rs` stays over the file size limit (883 lines, 873 before): the overflow predates this
   deliverable, which adds only the `n` dispatch; its split is a move of its own.
 - not verified: the key `n` in a real terminal (no interactive run).
+
+## Summary of deliverable 2
+
+- done: the 4 nits of the `high` review of `cca5ba0..HEAD` fixed (status line, STU-36 wording, two doc comments).
+- checks: `just check` pass; docs: none beyond the doc comments and STU-36.
+- Code review: no findings
+- red: STU-36: not run red before the fix (the test was written with the fix).
+- not verified: the key `n` in a real terminal.
+
+Done: both deliverables committed; nothing left.

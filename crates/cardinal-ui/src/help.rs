@@ -1,9 +1,9 @@
-//! The help line under the panels (SUA-15): `: commands`, the moves and `q`, `i` on an issue of the queue, `n` when
-//! the issue `next-issue` offers is not selected, then the
-//! keys of the tasks that would act on what is selected in the read shown, so the user never reads a key that would
-//! only be refused; the keys that act whatever the selection are in the palette (SUP-1), which lists them all. The keys still
-//! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
-//! never the guard.
+//! The help line under the panels (SUA-15): `: commands`, the moves and `q`, `i` on an issue of the queue, `n` while
+//! the issue `next-issue` offers is not selected (a move, the one key of the line that acts whatever the selection),
+//! then the keys of the tasks that would act on what is selected in the read shown, so the user never reads a key
+//! that would only be refused; the other keys that act whatever the selection are in the palette (SUP-1), which lists
+//! them all. The keys still refuse on their own when pressed out of context (a read may have changed the project
+//! since): the line is a hint, never the guard.
 
 use crate::keys::{Action, Focus, Row, Selection};
 use crate::screen::View;
@@ -93,9 +93,9 @@ fn cuttable(state: &State, row: &Row) -> bool {
 }
 
 /// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
-/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), `n next` when the
-/// issue `next-issue` offers is not selected (STU-36), then the keys of
-/// the tasks that would act, none while one runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
+/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), `n next` while
+/// the issue `next-issue` offers is not selected (STU-36), then the keys of the tasks that would act, none while one
+/// runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
 pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str, Action)> {
     let at = |flags: &[bool], i: usize| flags.get(i).copied().unwrap_or(false);
     let keys = &v.keys;

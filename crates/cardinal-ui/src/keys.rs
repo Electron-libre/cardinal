@@ -29,11 +29,11 @@ const ON_A_MILESTONE: &str = "s and f act on an issue: select one";
 /// Why `c` acts on nothing with the selection on an issue or a worktree (SUA-19).
 const NOT_A_MILESTONE: &str = "c acts on a milestone: select its heading";
 
-/// Why `n` moves nothing when `next-issue` offers no issue (STU-36).
+/// Why `n` moves nothing when `next-issue` offers no issue, or one no row of the queue holds (STU-36).
 pub(crate) const NO_NEXT: &str = "n: no issue is ready to start";
 
 /// The selected row of the queue and line of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
-/// screen starts on the first issue of the queue ([`Selection::start`]).
+/// screen starts on the issue `next-issue` offers, else the first issue of the queue ([`Selection::start`]).
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Selection {
     pub(crate) focus: Focus,

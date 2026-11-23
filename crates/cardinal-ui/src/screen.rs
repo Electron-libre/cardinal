@@ -231,10 +231,13 @@ fn received(
     }
 }
 
-/// Moves `selected` to the issue `next-issue` offers in `view`, or says on `status` why not (STU-36).
+/// Moves `selected` to the issue `next-issue` offers in `view`, or says on `status` why not; once it moves, the
+/// line drops that refusal (STU-36).
 fn next(view: Option<&View>, selected: &mut Selection, status: &mut Status) {
-    if let Some(Err(why)) = view.map(|v| selected.select_next(v)) {
-        status.set(Status::new(why, Kind::Error));
+    match view.map(|v| selected.select_next(v)) {
+        Some(Err(why)) => status.set(Status::new(why, Kind::Error)),
+        Some(Ok(())) => status.forget(crate::keys::NO_NEXT),
+        None => {}
     }
 }
 
@@ -879,5 +882,21 @@ mod tests {
             "2 s after the end of the last read"
         );
         assert_eq!(REFRESH, Duration::from_secs(2));
+    }
+
+    // spec: STU-36 (internal: the status line of a screen that needs a real terminal)
+    #[test]
+    fn n_says_why_it_moves_nothing_until_it_moves() {
+        let mut v = view(&["a", "b"], &[]);
+        let mut sel = Selection::default();
+        let mut status = Status::default();
+        next(Some(&v), &mut sel, &mut status);
+        assert_eq!(
+            status,
+            Status::new("n: no issue is ready to start", Kind::Error)
+        );
+        v.next = Some("b".to_string());
+        next(Some(&v), &mut sel, &mut status);
+        assert_eq!((sel.row, status.is_empty()), (1, true));
     }
 }

@@ -69,6 +69,11 @@ impl Status {
         }
     }
 
+    /// Removes the messages that read `text`, the others and the error it keeps left as they are.
+    pub fn forget(&mut self, text: &str) {
+        self.messages.retain(|(t, _)| t != text);
+    }
+
     /// Replaces the messages by those of `next`, the error it keeps left as it is.
     pub fn set(&mut self, next: Status) {
         self.messages = next.messages;

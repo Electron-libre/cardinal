@@ -30,7 +30,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) with a mark (its session and its time) no read before had found, titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
 - **STU-31** (deterministic) withdrawn: moved to SUS-1.
-- **STU-36** (deterministic) The key `n` on the panels must move the selection of STU-14 to the row of the issue `next-issue` offers (the `next` of NXT-19), the focus moving to the queue when the worktrees have it (SUE-1), so `s` starts it next; when it offers none (`next` is `null`, or the queue could not be read), the selection and the focus stay as they are and the status line (SUS-2) says `n: no issue is ready to start`.
+- **STU-36** (deterministic) The key `n` on the panels must move the selection of STU-14 to the row of the issue `next-issue` offers (the `next` of NXT-19), the focus moving to the queue when the worktrees have it (SUE-1), so `s` starts it next; when it offers none (`next` is `null`, or names an issue no row of the queue holds, or the queue could not be read), the selection and the focus stay as they are and the status line (SUS-2) says `n: no issue is ready to start`, until a later `n` that moves the selection drops that message.
 - **STU-34** (deterministic) withdrawn: moved to SUS-2.
 - **STU-35** (deterministic) withdrawn: moved to SUS-3.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 then the panel `Measures` of STU-16 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
@@ -111,6 +111,8 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
   `next-issue` offers is selected.
 - (STU-36) Given every open issue taken, when the user presses `n`, then the selection stays where it was and the
   status line reads `n: no issue is ready to start`.
+- (STU-36) Given that line shown, when a read offers `b` and the user presses `n`, then `b` is selected and the line
+  is gone.
 - (STU-14) Given `foo` selected on the second line, when the next read puts `foo` first, then `foo` is still selected.
 - (STU-14) Given the last issue of the milestone `One` selected and the milestone `Two` listed after it, when the
   user moves down, then the heading `■ Two` is selected; given the section `No milestone` after it instead, then its

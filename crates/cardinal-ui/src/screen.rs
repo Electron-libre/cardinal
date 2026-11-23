@@ -395,7 +395,7 @@ mod tests {
     use super::*;
 
     /// A help line under the panels (SUA-15).
-    const HELP: &str = "q quit  r refresh  ↑↓ select  tab panel  g charts";
+    const HELP: &str = ": commands  ↑↓ select  tab panel  q quit";
     use crate::keys::tests::view;
     use crate::keys::{reselect, Focus};
     use ratatui::style::{Color, Modifier};
@@ -430,7 +430,7 @@ mod tests {
         let b = (0..15).find(|y| row(*y).contains("> b")).unwrap();
         assert!(buf[(3, a)].modifier.contains(Modifier::REVERSED));
         assert!(!buf[(3, b)].modifier.contains(Modifier::REVERSED));
-        let help = (0..15).find(|y| row(*y).starts_with("q quit")).unwrap();
+        let help = (0..15).find(|y| row(*y).starts_with(": commands")).unwrap();
         assert!(
             row(help - 1).starts_with("started a in /w "),
             "on its own row above the help"
@@ -464,7 +464,7 @@ mod tests {
             &Theme::default(),
         );
         let row = |y: u16| (0..80).map(|x| buf[(x, y)].symbol()).collect::<String>();
-        let help = (0..15).find(|y| row(*y).starts_with("q quit")).unwrap();
+        let help = (0..15).find(|y| row(*y).starts_with(": commands")).unwrap();
         assert!(row(help - 2).starts_with("ended worktree-a"));
         assert!(
             row(help - 1).contains("notify: exit 3: no bus"),
@@ -499,7 +499,7 @@ mod tests {
             &Theme::default(),
         );
         let row = |y: u16| (0..120).map(|x| buf[(x, y)].symbol()).collect::<String>();
-        assert!(row(14).starts_with("q quit"));
+        assert!(row(14).starts_with(": commands"));
         assert!(
             row(13).starts_with('└'),
             "the last panel right above the help"

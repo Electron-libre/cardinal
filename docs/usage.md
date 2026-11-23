@@ -366,12 +366,13 @@ worktree is detached, has uncommitted changes or untracked files, or a live sess
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start or a review start runs, and `q` then quits once it
 ended, printing the result of a merge, an end, a release start or a review start. The next
-read drops the claim (CLM-6). The help line under the panels offers, beside `q`, `r`, the arrows, `Tab` and `g`, `i` on an issue of the queue, and only
+read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
-pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in
-zellij), `p` while the queue lists an open issue (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
-issue of the queue. `:` opens over the panels the command palette: the same commands of the selection, then
-`r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
+pending`, `e` on a merged worktree, none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
+issue of the queue. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
+awaits its release in zellij, `p` while the queue lists an open issue in zellij, `r` and `g`) are listed in the palette.
+`:` opens over the panels the command palette: the commands of the help line, then `E`, `v` and `p` under the
+same conditions, then `r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
 widens again), the arrows move the highlight, `Enter` runs the highlighted one as its key would, `Esc` closes it; while
 it is open, the letters go to the filter and only `Ctrl+C` quits.
 

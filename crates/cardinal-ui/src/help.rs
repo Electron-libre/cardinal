@@ -1,5 +1,6 @@
-//! The help line under the panels (SUA-15): the keys that always work, `i` on an issue of the queue, then the keys of the tasks that would act on
-//! what is selected in the read shown, so the user never reads a key that would only be refused. The keys still
+//! The help line under the panels (SUA-15): `: commands`, the moves and `q`, `i` on an issue of the queue, then the
+//! keys of the tasks that would act on what is selected in the read shown, so the user never reads a key that would
+//! only be refused; the keys that act whatever the selection are in the palette (SUP-1), which lists them all. The keys still
 //! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
 //! never the guard.
 
@@ -8,10 +9,10 @@ use crate::screen::View;
 use crate::source::{State, Taken};
 
 /// The keys of the help line that always work.
-const ALWAYS: &str = "q quit  r refresh  ↑↓ select  tab panel";
+const ALWAYS: &str = ": commands  ↑↓ select  tab panel  q quit";
 
-/// The last key of the help line, which always works.
-const LAST: &str = "g charts";
+/// The actions of the keys that act on what is selected, the only ones the help line lists besides `ALWAYS`.
+const OF_THE_SELECTION: [Action; 4] = [Action::Summary, Action::Start, Action::Merge, Action::End];
 
 /// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUA-16, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -111,8 +112,12 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
 /// The help line of the panels of `v` with `sel` selected, a task running when `busy` (SUA-15).
 pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
     std::iter::once(ALWAYS)
-        .chain(offered(v, sel, busy).into_iter().map(|(label, _)| label))
-        .chain(std::iter::once(LAST))
+        .chain(
+            offered(v, sel, busy)
+                .into_iter()
+                .filter(|(_, a)| OF_THE_SELECTION.contains(a))
+                .map(|(label, _)| label),
+        )
         .collect::<Vec<_>>()
         .join("  ")
 }
@@ -148,34 +153,25 @@ mod tests {
             release: false,
             prioritize: false,
         };
-        let always = "q quit  r refresh  ↑↓ select  tab panel";
+        let always = ": commands  ↑↓ select  tab panel  q quit";
         assert_eq!(
             line(&v, on(Focus::Queue, 0, 0), false),
-            format!("{always}  i summary  s start  E end merged  g charts")
+            format!("{always}  i summary  s start")
         );
         assert_eq!(
             line(&v, on(Focus::Queue, 1, 0), false),
-            format!("{always}  i summary  f merge  E end merged  g charts")
+            format!("{always}  i summary  f merge")
         );
         assert_eq!(
             line(&v, on(Focus::Worktrees, 0, 1), false),
-            format!("{always}  e end  E end merged  g charts")
+            format!("{always}  e end")
         );
-        assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 2), false),
-            format!("{always}  E end merged  g charts")
-        );
+        assert_eq!(line(&v, on(Focus::Worktrees, 0, 2), false), always);
         v.keys.release = true;
         v.keys.merged = vec![false; 3];
-        assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 0), false),
-            format!("{always}  v release  g charts")
-        );
+        assert_eq!(line(&v, on(Focus::Worktrees, 0, 0), false), always);
         v.keys.prioritize = true;
-        assert_eq!(
-            line(&v, on(Focus::Worktrees, 0, 0), false),
-            format!("{always}  v release  p prioritize  g charts")
-        );
+        assert_eq!(line(&v, on(Focus::Worktrees, 0, 0), false), always);
     }
 
     // spec: SUA-H7 (internal: `Tab` and the arrows move the selection only in a screen that needs a real terminal)
@@ -193,13 +189,13 @@ mod tests {
         let mut sel = Selection::default();
         assert_eq!(
             line(&v, sel, false),
-            "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  g charts"
+            ": commands  ↑↓ select  tab panel  q quit  i summary  f merge"
         );
         sel.apply(&Action::Switch, &v);
         sel.apply(&Action::Down, &v);
         assert_eq!(
             line(&v, sel, false),
-            "q quit  r refresh  ↑↓ select  tab panel  e end  E end merged  g charts"
+            ": commands  ↑↓ select  tab panel  q quit  e end"
         );
     }
 
@@ -216,7 +212,7 @@ mod tests {
         };
         assert_eq!(
             line(&v, Selection::default(), true),
-            "q quit  r refresh  ↑↓ select  tab panel  i summary  g charts"
+            ": commands  ↑↓ select  tab panel  q quit  i summary"
         );
     }
 
@@ -224,8 +220,72 @@ mod tests {
     #[test]
     fn an_empty_read_offers_only_the_keys_that_always_work() {
         let v = view(&[], &[]);
-        let always = "q quit  r refresh  ↑↓ select  tab panel  g charts";
+        let always = ": commands  ↑↓ select  tab panel  q quit";
         assert_eq!(line(&v, on(Focus::Queue, 3, 0), false), always);
         assert_eq!(line(&v, on(Focus::Worktrees, 0, 5), false), always);
+    }
+
+    // spec: SUA-15 (internal: the keys that act whatever the selection are in the palette, which `--print` never shows)
+    #[test]
+    fn the_keys_of_the_whole_project_follow_the_read_and_zellij() {
+        use crate::source::{Milestone, Milestones, Queue, State, Worktree};
+        let worktree = |merged| Worktree {
+            path: "/w".into(),
+            branch: Some("w".into()),
+            session: None,
+            merged,
+            locked: false,
+        };
+        let milestone = || Milestone {
+            name: "New".into(),
+            state: Some("done".into()),
+            on_hold: false,
+            open: 0,
+            listed: 1,
+            awaits_release: true,
+            proposed: None,
+        };
+        let state = |issues: Vec<crate::source::Issue>| State {
+            milestones: Ok(Milestones {
+                list: vec![milestone()],
+                release_error: None,
+            }),
+            queue: Ok(Queue {
+                next: None,
+                issues,
+                problems: Vec::new(),
+            }),
+            worktrees: Ok(vec![worktree(false), worktree(true)]),
+            measure: Vec::new(),
+            measuring: false,
+            measure_error: None,
+            charts: crate::charts::charts(None),
+        };
+        let issue = crate::source::Issue {
+            stem: "a".into(),
+            title: None,
+            goal: None,
+            priority: None,
+            state: "ready".into(),
+            milestone: None,
+            depends_on: Vec::new(),
+            taken: None,
+            tab: false,
+        };
+        let stems = ["a".to_string()];
+        let k = Keys::of(&state(vec![issue]), &stems, true);
+        assert_eq!(
+            (k.release, k.prioritize, k.merged),
+            (true, true, vec![false, true])
+        );
+        assert_eq!(k.start, [true]);
+        let k = Keys::of(&state(Vec::new()), &[], true);
+        assert_eq!(
+            (k.release, k.prioritize),
+            (true, false),
+            "no open issue to prioritize"
+        );
+        let k = Keys::of(&state(Vec::new()), &[], false);
+        assert_eq!((k.release, k.prioritize), (false, false), "outside zellij");
     }
 }

@@ -49,9 +49,9 @@ typing their name, `Enter` runs one as its key would; the single letters stay as
    the action of the highlighted command through the path of its key, `Esc` closing it, nothing on the charts;
    `screen.rs` (over the file size limit, its split is `split_the_screen_module_of_the_ui`) only gets the dispatch;
    verified by the unit tests of `palette.rs`; makes true SUP-1 to SUP-5, SUP-H1, SUP-H2. (autonomous)
-2. [ ] The shorter help line: `: commands  ↑↓ select  tab panel  q quit` then `i`, `s`, `f`, `e` of the selection, the
+2. [x] The shorter help line: `: commands  ↑↓ select  tab panel  q quit` then `i`, `s`, `f`, `e` of the selection, the
    global keys moved to the palette, with `README.md`, `docs/usage.md` and `docs/architecture.md`; verified by the
-   tests of `help.rs` and `--print`; makes true the amended SUA-15.
+   tests of `help.rs` and `--print`; makes true the amended SUA-15. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -80,3 +80,23 @@ Code review: no findings
 not verified: the palette in a real terminal (drawn only through the `TestBackend`).
 decisions needed: none. `screen.rs` grows to 868 lines (limit 800): its split is the issue
 `split_the_screen_module_of_the_ui`.
+
+## Summary of deliverable 2
+done: the help line reads `: commands  ↑↓ select  tab panel  q quit` then `i`, `s`, `f`, `e` of the selection; `E`, `v`,
+`p`, `r` and `g` are found in the palette; the specs SUA and SUP set `accepted`.
+
+| check | result |
+|---|---|
+| tests | `just check` green; `help.rs`, `screen.rs` and `tests/print_help.rs` on the new line; a new test of the flags of `Keys::of` |
+| lint | clippy `-D warnings` clean |
+| specs | SUA-15 amended and traced; SUA and SUP `accepted` |
+| docs | `README.md`, `docs/usage.md`, `docs/architecture.md` |
+| code review | `low`: no findings |
+
+red: SUA-15: `assertion left == right failed`, left `q quit  r refresh  ↑↓ select  tab panel  i summary  s start  E end
+merged  g charts`, right `: commands  ↑↓ select  tab panel  q quit  i summary  s start`
+
+Code review: no findings
+
+not verified: none.
+decisions needed: none.

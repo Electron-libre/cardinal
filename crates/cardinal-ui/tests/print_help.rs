@@ -29,7 +29,7 @@ fn outside_zellij_a_ready_issue_offers_only_the_keys_that_always_work() {
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  g charts",
+        ": commands  ↑↓ select  tab panel  q quit  i summary",
         "{out}"
     );
 }
@@ -43,7 +43,7 @@ fn in_zellij_a_ready_issue_nothing_takes_offers_its_start() {
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  s start  p prioritize  g charts",
+        ": commands  ↑↓ select  tab panel  q quit  i summary  s start",
         "{out}"
     );
 }
@@ -53,14 +53,12 @@ fn in_zellij_a_ready_issue_nothing_takes_offers_its_start() {
 fn a_working_claim_whose_session_ended_offers_its_start_and_a_live_one_nothing() {
     let p = project();
     let zellij = p.zellij("[]", 0);
-    for (alive, keys) in [(false, "s start  "), (true, "")] {
+    for (alive, keys) in [(false, "  s start"), (true, "")] {
         let cardinal = p.cardinal(&ok(&claimed("working", alive)), &ok(ROADMAP));
         let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
         assert_eq!(
             help(&out),
-            format!(
-                "q quit  r refresh  ↑↓ select  tab panel  i summary  {keys}p prioritize  g charts"
-            ),
+            format!(": commands  ↑↓ select  tab panel  q quit  i summary{keys}"),
             "{out}"
         );
     }
@@ -68,7 +66,7 @@ fn a_working_claim_whose_session_ended_offers_its_start_and_a_live_one_nothing()
 
 // spec: SUA-15
 #[test]
-fn a_merge_pending_issue_a_merged_worktree_and_a_milestone_to_release_offer_their_keys() {
+fn a_merge_pending_issue_offers_its_merge_and_the_keys_of_the_whole_project_stay_off_the_line() {
     let p = project();
     std::fs::create_dir_all(p.repo.join("issues/done")).unwrap();
     std::fs::write(p.repo.join("issues/done/ws.md"), "closed\n").unwrap();
@@ -83,21 +81,21 @@ fn a_merge_pending_issue_a_merged_worktree_and_a_milestone_to_release_offer_thei
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  v release  p prioritize  g charts",
+        ": commands  ↑↓ select  tab panel  q quit  i summary  f merge",
         "{out}"
     );
-    // outside zellij, the release and the review of the priorities would be refused (SUA-4, SUA-16)
+    // the release, the end of the merged worktrees and the review of the priorities are in the palette (SUP-1)
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  g charts",
+        ": commands  ↑↓ select  tab panel  q quit  i summary  f merge",
         "{out}"
     );
 }
 
 // spec: SUA-15
 #[test]
-fn in_zellij_an_empty_queue_offers_no_review_of_the_priorities() {
+fn in_zellij_an_empty_queue_offers_only_the_keys_that_always_work() {
     let p = project();
     let empty = r#"{"version":1,"next":null,"issues":[]}"#;
     let cardinal = p.cardinal(&ok(empty), &ok(ROADMAP));
@@ -105,7 +103,7 @@ fn in_zellij_an_empty_queue_offers_no_review_of_the_priorities() {
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
     assert_eq!(
         help(&out),
-        "q quit  r refresh  ↑↓ select  tab panel  g charts",
+        ": commands  ↑↓ select  tab panel  q quit",
         "{out}"
     );
 }

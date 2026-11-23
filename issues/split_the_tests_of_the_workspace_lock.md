@@ -24,3 +24,35 @@ responsibility so each part stays under the limit, with no change of behaviour a
 # Resources
 * `crates/cardinal/tests/workspace_lock.rs`, `crates/cardinal/tests/common/mod.rs`
 * `specs/workspace-lock.md`, `specs/README.md` (placement of `// spec:`)
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+Split `tests/workspace_lock.rs` (847 lines) so every part stays under 800, by moving code only: no test changes its
+assertions, every `// spec:` citation stays on its test. Out of scope: any change of the hooks or of the specs.
+
+## Plan
+1. [x] Shared helpers: move `git`, `Repo`, `repo`, `Out`, `spawn`, `finish`, `hook`, `lock_path`, `lock`, `written_at`,
+   `dirty`, `claim`, `claim_as`, `claim_since`, `live`, `Other`, `dead` to `tests/workspace_lock_common/mod.rs`
+   (`pub`, `#![allow(dead_code)]`), included by `mod workspace_lock_common;`; verified by `just check` (same tests
+   pass, spec traceability unchanged); ~390 lines counted. (autonomous)
+2. [ ] Hand-over tests: move WSL-11 to WSL-13 and their helpers (`hook_with_transcript`, `transcript`, `append`,
+   `claim_of`, `issue_claim`) to `tests/workspace_lock_handover.rs`; verified by `just check` and `cardinal run
+   file-size` no longer listing the file; ~730 lines counted.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 813cb803a42a850fc1dd9d98bdacdd8c3f609981
+- Helpers module: `tests/workspace_lock_common/mod.rs` (answer 1 a).
+- Two deliverables rather than one: the whole move counts ~1,100 lines, over the ~1,000 of a deliverable.
+- `tests/workspace_lock_common/mod.rs` rather than `tests/common/`: `common` is compiled into 16 other test crates
+  that need none of these helpers.
+
+## Deliverable 1
+- done: the shared helpers moved verbatim to `tests/workspace_lock_common/mod.rs` (`pub`, `#![allow(dead_code)]`);
+  `workspace_lock.rs` goes from 847 to 664 lines, its 26 tests unchanged.
+- red: none (a move, no new test)
+- Code review: no findings
+- checks: `just check` green (26 tests of `workspace_lock` pass, as before); not verified: nothing.

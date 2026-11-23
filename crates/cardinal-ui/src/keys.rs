@@ -52,9 +52,13 @@ impl Selection {
     }
 
     /// Keeps the selection on the same issue and the same worktree path from the read `before` to the read `after`
-    /// (STU-14, SUE-1).
+    /// (STU-14, SUE-1); after a read with no row, it starts as on the first read.
     pub(crate) fn reread(&mut self, before: &View, after: &View) {
-        self.row = reselect(&before.rows, self.row, &after.rows);
+        if before.rows.is_empty() {
+            self.start(after);
+        } else {
+            self.row = reselect(&before.rows, self.row, &after.rows);
+        }
         let paths = |v: &View| v.worktrees.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
         self.worktree = reselect(&paths(before), self.worktree, &paths(after));
     }
@@ -599,6 +603,11 @@ pub(crate) mod tests {
         assert_eq!(job(&Action::Cut, on_two, Some(&after)), not_a_milestone);
         on_two.focus = Focus::Worktrees;
         assert_eq!(job(&Action::Cut, on_two, Some(&after)), not_a_milestone);
+        // a first read with no row (a tool that failed): the next one starts on its first issue
+        let mut fresh = Selection::default();
+        fresh.start(&queue(&[], &[]));
+        fresh.reread(&queue(&[], &[]), &v);
+        assert_eq!(fresh.line(&v), Some((0, 1)), "not on the heading of One");
         // a queue of milestones only starts on its first heading
         let empty = queue(&["#Two"], &[0]);
         sel.start(&empty);

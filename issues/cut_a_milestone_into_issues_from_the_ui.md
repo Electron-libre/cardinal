@@ -59,6 +59,8 @@ goal in the UI (the session does it).
    `--cut <milestone>` in `main.rs`, the key `c` as a task, `c cut` on the help line and in the palette; verified by
    the binary tests `tests/cut.rs` (fake `zellij` and `cardinal`, as `tests/prioritize.rs`) and the unit tests of the
    keys, the help line and the palette; makes true SUA-19, SUA-20, SUA-21, SUA-15, SUA-6, SUP-1, STU-3 (~500 lines). (autonomous)
+3. [x] The fixes of the `high` review: after a read with no row the selection starts on the first issue, and the
+   doc of `screen.rs` names `c`; verified by the unit test of the selection; makes true STU-14. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -90,3 +92,18 @@ goal in the UI (the session does it).
 - red: SUA-19, SUA-20, SUA-21, STU-3: the 9 tests of `tests/cut.rs` failed with exit `Some(2)` (the usage line: `--cut` unknown).
 - Code review: no findings
 - not verified: a real zellij and `claude` session (the tests use fakes).
+
+## Deliverable 3: the fixes of the high review
+
+- done: a read that follows one with no row starts the selection on its first issue; the doc of `screen.rs` names `c`.
+- checks: tests pass, lint pass, specs pass, docs the doc of `screen.rs`, code review low pass.
+- red: STU-14: `the_selection_moves_over_the_issues_and_the_milestones`: `not on the heading of One`, left `Some((0, 0))`, right `Some((0, 1))`.
+- Code review: no findings
+- High review: 5 findings; fixed: the selection after an empty first read, the doc of `screen.rs`. Not fixed:
+  - the match of a running tab on `claude <message>` with spaces: `end.rs` already matches the issue tab, whose
+    argument holds a space too, on the same unquoted form;
+  - two roadmap documents with a milestone of one name: the queue already keys its sections by name, out of the scope
+    of this issue;
+  - a milestone named like an issue stem, or `release` or `prioritize`, shares its tab name: SUA-21 names the tab
+    after the milestone as validated; milestones are titles, stems snake case.
+- not verified: none beyond those of deliverables 1 and 2.

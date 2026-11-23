@@ -18,7 +18,7 @@ fn an_ended_session_is_shown_ended() {
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert!(line(&out, "  a  ").contains("session ended"), "{out}");
     assert!(
-        line(&out, &format!("{}  ", p.ws.display())).contains("session s1 ended"),
+        line(&out, &format!("│{}  ", p.ws.display())).contains("session s1 ended"),
         "{out}"
     );
 }
@@ -83,7 +83,7 @@ fn a_lock_without_a_pid_is_free() {
     std::fs::write(path, "session s1\n").unwrap();
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     assert!(
-        line(&out, &format!("{}  ", p.ws.display())).contains("free"),
+        line(&out, &format!("│{}  ", p.ws.display())).contains("free"),
         "{out}"
     );
 }
@@ -100,12 +100,12 @@ fn a_session_that_waits_for_the_user_is_flagged() {
     Project::waiting(&p.ws, "s1", NINE_O_FIVE, "stop");
     let (code, out, err) = ui(&p.repo, &cardinal, &["--print"]);
     assert_eq!(code, Some(0), "{out}{err}");
-    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    let ws = line(&out, &format!("│{}  ", p.ws.display()));
     assert!(
         ws.contains("session s1  waiting since 2025-01-02 09:05: stop"),
         "a day other than today shows its date: {ws}"
     );
-    assert!(!line(&out, &format!("{}  ", p.repo.display())).contains("waiting"));
+    assert!(!line(&out, &format!("│{}  ", p.repo.display())).contains("waiting"));
 }
 
 // spec: STU-13
@@ -120,7 +120,7 @@ fn a_session_waiting_since_today_shows_the_time_alone() {
         .as_secs();
     Project::waiting(&p.ws, "s1", now, "stop");
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
-    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    let ws = line(&out, &format!("│{}  ", p.ws.display()));
     let at = ws.find("waiting since ").expect(ws) + "waiting since ".len();
     assert_eq!(&ws[at + 2..at + 3], ":", "HH:MM alone: {ws}");
     assert_eq!(&ws[at + 5..at + 7], ": ", "{ws}");
@@ -136,10 +136,10 @@ fn a_mark_of_an_ended_or_another_session_is_not_shown() {
     Project::lock(&p.repo, "s2", &std::process::id().to_string());
     Project::waiting(&p.repo, "s3", NINE_O_FIVE, "stop");
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
-    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    let ws = line(&out, &format!("│{}  ", p.ws.display()));
     assert!(ws.contains("ended") && !ws.contains("waiting"), "{ws}");
     assert!(
-        !line(&out, &format!("{}  ", p.repo.display())).contains("waiting"),
+        !line(&out, &format!("│{}  ", p.repo.display())).contains("waiting"),
         "{out}"
     );
 }

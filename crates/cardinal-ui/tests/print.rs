@@ -26,11 +26,11 @@ fn the_user_reads_the_milestones_the_queue_and_the_worktrees() {
         a.contains(&format!("claimed in {}", p.ws.display())) && !a.contains("ended"),
         "{a}"
     );
-    let ws = line(&out, &format!("{}  ", p.ws.display()));
+    let ws = line(&out, &format!("│{}  ", p.ws.display()));
     assert!(ws.contains("ws") && ws.contains("session s1"), "{ws}");
     assert!(!ws.contains("ended"), "{ws}");
     assert!(
-        line(&out, &format!("{}  ", p.repo.display())).contains("free"),
+        line(&out, &format!("│{}  ", p.repo.display())).contains("free"),
         "{out}"
     );
     assert!(

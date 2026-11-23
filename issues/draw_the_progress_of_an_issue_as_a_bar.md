@@ -1,6 +1,7 @@
 ---
 priority: medium
 depends_on: [draw_the_progress_of_a_milestone_as_a_bar]
+on_hold: 'a better widget than a progress bar is to be chosen'
 why: 'how far an issue at work went is invisible from the UI; reuses the bar of the milestone'
 ---
 # Draw the progress of an issue as a bar

@@ -1,5 +1,6 @@
 ---
 priority: medium
+on_hold: 'a better widget than a progress bar is to be chosen'
 why: 'the share of a milestone done is read from a fraction today; a bar shows it at a glance'
 ---
 # Draw the progress of a milestone as a bar

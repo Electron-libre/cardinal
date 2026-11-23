@@ -52,12 +52,16 @@ typing their name, `Enter` runs one as its key would; the single letters stay as
 2. [x] The shorter help line: `: commands  ↑↓ select  tab panel  q quit` then `i`, `s`, `f`, `e` of the selection, the
    global keys moved to the palette, with `README.md`, `docs/usage.md` and `docs/architecture.md`; verified by the
    tests of `help.rs` and `--print`; makes true the amended SUA-15. (autonomous)
+3. [x] The fixes of the `high` review: a letter held with `Ctrl` or `Alt` not typed, the list scrolled to keep the
+   highlight drawn, STU-2 naming the palette, the palette spec linked from `docs/architecture.md`, the test of
+   `Keys::of` traced to SUP-1; verified by the unit tests of `palette.rs`; makes true the amended SUP-2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: 4f63e1113ce4df9f81420bfcd524d9a56a9613e6
 - Design: a palette on `:` with the single letters kept (1 a); the help line keeps `: commands`, the moves, `q` and
   the keys of the selection (2 a); the palette lists only the commands that act (3 a); no command reported missing (4 a).
+- The `high` review of `4f63e11..5b0c410` gave 5 findings, all nits, fixed in deliverable 3.
 - Deliverables 1 and 2 of the validated plan merged into one (about 640 lines): the model alone left dead code that
   `clippy -D warnings` refuses.
 
@@ -95,6 +99,25 @@ done: the help line reads `: commands  ↑↓ select  tab panel  q quit` then `i
 
 red: SUA-15: `assertion left == right failed`, left `q quit  r refresh  ↑↓ select  tab panel  i summary  s start  E end
 merged  g charts`, right `: commands  ↑↓ select  tab panel  q quit  i summary  s start`
+
+Code review: no findings
+
+not verified: none.
+decisions needed: none.
+
+## Summary of deliverable 3
+done: the 5 findings of the `high` review of `4f63e11..5b0c410` fixed (all nits).
+
+| check | result |
+|---|---|
+| tests | `just check` green; 2 new tests in `palette.rs` |
+| lint | clippy `-D warnings` clean |
+| specs | SUP-2 amended (modifiers, scroll) and STU-2 (the palette) |
+| docs | `docs/architecture.md`, `docs/usage.md` |
+| code review | `low`: no findings |
+
+red: SUP-2: `assertion left == right failed`, left `stwwR` right `stR`; the highlighted `g  charts` not drawn on a
+screen 7 rows high
 
 Code review: no findings
 

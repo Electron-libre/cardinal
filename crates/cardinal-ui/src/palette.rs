@@ -100,7 +100,8 @@ impl Palette {
                 self.text.pop();
                 self.highlight = None;
             }
-            KeyCode::Char(c) => {
+            // a printable character only: a letter held with Ctrl or Alt is no text
+            KeyCode::Char(c) if (key.modifiers - KeyModifiers::SHIFT).is_empty() => {
                 self.text.push(c);
                 self.highlight = None;
             }
@@ -135,7 +136,8 @@ pub(crate) fn pressed(
     }
 }
 
-/// Draws the palette `p` listing `all` over the top of `area`, centred, in the roles of `theme` (SUP-1).
+/// Draws the palette `p` listing `all` over the top of `area`, centred, its list scrolled to keep the highlight
+/// drawn on a short screen, in the roles of `theme` (SUP-1, SUP-2).
 pub(crate) fn draw(p: &Palette, all: &[Command], area: Rect, buf: &mut Buffer, theme: &Theme) {
     let shown = p.shown(all);
     let width = area.width.min(40);
@@ -145,10 +147,15 @@ pub(crate) fn draw(p: &Palette, all: &[Command], area: Rect, buf: &mut Buffer, t
             .saturating_add(3),
     );
     let over = Rect::new(area.x + (area.width - width) / 2, area.y, width, height);
+    // the rows of the list under the text line, scrolled so the highlight stays drawn
+    let rows = usize::from(height.saturating_sub(3)).max(1);
+    let at = p.highlighted(&shown);
+    let first = (at + 1).saturating_sub(rows);
     let lines: Vec<Line> = std::iter::once(Line::raw(format!(": {}", p.text)))
         .chain(
             shown
                 .iter()
+                .skip(first)
                 .map(|c| Line::raw(format!("{}  {}", c.key, c.name))),
         )
         .collect();
@@ -161,7 +168,7 @@ pub(crate) fn draw(p: &Palette, all: &[Command], area: Rect, buf: &mut Buffer, t
     buf.set_style(over, theme.screen());
     Paragraph::new(lines).block(block).render(over, buf);
     // the highlight across the inner row, under the text line
-    let row = u16::try_from(p.highlighted(&shown) + 1).unwrap_or(u16::MAX);
+    let row = u16::try_from(at - first + 1).unwrap_or(u16::MAX);
     if !shown.is_empty() && row < inner.height {
         buf.set_style(
             Rect::new(inner.x, inner.y + row, inner.width, 1),
@@ -390,6 +397,59 @@ mod tests {
             ],
         );
         assert_eq!(open, Some(Palette::default()));
+    }
+
+    // spec: SUP-2 (internal: the keys typed in the palette need a real terminal)
+    #[test]
+    fn a_letter_held_with_ctrl_or_alt_is_not_typed() {
+        let all = commands(Some(&view(&[], &[])), Selection::default(), false);
+        let mut p = Palette::default();
+        typed(&mut p, "st", &all);
+        for m in [KeyModifiers::CONTROL, KeyModifiers::ALT] {
+            assert_eq!(
+                p.key(&KeyEvent::new(KeyCode::Char('w'), m), &all),
+                Outcome::Stay
+            );
+        }
+        p.key(
+            &KeyEvent::new(KeyCode::Char('R'), KeyModifiers::SHIFT),
+            &all,
+        );
+        assert_eq!(p.text, "stR");
+    }
+
+    // spec: SUP-2 (internal: the screen is drawn only in a real terminal)
+    #[test]
+    fn on_a_short_screen_the_list_scrolls_to_keep_the_highlight_drawn() {
+        let all = commands(Some(&every_key()), Selection::default(), false);
+        let mut p = Palette::default();
+        for _ in 0..7 {
+            p.key(&press(KeyCode::Down), &all);
+        }
+        assert_eq!(p.shown(&all)[p.highlighted(&p.shown(&all))].name, "charts");
+        let area = Rect::new(0, 0, 60, 7);
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::default();
+        draw(&p, &all, area, &mut buf, &theme);
+        let rows: Vec<String> = (0..7)
+            .map(|y| (0..60).map(|x| buf[(x, y)].symbol()).collect())
+            .collect();
+        let screen = rows.join("\n");
+        let at = rows
+            .iter()
+            .position(|r| r.contains("g  charts"))
+            .expect(&screen);
+        assert!(
+            rows[1].contains(": "),
+            "the text line stays on top: {screen}"
+        );
+        let x = u16::try_from(rows[at].find("g  charts").unwrap()).unwrap();
+        let cell = &buf[(x, u16::try_from(at).unwrap())];
+        assert_eq!(
+            cell.style(),
+            cell.style().patch(theme.selected()),
+            "{screen}"
+        );
     }
 
     // spec: SUP-1 (internal: the screen is drawn only in a real terminal)

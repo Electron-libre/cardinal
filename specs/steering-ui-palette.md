@@ -21,10 +21,11 @@ keys of SUA, SUE, SUQ and SUC stay its shortcuts.
   spaces and its name, in this order: `i summary`, `s start`, `f merge`, `e end`, `E end merged`, `v release`,
   `p prioritize` (each under the condition SUA-15 gives its key in the help line, none of the tasks while one runs,
   SUA-6), then `r refresh`, `g charts` and `q quit`, which always act; the first line of the list highlighted.
-- **SUP-2** (deterministic) While the palette is open, a printable character typed must append itself to the text of
-  the top line and `Backspace` remove its last character, the list then holding only the commands whose name contains
+- **SUP-2** (deterministic) While the palette is open, a printable character typed (a letter held with `Ctrl` or `Alt`
+  is none) must append itself to the text of the top line and `Backspace` remove its last character, the list then holding only the commands whose name contains
   the text, whatever its case, in the order of SUP-1, its first line highlighted; `↑` and `↓` move the highlight
-  within the list, staying on its first and last lines.
+  within the list, staying on its first and last lines, the list scrolled on a screen too short to hold it so the
+  highlighted line stays drawn.
 - **SUP-3** (deterministic) `Enter` in the palette must close it and do what the key of the highlighted command does
   on the panels with the same selection (the task, its status line or its refusal, SUA, SUE, SUQ-6, SUC-1, STU-2);
   `Esc` closes it doing nothing, and `Enter` on an empty list only closes it.
@@ -50,6 +51,9 @@ keys of SUA, SUE, SUQ and SUC stay its shortcuts.
 - (SUP-1) Given a merge running, when the user opens the palette, then it lists no task, `i summary` still listed
   with the selection on an issue.
 - (SUP-2) Given the text `xyz`, then the list is empty, and `Backspace` three times lists every command again.
+- (SUP-2) Given the text `st`, when the user presses `Ctrl+W`, then the text stays `st`.
+- (SUP-2) Given a screen 7 rows high and every command listed, when the user moves the highlight to `g charts`, then
+  the list scrolls and `g charts` is drawn highlighted under the text line.
 - (SUP-2) Given the text `END`, then the list holds `e end` and `E end merged` when both act.
 - (SUP-3) Given the palette open, when the user presses `Esc`, then it closes and the screen stays on the panels
   (`Esc` does not quit, STU-2).

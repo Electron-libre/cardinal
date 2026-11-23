@@ -373,7 +373,7 @@ issue of the queue. The keys that act whatever the selection (`E` while a worktr
 awaits its release in zellij, `p` while the queue lists an open issue in zellij, `r` and `g`) are listed in the palette.
 `:` opens over the panels the command palette: the commands of the help line, then `E`, `v` and `p` under the
 same conditions, then `r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
-widens again), the arrows move the highlight, `Enter` runs the highlighted one as its key would, `Esc` closes it; while
+widens again), the arrows move the highlight (the list scrolls on a short screen), `Enter` runs the highlighted one as its key would, `Esc` closes it; while
 it is open, the letters go to the filter and only `Ctrl+C` quits.
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose

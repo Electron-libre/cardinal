@@ -225,7 +225,7 @@ mod tests {
         assert_eq!(line(&v, on(Focus::Worktrees, 0, 5), false), always);
     }
 
-    // spec: SUA-15 (internal: the keys that act whatever the selection are in the palette, which `--print` never shows)
+    // spec: SUP-1 (internal: the keys that act whatever the selection are in the palette, which `--print` never shows)
     #[test]
     fn the_keys_of_the_whole_project_follow_the_read_and_zellij() {
         use crate::source::{Milestone, Milestones, Queue, State, Worktree};

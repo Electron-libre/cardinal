@@ -242,7 +242,8 @@ actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), th
 [`specs/steering-ui-end.md`](../specs/steering-ui-end.md), its charts in
 [`specs/steering-ui-charts.md`](../specs/steering-ui-charts.md), its queue in
 [`specs/steering-ui-queue.md`](../specs/steering-ui-queue.md), its theme and status line in
-[`specs/steering-ui-screen.md`](../specs/steering-ui-screen.md)): it reads a project only through the JSON
+[`specs/steering-ui-screen.md`](../specs/steering-ui-screen.md), its command palette in
+[`specs/steering-ui-palette.md`](../specs/steering-ui-palette.md)): it reads a project only through the JSON
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to

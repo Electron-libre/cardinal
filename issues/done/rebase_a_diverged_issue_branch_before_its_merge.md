@@ -82,6 +82,9 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
    fails reported, the main worktree checked again after the rebase, the tests free of the global git config, the
    row of `merge.rs` in `docs/architecture.md`; verified by `rebase_issue.rs` and `merge.rs`; makes true RBI-2, SUM-3. (autonomous)
 
+Done: every deliverable committed; the refusal of `f` while the issue session waits in its tab is the follow-up
+`issues/end_the_waiting_session_before_rebasing_its_branch.md`.
+
 ## Decisions
 - Mode: autonomous
 - Base commit: a4eec3a423edf8d9121a575fc95c610f35e47f15
@@ -89,6 +92,7 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 - Add-only conflicts are settled in every text file; the project check after the rebase catches the rest.
 - The key `f` rebases a diverged branch with no second press.
 - The UI runs `project-check` in the issue worktree after the rebase, before the fast-forward.
+- High review finding 1 (a waiting issue session blocks `f`): kept refused, follow-up issue filed (user, 2026-11-23).
 
 ## Deliverable 1 summary
 - done: `cardinal run rebase-issue <stem>` rebases the branch of a `merge pending` issue onto the trunk in its

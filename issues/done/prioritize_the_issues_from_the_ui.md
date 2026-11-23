@@ -95,7 +95,7 @@ Code review (high, whole issue): 5 findings
 - the help line hints from the queue read in the current worktree, `p` reads the main one: kept, SUA-15 reads "the
   read shown" and its non-goal leaves the other refusals to the key.
 - a review committed on the trunk makes the open branches diverge before their merge: kept, as the release does;
-  tracked by `issues/rebase_a_diverged_issue_branch_before_its_merge.md`.
+  tracked by `issues/done/rebase_a_diverged_issue_branch_before_its_merge.md`.
 - `docs/usage.md` left out the result of a review start on `q`: fixed.
 - the doc of `run_task` left out the review: fixed.
 - no test of `p` on an empty queue through the key: fixed.

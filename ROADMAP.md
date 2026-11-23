@@ -39,5 +39,6 @@ The work done before this file existed is in `issues/done/`.
   - [cut_a_milestone_into_issues_from_the_ui](issues/done/cut_a_milestone_into_issues_from_the_ui.md)
   - [write_a_skill_to_audit_the_code](issues/done/write_a_skill_to_audit_the_code.md)
   - [audit_the_code_from_the_ui](issues/audit_the_code_from_the_ui.md)
-  - [rebase_a_diverged_issue_branch_before_its_merge](issues/rebase_a_diverged_issue_branch_before_its_merge.md)
+  - [rebase_a_diverged_issue_branch_before_its_merge](issues/done/rebase_a_diverged_issue_branch_before_its_merge.md)
+  - [end_the_waiting_session_before_rebasing_its_branch](issues/end_the_waiting_session_before_rebasing_its_branch.md)
   - [split_the_screen_module_of_the_ui](issues/split_the_screen_module_of_the_ui.md)

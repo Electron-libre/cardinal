@@ -11,7 +11,7 @@ use crate::source;
 /// listed (SUA-11, SUA-17).
 pub fn running(dir: &Path, tab: &str, message: &str) -> bool {
     let args = ["action", "list-panes", "--json", "--all"];
-    let Ok((out, _, 0)) = source::run("zellij", &source::zellij(), &args, dir) else {
+    let Ok((out, _, 0)) = crate::zellij::run("zellij action list-panes", &args, dir) else {
         return false;
     };
     let command = format!("claude {message}");
@@ -31,7 +31,7 @@ pub fn open(main: &Path, tab: &str, message: &str) -> Result<String, String> {
     let args = [
         "action", "new-tab", "--cwd", &cwd, "--name", tab, "--", "claude", message,
     ];
-    let (_, err, code) = source::run(name, &source::zellij(), &args, main)?;
+    let (_, err, code) = crate::zellij::run(name, &args, main)?;
     if code != 0 {
         return Err(source::failure(name, code, &err));
     }

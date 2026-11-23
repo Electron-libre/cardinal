@@ -129,7 +129,7 @@ fn tabs(dir: &Path) -> Vec<String> {
         return Vec::new();
     }
     let args = ["action", "list-tabs", "--json"];
-    let Ok((out, _, 0)) = run("zellij", &zellij(), &args, dir) else {
+    let Ok((out, _, 0)) = crate::zellij::run("zellij action list-tabs --json", &args, dir) else {
         return Vec::new();
     };
     let list = serde_json::from_str::<Value>(out.trim()).unwrap_or_default();

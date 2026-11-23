@@ -41,7 +41,7 @@ fn session_pane(panes: &Value, stem: &str) -> Option<(u64, u64, bool)> {
 /// Runs `zellij args` in `dir`, failing with the line of SUE-4.
 fn zellij(dir: &Path, args: &[&str]) -> Result<String, String> {
     let name = format!("zellij {}", args.join(" "));
-    let (out, err, code) = source::run(&name, &source::zellij(), args, dir)?;
+    let (out, err, code) = crate::zellij::run(&name, args, dir)?;
     if code != 0 {
         return Err(source::failure(&name, code, &err));
     }

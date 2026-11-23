@@ -365,7 +365,9 @@ issue-claim --release <stem>`, which frees the claim; nor does it start while a 
 worktree. The status line says what started or why nothing did (outside zellij, an issue
 taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same from a shell of the zellij session
 (exit 1 when nothing started). It lists the tabs with `zellij action list-tabs --json`, through the `zellij` on the
-`PATH` or the program `CARDINAL_UI_ZELLIJ` names.
+`PATH` or the program `CARDINAL_UI_ZELLIJ` names. A `zellij` call that has not answered within 5 seconds is killed and
+fails with `<command>: no answer after 5 s (zellij session renamed?)`: the read shows no `tab`, a key says it on the
+status line.
 
 An issue closed on its branch with `merge_back = "local"` waits `merge pending` until the trunk holds the close.
 `f` on it in the queue, or `cardinal-ui --merge <stem>`, merges it, from any worktree of the project: in the main worktree, `git merge --ff-only

@@ -38,6 +38,7 @@ mod summary;
 mod terminal;
 mod theme;
 mod tree;
+mod zellij;
 
 use std::path::Path;
 

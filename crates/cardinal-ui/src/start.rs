@@ -53,7 +53,7 @@ pub fn start(root: &Path, stem: &str) -> Result<String, String> {
         "claude",
         &first_message,
     ];
-    let (_, err, code) = source::run(tab, &source::zellij(), &args, root)?;
+    let (_, err, code) = crate::zellij::run(tab, &args, root)?;
     if code != 0 {
         return Err(source::failure(tab, code, &err));
     }

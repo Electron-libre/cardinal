@@ -80,11 +80,11 @@ likely rename instead. Requirements in a spec of their own, `specs/steering-ui-z
    5 s with `<command>: no answer after 5 s (zellij session renamed?)`; verified by `--release` with a fake whose
    `new-tab` sleeps (the line, exit 1, no process left) and an internal test of a `list-tabs` that sleeps (no tab);
    makes true SUZ-2, SUZ-4. (autonomous)
-2. [ ] Current name: a module `crates/cardinal-ui/src/zellij.rs` finds the `--server <socket>` ancestor through
+2. [x] Current name: a module `crates/cardinal-ui/src/zellij.rs` finds the `--server <socket>` ancestor through
    `/proc`, reads the `name` of `session_info/<id>/session-metadata.kdl` under the zellij cache directory at each
    call and sets it as the `ZELLIJ_SESSION_NAME` of the call, else keeps the environment's; verified by `--release`
    run under a fake server ancestor with a fake cache (the fake `zellij` logs the name it got: the recorded one, the
-   environment's when the file is missing); makes true SUZ-1, SUZ-3 and SUE-4's amendment; sets SUZ and SUE `accepted`.
+   environment's when the file is missing); makes true SUZ-1, SUZ-3 and SUE-4's amendment; sets SUZ and SUE `accepted`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -100,3 +100,12 @@ likely rename instead. Requirements in a spec of their own, `specs/steering-ui-z
 - Code review: 1 findings: a failed `try_wait` read as a timeout: fixed, its own line `cannot wait for`.
 - checks: project-check ok (fmt, clippy, tests, specs); docs: `docs/usage.md`, `docs/architecture.md`, the map.
 - not verified: against a real hung zellij (the fake sleeps); decisions needed: none.
+
+## Deliverable 2
+- done: each `zellij` call runs with the `ZELLIJ_SESSION_NAME` of `session-metadata.kdl`, found from the
+  `--server` ancestor (`/proc`), else the environment's; SUZ and SUE `accepted`.
+- red: SUZ-H1, SUZ-1, SUZ-3: the fake logged `a list-panes`, `a new-tab` (the stale name), expected `b`.
+- smoke: `ZELLIJ_SESSION_NAME=bogus-stale cardinal-ui --print` in a real zellij 0.46.0 session: the `tab` shown, 0.2 s.
+- Code review: 1 findings: a KDL escape other than `\\` and `\"` misread: fixed, such a name reads as none (the environment's).
+- checks: project-check ok; docs: `docs/usage.md`, `docs/architecture.md`.
+- not verified: zellij versions other than 0.46.0; decisions needed: none.

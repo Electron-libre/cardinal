@@ -276,7 +276,7 @@ flowchart LR
 | Module | Does |
 |---|---|
 | `source.rs` | runs the tools and git, checks the documents, reads the lock and the wait mark of each worktree |
-| `zellij.rs` | runs each `zellij` call, killed with the processes it started past 5 s |
+| `zellij.rs` | runs each `zellij` call with the name zellij records now for the session of its server ancestor (a renamed session), killed with the processes it started past 5 s |
 | `panels.rs` | the queue (a heading per milestone after `■ `, an empty line above it but the first, listed in the `headings` that `screen.rs` draws in `accent` and bold, a line per issue in aligned columns, the mark of a claim at work or waiting), one line per worktree, or the error of a source; the measures panel; the words of a state marked with the role of the theme they are drawn in |
 | `tree.rs` | the sections of the queue: the open issues grouped by milestone, each section a tree of their dependencies |
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |

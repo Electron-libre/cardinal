@@ -365,7 +365,10 @@ issue-claim --release <stem>`, which frees the claim; nor does it start while a 
 worktree. The status line says what started or why nothing did (outside zellij, an issue
 taken or not ready, the failed step). `cardinal-ui --start <stem>` does the same from a shell of the zellij session
 (exit 1 when nothing started). It lists the tabs with `zellij action list-tabs --json`, through the `zellij` on the
-`PATH` or the program `CARDINAL_UI_ZELLIJ` names. A `zellij` call that has not answered within 5 seconds is killed and
+`PATH` or the program `CARDINAL_UI_ZELLIJ` names, each call addressed to the session the UI runs in by the name zellij
+records for it now (its `session-metadata.kdl`, found from the `zellij --server` the UI descends from), so a session
+renamed since its pane opened still answers; the `ZELLIJ_SESSION_NAME` of the pane when that record cannot be
+found. A `zellij` call that has not answered within 5 seconds is killed and
 fails with `<command>: no answer after 5 s (zellij session renamed?)`: the read shows no `tab`, a key says it on the
 status line.
 

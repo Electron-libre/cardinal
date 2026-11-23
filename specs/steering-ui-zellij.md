@@ -1,6 +1,6 @@
 ---
 id: SUZ
-status: draft
+status: accepted
 adrs: [0031]
 ---
 
@@ -27,8 +27,8 @@ the UI.
 ## Scenarios
 
 - **SUZ-H1** (happy; SUZ-1, SUZ-3) Given the UI started in a pane of the zellij session `a`, renamed `b` since, when
-  the user presses `v` with a milestone awaiting its release, then the tab `release` opens in the session `b`, and the
-  next read lists the tabs of `b`.
+  the user presses `a`, then the panes are listed and the tab `audit` opens in the session `b`, and the next read lists
+  the tabs of `b`.
 - (SUZ-3) Given no zellij server among the ancestors of the UI, or no `session-metadata.kdl` for its id (another
   version of zellij), then the calls run with the `ZELLIJ_SESSION_NAME` of the environment, as before.
 - (SUZ-3) Given the session renamed `c` while the UI runs, then the next call runs with `c`.

@@ -146,7 +146,7 @@ can switch it at any time.
   locally and chain into the next deliverable.
 - **Never lifted**: the review of step 3.5 and its checks, the `high` review of the whole issue, the stop of step 2
   (in a queue: grouped, never lifted);
-  no push, deletion or history rewrite unasked.
+  no push, deletion or history rewrite unasked (the `rebase-issue` of "Merge back" is asked by the agreement to close).
 - **Stops the chain**: a blocking question, a decision the summary needs from the user, a review finding you can't
   settle, a failing check you can't fix (never commit or build on a red base). After the last deliverable, give the
   final summary: a table `deliverable | commit`, then `left` (what remains, if anything); ask whether to close the issue.

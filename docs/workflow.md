@@ -108,6 +108,7 @@ sequenceDiagram
     W->>H: push, open or update the pull request
     H->>H: merge into the trunk
   else merge_back = "local"
+    W->>W: rebase-issue onto the trunk if it moved,<br/>project-check, cardinal check
     W->>U: print git merge --ff-only <branch>
     U->>U: merge in the main worktree
   end
@@ -126,6 +127,10 @@ sequenceDiagram
 - `close-issue` runs in the worktree of the issue, never on an issue of another worktree; on a branch other than
   the trunk it leaves the claim `merge pending`, which `next-issue` drops once the trunk holds the close. A branch
   prioritizes only its own issues, so two branches never conflict over the order.
+- With `merge_back = "local"`, `cardinal run rebase-issue <stem>` rebases a branch another merged issue left behind,
+  with no stop since the branch was never pushed; lines both sides only added (two issues in one list of the roadmap)
+  are settled, any other conflict aborts the rebase and stops the session on the files it names
+  ([specs/rebase-issue.md](../specs/rebase-issue.md)).
 - `cardinal check` before the merge catches a hook the installed `cardinal` would refuse once merged; run the
   install it prints first.
 - A worktree the former `start-issue` nested under `.claude/worktrees/` is still read by the project's own tools run

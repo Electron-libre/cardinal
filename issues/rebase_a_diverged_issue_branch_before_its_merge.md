@@ -69,9 +69,9 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 ## Plan
 1. [x] Tool `rebase-issue`: the rebase of RBI in `crates/cardinal/src/tools/rebase_issue.rs`, registered in
    `cardinal run`; verified by `crates/cardinal/tests/rebase_issue.rs` on temp repositories; makes true RBI-1..RBI-5. (autonomous)
-2. [ ] issue-workflow "Merge back" (`files/.claude/skills/issue-workflow/details.md`, then `just sync`): with
+2. [x] issue-workflow "Merge back" (`files/.claude/skills/issue-workflow/details.md`, then `just sync`): with
    `"local"`, a diverged unpushed branch is rebased by `rebase-issue` with no stop, the project check and
-   `cardinal check` run again; stop only on its refusal; verified by `crates/cardinal/tests/skills.rs` on the text.
+   `cardinal check` run again; stop only on its refusal; verified by `crates/cardinal/tests/skills.rs` on the text. (autonomous)
 3. [ ] Split `specs/steering-ui-actions.md` (over `spec_max_bytes`): move the merge (SUA-2, SUA-7, SUA-22 and their
    scenarios) to `specs/steering-ui-merge.md` (SUM), the old ids `withdrawn: moved to SUM-n`, the tests retagged;
    no change of behaviour; verified by `cardinal run check-specs`.
@@ -94,3 +94,12 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 - red: RBI-1, RBI-2, RBI-3, RBI-4, RBI-5: `cardinal: unknown tool `rebase-issue``
 - Code review: no findings
 - not verified: a rebase of a real issue branch of this repository (deliverable 2 runs it at the close).
+
+## Deliverable 2 summary
+- done: issue-workflow "Merge back" with `"local"` runs `rebase-issue` with no stop, then the project check and
+  `cardinal check`; stops only on its refusal; the autonomous mode names that rebase as asked; `docs/workflow.md`.
+- checks: tests pass, clippy clean, specs pass, docs updated, copies synced.
+- red: none: `the_local_merge_back_rebases_a_diverged_branch_with_rebase_issue` failed on the missing
+  `cardinal run rebase-issue <stem>` in "Merge back"
+- Code review: no findings
+- not verified: the session of a real close following the new text.

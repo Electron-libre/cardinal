@@ -54,11 +54,14 @@ On a branch other than the trunk, once the user agreed to close the issue:
    call it too, and one the installed `cardinal` refuses blocks every command, the install included.
 3. Read the `merge_back` of `[project]` in `.claude/cardinal.toml`; a value other than `"local"` or
    `"pull-request"` is a stop: report it to the user, push nothing.
-   `"local"`: push nothing and open no pull request. When the trunk is not an ancestor of the branch (`git merge-base
-   --is-ancestor <trunk> HEAD` fails: another issue was merged since), the fast-forward would fail: propose to rebase
-   the branch onto the trunk and, on the user's go, rebase it, run the project check and `cardinal check` again. Then
-   stop and print the merge for the user to run in the main worktree, `git merge --ff-only <branch>` (or the key `f`
-   of `cardinal-ui` on the issue); never run it yourself from the linked worktree.
+   `"local"`: push nothing and open no pull request. Run `cardinal run rebase-issue <stem>` with no stop: the user's
+   agreement to close is the go for it. It prints `already holds` when the trunk is an ancestor of the branch; it
+   rebases an unpushed branch another merged issue left behind, settling the lines both sides only added (the lists
+   of the roadmap). When it rebased, run `cardinal run project-check` and `cardinal check` again, and fix what fails
+   in a commit of its own before going on. When it refuses (a pushed branch, a conflict it names, aborted), stop and
+   report its line: the conflict is settled with the user. Then stop and print the merge for the user to run in the
+   main worktree, `git merge --ff-only <branch>` (or the key `f` of `cardinal-ui` on the issue); never run it yourself
+   from the linked worktree.
    `"pull-request"` or no key: push the branch to the remote the trunk tracks (`git push -u <remote> <branch>`), then, with the host's CLI (`gh`
    on GitHub: `gh pr list --head <branch>`), open the pull request to the trunk when the branch has none, titled after
    the issue, its body the summary of the deliverables; with one, the push updated it. Report its URL. No remote or no

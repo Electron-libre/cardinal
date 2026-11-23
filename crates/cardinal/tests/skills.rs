@@ -1260,3 +1260,35 @@ fn the_migration_of_the_format_11_points_the_justfile_at_the_cardinal_directory(
         "11"
     );
 }
+
+/// With `merge_back = "local"`, a diverged unpushed branch is rebased by `rebase-issue` with no stop, the checks run
+/// again; only its refusal stops the session, and the autonomous mode names that rebase as asked by the close.
+#[test]
+fn the_local_merge_back_rebases_a_diverged_branch_with_rebase_issue() {
+    let root = repo_root();
+    let details =
+        fs::read_to_string(root.join("files/.claude/skills/issue-workflow/details.md")).unwrap();
+    let merge_back = details
+        .split("\n## ")
+        .find(|s| s.starts_with("Merge back"))
+        .expect("a Merge back section");
+    assert!(
+        merge_back.contains("cardinal run rebase-issue <stem>"),
+        "{merge_back}"
+    );
+    assert!(
+        !merge_back.contains("propose to rebase"),
+        "the rebase of an unpushed branch needs no stop: {merge_back}"
+    );
+    assert!(
+        merge_back.contains("cardinal run project-check") && merge_back.contains("cardinal check"),
+        "{merge_back}"
+    );
+    let skill =
+        fs::read_to_string(root.join("files/.claude/skills/issue-workflow/SKILL.md")).unwrap();
+    let autonomous = skill
+        .split("\n## ")
+        .find(|s| s.starts_with("Autonomous mode"))
+        .unwrap();
+    assert!(autonomous.contains("rebase-issue"), "{autonomous}");
+}

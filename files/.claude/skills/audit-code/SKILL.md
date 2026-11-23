@@ -12,11 +12,11 @@ user validates. Change no code here.
 
 1. **Scope**: the whole repository, or the path or axis the user names. Read the `architecture`, `roadmap`,
    `skipped_dirs` and `confidential` values of `.claude/cardinal.toml`, the ADRs (`docs/adr/` or what the
-   `architecture` document cites), the open issues (`ls issues`) and their titles: what an open issue already tracks
-   is no finding.
+   `architecture` document cites), and the titles of the issues (`ls issues issues/done`, or the tracker the project
+   names): what an issue already tracks, or a done one settled or declined, is no finding.
 2. **Measure** what a tool already counts, before any reading: `cardinal run file-size --all` (the files over the
-   limit), and with specs, `cardinal run check-specs` (untraced requirements) and `cardinal run spec-coverage` (test
-   files tracing no requirement). Skip a tool the project turned off; its absence is no finding.
+   limit), and in a project with `specs/README.md`, `cardinal run check-specs` (untraced requirements) and
+   `cardinal run spec-coverage` (test files tracing no requirement); without it, no spec is no finding.
 3. **Read through one subagent per axis**, five at most, in parallel, each read-only, given the scope, the measures
    of step 2 that concern it, the skipped directories and the axis:
    - **architecture**: the modules, layers and dependencies against the `architecture` document (a flow it draws
@@ -36,4 +36,5 @@ user validates. Change no code here.
    most important first; proposing nothing is a valid outcome. The user answers with the numbers to keep.
 6. **Create** one issue per validated proposal through `skill:create-issue` (its duplicate check, template, milestone
    and checker), the findings and their `file:line` in its `# Findings`, in generic wording per the `confidential`
-   note. Reordering the queue is `skill:prioritize-issues`'s.
+   note. Reordering the queue is `skill:prioritize-issues`'s. Without `skill:create-issue` (the feature
+   `issue-files` turned off), the validated table is the outcome: the user files it in the project's tracker.

@@ -48,6 +48,9 @@ issue), a `cardinal run` tool, the UI command (`audit_the_code_from_the_ui`).
    through `.claude/cardinal.toml`), synced copy, README and docs; verified by required passages in
    `crates/cardinal/tests/skills.rs` and the structural skill checks (cited skills, docs) and `fixed-context` under
    `fixed_context_budget`. (autonomous)
+2. [x] Fixes of the `high` review of the issue: the skill without `skill:create-issue` (feature `issue-files` off)
+   ends on the validated table, reads the done issues too, keys the spec tools on `specs/README.md`; stronger
+   required passages. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -64,3 +67,11 @@ issue), a `cardinal run` tool, the UI command (`audit_the_code_from_the_ui`).
 - not verified: the skill run on a real repository (a billed session).
 - file-size: `crates/cardinal/tests/skills.rs` was already over the limit (1212 lines) before this deliverable; its
   split is a refactor of its own, not part of this skill.
+
+## Deliverable 2 summary
+- done: the four findings of the `high` review fixed in `files/.claude/skills/audit-code/SKILL.md` and its required
+  passages.
+- checks: tests ok, lint ok, specs ok, docs unchanged (no documented behaviour moved).
+- red: none (no spec id); the strengthened passages are met by the reworded skill.
+- Code review: no findings
+- not verified: the skill run on a real repository (a billed session).

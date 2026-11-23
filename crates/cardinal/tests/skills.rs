@@ -143,8 +143,23 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
     ),
     (
         "audit-code",
-        "`architecture`",
+        "against the `architecture` document",
         "the architecture is read from the project's own document, nothing specific to one project",
+    ),
+    (
+        "audit-code",
+        "`ls issues issues/done`",
+        "a finding a done issue settled or declined is not proposed again",
+    ),
+    (
+        "audit-code",
+        "the validated table is the outcome",
+        "a project tracking its issues elsewhere still gets the audit, without create-issue",
+    ),
+    (
+        "audit-code",
+        "in a project with `specs/README.md`",
+        "the spec tools stay installed with the feature specs off, so the skill keys them on its file",
     ),
     (
         "audit-code",

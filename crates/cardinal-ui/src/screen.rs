@@ -96,6 +96,9 @@ pub(crate) fn render(
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
+    }
+    // the queue is the first panel of the screen: a summary titled `Queue` lower down bears no mark (SUS-6)
+    if let (Some(p), Some(area)) = (panels.first(), areas.first()) {
         crate::mark::draw(p, *area, buf, theme);
     }
     let n = panels.len();

@@ -46,6 +46,8 @@ Means: the approach's option 2, the border title, rather than a header row.
 1. [x] Mark on the queue border: the mark drawn after the queue panel by `screen.rs` (`render`, module `mark.rs`), dropped when
    the panel cannot hold the title, the mark and one border cell; verified by a screen test (80×24 buffer, accent
    color, rows unchanged, narrow panel) and the `--print` test of `tests/print_screen.rs`; makes true SUS-6. (autonomous)
+2. [x] Fixes of the `high` review: the mark drawn on the first panel only (a summary titled `Queue` bears none), the
+   SUS-H3 test checks every row of the queue; verified by `mark.rs` tests; makes true SUS-6. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -69,4 +71,23 @@ red: SUS-6, SUS-H3: `assertion failed: rows[0].ends_with("─ ✦ Cardinal ┐")
 Code review: no findings
 
 not verified: the glyph `✦` in a real terminal (one column wide in the test buffer)
+decisions needed: none
+
+## Summary of deliverable 2
+done: the `high` review of the issue gave 2 nits, both fixed: the mark keyed to the first panel of the screen, not
+only its title; the SUS-H3 test asserts every queue row kept.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | SUS-6 traced |
+| docs | n/a (no behaviour change for the user) |
+| code review | `low`, see below |
+
+red: SUS-6: `assertion left == right failed` (left: 2, right: 1): a summary titled `Queue` bore a second mark
+
+Code review: no findings
+
+not verified: none
 decisions needed: none

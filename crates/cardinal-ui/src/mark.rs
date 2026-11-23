@@ -11,8 +11,8 @@ use crate::theme::{Role, Theme};
 /// The mark, spaces around it as around the title of a panel.
 const MARK: &str = " ✦ Cardinal ";
 
-/// Draws the mark against the right corner of the top border of `p` over `area` when `p` is the queue panel and its
-/// border holds its title, the mark and one cell of border between them (SUS-6).
+/// Draws the mark against the right corner of the top border of `p`, the first panel of the screen, over `area` when
+/// `p` is the queue panel and its border holds its title, the mark and one cell of border between them (SUS-6).
 pub(crate) fn draw(p: &Panel, area: Rect, buf: &mut Buffer, theme: &Theme) {
     if p.title != QUEUE || area.height == 0 {
         return;
@@ -87,11 +87,33 @@ mod tests {
         let star = u16::try_from(rows[0].chars().position(|c| c == '✦').unwrap()).unwrap();
         assert_eq!(buf[(star, 0)].fg, Color::Rgb(0, 0, 6), "in accent");
         assert_eq!(buf[(star + 2, 0)].fg, Color::Rgb(0, 0, 6), "in accent");
-        assert!(rows[1].contains("issue0"), "the queue on the next row");
+        for (i, row) in rows[1..=10].iter().enumerate() {
+            assert!(
+                row.contains(&format!("issue{i}")),
+                "every row of the queue kept: {rows:?}"
+            );
+        }
         assert_eq!(rows.iter().filter(|r| r.contains("Cardinal")).count(), 1);
         assert!(!rows
             .iter()
             .any(|r| r.contains("┌ Worktrees") && r.contains("Cardinal")));
+    }
+
+    // spec: SUS-6 (internal: a summary panel the screen unfolds)
+    #[test]
+    fn a_summary_titled_queue_under_the_queue_bears_no_mark() {
+        let panels = [
+            panel("Queue", &["> a"]),
+            panel("Queue", &["goal"]),
+            panel("Worktrees", &["w"]),
+        ];
+        let (rows, _) = drawn(&panels, 80, 12);
+        assert_eq!(
+            rows.iter().filter(|r| r.contains("Cardinal")).count(),
+            1,
+            "{rows:?}"
+        );
+        assert!(rows[0].contains("Cardinal"), "{rows:?}");
     }
 
     // spec: SUS-6 (internal: the width of a panel the screen sets)

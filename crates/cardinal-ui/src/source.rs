@@ -204,7 +204,7 @@ pub fn parse(tool: &str, out: &str) -> Result<Value, String> {
     }
 }
 
-fn string(v: &Value) -> Option<String> {
+pub fn string(v: &Value) -> Option<String> {
     v.as_str().map(str::to_string)
 }
 

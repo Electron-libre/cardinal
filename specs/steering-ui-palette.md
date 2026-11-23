@@ -1,6 +1,6 @@
 ---
 id: SUP
-status: draft
+status: accepted
 adrs: []
 ---
 

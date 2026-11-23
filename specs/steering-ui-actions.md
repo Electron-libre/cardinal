@@ -1,6 +1,6 @@
 ---
 id: SUA
-status: draft
+status: accepted
 adrs: [0022, 0023, 0030, 0031]
 ---
 

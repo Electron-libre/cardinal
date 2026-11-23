@@ -209,6 +209,7 @@ mod tests {
         v.keys = Keys {
             start: vec![true],
             merge: vec![true],
+            cut: Vec::new(),
             merged: vec![false, true],
             release: true,
             prioritize: true,
@@ -253,6 +254,16 @@ mod tests {
             ["r refresh", "g charts", "q quit"]
         );
         assert_eq!(commands(Some(&v), queue, false)[1].action, Action::Start);
+        let mut milestone = every_key();
+        milestone.rows[0] = crate::keys::Row::Milestone("Two".to_string());
+        milestone.summaries[0] = None;
+        milestone.keys.start = vec![false];
+        milestone.keys.merge = vec![false];
+        milestone.keys.cut = vec![true];
+        assert_eq!(
+            labels(&commands(Some(&milestone), queue, false))[..2],
+            ["c cut", "E end merged"]
+        );
     }
 
     // spec: SUP-2 (internal: the keys typed in the palette need a real terminal)

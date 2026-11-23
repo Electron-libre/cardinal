@@ -91,7 +91,8 @@ session, `s` on a ready issue opens its worktree and a tab running `claude` on i
 fast-forwards the trunk of the main worktree to its branch, then ends its waiting session, closes its tab and removes
 its worktree and branch (`e` on its worktree, after `Tab`, for an issue merged by hand, `E` for every merged worktree); `v`, once a milestone awaits
 its release, opens a tab `release` in the main worktree running `claude /release`; `p` opens a tab `prioritize` there
-running `claude /prioritize-issues`, the review of the order of the queue; the help line offers only the keys
+running `claude /prioritize-issues`, the review of the order of the queue; `c`, on the heading of a milestone `shaped`
+or `idea`, opens a tab named after it there running `claude "/create-issue cut the milestone <name> into issues"`; the help line offers only the keys
 that would act on the selection, and `:` opens a palette of every command that would act, filtered by typing its name. No release binary yet:
 `cargo install --git https://github.com/Electron-libre/cardinal.git cardinal-ui` (or `just install-ui` in a clone).
 Details: [docs/usage.md](docs/usage.md#steering-ui).

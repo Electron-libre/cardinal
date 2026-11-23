@@ -26,6 +26,9 @@ pub enum Row {
 /// Why `s` and `f` act on nothing with the selection on a milestone (STU-14).
 const ON_A_MILESTONE: &str = "s and f act on an issue: select one";
 
+/// Why `c` acts on nothing with the selection on an issue or a worktree (SUA-19).
+const NOT_A_MILESTONE: &str = "c acts on a milestone: select its heading";
+
 /// The selected row of the queue and line of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
 /// screen starts on the first issue of the queue ([`Selection::start`]).
 #[derive(Debug, Clone, Copy, Default)]
@@ -99,6 +102,8 @@ pub enum Action {
     Release,
     /// `p`: starts the review of the priorities (SUA-16).
     Prioritize,
+    /// `c`: starts the cut of the selected milestone into issues (SUA-19).
+    Cut,
     Measure,
     Charts,
     /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
@@ -119,6 +124,7 @@ pub enum Task {
     EndMerged,
     Release,
     Prioritize,
+    Cut,
 }
 
 /// The task `action` runs on the issue `stem`, with the status line shown while it runs.
@@ -133,6 +139,7 @@ pub(crate) fn task(action: &Action, stem: &str) -> Option<(Task, String)> {
             Task::Prioritize,
             "starting the review of the priorities…".to_string(),
         )),
+        Action::Cut => Some((Task::Cut, format!("starting the cut of {stem}…"))),
         _ => None,
     }
 }
@@ -170,6 +177,12 @@ pub(crate) fn job(
         (Action::End, Focus::Queue) => {
             return Err("e acts on a worktree: Tab to the worktrees".to_string())
         }
+        (Action::Cut, Focus::Queue) => match v.rows.get(sel.row) {
+            Some(Row::Milestone(name)) => Some(name.clone()),
+            Some(Row::Issue(_)) => return Err(NOT_A_MILESTONE.to_string()),
+            None => None,
+        },
+        (Action::Cut, Focus::Worktrees) => return Err(NOT_A_MILESTONE.to_string()),
         _ => return Ok(None),
     };
     Ok(stem.and_then(|s| task(action, &s).map(|(t, shown)| (t, shown, s))))
@@ -194,6 +207,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('E') => Action::EndMerged,
         KeyCode::Char('v') => Action::Release,
         KeyCode::Char('p') => Action::Prioritize,
+        KeyCode::Char('c') => Action::Cut,
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
         KeyCode::Char('i') => Action::Summary,
@@ -294,7 +308,7 @@ pub(crate) mod tests {
         );
         let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
         assert_eq!(action(&ctrl_c), Action::Quit);
-        assert_eq!(action(&press(KeyCode::Char('c'))), Action::Nothing);
+        assert_eq!(action(&press(KeyCode::Char('c'))), Action::Cut);
         assert_eq!(action(&press(KeyCode::Char('r'))), Action::Refresh);
         assert_eq!(action(&press(KeyCode::Char('m'))), Action::Measure);
         assert_eq!(action(&press(KeyCode::Char('x'))), Action::Nothing);
@@ -534,7 +548,7 @@ pub(crate) mod tests {
         v
     }
 
-    // spec: STU-14 (internal: the keys and the selection of a screen that needs a real terminal)
+    // spec: STU-14, SUA-19 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
     fn the_selection_moves_over_the_issues_and_the_milestones() {
         // `One` on line 0 heads `a` and `b`, `Two` on line 4 heads `c`, under an empty line (SUQ-5)
@@ -569,6 +583,22 @@ pub(crate) mod tests {
         sel.row = 2;
         sel.reread(&before, &closed);
         assert_eq!(sel.line(&closed), Some((0, 4)));
+        // `c` cuts the selected milestone, and only a milestone (SUA-19)
+        let mut on_two = sel;
+        on_two.row = 4;
+        assert_eq!(
+            job(&Action::Cut, on_two, Some(&after)),
+            Ok(Some((
+                Task::Cut,
+                "starting the cut of Two…".to_string(),
+                "Two".to_string()
+            )))
+        );
+        let not_a_milestone = Err("c acts on a milestone: select its heading".to_string());
+        on_two.row = 5;
+        assert_eq!(job(&Action::Cut, on_two, Some(&after)), not_a_milestone);
+        on_two.focus = Focus::Worktrees;
+        assert_eq!(job(&Action::Cut, on_two, Some(&after)), not_a_milestone);
         // a queue of milestones only starts on its first heading
         let empty = queue(&["#Two"], &[0]);
         sel.start(&empty);

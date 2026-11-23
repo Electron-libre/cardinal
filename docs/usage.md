@@ -365,11 +365,11 @@ the install it needs (exit 1). It merges nothing (exit 1, saying why) when the i
 branch does not hold the commit of its close yet (`issues/done/<stem>.md`), the repository is bare, the main
 worktree is detached, has uncommitted changes or untracked files, or a live session holds its lock, or the
 trunk is not an ancestor of the branch (rebase it in its worktree first). The status line says what was merged or
-why nothing was; `s`, `f`, `e`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start or a review start runs, and `q` then quits once it
+why nothing was; `s`, `f`, `e`, `c`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start, a review start or a cut start runs, and `q` then quits once it
 ended, printing the result of a merge, an end, a release start or a review start. The next
 read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
-pending`, `e` on a merged worktree, none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
+pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
 issue of the queue. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
 awaits its release in zellij, `p` while the queue lists an open issue in zellij, `r` and `g`) are listed in the palette.
 `:` opens over the panels the command palette: the commands of the help line, then `E`, `v` and `p` under the
@@ -411,7 +411,14 @@ proposes the changes of `priority` and `depends_on`, waits for the user and comm
 matter itself. It opens nothing (exit 1, saying why) outside zellij, from a bare, detached, dirty or locked main
 worktree (as the release), when `cardinal run next-issue --json`, run there, lists no open issue or fails, the
 project turned the skill `prioritize-issues` off, or a tab `prioritize` still runs `claude /prioritize-issues`.
-Apart from a start (of an issue, a release or a review), a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
+`c` on the heading of a milestone `shaped` or `idea`, or `cardinal-ui --cut <milestone>`, starts its cut into issues
+the same way: a zellij tab named after the milestone in the main worktree running `claude "/create-issue cut the
+milestone <milestone> into issues"`, so `skill:create-issue` proposes the issues, agrees the goal of an `idea` one
+with the user, waits for their agreement and commits them. It opens nothing (exit 1, saying why) outside zellij, from
+a bare, detached, dirty or locked main worktree (as the release), when `cardinal run roadmap --open --json`, run
+there, lists no milestone of that name or fails, its state is neither `shaped` nor `idea`, the project turned the
+skill `create-issue` off, or a tab of that milestone still runs that `claude`.
+Apart from a start (of an issue, a release, a review or a cut), a merge, an end and its cache of measures, it writes nothing (it reads its theme file, never creates it).
 
 Install it with `cargo install` (`just install-ui` in a clone): no release binary is published for it.
 

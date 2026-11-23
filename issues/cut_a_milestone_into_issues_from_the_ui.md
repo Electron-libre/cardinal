@@ -55,10 +55,10 @@ goal in the UI (the session does it).
    only; new code in `keys.rs` and `panels.rs`, `screen.rs` (over the file size limit) only takes the new field of
    `View`; verified by the unit tests of the selection, the help line and the summary, `--print` unchanged; makes
    true STU-14, SUQ-6 (~350 lines). (autonomous)
-2. [ ] The cut command: module `cut.rs` (the checks of SUA-20, the tab of SUA-21 through `skill_tab`), the flag
+2. [x] The cut command: module `cut.rs` (the checks of SUA-20, the tab of SUA-21 through `skill_tab`), the flag
    `--cut <milestone>` in `main.rs`, the key `c` as a task, `c cut` on the help line and in the palette; verified by
    the binary tests `tests/cut.rs` (fake `zellij` and `cardinal`, as `tests/prioritize.rs`) and the unit tests of the
-   keys, the help line and the palette; makes true SUA-19, SUA-20, SUA-21, SUA-15, SUA-6, SUP-1, STU-3 (~500 lines).
+   keys, the help line and the palette; makes true SUA-19, SUA-20, SUA-21, SUA-15, SUA-6, SUP-1, STU-3 (~500 lines). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -79,3 +79,14 @@ goal in the UI (the session does it).
 - Code review: no findings
 - not verified: the screen in a real terminal (the tests draw it on a test backend).
 - `screen.rs` (over the file size limit) grows by one line, the first read starting the selection: not split for it.
+
+## Deliverable 2: the cut command
+
+- done: `cut.rs` checks then opens the tab of the milestone in the main worktree (`skill_tab`); `c` on a heading runs
+  it as a task, `--cut <milestone>` from the command line; `c cut` on the help line and in the palette on a `shaped`
+  or `idea` milestone in zellij; the specs accepted.
+- checks: tests pass, lint pass, specs pass (all four accepted), docs `docs/usage.md`, `docs/architecture.md`,
+  `README.md`, code review low pass.
+- red: SUA-19, SUA-20, SUA-21, STU-3: the 9 tests of `tests/cut.rs` failed with exit `Some(2)` (the usage line: `--cut` unknown).
+- Code review: no findings
+- not verified: a real zellij and `claude` session (the tests use fakes).

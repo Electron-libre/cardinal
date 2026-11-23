@@ -12,7 +12,13 @@ use crate::source::{State, Taken};
 const ALWAYS: &str = ": commands  ↑↓ select  tab panel  q quit";
 
 /// The actions of the keys that act on what is selected, the only ones the help line lists besides `ALWAYS`.
-const OF_THE_SELECTION: [Action; 4] = [Action::Summary, Action::Start, Action::Merge, Action::End];
+const OF_THE_SELECTION: [Action; 5] = [
+    Action::Summary,
+    Action::Start,
+    Action::Merge,
+    Action::End,
+    Action::Cut,
+];
 
 /// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUA-16, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -21,6 +27,8 @@ pub struct Keys {
     pub start: Vec<bool>,
     /// For each row of the queue: whether `f` would merge its issue (SUA-2), never on a milestone.
     pub merge: Vec<bool>,
+    /// For each row of the queue: whether `c` would cut its milestone, in zellij one `shaped` or `idea` (SUA-19).
+    pub cut: Vec<bool>,
     /// For each worktree, in the order of its panel: whether its row reads `merged`, so `e` would end it (SUE-1).
     pub merged: Vec<bool>,
     /// Whether `v` would start the release: in zellij, a milestone awaits its release (SUA-4).
@@ -55,6 +63,7 @@ impl Keys {
         Self {
             start: rows.iter().map(start).collect(),
             merge: rows.iter().map(merge).collect(),
+            cut: rows.iter().map(|r| zellij && cuttable(state, r)).collect(),
             merged: state
                 .worktrees
                 .as_ref()
@@ -67,6 +76,18 @@ impl Keys {
             prioritize: zellij && !issues.is_empty(),
         }
     }
+}
+
+/// Whether `row` is the heading of a milestone of `state` that `c` would cut: `shaped` or `idea` (SUA-19).
+fn cuttable(state: &State, row: &Row) -> bool {
+    let Row::Milestone(name) = row else {
+        return false;
+    };
+    state.milestones.as_ref().is_ok_and(|ms| {
+        ms.list
+            .iter()
+            .any(|m| &m.name == name && matches!(m.state.as_deref(), Some("shaped" | "idea")))
+    })
 }
 
 /// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
@@ -85,6 +106,7 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
             "e end",
             Action::End,
         ),
+        (queue && at(&keys.cut, sel.row), "c cut", Action::Cut),
         (
             keys.merged.contains(&true),
             "E end merged",
@@ -144,6 +166,7 @@ mod tests {
         v.keys = Keys {
             start: vec![true, false],
             merge: vec![false, true],
+            cut: Vec::new(),
             merged: vec![false, true, false],
             release: false,
             prioritize: false,
@@ -177,6 +200,7 @@ mod tests {
         v.keys = Keys {
             start: vec![false],
             merge: vec![true],
+            cut: Vec::new(),
             merged: vec![false, true],
             release: false,
             prioritize: false,
@@ -194,6 +218,71 @@ mod tests {
         );
     }
 
+    // spec: SUA-15 (internal: the selection rests on a milestone only in a screen that needs a real terminal)
+    #[test]
+    fn a_milestone_to_cut_offers_c() {
+        let mut v = view(&["foo"], &[]);
+        v.rows.insert(0, Row::Milestone("Two".to_string()));
+        v.summaries.insert(0, None);
+        v.keys = Keys {
+            start: vec![false, true],
+            merge: vec![false, false],
+            cut: vec![true, false],
+            ..Keys::default()
+        };
+        let always = ": commands  ↑↓ select  tab panel  q quit";
+        assert_eq!(
+            line(&v, on(Focus::Queue, 0, 0), false),
+            format!("{always}  c cut")
+        );
+        assert_eq!(
+            line(&v, on(Focus::Queue, 0, 0), true),
+            always,
+            "a task runs"
+        );
+        assert_eq!(
+            line(&v, on(Focus::Queue, 1, 0), false),
+            format!("{always}  i summary  s start")
+        );
+    }
+
+    // spec: SUA-15 (internal: the milestones are read from a roadmap, on its data rather than a repository)
+    #[test]
+    fn only_a_shaped_or_idea_milestone_in_zellij_is_cut() {
+        use crate::source::{Milestone, Milestones};
+        let m = |name: &str, state: &str| Milestone {
+            name: name.to_string(),
+            state: Some(state.to_string()),
+            on_hold: false,
+            open: 0,
+            listed: 0,
+            awaits_release: false,
+            proposed: None,
+        };
+        let s = State {
+            milestones: Ok(Milestones {
+                list: vec![
+                    m("One", "in issues"),
+                    m("Two", "idea"),
+                    m("Three", "shaped"),
+                ],
+                release_error: None,
+            }),
+            queue: Ok(crate::source::Queue::default()),
+            worktrees: Ok(Vec::new()),
+            measure: Vec::new(),
+            measuring: false,
+            measure_error: None,
+            charts: crate::charts::charts(None),
+        };
+        let rows: Vec<Row> = ["One", "Two", "Three", "Ghost"]
+            .iter()
+            .map(|n| Row::Milestone((*n).to_string()))
+            .collect();
+        assert_eq!(Keys::of(&s, &rows, true).cut, [false, true, true, false]);
+        assert_eq!(Keys::of(&s, &rows, false).cut, [false; 4], "outside zellij");
+    }
+
     // spec: SUA-15 (internal: a task runs only in a screen that needs a real terminal)
     #[test]
     fn no_key_of_a_task_while_one_runs() {
@@ -201,6 +290,7 @@ mod tests {
         v.keys = Keys {
             start: vec![true],
             merge: vec![true],
+            cut: Vec::new(),
             merged: vec![false, true],
             release: true,
             prioritize: true,

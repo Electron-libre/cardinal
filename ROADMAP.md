@@ -57,14 +57,14 @@ The work done before this file existed is in `issues/done/`.
   what the selection allows.
 - Why: the feedback of the user on 2026-11-22: the measures take room the queue needs, a milestone reads like an
   issue, the messages are lost in the command bar, and the help line offers actions that would only be refused.
-- State: in issues
+- State: done
 - Issues:
   - [drop_the_measures_from_the_main_screen](issues/done/drop_the_measures_from_the_main_screen.md)
   - [set_the_milestones_apart_from_the_issues_in_the_queue](issues/done/set_the_milestones_apart_from_the_issues_in_the_queue.md)
   - [show_the_messages_of_the_ui_out_of_the_help_line](issues/done/show_the_messages_of_the_ui_out_of_the_help_line.md)
   - [offer_only_the_keys_that_apply_to_the_selection](issues/done/offer_only_the_keys_that_apply_to_the_selection.md)
   - [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](issues/done/wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md)
-  - [split_the_screen_of_the_steering_ui_spec](issues/split_the_screen_of_the_steering_ui_spec.md)
+  - [split_the_screen_of_the_steering_ui_spec](issues/done/split_the_screen_of_the_steering_ui_spec.md)
 
 ## A steering UI to command
 

@@ -40,15 +40,25 @@ fn hanging(p: &Project, hung: &str) -> (PathBuf, PathBuf) {
     (path, pid)
 }
 
-/// Whether the process whose pid the file `pid` holds still runs.
+/// Whether the process whose pid the file `pid` holds still runs, a second after the call: the time for its new
+/// parent to reap it once killed. A zombie counts as ended.
 fn runs(pid: &Path) -> bool {
     let pid = std::fs::read_to_string(pid).unwrap();
-    Command::new("kill")
-        .args(["-0", pid.trim()])
-        .stderr(std::process::Stdio::null())
-        .status()
-        .unwrap()
-        .success()
+    let stat = format!("/proc/{}/stat", pid.trim());
+    let running = || {
+        std::fs::read_to_string(&stat)
+            .ok()
+            .and_then(|s| {
+                s.rsplit_once(')')
+                    .map(|(_, rest)| !rest.trim_start().starts_with('Z'))
+            })
+            .unwrap_or(false)
+    };
+    let until = Instant::now() + Duration::from_secs(1);
+    while running() && Instant::now() < until {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    running()
 }
 
 // spec: SUZ-2, SUZ-4
@@ -160,4 +170,27 @@ fn with_no_record_of_the_session_the_name_of_the_environment_is_kept() {
     assert_eq!(code, Some(0), "{out}{err}");
     let log = std::fs::read_to_string(log).unwrap();
     assert_eq!(log, "a list-panes\na new-tab\n");
+}
+
+// spec: SUZ-2, SUZ-4
+#[test]
+fn a_call_that_exits_leaving_a_process_on_its_output_does_not_wait_for_it() {
+    let p = audited();
+    let zellij = p.root.path().join("zellij");
+    let pid = p.root.path().join("pid");
+    script(
+        &zellij,
+        &format!(
+            "if [ \"$2\" = new-tab ]; then sleep 30 & echo $! > '{}'; fi\necho '[]'\n",
+            pid.display()
+        ),
+    );
+    let cardinal = p.root.path().join("cardinal");
+    script(&cardinal, "echo \"bad call: $*\" >&2; exit 9\n");
+    let start = Instant::now();
+    let (code, out, err) = ui_in(&p.ws, &cardinal, Some(&zellij), &["--audit"]);
+    let took = start.elapsed();
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(took < Duration::from_secs(5), "{took:?}");
+    assert!(!runs(&pid), "the sleep of the call still runs");
 }

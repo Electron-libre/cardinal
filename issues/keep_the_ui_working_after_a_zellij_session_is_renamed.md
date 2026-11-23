@@ -85,6 +85,8 @@ likely rename instead. Requirements in a spec of their own, `specs/steering-ui-z
    call and sets it as the `ZELLIJ_SESSION_NAME` of the call, else keeps the environment's; verified by `--release`
    run under a fake server ancestor with a fake cache (the fake `zellij` logs the name it got: the recorded one, the
    environment's when the file is missing); makes true SUZ-1, SUZ-3 and SUE-4's amendment; sets SUZ and SUE `accepted`. (autonomous)
+3. [x] Fixes of the `high` review of the issue; verified by a fake whose `new-tab` exits leaving a `sleep` on its
+   output, and the tests of 1 and 2; makes true SUZ-2, SUZ-3, SUZ-4. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -109,3 +111,20 @@ likely rename instead. Requirements in a spec of their own, `specs/steering-ui-z
 - Code review: 1 findings: a KDL escape other than `\\` and `\"` misread: fixed, such a name reads as none (the environment's).
 - checks: project-check ok; docs: `docs/usage.md`, `docs/architecture.md`.
 - not verified: zellij versions other than 0.46.0; decisions needed: none.
+
+
+## Deliverable 3
+- done: the fixes of the `high` review: the group of a call killed also once it exited (a process left holding its
+  pipes blocked the read), before its reap (its exit read from `/proc` as a zombie, so its group number is not free), the same cleanup on a failed wait, `kill` silent on stdout, the server ancestor matched as
+  `zellij --server`, its socket path read as bytes, the last name read kept for a read that meets a partial file,
+  the test's process check reading `/proc` (a zombie counts as ended).
+- red: SUZ-2, SUZ-4: `--audit` took 30 s with a `new-tab` that exits leaving a `sleep` on its output.
+- Not fixed (high review): a call still hung when the user quits the UI outlives it, its group out of the
+  terminal's (before, a hung call outlived `q` too, the read thread being left); `killpg` through an external
+  `kill` rather than a new `libc` dependency (a `kill` missing from the `PATH` leaves the group, the child alone
+  killed).
+- Code review: 2 findings: a group killed after the reap of its leader, its number free for another process: fixed
+  (killed while the leader is a zombie); `cache_dir` gone before `LAST` is read: not fixed, the environment of the
+  UI does not change while it runs.
+- checks: project-check ok; docs: `specs/steering-ui-zellij.md` (SUZ-3, SUZ-4).
+- not verified: the path with no `/proc` (macOS), where a process left by a call that exited is not killed.

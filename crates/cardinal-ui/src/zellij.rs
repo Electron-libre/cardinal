@@ -3,11 +3,13 @@
 //! the processes it started, once it has not answered within 5 seconds (SUZ-4), so no zellij that hangs blocks the
 //! UI (SUZ-2).
 
+use std::ffi::OsStr;
 use std::io::Read;
+use std::os::unix::ffi::OsStrExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 /// How long a `zellij` call may run (SUZ-4).
@@ -34,38 +36,72 @@ pub fn run(name: &str, args: &[&str], dir: &Path) -> Result<(String, String, i32
     let out = drain(child.stdout.take());
     let err = drain(child.stderr.take());
     let deadline = Instant::now() + LIMIT;
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break Some(status),
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(10)),
-            Ok(None) => break None,
-            Err(e) => {
-                let _ = child.kill();
-                return Err(format!(
-                    "{name}: cannot wait for {}: {e}",
-                    program.display()
-                ));
-            }
+    let pid = child.id();
+    let answered = loop {
+        match ended(pid) {
+            Some(true) => break true,
+            Some(false) => {}
+            // no `/proc`: reaped here, its group no longer safe to kill
+            None => match child.try_wait() {
+                Ok(Some(status)) => return Ok(output(status, out, err)),
+                Ok(None) => {}
+                Err(e) => {
+                    let _ = child.kill();
+                    return Err(format!(
+                        "{name}: cannot wait for {}: {e}",
+                        program.display()
+                    ));
+                }
+            },
         }
+        if Instant::now() >= deadline {
+            break false;
+        }
+        std::thread::sleep(Duration::from_millis(10));
     };
-    let Some(status) = status else {
-        let group = format!("-{}", child.id());
-        let _ = Command::new("kill")
-            .args(["-s", "KILL", "--", &group])
-            .stderr(Stdio::null())
-            .status();
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(format!(
+    // before the reap, while the exited child still holds the number of its group: a process the call left behind
+    // would hold its pipes open, and the reads below with them
+    kill_group(pid);
+    let status = child.wait();
+    match status {
+        Ok(status) if answered => Ok(output(status, out, err)),
+        Ok(_) => Err(format!(
             "{name}: no answer after {} s (zellij session renamed?)",
             LIMIT.as_secs()
-        ));
-    };
-    Ok((
+        )),
+        Err(e) => Err(format!(
+            "{name}: cannot wait for {}: {e}",
+            program.display()
+        )),
+    }
+}
+
+/// The stdout, stderr and exit code of a call that exited with `status`.
+fn output(
+    status: std::process::ExitStatus,
+    out: std::thread::JoinHandle<String>,
+    err: std::thread::JoinHandle<String>,
+) -> (String, String, i32) {
+    (
         out.join().unwrap_or_default(),
         err.join().unwrap_or_default(),
         status.code().unwrap_or(-1),
-    ))
+    )
+}
+
+/// Whether the child `pid` exited, not reaped yet (a zombie), read from `/proc`; `None` without it.
+fn ended(pid: u32) -> Option<bool> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    Some(stat.rsplit_once(')')?.1.trim_start().starts_with('Z'))
+}
+
+/// Sends `SIGKILL` to the process group `group`, the one of a call; a group already empty is no failure.
+fn kill_group(group: u32) {
+    let _ = Command::new("kill")
+        .args(["-s", "KILL", "--", &format!("-{group}")])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
 }
 
 /// Reads `pipe` to its end in a thread of its own, so a child that fills it never blocks.
@@ -83,8 +119,16 @@ fn drain(pipe: Option<impl Read + Send + 'static>) -> std::thread::JoinHandle<St
 /// while the UI runs is followed; `None` when it cannot be found: the call keeps the environment's (SUZ-3).
 fn current_name() -> Option<String> {
     static SOCKET: OnceLock<Option<PathBuf>> = OnceLock::new();
+    // the last name read, for a read that meets the file while zellij rewrites it
+    static LAST: Mutex<Option<String>> = Mutex::new(None);
     let socket = SOCKET.get_or_init(|| server_socket(std::os::unix::process::parent_id()));
-    recorded_name(socket.as_deref()?, &cache_dir()?)
+    let mut last = LAST
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some(name) = recorded_name(socket.as_deref()?, &cache_dir()?) {
+        *last = Some(name);
+    }
+    last.clone()
 }
 
 /// The directory of the caches: `$XDG_CACHE_HOME`, else `~/.cache`.
@@ -95,15 +139,19 @@ fn cache_dir() -> Option<PathBuf> {
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))
 }
 
-/// The socket of the nearest process among `pid` and its ancestors run with `--server <socket>`, read from `/proc`.
+/// The socket of the nearest process among `pid` and its ancestors run as `zellij --server <socket>`, read from
+/// `/proc`.
 fn server_socket(mut pid: u32) -> Option<PathBuf> {
     while pid > 1 {
         let cmdline = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
-        let mut args = cmdline.split(|b| *b == 0);
-        if args.any(|a| a == b"--server") {
-            if let Some(socket) = args.next().filter(|s| !s.is_empty()) {
-                return Some(PathBuf::from(String::from_utf8_lossy(socket).into_owned()));
-            }
+        let args: Vec<&[u8]> = cmdline.split(|b| *b == 0).collect();
+        let server = args.windows(3).find(|w| {
+            Path::new(OsStr::from_bytes(w[0])).file_name() == Some(OsStr::new("zellij"))
+                && w[1] == b"--server"
+                && !w[2].is_empty()
+        });
+        if let Some(w) = server {
+            return Some(PathBuf::from(OsStr::from_bytes(w[2])));
         }
         pid = parent(pid)?;
     }

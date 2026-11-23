@@ -52,7 +52,7 @@ blocked ones ([specs/next-issue.md](../specs/next-issue.md)); removing the key o
 place. A project seeded before adds the line about it to its `ROADMAP.md` by hand.
 
 `cardinal run next-issue --json` prints the same queue as one JSON object for a program (a steering UI): the issue
-offered, then each open issue in order with its priority, milestone, dependencies, state, hold and what takes it
+offered, then each open issue in order with its title, goal, priority, milestone, dependencies, state, hold and what takes it
 (a claim or a branch), under a `version` the program checks; the problems stay on stderr and in the exit code
 ([specs/next-issue.md](../specs/next-issue.md), NXT-19).
 

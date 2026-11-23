@@ -35,3 +35,48 @@ A steering UI to command
 
 # Hints
 * An issue of a linked worktree may have a newer `# Goal` on its branch than on the trunk: say which one is shown.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+Show the `# Goal` of the selected issue in a panel under the queue, unfolded and folded with `i`, folded at start.
+The goal reaches the UI through a new `goal` field of `next-issue --json` (NXT-19), so STU-3 stays as it is; the
+summary shows the issue file of the work tree `cardinal-ui` reads (the trunk's from the main worktree).
+
+## Plan
+1. [x] Goal in the JSON: `next-issue --json` gives each issue its `goal`; verified by a test of the binary in a new
+   `crates/cardinal/tests/next_issue_goal.rs` (`tests/next_issue.rs` is over the file size limit); makes true NXT-19. (autonomous)
+2. [ ] Summary panel: `i` folds and unfolds a panel under the queue with the title and the wrapped goal of the selected
+   issue; the new code in a module `crates/cardinal-ui/src/summary.rs` (`screen.rs` is over the file size limit, it
+   only gets the call), `source.rs` reads `title` and `goal`, `keys.rs` maps `i`; verified by Ratatui tests of the
+   drawn screen; makes true SUQ-6, SUQ-7, SUQ-H3.
+3. [ ] Help line: `i summary` after `tab panel` when the selection is on an issue of the queue; verified by the tests
+   of `help.rs`; makes true SUA-15, SUA-H7.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 499a13f6bb532654b7c5c8caff07ca96d85d7b2f
+- Source: the `goal` field of `next-issue --json`, the whole `# Goal` section; key `i`, folded at start, hidden while the selection is in the worktrees (all recommendations taken).
+
+## Summaries
+
+### 1. Goal in the JSON
+done: `next-issue --json` gives each issue its `goal` (NXT-19); the spec drafts of the issue committed with it.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (the three specs `draft` until their last requirement is traced) |
+| docs | `docs/usage.md` names the title and the goal |
+| code review | see below |
+
+red: NXT-19: `left: Null, right: String("First line second line.\nThird. ``` # not a heading ```")`
+
+Code review: 1 findings
+- A `# Goal` line inside a code block before the section was taken as its start: fixed, the code blocks are tracked
+  from the top of the body, and the test holds such a block.
+
+not verified: none. decisions needed: none.

@@ -124,7 +124,7 @@ fn each_issue_has_its_state_in_the_order_of_the_text() {
     assert_eq!(
         *issue(&doc, "a"),
         json!({
-            "stem": "a", "title": "Title a", "priority": "high", "why": "needs b", "milestone": null,
+            "stem": "a", "title": "Title a", "goal": null, "priority": "high", "why": "needs b", "milestone": null,
             "depends_on": ["b"], "state": "blocked", "blocked_by": ["b"], "hold": null, "taken": null,
             "stale": false
         })
@@ -231,6 +231,26 @@ fn a_missing_heading_and_an_unknown_milestone_are_null() {
     assert_eq!(code, Some(1));
     assert_eq!(issue(&doc, "a")["title"], Value::Null);
     assert_eq!(issue(&doc, "b")["milestone"], Value::Null);
+}
+
+// spec: NXT-19
+#[test]
+fn the_goal_joins_the_lines_of_each_paragraph() {
+    let r = repo(&[
+        (
+            "a",
+            "---\npriority: low\n---\n# A\n```\n# Goal\nfenced\n```\n# Goal\n  First line\nsecond line.\n\nThird.\n```\n# not a heading\n```\n# Findings\n* x\n",
+        ),
+        ("b", "---\npriority: low\n---\n# B\n"),
+        ("c", "---\npriority: low\n---\n# C\n# Goal\n\n# Findings\nx\n"),
+    ]);
+    let (doc, _, _) = document(r.path());
+    assert_eq!(
+        issue(&doc, "a")["goal"],
+        json!("First line second line.\nThird. ``` # not a heading ```")
+    );
+    assert_eq!(issue(&doc, "b")["goal"], Value::Null, "no section");
+    assert_eq!(issue(&doc, "c")["goal"], Value::Null, "an empty section");
 }
 
 // spec: NXT-18

@@ -1,6 +1,6 @@
 ---
 id: SUQ
-status: accepted
+status: draft
 adrs: [0030]
 ---
 
@@ -19,10 +19,12 @@ it depends on, in aligned columns, so the order of the work reads at a glance.
 - **SUQ-2** (deterministic) An issue must name, after its row, `also after <stem>, <stem>...` the open issues of its `depends_on` other than the one it is drawn under, in the order of its `depends_on`, so no open dependency is hidden.
 - **SUQ-4** (deterministic) An issue claimed by a session at work must show a mark that turns, and one claimed by a session that waits for the user a mark that stays still, between its tree and its stem, so the eye finds them at once: a claim (STU-1) other than `merge pending` whose session has not ended is waiting when the worktree of STU-7 at the path of the claim waits (STU-13), else at work; no issue has a mark while the worktrees cannot be read (STU-6). On the screen the mark at work is one frame of `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` in `accent`, the next one every 100 ms whether a read ended or not, and the waiting mark `‖` in `warn`; `cardinal-ui --print` writes `⠿` at work and `‖` waiting, so its output stays the same from one run to the next.
 - **SUQ-5** (deterministic) The heading of a section must read apart from the issue rows: `■ ` before its line of SUQ-1, an empty line above every heading but the first of the panel, and on the screen the whole heading in `accent` and bold, the words of SUS-5 it holds (`(on hold)`, `awaits release`) in their own role and bold; `--print` keeps the `■ ` and the empty lines, so its text tells a milestone from an issue without colors.
+- **SUQ-6** (deterministic) On the panels, with the selection in the queue (STU-14) on an issue, the key `i` must unfold the summary of the selected issue and, pressed again, fold it: a panel under the queue, above the worktrees, titled with the `title` of the issue (its stem when it has none) and holding its `goal` (NXT-19), `no goal` when it is `null`; the summary is folded when the screen starts, stays unfolded or folded across the reads and the moves of the selection, showing the issue selected, and is not drawn while the selection is in the worktrees, the queue holds no issue or shows the error of STU-6; `--print` shows it folded.
 
 ### Contract
 
 - **SUQ-3** (deterministic) An issue row of the queue must read `> ` for the issue `next-issue` offers, else two spaces, then the tree of SUQ-1 (per level above its own, `│  ` when that level has an issue after it, else three spaces; then `├─ ` when its own level has an issue after it, else `└─ `; nothing at the root), the mark of SUQ-4 and a space when it has one, its stem, its priority (`no priority` when it has none), its state, then what takes it, `tab` (STU-10) and the words of SUQ-2, separated by two spaces; the priority, the state and what follows it each start at one display column on every issue row of the panel, that of the longest cell before it plus two.
+- **SUQ-7** (deterministic) The summary of SUQ-6 must show its goal wrapped at the words to the inner width of its panel, a word wider than that cut across the rows, each paragraph from a row of its own, on the rows it needs plus its two borders, at most a third of the height of the screen (one row of text at least), its last row ending with `…` when the goal needs more, the queue keeping the other rows.
 
 ## Scenarios
 
@@ -35,6 +37,9 @@ it depends on, in aligned columns, so the order of the work reads at a glance.
   whose turn ended in another, when the user runs `cardinal-ui --print`, then the row of `a` reads `⠿ a` and that of
   `b` reads `‖ b`; on the screen, the mark of `a` changes from one tick to the next with no read between them, and
   that of `b` does not.
+- **SUQ-H3** (happy; SUQ-6, SUQ-7) Given the issue `a` titled `Do a` selected, whose `# Goal` reads two sentences,
+  when the user presses `i`, then a panel titled `Do a` under the queue reads the two sentences; when they press `↓`
+  to the issue `b`, it reads the title and the goal of `b`; when they press `i` again, the panel is gone.
 - (SUQ-1) Given an open issue whose only dependency is closed, then it is at the root of its section.
 - (SUQ-1) Given `x` of milestone `Two` that depends on the open `a` of `One`, then `x` is at the root of `Two` with
   `also after a`.
@@ -56,6 +61,14 @@ it depends on, in aligned columns, so the order of the work reads at a glance.
   start at one column.
 - (SUQ-5) Given the line of STU-6 of `roadmap` above the first heading, then no empty line comes between them.
 - (SUQ-5) Given a milestone `(on hold)` on the screen, then its name is in `accent` and bold, `(on hold)` in `warn` and bold.
+- (SUQ-6) Given the summary unfolded, when the user presses `Tab`, then no summary is drawn; when they press `Tab`
+  again, it shows the issue selected in the queue.
+- (SUQ-6) Given the summary unfolded, when a read of STU-2 ends, then it is still unfolded.
+- (SUQ-6) Given an issue with no `# Goal` section selected, when the summary is unfolded, then its panel reads `no goal`.
+- (SUQ-6) Given the charts of SUC-1 shown, when the user presses `i`, then nothing changes.
+- (SUQ-7) Given a screen 15 rows high and a goal that needs 10 rows at the width of its panel, then the panel shows
+  5 rows of text, the last ending with `…`.
+- (SUQ-7) Given a goal of two paragraphs that fit on one row each, then the panel shows them on two rows.
 
 ## Non-goals
 
@@ -66,3 +79,6 @@ it depends on, in aligned columns, so the order of the work reads at a glance.
   at work.
 - Folding a section or a subtree, drawing an issue under several parents, or showing the closed issues an open one
   depends on.
+- The goal of an issue as the branch of a linked worktree words it: the summary reads the issue file of the work tree
+  `cardinal-ui` reads (STU-5), the one of the trunk when it runs in the main worktree.
+- Showing other sections of the issue (findings, approach, the plan of its `# Tracking`) or rendering their Markdown.

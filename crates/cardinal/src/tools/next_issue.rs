@@ -30,6 +30,44 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
         })
 }
 
+/// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `#` outside a code
+/// block, the lines of each paragraph trimmed and joined by one space, the paragraphs by a newline; `None` when the
+/// section is missing or holds no text.
+fn goal(dir: &Path, stem: &str) -> Option<String> {
+    let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
+    let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
+    let (mut fenced, mut inside) = (false, false);
+    let mut paragraphs: Vec<Vec<&str>> = vec![Vec::new()];
+    for line in text[body..].lines() {
+        let line = line.trim();
+        if line.starts_with("```") {
+            fenced = !fenced;
+        } else if !fenced && line.starts_with('#') {
+            if inside {
+                break;
+            }
+            // a heading outside a code block opens the section or another one
+            inside = line == "# Goal";
+            continue;
+        }
+        if !inside {
+            continue;
+        }
+        match paragraphs.last_mut() {
+            Some(p) if !line.is_empty() => p.push(line),
+            Some(p) if !p.is_empty() => paragraphs.push(Vec::new()),
+            _ => {}
+        }
+    }
+    let goal = paragraphs
+        .iter()
+        .filter(|p| !p.is_empty())
+        .map(|p| p.join(" "))
+        .collect::<Vec<_>>()
+        .join("\n");
+    (!goal.is_empty()).then_some(goal)
+}
+
 fn title(dir: &Path, stem: &str) -> String {
     heading(dir, stem).unwrap_or_else(|| "(no file)".to_string())
 }
@@ -575,6 +613,7 @@ impl Queue {
                 serde_json::json!({
                     "stem": e.stem,
                     "title": heading(dir, &e.stem),
+                    "goal": goal(dir, &e.stem),
                     "priority": e.priority.and_then(|p| PRIORITIES.get(usize::from(p))),
                     "why": e.why,
                     "milestone": e.milestone,

@@ -34,6 +34,7 @@ mod spinner;
 mod start;
 mod status;
 mod summary;
+mod terminal;
 mod theme;
 mod tree;
 
@@ -87,7 +88,7 @@ fn interactive() -> i32 {
     };
     let (theme, ignored) = theme::load();
     let status = theme::status(&ignored);
-    match screen::run(read, run_task, || measurer.start(), (theme, status)) {
+    match terminal::run(read, run_task, || measurer.start(), (theme, status)) {
         Ok(None) => 0,
         // the result of a task the user quit during (SUA-6)
         Ok(Some(line)) => {

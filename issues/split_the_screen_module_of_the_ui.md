@@ -25,3 +25,43 @@ A steering UI to command
 
 # Resources
 * `crates/cardinal-ui/src/screen.rs`, `docs/architecture.md` (the module table of the steering UI).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+Bring `screen.rs` (902 lines now) under the limit of 800 by moving the terminal loop out of it, no change of behaviour.
+Out of scope: any change of the drawing or of the keys.
+Means: approach 1, a new module `terminal.rs` holding `REFRESH`, `TICK`, `Schedule`, `received`, `next`, `run` and their two tests.
+
+## Plan
+1. [x] Move the terminal loop to `terminal.rs`: `REFRESH`, `TICK`, `Schedule`, `received`, `next` and `run` with the
+   tests `a_read_every_two_seconds_on_r_and_one_at_a_time` and `n_says_why_it_moves_nothing_until_it_moves`, `main.rs`
+   calling `terminal::run`, the module table of `docs/architecture.md` split in two rows; verified by `cardinal run
+   project-check` (the moved tests pass unchanged) and `cardinal run file-size` no longer listing `screen.rs` (~630 lines
+   left); about 600 changed lines (a move counts twice). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 7ae96538bba39659e594ecd09e7113f519a7da81
+- Module name: `terminal.rs` (answer 1 a)
+
+## Deliverable 1 summary
+done: the terminal loop (`REFRESH`, `TICK`, `Schedule`, `received`, `next`, `run`) and its two tests moved from
+`screen.rs` (902 → 678 lines) to `terminal.rs` (241 lines); `main.rs` calls `terminal::run`; the module table of
+`docs/architecture.md` gets a `terminal.rs` row.
+
+| check | result |
+|---|---|
+| tests | pass (moved tests unchanged) |
+| lint | clippy -D warnings clean |
+| specs | check-specs pass |
+| docs | architecture module table, module docs of `screen.rs` |
+| file size | `screen.rs` no longer listed |
+| code review | low: no findings |
+
+red: none (a move, no new test)
+Code review: no findings
+not verified: the terminal loop run by hand in a real terminal (the move changes no code).
+decisions needed: none

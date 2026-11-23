@@ -1,4 +1,4 @@
-//! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2), once as text by
+//! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2, its loop in `terminal.rs`), once as text by
 //! `print.rs` (STU-4); in the terminal, an issue or a milestone of the queue is selected (STU-14), `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUM-1); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
 //! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4), `p` the review of the priorities (SUA-16), `c` the cut of the selected milestone (SUA-19); a worktree that starts to wait
@@ -7,30 +7,19 @@
 //! `i` unfolds the summary of the selected issue under the queue (SUQ-6); the help line under the panels offers the
 //! keys of the selection (SUA-15); `:` opens the command palette over the panels (SUP-1).
 
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
-
 use ratatui::buffer::Buffer;
-use ratatui::crossterm::event::{self, Event};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::charts::{head, render_charts, Chart};
-use crate::keys::{ended, job, quits, screen_key, task, Action, Ended, Screen, Selection, Task};
-use crate::notify::{self, Notifier, Wait};
+use crate::keys::{Screen, Selection};
+use crate::notify::Wait;
 use crate::palette::Palette;
 use crate::panels::{Mark, Panel};
-use crate::spinner;
-use crate::status::{Kind, Status};
+use crate::status::Status;
 use crate::theme::{Role, Theme};
-
-/// How often the screen reads the project again (STU-2).
-pub const REFRESH: Duration = Duration::from_secs(2);
-
-/// How long the loop waits for a key before it looks for a finished read.
-const TICK: Duration = Duration::from_millis(100);
 
 /// The help line under the table of the measures (SUC-6).
 const MEASURES_HELP: &str = "q quit  r refresh  m measure  g panels";
@@ -169,76 +158,12 @@ pub(crate) fn help_line(help: &str, area: Rect, buf: &mut Buffer, theme: &Theme)
     Line::raw(help).render(area, buf);
 }
 
-/// When to read the project: every `REFRESH` from the end of the last read and on `r`, one read at a time (STU-2).
-#[derive(Default)]
-struct Schedule {
-    /// When the last read ended; `None` before the first.
-    last: Option<Instant>,
-    running: bool,
-    asked: bool,
-}
-
-impl Schedule {
-    /// Whether a read starts at `now`; it is then running.
-    fn start(&mut self, now: Instant) -> bool {
-        let due = self.asked || self.last.is_none_or(|t| now.duration_since(t) >= REFRESH);
-        if self.running || !due {
-            return false;
-        }
-        self.running = true;
-        self.asked = false;
-        true
-    }
-
-    /// The read started ended at `now`.
-    fn ended(&mut self, now: Instant) {
-        self.running = false;
-        self.last = Some(now);
-    }
-}
-
 /// The first line of the queue shown in `rows` rows, so the line `selected` is visible (STU-14).
 fn offset(selected: usize, rows: u16) -> u16 {
     let first = selected
         .saturating_add(1)
         .saturating_sub(usize::from(rows.max(1)));
     u16::try_from(first).unwrap_or(u16::MAX)
-}
-
-/// Takes the read `reads` finished, if any, into `view`: the selection follows it (STU-14) and its new waits are
-/// notified (STU-29). Whether one was taken; an error when the thread of the reads died (a panic), as no read would
-/// ever come again.
-fn received(
-    reads: &mpsc::Receiver<View>,
-    view: &mut Option<View>,
-    selected: &mut Selection,
-    notifier: &mut Notifier,
-) -> std::io::Result<bool> {
-    match reads.try_recv() {
-        Ok(read) => {
-            match view.as_ref() {
-                Some(before) => selected.reread(before, &read),
-                None => selected.start(&read),
-            }
-            notifier.read(read.waits.as_deref());
-            *view = Some(read);
-            Ok(true)
-        }
-        Err(mpsc::TryRecvError::Empty) => Ok(false),
-        Err(mpsc::TryRecvError::Disconnected) => {
-            Err(std::io::Error::other("the reading of the project failed"))
-        }
-    }
-}
-
-/// Moves `selected` to the issue `next-issue` offers in `view`, or says on `status` why not; once it moves, the
-/// line drops that refusal (STU-36).
-fn next(view: Option<&View>, selected: &mut Selection, status: &mut Status) {
-    match view.map(|v| selected.select_next(v)) {
-        Some(Err(why)) => status.set(Status::new(why, Kind::Error)),
-        Some(Ok(())) => status.forget(crate::keys::NO_NEXT),
-        None => {}
-    }
 }
 
 /// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
@@ -294,123 +219,10 @@ pub(crate) fn draw(
     }
 }
 
-/// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
-/// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
-/// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
-/// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
-/// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
-/// is given back as it was, also on a panic (Ratatui's hook).
-pub fn run(
-    read: impl Fn() -> View + Send + 'static,
-    run_task: fn(Task, &str) -> Result<String, String>,
-    measure: impl Fn(),
-    (theme, status): (Theme, String),
-) -> std::io::Result<Option<String>> {
-    let (ask, asked) = mpsc::channel::<()>();
-    let (send, read_panels) = mpsc::channel();
-    std::thread::spawn(move || {
-        while asked.recv().is_ok() {
-            if send.send(read()).is_err() {
-                break;
-            }
-        }
-    });
-    let (done, task_result) = mpsc::channel::<Result<String, String>>();
-    let mut terminal = ratatui::try_init()?;
-    let result = (|| {
-        let mut view: Option<View> = None;
-        let mut schedule = Schedule::default();
-        let mut selected = Selection::default();
-        let mut status = Status::new(status, Kind::Error);
-        let mut notifier = Notifier::new(notify::program());
-        let mut busy = false;
-        let mut quitting = false;
-        let mut shown = Screen::Panels;
-        let mut unfolded = false;
-        let mut palette = None;
-        let started = Instant::now();
-        loop {
-            if schedule.start(Instant::now()) && ask.send(()).is_err() {
-                return Err(std::io::Error::other("the reading of the project failed"));
-            }
-            if received(&read_panels, &mut view, &mut selected, &mut notifier)? {
-                schedule.ended(Instant::now());
-            }
-            if let Some(line) = notifier.failure() {
-                // beside the line of a task, which it must not hide, nor the task that ends after it
-                status.keep(line);
-            }
-            if let Ok(result) = task_result.try_recv() {
-                match ended(result, quitting) {
-                    Ended::Quit(line) => return Ok(Some(line)),
-                    Ended::Show(line) => status.set(line),
-                }
-                busy = false;
-                schedule.asked = true;
-            }
-            if let Some(v) = view.as_mut() {
-                // the mark at work turns at each tick, a read or not (SUQ-4)
-                spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
-            }
-            let state = (selected, shown, busy, unfolded, palette.as_ref());
-            terminal.draw(|f| draw(f, view.as_ref(), state, &status, &theme))?;
-            if event::poll(TICK)? {
-                if let Event::Key(key) = event::read()? {
-                    let pressed = crate::palette::pressed(
-                        &mut palette,
-                        &key,
-                        view.as_ref(),
-                        (selected, busy),
-                    );
-                    let (screen, key) = screen_key(shown, pressed);
-                    shown = screen;
-                    let (now, later) = quits(&key, busy, quitting);
-                    if now {
-                        return Ok(None);
-                    }
-                    if later && !quitting {
-                        status.set(Status::new("quitting once the task ends…", Kind::Other));
-                    }
-                    quitting = later;
-                    match key {
-                        Action::Quit | Action::Charts => {}
-                        Action::Refresh => schedule.asked = true,
-                        Action::Palette if view.is_some() => palette = Some(Palette::default()),
-                        Action::Next => next(view.as_ref(), &mut selected, &mut status),
-                        Action::Summary => {
-                            unfolded = crate::summary::toggle(unfolded, selected, view.as_ref());
-                        }
-                        Action::Measure => {
-                            measure();
-                            schedule.asked = true;
-                        }
-                        k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
-                            Ok(Some((job, shown, stem))) if !busy => {
-                                busy = true;
-                                status.set(Status::new(shown, Kind::Other));
-                                let send = done.clone();
-                                std::thread::spawn(move || send.send(run_task(job, &stem)));
-                            }
-                            Err(why) if !busy => status.set(Status::new(why, Kind::Error)),
-                            _ => {}
-                        },
-                        a => {
-                            if let Some(v) = &view {
-                                selected.apply(&a, v);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })();
-    ratatui::restore();
-    result
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::status::Kind;
 
     /// A help line under the panels (SUA-15).
     const HELP: &str = ": commands  ↑↓ select  tab panel  q quit";
@@ -862,41 +674,5 @@ mod tests {
             screen.contains("row00") && !screen.contains("row29"),
             "its first rows: {screen}"
         );
-    }
-
-    // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)
-    #[test]
-    fn a_read_every_two_seconds_on_r_and_one_at_a_time() {
-        let t0 = Instant::now();
-        let mut s = Schedule::default();
-        assert!(s.start(t0), "the first read at once");
-        assert!(!s.start(t0 + REFRESH * 3), "never two reads at once");
-        s.asked = true;
-        assert!(!s.start(t0 + REFRESH * 3), "not even on r");
-        s.ended(t0 + REFRESH * 3);
-        assert!(s.start(t0 + REFRESH * 3), "the r asked during the read");
-        s.ended(t0 + REFRESH * 4);
-        assert!(!s.start(t0 + REFRESH * 4 + Duration::from_millis(1999)));
-        assert!(
-            s.start(t0 + REFRESH * 5),
-            "2 s after the end of the last read"
-        );
-        assert_eq!(REFRESH, Duration::from_secs(2));
-    }
-
-    // spec: STU-36 (internal: the status line of a screen that needs a real terminal)
-    #[test]
-    fn n_says_why_it_moves_nothing_until_it_moves() {
-        let mut v = view(&["a", "b"], &[]);
-        let mut sel = Selection::default();
-        let mut status = Status::default();
-        next(Some(&v), &mut sel, &mut status);
-        assert_eq!(
-            status,
-            Status::new("n: no issue is ready to start", Kind::Error)
-        );
-        v.next = Some("b".to_string());
-        next(Some(&v), &mut sel, &mut status);
-        assert_eq!((sel.row, status.is_empty()), (1, true));
     }
 }

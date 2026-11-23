@@ -107,3 +107,21 @@ fn in_zellij_an_empty_queue_offers_only_the_keys_that_always_work() {
         "{out}"
     );
 }
+
+// spec: STU-14, SUA-15
+#[test]
+fn print_starts_on_the_issue_next_issue_offers() {
+    let p = project();
+    // `a`, taken, comes first; `b` is the one `next-issue` offers
+    let queue = r#"{"version":1,"next":"b","issues":[
+{"stem":"a","title":"Title a","priority":"high","why":"","milestone":"One","depends_on":[],"state":"ready","blocked_by":[],"hold":null,"taken":{"by":"claim","state":"working","worktree":"WS","branch":"ws","session_alive":true},"stale":false},
+{"stem":"b","title":"Title b","priority":"low","why":"","milestone":"One","depends_on":[],"state":"ready","blocked_by":[],"hold":null,"taken":null,"stale":false}]}"#;
+    let cardinal = p.cardinal(&ok(queue), &ok(ROADMAP));
+    let zellij = p.zellij("[]", 0);
+    let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
+    assert_eq!(
+        help(&out),
+        ": commands  ↑↓ select  tab panel  q quit  i summary  s start",
+        "{out}"
+    );
+}

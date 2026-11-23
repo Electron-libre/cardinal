@@ -516,4 +516,15 @@ mod tests {
         let gone = commands(Some(&v), sel, false);
         assert_eq!(p.highlighted(&p.shown(&gone)), 0);
     }
+
+    // spec: SUP-1 (internal: the palette opens only in a screen that needs a real terminal)
+    #[test]
+    fn the_palette_lists_n_next_after_the_summary() {
+        let mut v = view(&["a", "b"], &[]);
+        v.next = Some("b".to_string());
+        assert_eq!(
+            labels(&commands(Some(&v), Selection::default(), false)),
+            ["i summary", "n next", "r refresh", "g charts", "q quit"]
+        );
+    }
 }

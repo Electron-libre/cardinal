@@ -29,6 +29,9 @@ const ON_A_MILESTONE: &str = "s and f act on an issue: select one";
 /// Why `c` acts on nothing with the selection on an issue or a worktree (SUA-19).
 const NOT_A_MILESTONE: &str = "c acts on a milestone: select its heading";
 
+/// Why `n` moves nothing when `next-issue` offers no issue (STU-36).
+pub(crate) const NO_NEXT: &str = "n: no issue is ready to start";
+
 /// The selected row of the queue and line of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
 /// screen starts on the first issue of the queue ([`Selection::start`]).
 #[derive(Debug, Clone, Copy, Default)]
@@ -71,13 +74,22 @@ impl Selection {
         }
     }
 
-    /// The row the screen starts on in the first read `v`: its first issue, else its first row (STU-14).
+    /// The row the screen starts on in the first read `v`: the issue `next-issue` offers, else its first issue, else
+    /// its first row (STU-14).
     pub(crate) fn start(&mut self, v: &View) {
         self.row = v
-            .rows
-            .iter()
-            .position(|r| matches!(r, Row::Issue(_)))
+            .next_row()
+            .or_else(|| v.rows.iter().position(|r| matches!(r, Row::Issue(_))))
             .unwrap_or(0);
+    }
+
+    /// Moves the selection to the issue `next-issue` offers in `v`, the focus to the queue; why not when it offers
+    /// none, nothing moved (STU-36).
+    pub(crate) fn select_next(&mut self, v: &View) -> Result<(), &'static str> {
+        let row = v.next_row().ok_or(NO_NEXT)?;
+        self.focus = Focus::Queue;
+        self.row = row;
+        Ok(())
     }
 }
 
@@ -89,6 +101,14 @@ impl View {
             _ => None,
         }
     }
+
+    /// The row of the queue of the issue `next-issue` offers, `None` when it offers none (STU-36).
+    pub(crate) fn next_row(&self) -> Option<usize> {
+        let next = self.next.as_deref()?;
+        self.rows
+            .iter()
+            .position(|r| matches!(r, Row::Issue(stem) if stem == next))
+    }
 }
 
 /// What a key does in the screen (STU-2).
@@ -99,6 +119,8 @@ pub enum Action {
     Up,
     Down,
     Switch,
+    /// `n`: selects the issue `next-issue` offers (STU-36).
+    Next,
     Start,
     Merge,
     End,
@@ -205,6 +227,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Up | KeyCode::Char('k') => Action::Up,
         KeyCode::Down | KeyCode::Char('j') => Action::Down,
         KeyCode::Tab => Action::Switch,
+        KeyCode::Char('n') => Action::Next,
         KeyCode::Char('s') => Action::Start,
         KeyCode::Char('f') => Action::Merge,
         KeyCode::Char('e') => Action::End,
@@ -448,6 +471,7 @@ pub(crate) mod tests {
             waits: Some(Vec::new()),
             charts: crate::charts::charts(None),
             keys: crate::help::Keys::default(),
+            next: None,
             summaries: stems
                 .iter()
                 .map(|s| {
@@ -662,5 +686,46 @@ pub(crate) mod tests {
         assert_eq!((sel.row, sel.worktree), (0, 2), "kept in the worktrees");
         sel.apply(&Action::Switch, &v);
         assert_eq!(sel.focus, Focus::Queue);
+    }
+
+    // spec: STU-36 (internal: the keys and the selection of a screen that needs a real terminal)
+    #[test]
+    fn n_selects_the_issue_next_issue_offers_in_the_queue() {
+        assert_eq!(action(&press(KeyCode::Char('n'))), Action::Next);
+        let mut v = view(&["a", "b", "c"], &[("/main", Some("trunk"))]);
+        v.next = Some("c".to_string());
+        let mut sel = Selection {
+            focus: Focus::Worktrees,
+            row: 0,
+            worktree: 0,
+        };
+        assert_eq!(sel.select_next(&v), Ok(()));
+        assert_eq!((sel.focus, sel.row), (Focus::Queue, 2));
+        let start = job(&Action::Start, sel, Some(&v)).unwrap().unwrap();
+        assert_eq!(start.2, "c", "s starts it next");
+        for next in [None, Some("gone".to_string())] {
+            v.next = next;
+            let mut sel = Selection {
+                focus: Focus::Worktrees,
+                row: 1,
+                worktree: 0,
+            };
+            assert_eq!(sel.select_next(&v), Err(NO_NEXT));
+            assert_eq!((sel.focus, sel.row), (Focus::Worktrees, 1), "nothing moves");
+        }
+        assert_eq!(NO_NEXT, "n: no issue is ready to start");
+    }
+
+    // spec: STU-14 (internal: the selection of a screen that needs a real terminal)
+    #[test]
+    fn the_screen_opens_on_the_issue_next_issue_offers() {
+        let mut v = queue(&["#One", "a", "b"], &[0, 1, 2]);
+        v.next = Some("b".to_string());
+        let mut sel = Selection::default();
+        sel.start(&v);
+        assert_eq!(sel.row, 2);
+        v.next = None;
+        sel.start(&v);
+        assert_eq!(sel.row, 1, "else the first issue row");
     }
 }

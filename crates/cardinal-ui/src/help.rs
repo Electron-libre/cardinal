@@ -1,4 +1,5 @@
-//! The help line under the panels (SUA-15): `: commands`, the moves and `q`, `i` on an issue of the queue, then the
+//! The help line under the panels (SUA-15): `: commands`, the moves and `q`, `i` on an issue of the queue, `n` when
+//! the issue `next-issue` offers is not selected, then the
 //! keys of the tasks that would act on what is selected in the read shown, so the user never reads a key that would
 //! only be refused; the keys that act whatever the selection are in the palette (SUP-1), which lists them all. The keys still
 //! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
@@ -12,8 +13,9 @@ use crate::source::{State, Taken};
 const ALWAYS: &str = ": commands  ↑↓ select  tab panel  q quit";
 
 /// The actions of the keys that act on what is selected, the only ones the help line lists besides `ALWAYS`.
-const OF_THE_SELECTION: [Action; 5] = [
+const OF_THE_SELECTION: [Action; 6] = [
     Action::Summary,
+    Action::Next,
     Action::Start,
     Action::Merge,
     Action::End,
@@ -91,13 +93,15 @@ fn cuttable(state: &State, row: &Row) -> bool {
 }
 
 /// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
-/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), then the keys of
+/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), `n next` when the
+/// issue `next-issue` offers is not selected (STU-36), then the keys of
 /// the tasks that would act, none while one runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
 pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str, Action)> {
     let at = |flags: &[bool], i: usize| flags.get(i).copied().unwrap_or(false);
     let keys = &v.keys;
     let queue = sel.focus == Focus::Queue;
     let summary = crate::summary::selected(v, sel).is_some();
+    let next = v.next_row().is_some_and(|row| !(queue && row == sel.row));
     let tasks = [
         (queue && at(&keys.start, sel.row), "s start", Action::Start),
         (queue && at(&keys.merge, sel.row), "f merge", Action::Merge),
@@ -115,15 +119,19 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
         (keys.release, "v release", Action::Release),
         (keys.prioritize, "p prioritize", Action::Prioritize),
     ];
-    std::iter::once((summary, "i summary", Action::Summary))
-        .chain(
-            tasks
-                .into_iter()
-                .map(|(on, label, a)| (on && !busy, label, a)),
-        )
-        .filter(|(on, _, _)| *on)
-        .map(|(_, label, a)| (label, a))
-        .collect()
+    [
+        (summary, "i summary", Action::Summary),
+        (next, "n next", Action::Next),
+    ]
+    .into_iter()
+    .chain(
+        tasks
+            .into_iter()
+            .map(|(on, label, a)| (on && !busy, label, a)),
+    )
+    .filter(|(on, _, _)| *on)
+    .map(|(_, label, a)| (label, a))
+    .collect()
 }
 
 /// The help line of the panels of `v` with `sel` selected, a task running when `busy` (SUA-15).
@@ -375,5 +383,28 @@ mod tests {
         );
         let k = Keys::of(&state(Vec::new()), &[], false);
         assert_eq!((k.release, k.prioritize), (false, false), "outside zellij");
+    }
+
+    // spec: SUA-15 (internal: the selection moves only in a screen that needs a real terminal)
+    #[test]
+    fn the_line_offers_n_next_until_its_issue_is_selected() {
+        let mut v = view(&["a", "b"], &[("/main", Some("trunk"))]);
+        v.next = Some("b".to_string());
+        let always = ": commands  ↑↓ select  tab panel  q quit";
+        assert_eq!(
+            line(&v, on(Focus::Queue, 0, 0), false),
+            format!("{always}  i summary  n next")
+        );
+        assert_eq!(
+            line(&v, on(Focus::Worktrees, 0, 0), true),
+            format!("{always}  n next"),
+            "a task running or not"
+        );
+        assert_eq!(
+            line(&v, on(Focus::Queue, 1, 0), false),
+            format!("{always}  i summary")
+        );
+        v.next = None;
+        assert_eq!(line(&v, on(Focus::Worktrees, 0, 0), false), always);
     }
 }

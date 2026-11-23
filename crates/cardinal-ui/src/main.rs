@@ -66,6 +66,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         charts: state.charts,
         keys,
         summaries,
+        next: state.queue.as_ref().ok().and_then(|q| q.next.clone()),
     }
 }
 

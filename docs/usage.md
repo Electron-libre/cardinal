@@ -350,7 +350,9 @@ both go on the status line of the screen (the first one, with `(+<k> more)`) and
 
 Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
 press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended; it also
-rests on the heading of a milestone `roadmap` lists, where `s` and `f` act on nothing). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
+rests on the heading of a milestone `roadmap` lists, where `s` and `f` act on nothing). The screen opens on the issue
+`next-issue` offers, and `n` selects it again from anywhere, the worktrees panel included (`n: no issue is ready to
+start` when it offers none). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
 `<main worktree>-<stem>` on a branch `<stem>`) and a zellij tab named after it, running
 `claude "/issue-workflow issues/<stem>.md"`; the session claims the issue at step 0 of `issue-workflow` and its
 validation stops stay in Claude Code. A ready issue whose claim names a session that ended (quit, crashed) is resumed
@@ -374,10 +376,10 @@ then `cardinal run project-check` in the worktree of the branch, and merges only
 the rebase aborted, and a failing project check keeps the rebase but merges nothing. The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `c`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start, a review start or a cut start runs, and `q` then quits once it
 ended, printing the result of a merge, an end, a release start or a review start. The next
-read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, and only
+read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, `n` while the issue `next-issue` offers is not selected, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
-pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
-issue of the queue. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
+pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the issue
+the screen opens on. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
 awaits its release in zellij, `p` while the queue lists an open issue in zellij, `r` and `g`) are listed in the palette.
 `:` opens over the panels the command palette: the commands of the help line, then `E`, `v` and `p` under the
 same conditions, then `r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`

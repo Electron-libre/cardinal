@@ -50,6 +50,8 @@ pub struct View {
     pub keys: crate::help::Keys,
     /// The summary of each row of the queue, none on a milestone (SUQ-6).
     pub summaries: Vec<Option<crate::summary::Summary>>,
+    /// The stem of the issue `next-issue` offers, `None` when it offers none or the queue could not be read (STU-36).
+    pub next: Option<String>,
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -229,6 +231,13 @@ fn received(
     }
 }
 
+/// Moves `selected` to the issue `next-issue` offers in `view`, or says on `status` why not (STU-36).
+fn next(view: Option<&View>, selected: &mut Selection, status: &mut Status) {
+    if let Some(Err(why)) = view.map(|v| selected.select_next(v)) {
+        status.set(Status::new(why, Kind::Error));
+    }
+}
+
 /// Draws the screen `shown` of `view` in the frame `f` (SUC-1): its charts, the table of its measures (SUC-6), or
 /// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1) over the help line of
 /// the selection, no key of a task while one runs (`busy`, SUA-15), or `reading the
@@ -364,6 +373,7 @@ pub fn run(
                         Action::Quit | Action::Charts => {}
                         Action::Refresh => schedule.asked = true,
                         Action::Palette if view.is_some() => palette = Some(Palette::default()),
+                        Action::Next => next(view.as_ref(), &mut selected, &mut status),
                         Action::Summary => {
                             unfolded = crate::summary::toggle(unfolded, selected, view.as_ref());
                         }

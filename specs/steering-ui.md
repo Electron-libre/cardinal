@@ -30,6 +30,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-29** (deterministic) `cardinal-ui`, run as a screen, must send one desktop notification when a read finds a worktree waiting (STU-13) with a mark (its session and its time) no read before had found, titled `<branch> waits` (the path of the worktree when it has no branch) and whose body is the reason of the mark, and none for the waits its first read finds.
 - **STU-23** (deterministic) The worktrees panel must show `merged` after the branch of a linked worktree when the trunk holds `issues/done/<branch>.md`.
 - **STU-31** (deterministic) withdrawn: moved to SUS-1.
+- **STU-36** (deterministic) The key `n` on the panels must move the selection of STU-14 to the row of the issue `next-issue` offers (the `next` of NXT-19), the focus moving to the queue when the worktrees have it (SUE-1), so `s` starts it next; when it offers none (`next` is `null`, or the queue could not be read), the selection and the focus stay as they are and the status line (SUS-2) says `n: no issue is ready to start`.
 - **STU-34** (deterministic) withdrawn: moved to SUS-2.
 - **STU-35** (deterministic) withdrawn: moved to SUS-3.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 then the panel `Measures` of STU-16 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
@@ -42,7 +43,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and `cardinal-ui` 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
 - **STU-11** (deterministic) withdrawn: moved to SUA-5.
-- **STU-14** (deterministic) The selection of SUA-1 must move over the issue rows of the queue and the headings of the milestones `roadmap --open` lists, in the order of their lines, never on another heading (a milestone `roadmap` does not list, `No milestone`) nor an empty or error line, start on the first issue row (else the first such heading), stay on the same issue or milestone when a read changes the order or the tree of the queue, move to the row of the rank it had when its issue or milestone left the queue, and stay visible however long the queue, so a key never acts on a row the user did not see selected; on a heading, `s` and `f` start nothing and say `s and f act on an issue: select one` on the status line.
+- **STU-14** (deterministic) The selection of SUA-1 must move over the issue rows of the queue and the headings of the milestones `roadmap --open` lists, in the order of their lines, never on another heading (a milestone `roadmap` does not list, `No milestone`) nor an empty or error line, start on the row of the issue `next-issue` offers (STU-36), else on the first issue row (else the first such heading), stay on the same issue or milestone when a read changes the order or the tree of the queue, move to the row of the rank it had when its issue or milestone left the queue, and stay visible however long the queue, so a key never acts on a row the user did not see selected; on a heading, `s` and `f` start nothing and say `s and f act on an issue: select one` on the status line.
 - **STU-15** (deterministic) withdrawn: moved to SUA-6.
 - **STU-21** (deterministic) withdrawn: moved to SUM-2.
 - **STU-24** (deterministic) withdrawn: moved to SUE-3.
@@ -102,6 +103,14 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-8) Given `cardinal-ui --print | head -1`, then it exits 0 or 1, never on a panic.
 - (STU-13) Given a session waiting since the day before, when the UI reads the project, then the worktree reads
   `waiting since <YYYY-MM-DD> <HH:MM>`.
+- (STU-14) Given the queue `a` then `b`, `a` taken and `b` offered by `next-issue`, when the screen opens, then `b` is
+  selected.
+- (STU-36) Given `a` selected and `c` the issue `next-issue` offers, when the user presses `n`, then `c` is selected
+  and `s` would start it.
+- (STU-36) Given the worktrees panel focused, when the user presses `n`, then the queue has the focus and the issue
+  `next-issue` offers is selected.
+- (STU-36) Given every open issue taken, when the user presses `n`, then the selection stays where it was and the
+  status line reads `n: no issue is ready to start`.
 - (STU-14) Given `foo` selected on the second line, when the next read puts `foo` first, then `foo` is still selected.
 - (STU-14) Given the last issue of the milestone `One` selected and the milestone `Two` listed after it, when the
   user moves down, then the heading `■ Two` is selected; given the section `No milestone` after it instead, then its

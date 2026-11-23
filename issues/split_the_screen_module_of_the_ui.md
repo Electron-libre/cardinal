@@ -41,6 +41,8 @@ Means: approach 1, a new module `terminal.rs` holding `REFRESH`, `TICK`, `Schedu
    calling `terminal::run`, the module table of `docs/architecture.md` split in two rows; verified by `cardinal run
    project-check` (the moved tests pass unchanged) and `cardinal run file-size` no longer listing `screen.rs` (~630 lines
    left); about 600 changed lines (a move counts twice). (autonomous)
+2. [x] Fixes of the `high` review: the key list moved from the module doc of `screen.rs` to that of `terminal.rs`,
+   `REFRESH` private; verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -64,4 +66,28 @@ done: the terminal loop (`REFRESH`, `TICK`, `Schedule`, `received`, `next`, `run
 red: none (a move, no new test)
 Code review: no findings
 not verified: the terminal loop run by hand in a real terminal (the move changes no code).
+decisions needed: none
+
+## High review
+4 findings on `base..HEAD`:
+- task panic leaves the loop `busy` forever (pre-existing, outside this move): becomes an issue.
+- `v.panels[0]` may panic: not fixed, `panels` is a `[Panel; 3]` array, index 0 always exists.
+- module doc of `screen.rs` still lists the keys: fixed in deliverable 2.
+- `REFRESH` needlessly `pub`: fixed in deliverable 2.
+
+## Deliverable 2 summary
+done: the module doc of `screen.rs` keeps the drawing, the keys are listed in that of `terminal.rs` (with `n`,
+STU-36); `REFRESH` private.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | clippy -D warnings clean |
+| specs | check-specs pass |
+| docs | module docs |
+| code review | low: no findings |
+
+red: none (docs and visibility only)
+Code review: no findings
+not verified: none
 decisions needed: none

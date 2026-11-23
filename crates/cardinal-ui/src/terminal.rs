@@ -1,5 +1,13 @@
 //! The terminal loop of `cardinal-ui` (STU-2): the reads of the project on a thread of their own, every `REFRESH` and
-//! on `r`, the keys of the screen drawn by `screen.rs`, and the tasks they start on threads of their own.
+//! on `r`, and the keys of the screen drawn by `screen.rs`: an issue or a milestone of the queue is selected
+//! (STU-14), `s` starts its session (SUA-1), `f` merges it into the trunk (SUM-1); `Tab` moves the selection to the
+//! worktrees, where `e` ends what a merged issue left (SUE-1); `E` ends it on every merged worktree (SUE-2); `v`
+//! starts the release session (SUA-4), `p` the review of the priorities (SUA-16), `c` the cut of the selected
+//! milestone (SUA-19), each task on a thread of its own; a worktree that starts to wait for the user notifies the
+//! desktop (STU-29); `g` switches to the charts of the measures, then to their table, where `m` takes the measures
+//! again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4); `i` unfolds the summary
+//! of the selected issue (SUQ-6); `n` selects the issue `next-issue` offers (STU-36); `:` opens the command palette
+//! (SUP-1).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -15,7 +23,7 @@ use crate::status::{Kind, Status};
 use crate::theme::Theme;
 
 /// How often the screen reads the project again (STU-2).
-pub const REFRESH: Duration = Duration::from_secs(2);
+const REFRESH: Duration = Duration::from_secs(2);
 
 /// How long the loop waits for a key before it looks for a finished read.
 const TICK: Duration = Duration::from_millis(100);

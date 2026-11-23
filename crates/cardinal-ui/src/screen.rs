@@ -1,11 +1,8 @@
-//! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2, its loop in `terminal.rs`), once as text by
-//! `print.rs` (STU-4); in the terminal, an issue or a milestone of the queue is selected (STU-14), `s` starts its session (SUA-1), `f` merges it into the
-//! trunk (SUM-1); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
-//! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4), `p` the review of the priorities (SUA-16), `c` the cut of the selected milestone (SUA-19); a worktree that starts to wait
-//! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
-//! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
-//! `i` unfolds the summary of the selected issue under the queue (SUQ-6); the help line under the panels offers the
-//! keys of the selection (SUA-15); `:` opens the command palette over the panels (SUP-1).
+//! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2), once as text by
+//! `print.rs` (STU-4): the queue with its selected issue or milestone highlighted (STU-14), the worktrees, the
+//! charts of the measures or their table (SUC-1, SUC-6), the summary of the selected issue under the queue (SUQ-6),
+//! the help line of the keys of the selection (SUA-15) and the command palette over the panels (SUP-1); the keys
+//! that drive it are read by `terminal.rs`.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};

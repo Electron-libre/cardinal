@@ -7,6 +7,7 @@ use std::ops::Range;
 
 use ratatui::text::Line;
 
+use crate::keys::Row;
 use crate::source::{Milestone, Milestones, Queue, State, Taken, Worktree};
 use crate::theme::Role;
 use crate::tree::{sections, Heading};
@@ -277,13 +278,13 @@ fn cells(
 
 /// The queue panel (STU-1, SUQ-1): the error lines of the sources that could not be read, then a section per
 /// milestone, its heading and its issues as a tree in aligned columns (SUQ-3), then the problems of the issue files;
-/// with the stem of each issue row and its line, in the order of the lines (STU-14); the claims marked by the
-/// worktrees `worktrees` (SUQ-4).
+/// with each row the selection rests on, an issue or the heading of a milestone `roadmap` lists, and its line, in the
+/// order of the lines (STU-14); the claims marked by the worktrees `worktrees` (SUQ-4).
 fn queue(
     milestones: &Result<Milestones, String>,
     queue: &Result<Queue, String>,
     worktrees: Option<&[Worktree]>,
-) -> (Panel, Vec<(String, usize)>) {
+) -> (Panel, Vec<(Row, usize)>) {
     let mut lines: Vec<Styled> = Vec::new();
     let mut errors = Vec::new();
     if let Err(e) = milestones {
@@ -320,7 +321,7 @@ fn queue(
         columns[k] = columns[k - 1] + widest + 2;
     }
     let mut rows = rows.into_iter();
-    let mut issues = Vec::new();
+    let mut selectable = Vec::new();
     for (k, s) in sections.iter().enumerate() {
         if k > 0 {
             lines.push(Styled::default());
@@ -329,14 +330,18 @@ fn queue(
         let mut heading = Styled::plain("■ ");
         heading.heading = true;
         heading.append(match &s.heading {
-            Heading::Listed(n) => milestone(&listed.unwrap_or_default()[*n]),
+            Heading::Listed(n) => {
+                let m = &listed.unwrap_or_default()[*n];
+                selectable.push((Row::Milestone(m.name.clone()), lines.len()));
+                milestone(m)
+            }
             Heading::Named(name) => Styled::plain(name.as_str()),
             Heading::None => Styled::plain("No milestone"),
         });
         lines.push(heading);
         for r in &s.rows {
             let Some(cells) = rows.next() else { break };
-            issues.push((q.issues[r.issue].stem.clone(), lines.len()));
+            selectable.push((Row::Issue(q.issues[r.issue].stem.clone()), lines.len()));
             let mut line = Styled::default();
             for (k, cell) in cells.into_iter().enumerate() {
                 if k > 0 && !cell.text.is_empty() {
@@ -355,7 +360,7 @@ fn queue(
             .iter()
             .map(|p| Styled::all(format!("! {p}"), Role::Fail)),
     );
-    (Panel::of("Queue", lines, !errors.is_empty()), issues)
+    (Panel::of("Queue", lines, !errors.is_empty()), selectable)
 }
 
 /// The local time `HH:MM` of `seconds` since the Unix epoch, its date before it when it is not today (STU-13).
@@ -429,10 +434,11 @@ fn measures(measure: &[String], running: bool, error: Option<&str>) -> Panel {
     Panel::of("Measures", lines, error.is_some())
 }
 
-/// The panels of `state`, in the order of the screen, with the stem of each issue row of the queue and its line.
-pub fn panels(state: &State) -> ([Panel; 3], Vec<(String, usize)>) {
+/// The panels of `state`, in the order of the screen, with each row of the queue the selection rests on and its line
+/// (STU-14).
+pub fn panels(state: &State) -> ([Panel; 3], Vec<(Row, usize)>) {
     let worktrees = state.worktrees.as_deref().ok();
-    let (queue, issues) = queue(&state.milestones, &state.queue, worktrees);
+    let (queue, rows) = queue(&state.milestones, &state.queue, worktrees);
     let panels = [
         queue,
         panel("Worktrees", &state.worktrees, |ws| {
@@ -444,7 +450,7 @@ pub fn panels(state: &State) -> ([Panel; 3], Vec<(String, usize)>) {
             state.measure_error.as_deref(),
         ),
     ];
-    (panels, issues)
+    (panels, rows)
 }
 
 #[cfg(test)]
@@ -689,7 +695,27 @@ mod tests {
             ]
         );
         assert_eq!(panel.headings, [0, 2], "never the empty line");
-        assert_eq!(issues.len(), 0);
+        let milestone = |name: &str| Row::Milestone(name.to_string());
+        assert_eq!(
+            issues,
+            [(milestone("New"), 0), (milestone("Old"), 2)],
+            "the selection rests on their headings"
+        );
+    }
+
+    // spec: STU-14 (internal: the rows of the queue, on its data rather than a repository)
+    #[test]
+    fn the_selection_rests_on_no_heading_of_a_milestone_roadmap_does_not_list() {
+        let mut a = issue("a", "ready", None);
+        a.milestone = Some("Ghost".to_string());
+        let q = Queue {
+            issues: vec![a, issue("b", "ready", None)],
+            ..Queue::default()
+        };
+        let (panel, rows) = queue(&Err("roadmap: exit 3".to_string()), &Ok(q), Some(&[]));
+        assert_eq!(panel.lines[1], "■ Ghost", "{:?}", panel.lines);
+        let stem = |s: &str| Row::Issue(s.to_string());
+        assert_eq!(rows, [(stem("a"), 2), (stem("b"), 5)], "{:?}", panel.lines);
     }
 
     // spec: SUS-1 (internal: the roles are drawn only in a terminal, never by `--print`)

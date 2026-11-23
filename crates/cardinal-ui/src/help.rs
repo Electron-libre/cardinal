@@ -4,7 +4,7 @@
 //! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
 //! never the guard.
 
-use crate::keys::{Action, Focus, Selection};
+use crate::keys::{Action, Focus, Row, Selection};
 use crate::screen::View;
 use crate::source::{State, Taken};
 
@@ -17,9 +17,9 @@ const OF_THE_SELECTION: [Action; 4] = [Action::Summary, Action::Start, Action::M
 /// The keys of the tasks that would act in a read (SUA-1, SUA-2, SUA-4, SUA-16, SUE-1, SUE-2).
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Keys {
-    /// For each issue of the queue, in the order of its stems: whether `s` would start it (SUA-1).
+    /// For each row of the queue: whether `s` would start its issue (SUA-1), never on a milestone.
     pub start: Vec<bool>,
-    /// For each issue of the queue, in the order of its stems: whether `f` would merge it (SUA-2).
+    /// For each row of the queue: whether `f` would merge its issue (SUA-2), never on a milestone.
     pub merge: Vec<bool>,
     /// For each worktree, in the order of its panel: whether its row reads `merged`, so `e` would end it (SUE-1).
     pub merged: Vec<bool>,
@@ -30,10 +30,13 @@ pub struct Keys {
 }
 
 impl Keys {
-    /// The keys of `state` for the issues `stems` of its queue, in a zellij session when `zellij` (SUA-15).
-    pub fn of(state: &State, stems: &[String], zellij: bool) -> Self {
+    /// The keys of `state` for the rows `rows` of its queue, in a zellij session when `zellij` (SUA-15).
+    pub fn of(state: &State, rows: &[Row], zellij: bool) -> Self {
         let issues = state.queue.as_ref().map_or(&[][..], |q| &q.issues[..]);
-        let issue = |stem: &String| issues.iter().find(|i| &i.stem == stem);
+        let issue = |row: &Row| match row {
+            Row::Issue(stem) => issues.iter().find(|i| &i.stem == stem),
+            Row::Milestone(_) => None,
+        };
         let start = |stem| {
             issue(stem).is_some_and(|i| {
                 let free = match &i.taken {
@@ -50,8 +53,8 @@ impl Keys {
             })
         };
         Self {
-            start: stems.iter().map(start).collect(),
-            merge: stems.iter().map(merge).collect(),
+            start: rows.iter().map(start).collect(),
+            merge: rows.iter().map(merge).collect(),
             merged: state
                 .worktrees
                 .as_ref()
@@ -75,16 +78,8 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
     let queue = sel.focus == Focus::Queue;
     let summary = crate::summary::selected(v, sel).is_some();
     let tasks = [
-        (
-            queue && at(&keys.start, sel.issue),
-            "s start",
-            Action::Start,
-        ),
-        (
-            queue && at(&keys.merge, sel.issue),
-            "f merge",
-            Action::Merge,
-        ),
+        (queue && at(&keys.start, sel.row), "s start", Action::Start),
+        (queue && at(&keys.merge, sel.row), "f merge", Action::Merge),
         (
             !queue && at(&keys.merged, sel.worktree),
             "e end",
@@ -127,10 +122,10 @@ mod tests {
     use super::*;
     use crate::keys::tests::view;
 
-    fn on(focus: Focus, issue: usize, worktree: usize) -> Selection {
+    fn on(focus: Focus, row: usize, worktree: usize) -> Selection {
         Selection {
             focus,
-            issue,
+            row,
             worktree,
         }
     }
@@ -272,13 +267,16 @@ mod tests {
             taken: None,
             tab: false,
         };
-        let stems = ["a".to_string()];
-        let k = Keys::of(&state(vec![issue]), &stems, true);
+        let rows = [
+            Row::Milestone("One".to_string()),
+            Row::Issue("a".to_string()),
+        ];
+        let k = Keys::of(&state(vec![issue]), &rows, true);
         assert_eq!(
             (k.release, k.prioritize, k.merged),
             (true, true, vec![false, true])
         );
-        assert_eq!(k.start, [true]);
+        assert_eq!(k.start, [false, true], "never on a milestone");
         let k = Keys::of(&state(Vec::new()), &[], true);
         assert_eq!(
             (k.release, k.prioritize),

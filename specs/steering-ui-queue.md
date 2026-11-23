@@ -1,6 +1,6 @@
 ---
 id: SUQ
-status: accepted
+status: draft
 adrs: [0030]
 ---
 
@@ -19,7 +19,7 @@ it depends on, in aligned columns, so the order of the work reads at a glance.
 - **SUQ-2** (deterministic) An issue must name, after its row, `also after <stem>, <stem>...` the open issues of its `depends_on` other than the one it is drawn under, in the order of its `depends_on`, so no open dependency is hidden.
 - **SUQ-4** (deterministic) An issue claimed by a session at work must show a mark that turns, and one claimed by a session that waits for the user a mark that stays still, between its tree and its stem, so the eye finds them at once: a claim (STU-1) other than `merge pending` whose session has not ended is waiting when the worktree of STU-7 at the path of the claim waits (STU-13), else at work; no issue has a mark while the worktrees cannot be read (STU-6). On the screen the mark at work is one frame of `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` in `accent`, the next one every 100 ms whether a read ended or not, and the waiting mark `‖` in `warn`; `cardinal-ui --print` writes `⠿` at work and `‖` waiting, so its output stays the same from one run to the next.
 - **SUQ-5** (deterministic) The heading of a section must read apart from the issue rows: `■ ` before its line of SUQ-1, an empty line above every heading but the first of the panel, and on the screen the whole heading in `accent` and bold, the words of SUS-5 it holds (`(on hold)`, `awaits release`) in their own role and bold; `--print` keeps the `■ ` and the empty lines, so its text tells a milestone from an issue without colors.
-- **SUQ-6** (deterministic) On the panels, with the selection in the queue (STU-14) on an issue, the key `i` must unfold the summary of the selected issue and, pressed again, fold it: a panel under the queue, above the worktrees, titled with the `title` of the issue (its stem when it has none) and holding its `goal` (NXT-19), `no goal` when it is `null`; the summary is folded when the screen starts, stays unfolded or folded across the reads and the moves of the selection, showing the issue selected, and is not drawn while the selection is in the worktrees, the queue holds no issue (an empty queue, or a `next-issue` that cannot be read, STU-6); `--print` shows it folded.
+- **SUQ-6** (deterministic) On the panels, with the selection in the queue (STU-14) on an issue, the key `i` must unfold the summary of the selected issue and, pressed again, fold it: a panel under the queue, above the worktrees, titled with the `title` of the issue (its stem when it has none) and holding its `goal` (NXT-19), `no goal` when it is `null`; the summary is folded when the screen starts, stays unfolded or folded across the reads and the moves of the selection, showing the issue selected, and is not drawn while the selection is in the worktrees or on a milestone (STU-14), the queue holds no issue (an empty queue, or a `next-issue` that cannot be read, STU-6); `--print` shows it folded.
 
 ### Contract
 

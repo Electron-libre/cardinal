@@ -282,7 +282,7 @@ It reads the project again every 2 seconds and on `r`, on a thread of its own so
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `i` unfolds, between the queue and the worktrees, a panel titled
 with the title of the selected issue that holds its goal (the `# Goal` section of the issue file of this work tree,
 its code blocks left out, a row per paragraph and list item, wrapped, at most a third of the screen) and folds it again; folded when the screen starts, it follows the selection
-and waits while the selection is in the worktrees. `cardinal-ui --print`
+and waits while the selection is in the worktrees or on a milestone. `cardinal-ui --print`
 prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
@@ -345,7 +345,8 @@ read, or a missing one `CARDINAL_UI_THEME` names, is named `theme: <path>: <erro
 both go on the status line of the screen (the first one, with `(+<k> more)`) and on the stderr of `--print`, which prints no color and whose exit code it leaves as it is.
 
 Run in a zellij session, it starts the work of an issue (ADR 0031): select it in the queue (arrows, `j`, `k`) and
-press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
+press `s` (the selection follows its issue across the reads, and `q` during a start quits once it ended; it also
+rests on the heading of a milestone `roadmap` lists, where `s` and `f` act on nothing). A ready issue nothing takes gets its worktree (`cardinal run worktree open <stem>`, at
 `<main worktree>-<stem>` on a branch `<stem>`) and a zellij tab named after it, running
 `claude "/issue-workflow issues/<stem>.md"`; the session claims the issue at step 0 of `issue-workflow` and its
 validation stops stay in Claude Code. A ready issue whose claim names a session that ended (quit, crashed) is resumed

@@ -15,12 +15,23 @@ pub(crate) enum Focus {
     Worktrees,
 }
 
-/// The selected line of the queue and of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
-/// screen starts on the first issue of the queue.
+/// A row of the queue the selection rests on (STU-14): an issue by its stem, or the heading of a milestone that
+/// `roadmap` lists by its name.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Row {
+    Issue(String),
+    Milestone(String),
+}
+
+/// Why `s` and `f` act on nothing with the selection on a milestone (STU-14).
+const ON_A_MILESTONE: &str = "s and f act on an issue: select one";
+
+/// The selected row of the queue and line of the worktrees, and the panel the keys move it in (SUA-1, SUE-1); the
+/// screen starts on the first issue of the queue ([`Selection::start`]).
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Selection {
     pub(crate) focus: Focus,
-    pub(crate) issue: usize,
+    pub(crate) row: usize,
     pub(crate) worktree: usize,
 }
 
@@ -30,7 +41,7 @@ impl Selection {
         match (action, self.focus) {
             (Action::Switch, Focus::Queue) => self.focus = Focus::Worktrees,
             (Action::Switch, Focus::Worktrees) => self.focus = Focus::Queue,
-            (_, Focus::Queue) => self.issue = select(self.issue, v.stems.len(), action),
+            (_, Focus::Queue) => self.row = select(self.row, v.rows.len(), action),
             (_, Focus::Worktrees) => {
                 self.worktree = select(self.worktree, v.worktrees.len(), action);
             }
@@ -40,7 +51,7 @@ impl Selection {
     /// Keeps the selection on the same issue and the same worktree path from the read `before` to the read `after`
     /// (STU-14, SUE-1).
     pub(crate) fn reread(&mut self, before: &View, after: &View) {
-        self.issue = reselect(&before.stems, self.issue, &after.stems);
+        self.row = reselect(&before.rows, self.row, &after.rows);
         let paths = |v: &View| v.worktrees.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
         self.worktree = reselect(&paths(before), self.worktree, &paths(after));
     }
@@ -48,8 +59,27 @@ impl Selection {
     /// The panel and the line to highlight in `v`: none in an empty or failed panel.
     pub(crate) fn line(&self, v: &View) -> Option<(usize, usize)> {
         match self.focus {
-            Focus::Queue => v.stem_lines.get(self.issue).map(|line| (0, *line)),
+            Focus::Queue => v.row_lines.get(self.row).map(|line| (0, *line)),
             Focus::Worktrees => (!v.worktrees.is_empty()).then_some((1, self.worktree)),
+        }
+    }
+
+    /// The row the screen starts on in the first read `v`: its first issue, else its first row (STU-14).
+    pub(crate) fn start(&mut self, v: &View) {
+        self.row = v
+            .rows
+            .iter()
+            .position(|r| matches!(r, Row::Issue(_)))
+            .unwrap_or(0);
+    }
+}
+
+impl View {
+    /// The stem of the issue on the row `row` of the queue, `None` on a milestone or past its end.
+    pub(crate) fn stem(&self, row: usize) -> Option<&str> {
+        match self.rows.get(row) {
+            Some(Row::Issue(stem)) => Some(stem),
+            _ => None,
         }
     }
 }
@@ -125,7 +155,10 @@ pub(crate) fn job(
     }
     let Some(v) = v else { return Ok(None) };
     let stem = match (action, sel.focus) {
-        (Action::Start | Action::Merge, Focus::Queue) => v.stems.get(sel.issue).cloned(),
+        (Action::Start | Action::Merge, Focus::Queue) => match v.rows.get(sel.row) {
+            Some(Row::Milestone(_)) => return Err(ON_A_MILESTONE.to_string()),
+            _ => v.stem(sel.row).map(str::to_string),
+        },
         (Action::Start | Action::Merge, Focus::Worktrees) => {
             return Err("s and f act on the queue: Tab to it".to_string())
         }
@@ -196,13 +229,13 @@ pub(crate) fn screen_key(shown: Screen, action: Action) -> (Screen, Action) {
     }
 }
 
-/// The selection in the queue `stems` of a new read, given the one `selected` in the queue `before`: the line of the
-/// same issue, else the same line kept in the queue (STU-14).
-pub(crate) fn reselect(before: &[String], selected: usize, stems: &[String]) -> usize {
+/// The selection in the rows `after` of a new read, given the one `selected` in the rows `before`: the row of the
+/// same issue or milestone, else the same rank kept in the queue (STU-14, SUE-1).
+pub(crate) fn reselect<T: PartialEq>(before: &[T], selected: usize, after: &[T]) -> usize {
     before
         .get(selected)
-        .and_then(|stem| stems.iter().position(|s| s == stem))
-        .unwrap_or_else(|| select(selected, stems.len(), &Action::Nothing))
+        .and_then(|row| after.iter().position(|r| r == row))
+        .unwrap_or_else(|| select(selected, after.len(), &Action::Nothing))
 }
 
 /// Whether the screen quits now on `action`, and whether it quits once the task running (`busy`) ends (SUA-6).
@@ -316,7 +349,7 @@ pub(crate) mod tests {
         ] {
             let sel = Selection {
                 focus,
-                issue: 0,
+                row: 0,
                 worktree: 0,
             };
             assert_eq!(
@@ -346,7 +379,7 @@ pub(crate) mod tests {
         ] {
             let sel = Selection {
                 focus,
-                issue: 0,
+                row: 0,
                 worktree: 0,
             };
             assert_eq!(
@@ -388,8 +421,8 @@ pub(crate) mod tests {
         };
         View {
             panels: [panel("Queue"), panel("Worktrees"), panel("Measures")],
-            stems: stems.iter().map(|s| (*s).to_string()).collect(),
-            stem_lines: (0..stems.len()).collect(),
+            rows: stems.iter().map(|s| Row::Issue((*s).to_string())).collect(),
+            row_lines: (0..stems.len()).collect(),
             worktrees: worktrees
                 .iter()
                 .map(|(p, b)| ((*p).to_string(), b.map(str::to_string)))
@@ -399,9 +432,11 @@ pub(crate) mod tests {
             keys: crate::help::Keys::default(),
             summaries: stems
                 .iter()
-                .map(|s| crate::summary::Summary {
-                    title: (*s).to_string(),
-                    goal: None,
+                .map(|s| {
+                    Some(crate::summary::Summary {
+                        title: (*s).to_string(),
+                        goal: None,
+                    })
                 })
                 .collect(),
         }
@@ -477,7 +512,7 @@ pub(crate) mod tests {
         )));
         let sel = Selection {
             focus: Focus::Queue,
-            issue: 0,
+            row: 0,
             worktree: 0,
         };
         assert_eq!(job(&Action::EndMerged, sel, None), ending);
@@ -485,31 +520,59 @@ pub(crate) mod tests {
         assert_eq!(job(&Action::EndMerged, sel, Some(&v)), ending);
     }
 
+    /// A view of the queue `rows`, a milestone written `#name`, drawn on the lines `lines`.
+    fn queue(rows: &[&str], lines: &[usize]) -> View {
+        let mut v = view(&[], &[]);
+        v.rows = rows
+            .iter()
+            .map(|r| match r.strip_prefix('#') {
+                Some(name) => Row::Milestone(name.to_string()),
+                None => Row::Issue((*r).to_string()),
+            })
+            .collect();
+        v.row_lines = lines.to_vec();
+        v
+    }
+
     // spec: STU-14 (internal: the keys and the selection of a screen that needs a real terminal)
     #[test]
-    fn the_selection_moves_over_the_issue_rows_only() {
+    fn the_selection_moves_over_the_issues_and_the_milestones() {
         // `One` on line 0 heads `a` and `b`, `Two` on line 4 heads `c`, under an empty line (SUQ-5)
-        let mut v = view(&["a", "b", "c"], &[]);
-        v.stem_lines = vec![1, 2, 5];
-        let mut sel = Selection {
-            focus: Focus::Queue,
-            issue: 1,
-            worktree: 0,
-        };
+        let v = queue(&["#One", "a", "b", "#Two", "c"], &[0, 1, 2, 4, 5]);
+        let mut sel = Selection::default();
+        sel.start(&v);
+        assert_eq!(sel.line(&v), Some((0, 1)), "starts on the first issue");
         sel.apply(&Action::Down, &v);
+        sel.apply(&Action::Down, &v);
+        assert_eq!(sel.line(&v), Some((0, 4)), "rests on the heading of Two");
         assert_eq!(
-            (sel.issue, sel.line(&v)),
-            (2, Some((0, 5))),
-            "the heading skipped"
+            job(&Action::Start, sel, Some(&v)),
+            Err("s and f act on an issue: select one".to_string())
         );
-        sel.apply(&Action::Down, &v);
-        assert_eq!(sel.line(&v), Some((0, 5)), "kept on the last issue");
-        // `b` drawn under `a` moves to the root of its section once `a` is closed
-        let mut after = view(&["c", "b"], &[]);
-        after.stem_lines = vec![1, 4];
-        sel.issue = 1;
+        assert_eq!(
+            job(&Action::Merge, sel, Some(&v)),
+            Err("s and f act on an issue: select one".to_string())
+        );
+        // another milestone read before `Two`: `Two` stays selected
+        let after = queue(
+            &["#Zero", "#One", "a", "b", "#Two", "c"],
+            &[0, 2, 3, 4, 6, 7],
+        );
         sel.reread(&v, &after);
-        assert_eq!((sel.issue, sel.line(&after)), (1, Some((0, 4))));
+        assert_eq!(sel.line(&after), Some((0, 6)));
+        sel.apply(&Action::Down, &after);
+        sel.apply(&Action::Down, &after);
+        assert_eq!(sel.line(&after), Some((0, 7)), "kept on the last row");
+        // `b` drawn under `a` moves to the root of its section once `a` is closed
+        let before = queue(&["#One", "a", "b"], &[0, 1, 2]);
+        let closed = queue(&["#One", "c", "b"], &[0, 1, 4]);
+        sel.row = 2;
+        sel.reread(&before, &closed);
+        assert_eq!(sel.line(&closed), Some((0, 4)));
+        // a queue of milestones only starts on its first heading
+        let empty = queue(&["#Two"], &[0]);
+        sel.start(&empty);
+        assert_eq!(sel.line(&empty), Some((0, 0)));
     }
 
     // spec: SUE-1 (internal: the keys and the selection of a screen that needs a real terminal)
@@ -523,7 +586,7 @@ pub(crate) mod tests {
         );
         let on = |focus, worktree| Selection {
             focus,
-            issue: 0,
+            row: 0,
             worktree,
         };
         assert_eq!(
@@ -557,7 +620,7 @@ pub(crate) mod tests {
         sel.apply(&Action::Down, &v);
         sel.apply(&Action::Down, &v);
         sel.apply(&Action::Down, &v);
-        assert_eq!((sel.issue, sel.worktree), (0, 2), "kept in the worktrees");
+        assert_eq!((sel.row, sel.worktree), (0, 2), "kept in the worktrees");
         sel.apply(&Action::Switch, &v);
         assert_eq!(sel.focus, Focus::Queue);
     }

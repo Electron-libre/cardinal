@@ -1,5 +1,5 @@
 //! The screen of `cardinal-ui` (STU-1): the panels drawn with Ratatui in a terminal (STU-2), once as text by
-//! `print.rs` (STU-4); in the terminal, an issue of the queue is selected, `s` starts its session (SUA-1), `f` merges it into the
+//! `print.rs` (STU-4); in the terminal, an issue or a milestone of the queue is selected (STU-14), `s` starts its session (SUA-1), `f` merges it into the
 //! trunk (SUA-2); `Tab` moves the selection to the worktrees, where `e` ends what a merged issue left (SUE-1); `E`
 //! ends it on every merged worktree (SUE-2); `v` starts the release session (SUA-4), `p` the review of the priorities (SUA-16); a worktree that starts to wait
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
@@ -35,21 +35,21 @@ const TICK: Duration = Duration::from_millis(100);
 /// The help line under the table of the measures (SUC-6).
 const MEASURES_HELP: &str = "q quit  r refresh  m measure  g panels";
 
-/// What a read gives: the panels, the stems of the issues of the queue and the path and branch of the worktrees, in
-/// the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
+/// What a read gives: the panels, the rows of the queue the selection rests on and the path and branch of the
+/// worktrees, in the order of the lines of their panels, and the waits of the worktrees, `None` when they could not be read.
 pub struct View {
     pub panels: [Panel; 3],
-    pub stems: Vec<String>,
-    /// The line of the queue panel of each stem, the headings between them (SUQ-1).
-    pub stem_lines: Vec<usize>,
+    pub rows: Vec<crate::keys::Row>,
+    /// The line of the queue panel of each row, the other headings and the empty lines between them (STU-14).
+    pub row_lines: Vec<usize>,
     pub worktrees: Vec<(String, Option<String>)>,
     pub waits: Option<Vec<Wait>>,
     /// The charts of the last measure (SUC-2).
     pub charts: [Chart; 4],
     /// The keys of the tasks that would act on each issue and worktree, for the help line (SUA-15).
     pub keys: crate::help::Keys,
-    /// The summary of each issue of the queue, in the order of its stems (SUQ-6).
-    pub summaries: Vec<crate::summary::Summary>,
+    /// The summary of each row of the queue, none on a milestone (SUQ-6).
+    pub summaries: Vec<Option<crate::summary::Summary>>,
 }
 
 /// The rows a panel takes: its lines and its two borders.
@@ -210,8 +210,9 @@ fn received(
 ) -> std::io::Result<bool> {
     match reads.try_recv() {
         Ok(read) => {
-            if let Some(before) = view.as_ref() {
-                selected.reread(before, &read);
+            match view.as_ref() {
+                Some(before) => selected.reread(before, &read),
+                None => selected.start(&read),
             }
             notifier.read(read.waits.as_deref());
             *view = Some(read);
@@ -708,7 +709,7 @@ mod tests {
         );
         let mut sel = Selection {
             focus: Focus::Worktrees,
-            issue: 0,
+            row: 0,
             worktree: 1,
         };
         sel.reread(&before, &after);
@@ -788,7 +789,7 @@ mod tests {
         }
         let selected = Selection {
             focus: Focus::Queue,
-            issue: 0,
+            row: 0,
             worktree: 0,
         };
         let mut terminal =

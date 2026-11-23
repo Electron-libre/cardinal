@@ -37,3 +37,45 @@ A steering UI to command
 
 # Hints
 * An `idea` milestone needs its goal agreed by the user: the session asks, the UI does not decide.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+The selection of the queue also rests on the heading of a milestone `roadmap --open` lists; on a `shaped` or `idea`
+one, `c` (and `cardinal-ui --cut <milestone>`) opens a zellij tab named after it in the main worktree running
+`claude "/create-issue cut the milestone <name> into issues"`. Out of scope: writing the issues or agreeing an `idea`
+goal in the UI (the session does it).
+
+## Plan
+1. [x] Selection on the milestone headings: the read keeps the selectable rows of the queue (issues and headings of
+   the listed milestones) with their lines, the selection moves over them and follows its issue or milestone across
+   reads, `s` and `f` on a heading say `s and f act on an issue: select one`, the summary and `i` act on an issue
+   only; new code in `keys.rs` and `panels.rs`, `screen.rs` (over the file size limit) only takes the new field of
+   `View`; verified by the unit tests of the selection, the help line and the summary, `--print` unchanged; makes
+   true STU-14, SUQ-6 (~350 lines). (autonomous)
+2. [ ] The cut command: module `cut.rs` (the checks of SUA-20, the tab of SUA-21 through `skill_tab`), the flag
+   `--cut <milestone>` in `main.rs`, the key `c` as a task, `c cut` on the help line and in the palette; verified by
+   the binary tests `tests/cut.rs` (fake `zellij` and `cardinal`, as `tests/prioritize.rs`) and the unit tests of the
+   keys, the help line and the palette; makes true SUA-19, SUA-20, SUA-21, SUA-15, SUA-6, SUP-1, STU-3 (~500 lines).
+
+## Decisions
+- Mode: autonomous
+- Answers: 1 a (the selection rests on the milestone headings), 2 a (only the milestones `roadmap --open` lists)
+- Means: the selection rests on the milestone headings (approach 1 of the issue), so a milestone with no open issue
+  yet, the usual `shaped` one, can be cut; the palette lists `c cut` as it lists the other keys of the selection.
+- Refusals: also those of a dirty, detached or locked main worktree and a skill `create-issue` turned off, as
+  SUA-11 and SUA-17 refuse them.
+- Base commit: ff47356d3b59fb3558fba9890eb9b7c43fecbcf0
+
+## Deliverable 1: selection on the milestone headings
+
+- done: the read keeps the rows of the queue (`keys::Row`: an issue, or the heading of a milestone `roadmap` lists)
+  with their lines; the selection moves over them, follows its row across the reads and starts on the first issue;
+  `s` and `f` on a heading say `s and f act on an issue: select one`; no summary nor `i summary` on a heading.
+- checks: tests pass, lint pass, specs pass, docs `docs/usage.md` and the doc of `screen.rs`, code review low pass.
+- red: STU-14: `an_empty_queue_says_so_under_its_milestones` left `[]`, right `[(Milestone("New"), 0), (Milestone("Old"), 2)]` (the push of the heading rows taken out).
+- Code review: no findings
+- not verified: the screen in a real terminal (the tests draw it on a test backend).
+- `screen.rs` (over the file size limit) grows by one line, the first read starting the selection: not split for it.

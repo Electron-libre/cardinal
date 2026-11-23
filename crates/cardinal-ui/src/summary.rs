@@ -6,7 +6,7 @@ use std::borrow::Cow;
 
 use ratatui::layout::Rect;
 
-use crate::keys::{Focus, Selection};
+use crate::keys::{Focus, Row, Selection};
 use crate::panels::Panel;
 use crate::screen::{layout, View};
 use crate::source::Queue;
@@ -20,28 +20,28 @@ pub struct Summary {
     pub goal: Option<String>,
 }
 
-/// The summaries of the issues `stems` of `queue`, in their order.
-pub fn of(queue: Option<&Queue>, stems: &[String]) -> Vec<Summary> {
+/// The summaries of the rows `rows` of `queue`, in their order, none on a milestone.
+pub fn of(queue: Option<&Queue>, rows: &[Row]) -> Vec<Option<Summary>> {
     let issues = queue.map_or(&[][..], |q| &q.issues[..]);
-    stems
-        .iter()
-        .map(|stem| {
+    rows.iter()
+        .map(|row| {
+            let Row::Issue(stem) = row else { return None };
             let issue = issues.iter().find(|i| &i.stem == stem);
-            Summary {
+            Some(Summary {
                 title: issue
                     .and_then(|i| i.title.clone())
                     .unwrap_or_else(|| stem.clone()),
                 goal: issue.and_then(|i| i.goal.clone()),
-            }
+            })
         })
         .collect()
 }
 
-/// The summary of the issue `sel` selects in `v`: none while the selection is in the worktrees or the queue holds no
-/// issue (an empty queue, or a `next-issue` that cannot be read, STU-6); the help line offers `i` on it (SUA-15).
+/// The summary of the issue `sel` selects in `v`: none while the selection is in the worktrees or on a milestone
+/// (STU-14), or the queue holds no issue (an empty queue, or a `next-issue` that cannot be read, STU-6); the help line offers `i` on it (SUA-15).
 pub(crate) fn selected(v: &View, sel: Selection) -> Option<&Summary> {
     if sel.focus == Focus::Queue {
-        v.summaries.get(sel.issue)
+        v.summaries.get(sel.row).and_then(Option::as_ref)
     } else {
         None
     }
@@ -170,7 +170,7 @@ mod tests {
             ],
             ..Queue::default()
         };
-        v.summaries = of(Some(&queue), &v.stems);
+        v.summaries = of(Some(&queue), &v.rows);
         v
     }
 
@@ -236,7 +236,7 @@ mod tests {
         sel.apply(&Action::Switch, &v);
         assert!(screen(&v, sel, true, 20).contains("Do a"), "shown again");
         let mut after = queue_view();
-        after.stems.reverse();
+        after.rows.reverse();
         after.summaries.reverse();
         sel.reread(&v, &after);
         assert!(
@@ -248,6 +248,14 @@ mod tests {
             !toggle(false, Selection::default(), Some(&empty)),
             "no issue"
         );
+        let mut milestone = queue_view();
+        milestone.rows[0] = Row::Milestone("One".to_string());
+        milestone.summaries = of(None, &milestone.rows);
+        assert!(
+            !toggle(false, Selection::default(), Some(&milestone)),
+            "no summary on a milestone (STU-14)"
+        );
+        assert!(!crate::help::line(&milestone, Selection::default(), false).contains("i summary"));
         assert!(!toggle(false, Selection::default(), None), "no read yet");
         assert_eq!(
             screen_key(Screen::Charts, Action::Summary),
@@ -264,7 +272,7 @@ mod tests {
         assert_eq!(rows("aaaa bbbb", 4, 1), ["aaa…"]);
         assert_eq!(rows("ab cd", 1, 1), ["…"]);
         let mut v = queue_view();
-        v.summaries[0].goal = Some(
+        v.summaries[0].as_mut().unwrap().goal = Some(
             (1..=10)
                 .map(|n| format!("line {n}"))
                 .collect::<Vec<_>>()
@@ -285,7 +293,7 @@ mod tests {
     fn on_a_short_screen_the_last_row_shown_keeps_its_ellipsis() {
         let mut v = queue_view();
         v.panels[1].lines = (1..=8).map(|n| format!("/ws{n}")).collect();
-        v.summaries[0].goal = Some(
+        v.summaries[0].as_mut().unwrap().goal = Some(
             (1..=20)
                 .map(|n| format!("line {n}"))
                 .collect::<Vec<_>>()

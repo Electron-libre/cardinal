@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -18,7 +18,7 @@ run several commands nor open each worktree. It changes the project only through
 
 - **STU-1** (deterministic) `cardinal-ui`, run in a project, must show in one screen two panels, no measure (SUC-6), the summary of SUQ-6 between them while it is unfolded: the queue (the milestones not yet released, each with its state, `on hold` when it is, `awaits release v<version>` when the milestones of `cardinal run release --json` (REL-15) hold one of its name and its document, `<version>` the `proposed` of that document, the bare `awaits release` when it is `null`, and its open issues over the listed ones, each followed by its open issues as SUQ-1 draws them, the one `next-issue` offers marked, with its priority, its state and what takes it: a claim with its worktree and whether its session ended, or a branch) and the worktrees (each with its branch and the session that holds its lock, ended or not, or `free`).
 - **STU-2** (deterministic) `cardinal-ui` must read the project again every 2 seconds and on the key `r`, one read at a time and apart from the keys, so a slow read never keeps a key from being answered, and quit on `q`, `Esc` (on the panels, SUC-1, the command palette closed, SUP-4) or `Ctrl+C`, giving the terminal back as it found it.
-- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, `cardinal run release --json` when a milestone that `roadmap` lists has the state `done` (run again only once the commit of `HEAD`, a tag or the document of `roadmap` changed since its last run) and, in the main worktree, at each start of SUA-4 or SUA-16, the measure of STU-17, git commands that read and, in a zellij session, `zellij action list-tabs --json` and, at an end or a start of SUA-4 or SUA-16, `zellij action list-panes --json --all`, and changes it only through the start of SUA-1, SUA-5, SUA-4 and SUA-16, the merge of SUA-2 and SUA-7 and the end of SUE-1 and SUE-3.
+- **STU-3** (deterministic) `cardinal-ui` must write no git ref of its own and no file outside the cache directory of STU-18: it reads the project only through `cardinal run next-issue --json`, `cardinal run roadmap --open --json`, `cardinal run release --json` when a milestone that `roadmap` lists has the state `done` (run again only once the commit of `HEAD`, a tag or the document of `roadmap` changed since its last run) and, in the main worktree, at each start of SUA-4 or SUA-16, the measure of STU-17, `cardinal run roadmap --open --json` at each start of SUA-19, git commands that read and, in a zellij session, `zellij action list-tabs --json` and, at an end or a start of SUA-4, SUA-16 or SUA-19, `zellij action list-panes --json --all`, and changes it only through the start of SUA-1, SUA-5, SUA-4, SUA-16 and SUA-19, the merge of SUA-2 and SUA-7 and the end of SUE-1 and SUE-3.
 - **STU-9** (deterministic) withdrawn: moved to SUA-1.
 - **STU-10** (deterministic) The queue must show, after an issue, `tab` when a tab of the current zellij session is named after its stem.
 - **STU-13** (deterministic) The worktrees panel must show, after the session of a worktree, `waiting since <HH:MM>: <reason>` (local time, its date `<YYYY-MM-DD>` before it when it is not today) when that session runs and the mark of SWT-3 of the worktree names it.
@@ -42,7 +42,7 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-8** (deterministic) `cardinal-ui --print` must exit 0 when every panel was read, 1 when a panel shows the error of STU-6, and `cardinal-ui` 2 on an unknown argument; `cardinal-ui` run outside a git repository shows the error of STU-6 in the worktrees panel.
 
 - **STU-11** (deterministic) withdrawn: moved to SUA-5.
-- **STU-14** (deterministic) The selection of SUA-1 must move over the issue rows of the queue only, never on a heading, stay on the same issue when a read changes the order or the tree of the queue, move to the issue row of the rank it had when its issue left the queue, and stay visible however long the queue, so `s` never starts an issue the user did not see selected.
+- **STU-14** (deterministic) The selection of SUA-1 must move over the issue rows of the queue and the headings of the milestones `roadmap --open` lists, in the order of their lines, never on another heading (a milestone `roadmap` does not list, `No milestone`) nor an empty or error line, start on the first issue row (else the first such heading), stay on the same issue or milestone when a read changes the order or the tree of the queue, move to the row of the rank it had when its issue or milestone left the queue, and stay visible however long the queue, so a key never acts on a row the user did not see selected; on a heading, `s` and `f` start nothing and say `s and f act on an issue: select one` on the status line.
 - **STU-15** (deterministic) withdrawn: moved to SUA-6.
 - **STU-21** (deterministic) withdrawn: moved to SUA-7.
 - **STU-24** (deterministic) withdrawn: moved to SUE-3.
@@ -103,8 +103,14 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-13) Given a session waiting since the day before, when the UI reads the project, then the worktree reads
   `waiting since <YYYY-MM-DD> <HH:MM>`.
 - (STU-14) Given `foo` selected on the second line, when the next read puts `foo` first, then `foo` is still selected.
-- (STU-14) Given the last issue of the first section selected, when the user moves down, then the first issue of the
-  next section is selected, never a heading.
+- (STU-14) Given the last issue of the milestone `One` selected and the milestone `Two` listed after it, when the
+  user moves down, then the heading `■ Two` is selected; given the section `No milestone` after it instead, then its
+  first issue is selected.
+- (STU-14) Given the milestone `Two` listed with no open issue, then the selection rests on its heading; given the
+  heading `■ Two` selected, when the user presses `s`, then the status line reads `s and f act on an issue: select
+  one`.
+- (STU-14) Given the heading `■ Two` selected, when the next read puts another milestone before it, then `■ Two` is
+  still selected.
 - (STU-14) Given `b` drawn under `a`, when `a` is closed and `b` moves to the root, then `b` is still selected.
 - (STU-14) Given 40 issues in a queue panel of 15 rows, when the user moves the selection to the 30th, then it is
   shown.

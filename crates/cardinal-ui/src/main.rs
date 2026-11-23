@@ -51,14 +51,14 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         },
     );
     let waits = state.worktrees.as_deref().ok().map(notify::waits);
-    let (panels, issues) = panels::panels(&state);
-    let (stems, stem_lines): (Vec<String>, _) = issues.into_iter().unzip();
-    let keys = help::Keys::of(&state, &stems, source::in_zellij());
-    let summaries = summary::of(state.queue.as_ref().ok(), &stems);
+    let (panels, rows) = panels::panels(&state);
+    let (rows, row_lines): (Vec<keys::Row>, _) = rows.into_iter().unzip();
+    let keys = help::Keys::of(&state, &rows, source::in_zellij());
+    let summaries = summary::of(state.queue.as_ref().ok(), &rows);
     screen::View {
         panels,
-        stems,
-        stem_lines,
+        rows,
+        row_lines,
         worktrees,
         waits,
         charts: state.charts,
@@ -112,7 +112,9 @@ fn print() -> i32 {
     };
     let view = read(false, error);
     // the help line of the selection the screen starts on (SUA-15)
-    let help = help::line(&view, keys::Selection::default(), false);
+    let mut start = keys::Selection::default();
+    start.start(&view);
+    let help = help::line(&view, start, false);
     let text = print::text(&view.panels, &help);
     // a reader that closed the output early (`| head`) is no failure
     let _ = std::io::Write::write_all(&mut std::io::stdout(), text.as_bytes());

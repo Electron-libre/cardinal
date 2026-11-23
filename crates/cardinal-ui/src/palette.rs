@@ -237,7 +237,7 @@ mod tests {
         );
         let worktree = Selection {
             focus: Focus::Worktrees,
-            issue: 0,
+            row: 0,
             worktree: 1,
         };
         assert_eq!(

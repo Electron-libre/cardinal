@@ -85,7 +85,7 @@ The work done before this file existed is in `issues/done/`.
   - [prioritize_the_issues_from_the_ui](issues/done/prioritize_the_issues_from_the_ui.md)
   - [rethink_the_commands_of_the_ui](issues/done/rethink_the_commands_of_the_ui.md)
   - [cut_a_milestone_into_issues_from_the_ui](issues/done/cut_a_milestone_into_issues_from_the_ui.md)
-  - [write_a_skill_to_audit_the_code](issues/write_a_skill_to_audit_the_code.md)
+  - [write_a_skill_to_audit_the_code](issues/done/write_a_skill_to_audit_the_code.md)
   - [audit_the_code_from_the_ui](issues/audit_the_code_from_the_ui.md)
   - [rebase_a_diverged_issue_branch_before_its_merge](issues/rebase_a_diverged_issue_branch_before_its_merge.md)
   - [split_the_screen_module_of_the_ui](issues/split_the_screen_module_of_the_ui.md)

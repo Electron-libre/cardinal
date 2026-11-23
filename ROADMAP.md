@@ -33,7 +33,7 @@ The work done before this file existed is in `issues/done/`.
   - [fold_the_summary_of_the_selected_issue](issues/done/fold_the_summary_of_the_selected_issue.md)
   - [draw_the_progress_of_a_milestone_as_a_bar](issues/draw_the_progress_of_a_milestone_as_a_bar.md)
   - [draw_the_progress_of_an_issue_as_a_bar](issues/draw_the_progress_of_an_issue_as_a_bar.md)
-  - [select_the_next_issue_with_a_key](issues/select_the_next_issue_with_a_key.md)
+  - [select_the_next_issue_with_a_key](issues/done/select_the_next_issue_with_a_key.md)
   - [prioritize_the_issues_from_the_ui](issues/done/prioritize_the_issues_from_the_ui.md)
   - [rethink_the_commands_of_the_ui](issues/done/rethink_the_commands_of_the_ui.md)
   - [cut_a_milestone_into_issues_from_the_ui](issues/done/cut_a_milestone_into_issues_from_the_ui.md)

@@ -43,7 +43,7 @@ Approach 1 is out: the claim ref points at a blob, it has no commit time, and th
    verified by tests of `crates/cardinal/tests/issue_claim.rs` (release and `next-issue` of a claim whose `since` is
    an hour before the test process started; a claim with no `since` stays live); makes true CLM-1, CLM-11.
 2. [x] High review fixes: the CLM-11 test uses a fixed old `since` (no `ps`); the module doc rewrapped; the
-   pre-existing finding filed as `issues/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`;
+   pre-existing finding filed as `issues/done/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`;
    verified by `cardinal run project-check`. (autonomous)
 
 ## Decisions
@@ -90,7 +90,7 @@ High review: 4 findings
 - wall clock stepped after a claim was written: not fixed, a non-goal of `specs/issue-claim.md`, as for the lock
   (WSL-1); the start ticks of `/proc` would tie the claim to Linux.
 - a claim the lock holder owns by pid alone ignores CLM-11 (pre-existing): filed as
-  `issues/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`.
+  `issues/done/apply_the_claim_time_to_the_claims_a_lock_holder_owns_by_pid.md`.
 - the CLM-11 test needed `ps -o etimes=`: fixed, a fixed `since 86400`.
 - a doc line over 120 columns: fixed.
 

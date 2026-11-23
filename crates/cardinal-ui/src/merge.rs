@@ -136,6 +136,8 @@ pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String>
         0 => false,
         1 => {
             rebase(&main, stem, &branch, &trunk)?;
+            // the rebase and its check take minutes: the main worktree is checked again before the merge
+            free_main_worktree(root)?;
             true
         }
         _ => return Err(source::failure(ancestor, code, &err)),

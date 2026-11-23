@@ -289,7 +289,7 @@ fn commit_readme(dir: &Path, text: &str) {
 fn a_diverged_branch_is_rebased_checked_then_merged() {
     let p = project();
     let rebase = format!(
-        "git -c user.email=t@t -c user.name=t -C '{}' rebase -q trunk; exit $?",
+        "git -c user.email=t@t -c user.name=t -c commit.gpgsign=false -C '{}' rebase -q trunk; exit $?",
         p.ws.display()
     );
     let cardinal = p.cardinal_rebasing("exit 0", &rebase, "exit 0");
@@ -339,7 +339,7 @@ fn a_rebase_that_meets_a_conflict_merges_nothing() {
 fn a_project_check_that_fails_after_the_rebase_keeps_it_and_merges_nothing() {
     let p = project();
     let rebase = format!(
-        "git -c user.email=t@t -c user.name=t -C '{}' rebase -q trunk; exit $?",
+        "git -c user.email=t@t -c user.name=t -c commit.gpgsign=false -C '{}' rebase -q trunk; exit $?",
         p.ws.display()
     );
     let cardinal = p.cardinal_rebasing("exit 0", &rebase, "echo 'clippy failed' >&2; exit 1");
@@ -450,4 +450,25 @@ fn a_linked_worktree_whose_close_is_on_the_trunk_reads_merged() {
     assert!(after.contains("foo  merged"), "{after}");
     let main = p.print(&cardinal);
     assert!(!main.lines().any(|l| l.contains("trunk  merged")), "{main}");
+}
+
+// spec: SUM-3
+#[test]
+fn a_main_worktree_dirtied_during_the_check_is_not_merged() {
+    let p = project();
+    let rebase = format!(
+        "git -c user.email=t@t -c user.name=t -c commit.gpgsign=false -C '{}' rebase -q trunk; exit $?",
+        p.ws.display()
+    );
+    let dirty = format!("touch '{}/stray'; exit 0", p.repo.display());
+    let cardinal = p.cardinal_rebasing("exit 0", &rebase, &dirty);
+    commit_readme(&p.repo, "trunk\n");
+    let before = p.trunk();
+    let (code, _, err) = p.merge(&cardinal, "foo");
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains("main worktree has uncommitted changes or untracked files"),
+        "{err}"
+    );
+    assert_eq!(p.trunk(), before);
 }

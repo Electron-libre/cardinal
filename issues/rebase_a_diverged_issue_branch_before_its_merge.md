@@ -78,6 +78,9 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 4. [x] Key `f` on a diverged branch (`crates/cardinal-ui/src/merge.rs`): `rebase-issue`, then `project-check` in the
    issue worktree, then the fast-forward; verified by the `--merge` tests of `crates/cardinal-ui/tests/`; makes true
    SUA-22 (SUM-n after 3), SUA-7 amended. (autonomous)
+5. [x] Fixes of the `high` review: zdiff3 so lines added alike are kept once, literal pathspecs, an abort that
+   fails reported, the main worktree checked again after the rebase, the tests free of the global git config, the
+   row of `merge.rs` in `docs/architecture.md`; verified by `rebase_issue.rs` and `merge.rs`; makes true RBI-2, SUM-3. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -121,3 +124,13 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
 - Code review: 1 findings: `head` computed before the rebase would merge the old commit; not fixed: it is the ref
   name `refs/heads/<branch>`, read at the merge, and `a_diverged_branch_is_rebased_checked_then_merged` proves it.
 - not verified: the key `f` pressed on the screen of a real zellij session (the `--merge` path is the same task).
+
+## Deliverable 5 summary
+- done: the fixes of 6 of the 7 findings of the `high` review (below); RBI-2 and SUM-3 reworded to match.
+- checks: tests pass, clippy clean, specs pass, docs updated.
+- red: RBI-2, SUM-3: the roadmap kept `## Three` twice; `cardinal-ui --merge` exited 0 on a main worktree dirtied
+  during the check
+- Code review: no findings
+- High review: 7 findings: 6 fixed here; 1 left to the user: `f` on a diverged branch is refused while the issue
+  session still waits in its tab (it holds the worktree lock), the case the hint of the issue forbids.
+- not verified: a conflict file with glob characters made red first (its test passed before the fix).

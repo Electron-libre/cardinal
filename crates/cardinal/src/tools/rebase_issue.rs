@@ -13,19 +13,22 @@ use super::issue_claim;
 
 const USAGE: &str = "usage: cardinal run rebase-issue <stem>";
 
-/// Runs `git args` in `dir` with no hook nor editor: its exit code, stdout and stderr.
+/// Runs `git args` in `dir` with no hook nor editor, the conflicts in `zdiff3` style (the lines both sides added
+/// alike stay out of the hunk): its exit code, stdout and stderr.
 fn run(dir: &Path, args: &[&str]) -> Result<(i32, String, String), String> {
     let out = Command::new("git")
         .args([
             "-c",
             "core.hooksPath=/dev/null",
             "-c",
-            "merge.conflictStyle=diff3",
+            "merge.conflictStyle=zdiff3",
         ])
         .args(args)
         .current_dir(dir)
         .env("GIT_EDITOR", "true")
         .env("GIT_SEQUENCE_EDITOR", "true")
+        // a conflicted file named `[d].md` is that file, never a glob
+        .env("GIT_LITERAL_PATHSPECS", "1")
         .output()
         .map_err(|e| format!("cannot run git: {e}"))?;
     Ok((
@@ -113,7 +116,7 @@ fn refusal(wt: &Path, branch: &str, trunk: &str) -> Result<Option<String>, Strin
     Ok(None)
 }
 
-/// The text of a file left in conflict with diff3 markers, settled when every hunk adds lines on both sides over an
+/// The text of a file left in conflict with zdiff3 markers, settled when every hunk adds lines on both sides over an
 /// empty base (RBI-2): the lines of the trunk (ours, in a rebase), then those of the branch.
 fn settle(text: &str) -> Option<String> {
     enum Part {
@@ -213,13 +216,12 @@ fn rebase(dir: &Path, stem: &str) -> Result<Vec<String>, String> {
         match settle_all(&wt) {
             Ok(Ok(files)) => lines.extend(files.into_iter().map(|f| format!("settled {f}"))),
             other => {
-                let aborted = git(&wt, &["rebase", "--abort"]);
+                git(&wt, &["rebase", "--abort"])?;
                 let files = match other {
                     Ok(Err(files)) if !files.is_empty() => files,
                     Ok(_) => return Err(failure(&git_step, code, &err)),
                     Err(e) => return Err(e),
                 };
-                aborted?;
                 return Err(format!(
                     "{branch}: conflict in {}: rebase aborted, settle it in {}",
                     files.join(", "),

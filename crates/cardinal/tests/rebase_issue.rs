@@ -110,6 +110,9 @@ fn rebase(cwd: &Path, session: &str, stem: &str) -> (Option<i32>, String, String
         .env("GIT_AUTHOR_EMAIL", "t@t")
         .env("GIT_COMMITTER_NAME", "t")
         .env("GIT_COMMITTER_EMAIL", "t@t")
+        // the config of the developer (signing, conflict style) never reaches the tool
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
         .env_remove("CLAUDE_PID")
         .env_remove("CLAUDE_CODE_SESSION_ID");
     if !session.is_empty() {
@@ -351,4 +354,36 @@ fn runs_no_hook_on_the_commits_it_replays() {
     let (code, out, err) = rebase(&r.main, "", "foo");
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(out.contains("settled ROADMAP.md"), "{out}");
+}
+
+// spec: RBI-2
+#[test]
+fn keeps_once_the_lines_both_sides_added_alike() {
+    let r = Repo::new();
+    let with = |extra: &str| format!("{ROADMAP}{extra}");
+    commit(&r.ws, "ROADMAP.md", &with("\n## Three\n\n- issues/b.md\n"));
+    commit(
+        &r.main,
+        "ROADMAP.md",
+        &with("\n## Three\n\n- issues/a.md\n"),
+    );
+    let (code, out, err) = rebase(&r.main, "", "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+    let text = std::fs::read_to_string(r.ws.join("ROADMAP.md")).unwrap();
+    assert_eq!(text, with("\n## Three\n\n- issues/a.md\n- issues/b.md\n"));
+}
+
+// spec: RBI-2
+#[test]
+fn settles_a_file_whose_name_holds_glob_characters() {
+    let r = Repo::new();
+    commit(&r.main, "[d].md", "- one\n");
+    git(&r.ws, &["rebase", "-q", "trunk"]);
+    commit(&r.ws, "[d].md", "- one\n- branch\n");
+    commit(&r.main, "[d].md", "- one\n- trunk\n");
+    let (code, out, err) = rebase(&r.main, "", "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(out.contains("settled [d].md"), "{out}");
+    let text = std::fs::read_to_string(r.ws.join("[d].md")).unwrap();
+    assert_eq!(text, "- one\n- trunk\n- branch\n");
 }

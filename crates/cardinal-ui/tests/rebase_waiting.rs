@@ -122,7 +122,7 @@ impl Project {
         executable(
             &self.path("zellij"),
             &format!(
-                "#!/bin/sh\necho \"zellij $*\" >> '{log}'\ncase \"$2\" in\n  list-panes) cat '{panes}'; exit 0 ;;\n  close-tab-by-id|close-pane) [ -f '{pid}' ] && kill -HUP $(cat '{pid}'); exit 0 ;;\nesac\nexit 9\n",
+                "#!/bin/sh\necho \"zellij $*\" >> '{log}'\ncase \"$2\" in\n  list-panes) cat '{panes}'; exit 0 ;;\n  close-tab-by-id|close-pane) echo '[]' > '{panes}'; [ -f '{pid}' ] && kill -HUP $(cat '{pid}'); exit 0 ;;\nesac\nexit 9\n",
                 panes = self.path("panes").display(),
                 pid = self.path("pid").display(),
             ),
@@ -139,8 +139,9 @@ impl Project {
         executable(
             &self.path("cardinal"),
             &format!(
-                "#!/bin/sh\ncase \"$1 $2\" in\n  'run rebase-issue') echo \"rebase-issue $3\" >> '{log}'\n    [ -n \"$(git -C '{ws}' status --porcelain)\" ] && {{ echo 'worktree {ws} has uncommitted changes or untracked files' >&2; exit 1; }}\n    pid=$(sed -n 's/^pid //p' '{lock}' 2>/dev/null); [ -n \"$pid\" ] && kill -0 \"$pid\" 2>/dev/null && {{ echo 'session s1 works in {ws}' >&2; exit 1; }}\n    {rebase} ;;\n  'run project-check') exit 0 ;;\n  'run worktree') echo \"worktree close $4\" >> '{log}'; exit 0 ;;\n  'run next-issue') if git cat-file -e trunk:issues/done/foo.md 2>/dev/null; then printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR}]}}'; else printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR},{FOO}]}}'; fi; exit 0 ;;\n  'run roadmap') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'check ') echo check >> '{log}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+                "#!/bin/sh\ncase \"$1 $2\" in\n  'run rebase-issue') echo \"rebase-issue $3\" >> '{log}'\n    [ -n \"$(git -C '{ws}' status --porcelain)\" ] && {{ echo 'worktree {ws} has uncommitted changes or untracked files' >&2; exit 1; }}\n    pid=$(sed -n 's/^pid //p' '{lock}' 2>/dev/null); [ -n \"$pid\" ] && kill -0 \"$pid\" 2>/dev/null && {{ echo 'session s1 works in {ws}' >&2; exit 1; }}\n    {rebase} ;;\n  'run project-check') exit 0 ;;\n  'run worktree') echo \"worktree close $4\" >> '{log}'; exit 0 ;;\n  'run next-issue') if git cat-file -e trunk:issues/done/foo.md 2>/dev/null; then printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR}]}}'; else printf '%s\\n' '{{\"version\":1,\"next\":\"bar\",\"issues\":[{BAR},{FOO}]}}'; fi; exit 0 ;;\n  'run roadmap') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'check ') echo check >> '{log}'; [ -f '{failing}' ] && {{ echo 'check failed' >&2; exit 1; }}; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
                 lock = lock.display(),
+                failing = self.path("check-fails").display(),
             ),
         );
     }
@@ -156,7 +157,8 @@ impl Project {
     /// with a wait mark naming it when `waiting`.
     fn session(&mut self, waiting: bool, deaf: bool) -> u32 {
         let script = if deaf {
-            "trap '' HUP; sleep 60"
+            // an ignored signal stays ignored across `exec`: no orphan `sleep` outlives the test
+            "trap '' HUP; exec sleep 60"
         } else {
             "exec sleep 60"
         };
@@ -245,7 +247,6 @@ fn a_waiting_session_ends_with_its_tab_before_the_rebase_then_the_end_closes_the
         "{log}"
     );
     // the end the key `f` chains (SUE-1): the tab gone, the session ended, only the worktree is left to close
-    std::fs::write(p.path("panes"), "[]").unwrap();
     let (code, out, err) = p.ui(&["--end", "foo"], true);
     assert_eq!(code, Some(0), "{out}{err}");
     assert!(out.contains("ended foo"), "{out}");
@@ -324,4 +325,22 @@ fn a_session_deaf_to_sighup_runs_no_rebase() {
     assert!(err.contains("session s1 still runs after 10 s"), "{err}");
     assert!(!p.log().contains("rebase-issue"), "{}", p.log());
     assert_eq!(p.trunk(), before);
+}
+
+// spec: SUM-4
+#[test]
+fn a_check_that_fails_after_the_end_says_the_session_ended() {
+    let mut p = project(false);
+    let pid = p.session(true, false);
+    std::fs::write(p.path("check-fails"), "").unwrap();
+    let (code, _, err) = p.ui(&["--merge", "foo"], false);
+    assert_eq!(code, Some(1));
+    assert!(
+        err.contains(
+            "ended session s1; rebased and merged foo (foo) into trunk; cardinal check: exit 1: check failed"
+        ),
+        "{err}"
+    );
+    assert!(ended(pid), "the session got SIGHUP");
+    assert_eq!(p.trunk(), p.foo());
 }

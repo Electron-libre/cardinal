@@ -157,7 +157,10 @@ pub fn merge_branch(root: &Path, stem: &str) -> Result<(String, String), String>
     let check = "cardinal check";
     match source::run(check, &source::cardinal(), &["check"], &main) {
         Ok((_, _, 0)) => Ok((branch, merged)),
-        Ok((_, err, code)) => Err(format!("{merged}; {}", source::failure(check, code, &err))),
-        Err(e) => Err(format!("{merged}; {e}")),
+        Ok((_, err, code)) => Err(end::failed(
+            &ended,
+            format!("{merged}; {}", source::failure(check, code, &err)),
+        )),
+        Err(e) => Err(end::failed(&ended, format!("{merged}; {e}"))),
     }
 }

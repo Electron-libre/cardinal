@@ -56,6 +56,10 @@ refusal of RBI-4. Out of scope: a dry run of the other RBI-4 refusals (a pushed 
    failure; verified by binary tests of `--merge` in a new `tests/rebase_waiting.rs` (waiting session in a tab, at
    work, dirty worktree, conflict after the end, deaf to `SIGHUP`); makes true SUM-4. (autonomous)
 
+2. [x] Fixes of the `high` review of the issue: a `cardinal check` that fails after the end names it; the fake
+   `zellij` of the tests empties its panes on a close; the deaf session `exec`s its `sleep`; verified by
+   `tests/rebase_waiting.rs`; makes true SUM-4. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: 4605550c93405e0553a5ba174f66c7cca13aee4e
@@ -78,5 +82,33 @@ red: SUM-4, SUM-H3: `cardinal-ui: session s1 works in <ws>` (exit 1 where 0 was 
 Code review: no findings
 
 not verified: the key `f` in a real zellij session (proved through `--merge` then `--end`, the two halves `f` chains).
+
+decisions needed: none
+
+## Deliverable 2 summary
+done: the `high` review of `4605550..783d4d3` fixed (7 findings: 3 fixed, 4 kept).
+
+| check | result |
+|---|---|
+| tests | `tests/rebase_waiting.rs`: 6 pass |
+| lint | clippy clean (`project-check`) |
+| specs | SUM-4 unchanged |
+| docs | n/a |
+| code review | `low`: no findings |
+
+red: SUM-4: `cardinal-ui: rebased and merged foo (foo) into trunk; cardinal check: exit 1: check failed` (no `ended session s1; `)
+
+High review: 7 findings
+- a failed `cardinal check` after the end did not name it: fixed.
+- SUM-H3 test reset the panes by hand: the fake `zellij` now empties them on a close.
+- deaf session left an orphan `sleep`: `exec` kept the ignored `SIGHUP`, fixed.
+- every wait reason counts (a permission prompt too): kept, the same rule as the end of SUE-3.
+- the mark is not re-read right before the close: kept, the same window of milliseconds as SUE-4.
+- a pushed branch is refused after the end: kept, decision 1 a.
+- a reused pid passes SUE-4 but not RBI-4 (pre-existing): filed as `issues/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md`.
+
+Code review: no findings
+
+not verified: none
 
 decisions needed: none

@@ -61,6 +61,28 @@ pub(super) fn alive(pid: &str) -> bool {
             .is_ok_and(|s| s.success())
 }
 
+/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process that
+/// took the number of the session that wrote it (RBI-4, as SUE-4 reads it); false when either time cannot be read.
+pub(super) fn started_after(pid: &str, lock: &Path) -> bool {
+    let Ok(written) = std::fs::metadata(lock).and_then(|m| m.modified()) else {
+        return false;
+    };
+    let Ok(out) = Command::new("ps")
+        .args(["-o", "etimes=", "-p", pid])
+        .stderr(Stdio::null())
+        .output()
+    else {
+        return false;
+    };
+    let Ok(elapsed) = String::from_utf8_lossy(&out.stdout).trim().parse::<u64>() else {
+        return false;
+    };
+    let started = std::time::SystemTime::now() - std::time::Duration::from_secs(elapsed);
+    started
+        .duration_since(written)
+        .is_ok_and(|d| d > std::time::Duration::from_secs(2))
+}
+
 fn git(dir: &Path, args: &[&str], input: Option<&str>) -> Option<String> {
     let mut child = Command::new("git")
         .arg("-C")

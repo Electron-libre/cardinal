@@ -22,7 +22,7 @@ so the fast-forward of its merge can run: the issue session runs it before print
 
 ### Contract
 
-- **RBI-4** (deterministic) `rebase-issue` must print on stderr why it does not rebase and exit 1, running no `git rebase`, when: `<stem>` has no claim in the state `merge pending` (`<stem>: not merge pending`); the repository is bare (`no main worktree: the repository is bare`); the main worktree has no branch checked out (`main worktree not on a branch`); the branch is the trunk (`<branch> is the trunk`); no worktree has the branch checked out (`<branch> is checked out in no worktree`); `git status --porcelain` lists anything in that worktree (`worktree <path> has uncommitted changes or untracked files`); the lock of that worktree (WSL-9) names a session whose process runs and that is not the calling one (`CLAUDE_CODE_SESSION_ID`) (`session <id> works in <path>`); a commit of the branch the trunk lacks is reachable from a remote-tracking ref (`<branch> was pushed: rebase it by hand`); a git command it runs fails (its command, its exit code and the first line of its stderr).
+- **RBI-4** (deterministic) `rebase-issue` must print on stderr why it does not rebase and exit 1, running no `git rebase`, when: `<stem>` has no claim in the state `merge pending` (`<stem>: not merge pending`); the repository is bare (`no main worktree: the repository is bare`); the main worktree has no branch checked out (`main worktree not on a branch`); the branch is the trunk (`<branch> is the trunk`); no worktree has the branch checked out (`<branch> is checked out in no worktree`); `git status --porcelain` lists anything in that worktree (`worktree <path> has uncommitted changes or untracked files`); the lock of that worktree (WSL-9) names a session whose process runs, started no more than 2 seconds after the lock was last written (a later one is another process that took the number, as SUE-4 reads it), and that is not the calling one (`CLAUDE_CODE_SESSION_ID`) (`session <id> works in <path>`); a commit of the branch the trunk lacks is reachable from a remote-tracking ref (`<branch> was pushed: rebase it by hand`); a git command it runs fails (its command, its exit code and the first line of its stderr).
 - **RBI-5** (deterministic) The commits it replays must run no git hook (`core.hooksPath` pointed at a path holding none, for the rebase and its continuations) and open no editor, so a commit gate (REV) never refuses a commit that already passed it.
 
 ## Scenarios
@@ -45,6 +45,8 @@ so the fast-forward of its merge can run: the issue session runs it before print
 - (RBI-4) Given the lock of the worktree of `foo` naming a session whose process runs, when `rebase-issue foo` runs
   from another session, then it exits 1 naming it; run from that session (its `CLAUDE_CODE_SESSION_ID`), or once its
   process ended, it rebases.
+- (RBI-4) Given the lock of the worktree of `foo` written ten minutes before the process of its `pid` started, when
+  `rebase-issue foo` runs from another session, then it rebases.
 - (RBI-4) Given `refs/remotes/origin/foo` pointing at a commit of `foo` the trunk lacks, when `rebase-issue foo` runs,
   then it exits 1 with `foo was pushed: rebase it by hand`.
 - (RBI-4) Given a ready issue `bar` nothing claims, when `rebase-issue bar` runs, then it exits 1 with `bar: not merge

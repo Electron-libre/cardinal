@@ -1,9 +1,10 @@
-//! `rebase-issue`: brings the branch of an issue closed on its branch (its claim `merge pending`, CLM-7) back onto
-//! the trunk when another issue reached the trunk first, so the fast-forward of its merge can run. Git runs in the
-//! worktree that has the branch checked out, never another one; a dirty worktree, one held by another running
-//! session (ADR 0022) or a pushed branch is refused before anything is rewritten. A conflict whose every hunk only adds
-//! lines on both sides is settled (the trunk's lines, then the branch's); any other aborts the rebase. The replayed
-//! commits run no hook: they passed theirs when they were made. Spec: `specs/rebase-issue.md`.
+//! `rebase-issue`: brings the branch of an issue closed on its branch (its claim `merge pending`, CLM-7) back onto the
+//! trunk when another issue reached the trunk first, so the fast-forward of its merge can run. Git runs in the worktree
+//! that has the branch checked out, never another one; a dirty worktree, one held by another running session (ADR 0022,
+//! a `pid` another process took counting as ended) or a pushed branch is refused before anything is rewritten. A
+//! conflict whose every hunk only adds lines on both sides is settled (the trunk's lines, then the branch's); any other
+//! aborts the rebase. The replayed commits run no hook: they passed theirs when they were made.
+//! Spec: `specs/rebase-issue.md`.
 //! Usage: `cardinal run rebase-issue <stem>`, from any worktree.
 
 use std::path::{Path, PathBuf};
@@ -90,7 +91,8 @@ fn refusal(wt: &Path, branch: &str, trunk: &str) -> Result<Option<String>, Strin
         )));
     }
     let gitdir = git(wt, &["rev-parse", "--absolute-git-dir"])?;
-    if let Ok(lock) = std::fs::read_to_string(Path::new(&gitdir).join("cardinal-session")) {
+    let path = Path::new(&gitdir).join("cardinal-session");
+    if let Ok(lock) = std::fs::read_to_string(&path) {
         let field = |key: &str| {
             lock.lines()
                 .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
@@ -98,7 +100,8 @@ fn refusal(wt: &Path, branch: &str, trunk: &str) -> Result<Option<String>, Strin
         };
         if let (Some(session), Some(pid)) = (field("session"), field("pid")) {
             let caller = std::env::var("CLAUDE_CODE_SESSION_ID").unwrap_or_default();
-            if session != caller && issue_claim::alive(pid) {
+            let runs = issue_claim::alive(pid) && !issue_claim::started_after(pid, &path);
+            if session != caller && runs {
                 return Ok(Some(format!("session {session} works in {}", wt.display())));
             }
         }

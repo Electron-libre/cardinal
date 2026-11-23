@@ -78,13 +78,12 @@ impl Repo {
     }
 
     /// Writes the lock of the worktree `foo` (WSL-9).
-    fn lock(&self, session: &str, pid: u32) {
+    /// Writes the lock of the worktree of `foo` (WSL-9) and returns its path.
+    fn lock(&self, session: &str, pid: u32) -> PathBuf {
         let dir = git(&self.ws, &["rev-parse", "--absolute-git-dir"]);
-        std::fs::write(
-            Path::new(&dir).join("cardinal-session"),
-            format!("session {session}\npid {pid}\n"),
-        )
-        .unwrap();
+        let lock = Path::new(&dir).join("cardinal-session");
+        std::fs::write(&lock, format!("session {session}\npid {pid}\n")).unwrap();
+        lock
     }
 
     fn rebase_in_progress(&self) -> bool {
@@ -293,6 +292,24 @@ fn rebases_a_worktree_whose_session_ended() {
     commit(&r.ws, "feature.txt", "f\n");
     commit(&r.main, "other.txt", "o\n");
     r.lock("gone", dead_pid());
+    let (code, out, err) = rebase(&r.main, "", "foo");
+    assert_eq!(code, Some(0), "{out}{err}");
+}
+
+// spec: RBI-4
+#[test]
+fn rebases_a_worktree_whose_pid_another_process_took() {
+    let r = Repo::new();
+    commit(&r.ws, "feature.txt", "f\n");
+    commit(&r.main, "other.txt", "o\n");
+    let lock = r.lock("gone", std::process::id());
+    let written = std::time::SystemTime::now() - std::time::Duration::from_secs(600);
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(written)
+        .unwrap();
     let (code, out, err) = rebase(&r.main, "", "foo");
     assert_eq!(code, Some(0), "{out}{err}");
 }

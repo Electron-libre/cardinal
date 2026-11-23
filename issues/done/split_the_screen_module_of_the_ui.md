@@ -70,7 +70,7 @@ decisions needed: none
 
 ## High review
 4 findings on `base..HEAD`:
-- task panic leaves the loop `busy` forever (pre-existing, outside this move): issue `issues/end_a_task_that_panics_in_the_ui.md`.
+- task panic leaves the loop `busy` forever (pre-existing, outside this move): issue `issues/done/end_a_task_that_panics_in_the_ui.md`.
 - `v.panels[0]` may panic: not fixed, `panels` is a `[Panel; 3]` array, index 0 always exists.
 - module doc of `screen.rs` still lists the keys: fixed in deliverable 2.
 - `REFRESH` needlessly `pub`: fixed in deliverable 2.

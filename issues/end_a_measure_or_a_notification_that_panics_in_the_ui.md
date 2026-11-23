@@ -12,7 +12,7 @@ a failure (a measure on the status line, a notification as a failed one of STU-3
 measuring again.
 
 # Findings
-* Found by the `high` review of `issues/end_a_task_that_panics_in_the_ui.md`, read from the code, not reproduced.
+* Found by the `high` review of `issues/done/end_a_task_that_panics_in_the_ui.md`, read from the code, not reproduced.
 * `crates/cardinal-ui/src/measures.rs` starts the measure on an unnamed `std::thread::spawn` with no `catch_unwind`.
 * `crates/cardinal-ui/src/notify.rs` sends each notification on an unnamed `std::thread::spawn` with no `catch_unwind`.
 * `crates/cardinal-ui/src/terminal.rs` already handles a task this way: `spawn_task` (named thread, `catch_unwind`),

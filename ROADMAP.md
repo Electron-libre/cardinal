@@ -38,7 +38,7 @@ The work done before this file existed is in `issues/done/`.
   - [rethink_the_commands_of_the_ui](issues/done/rethink_the_commands_of_the_ui.md)
   - [cut_a_milestone_into_issues_from_the_ui](issues/done/cut_a_milestone_into_issues_from_the_ui.md)
   - [write_a_skill_to_audit_the_code](issues/done/write_a_skill_to_audit_the_code.md)
-  - [audit_the_code_from_the_ui](issues/audit_the_code_from_the_ui.md)
+  - [audit_the_code_from_the_ui](issues/done/audit_the_code_from_the_ui.md)
   - [rebase_a_diverged_issue_branch_before_its_merge](issues/done/rebase_a_diverged_issue_branch_before_its_merge.md)
   - [end_the_waiting_session_before_rebasing_its_branch](issues/done/end_the_waiting_session_before_rebasing_its_branch.md)
   - [let_rebase_issue_pass_a_lock_whose_pid_another_process_took](issues/let_rebase_issue_pass_a_lock_whose_pid_another_process_took.md)

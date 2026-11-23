@@ -38,9 +38,9 @@ assertions, every `// spec:` citation stays on its test. Out of scope: any chang
    `dirty`, `claim`, `claim_as`, `claim_since`, `live`, `Other`, `dead` to `tests/workspace_lock_common/mod.rs`
    (`pub`, `#![allow(dead_code)]`), included by `mod workspace_lock_common;`; verified by `just check` (same tests
    pass, spec traceability unchanged); ~390 lines counted. (autonomous)
-2. [ ] Hand-over tests: move WSL-11 to WSL-13 and their helpers (`hook_with_transcript`, `transcript`, `append`,
+2. [x] Hand-over tests: move WSL-11 to WSL-13 and their helpers (`hook_with_transcript`, `transcript`, `append`,
    `claim_of`, `issue_claim`) to `tests/workspace_lock_handover.rs`; verified by `just check` and `cardinal run
-   file-size` no longer listing the file; ~730 lines counted.
+   file-size` no longer listing the file; ~730 lines counted. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -56,3 +56,10 @@ assertions, every `// spec:` citation stays on its test. Out of scope: any chang
 - red: none (a move, no new test)
 - Code review: no findings
 - checks: `just check` green (26 tests of `workspace_lock` pass, as before); not verified: nothing.
+
+## Deliverable 2
+- done: the WSL-11 to WSL-13 tests and their helpers moved verbatim to `tests/workspace_lock_handover.rs` (369
+  lines, 10 tests); `workspace_lock.rs` keeps 16 tests in 304 lines; the `// spec:` citations are the same.
+- red: none (a move, no new test)
+- Code review: no findings
+- checks: `just check` green (16 + 10 tests pass, 26 as before); `file-size` no longer lists the file; not verified: nothing.

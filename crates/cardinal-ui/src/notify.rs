@@ -1,10 +1,12 @@
 //! The desktop notification of a new wait (STU-29, STU-30): a worktree that waits for the user with a mark (its
 //! session and its time) no read of the screen found before sends one notification, through
-//! `CARDINAL_UI_NOTIFY` or `notify-send`, run on a thread of its own; the first failure is kept for the status line.
+//! `CARDINAL_UI_NOTIFY` or `notify-send`, run on a thread of its own, a panic of it ending as a failure (SUS-8); the
+//! first failure is kept for the status line.
 
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 
+use crate::panics::{self, Caught};
 use crate::source::{self, Worktree};
 
 /// A worktree waiting for the user (STU-13), as one read saw it.
@@ -66,6 +68,8 @@ fn send(program: &Path, title: &str, body: &str) -> Result<(), String> {
 /// Sends the notifications of the new waits between the reads it is given (STU-29, STU-30).
 pub struct Notifier {
     program: PathBuf,
+    /// Runs the program: `send`, a fake in the tests.
+    send: fn(&Path, &str, &str) -> Result<(), String>,
     /// Every wait the reads found, so one a read missed is not new when it comes back; `None` before the first
     /// read. A new wait has a new time, so it grows by one per wait, never pruned.
     seen: Option<Vec<Wait>>,
@@ -80,6 +84,7 @@ impl Notifier {
         let (failures, failed) = mpsc::channel();
         Self {
             program,
+            send,
             seen: None,
             failures,
             failed,
@@ -102,11 +107,18 @@ impl Notifier {
                 let (title, body) = wait.notification();
                 let program = self.program.clone();
                 let failures = self.failures.clone();
-                std::thread::spawn(move || {
-                    if let Err(e) = send(&program, &title, &body) {
-                        let _ = failures.send(e);
+                let send = self.send;
+                let job = move || send(&program, &title, &body);
+                let failed = failures.clone();
+                // a failed program or a panic, each worded `notify: <cause>` (STU-30, SUS-8)
+                let end = move |result: Result<(), String>| {
+                    if let Err(e) = result {
+                        let _ = failed.send(e);
                     }
-                });
+                };
+                if let Err(e) = panics::spawn(Caught::Notification, job, end) {
+                    let _ = failures.send(format!("notify: the notification did not start: {e}"));
+                }
             }
         }
     }
@@ -249,6 +261,33 @@ mod tests {
             std::thread::sleep(Duration::from_millis(20));
         };
         assert!(line.starts_with("notify: cannot run "), "{line}");
+    }
+
+    // spec: SUS-8 (internal: the thread of a notification of a screen that needs a real terminal)
+    #[test]
+    fn a_notification_that_panics_is_shown_once_as_a_failure() {
+        fn panics(_: &Path, _: &str, _: &str) -> Result<(), String> {
+            panic!("boom")
+        }
+        let _turn = crate::panics::tests::turn();
+        let mut n = Notifier::new(PathBuf::from("notify"));
+        n.send = panics;
+        n.read(Some(&[]));
+        n.read(Some(&[
+            wait("/a", "s1", 1, "stop"),
+            wait("/b", "s2", 2, "stop"),
+        ]));
+        let end = Instant::now() + Duration::from_secs(5);
+        let line = loop {
+            if let Some(line) = n.failure() {
+                break line;
+            }
+            assert!(Instant::now() < end, "no failure shown");
+            std::thread::sleep(Duration::from_millis(20));
+        };
+        assert_eq!(line, "notify: the notification panicked: boom");
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(n.failure(), None, "the first time only");
     }
 
     #[test]

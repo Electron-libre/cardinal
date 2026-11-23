@@ -17,6 +17,7 @@ use ratatui::crossterm::event::{self, Event};
 use crate::keys::{ended, job, quits, screen_key, task, Action, Ended, Screen, Selection, Task};
 use crate::notify::{self, Notifier};
 use crate::palette::Palette;
+use crate::panics::{self, Caught};
 use crate::screen::{draw, View};
 use crate::spinner;
 use crate::status::{Kind, Status};
@@ -92,9 +93,6 @@ fn next(view: Option<&View>, selected: &mut Selection, status: &mut Status) {
     }
 }
 
-/// The name of the threads of the tasks, which the panic hook of `run` passes over (SUS-7).
-const TASK_THREAD: &str = "cardinal-ui task";
-
 /// Runs `job` on `stem` on a thread of its own and sends its result on `send`, a panic as the failed line `the task
 /// panicked: <message>`, so the screen learns it ended (SUS-7); an error when the thread could not start.
 fn spawn_task(
@@ -103,45 +101,9 @@ fn spawn_task(
     stem: String,
     send: mpsc::Sender<Result<String, String>>,
 ) -> std::io::Result<()> {
-    let body = move || {
-        let result = std::panic::catch_unwind(|| run_task(job, &stem))
-            .unwrap_or_else(|panic| Err(format!("the task panicked: {}", message(&*panic))));
-        // the loop quit with an error: nobody waits for the result
-        let _ = send.send(result);
-    };
-    std::thread::Builder::new()
-        .name(TASK_THREAD.into())
-        .spawn(body)
-        .map(drop)
-}
-
-/// The message of a panic: the text `panic!` was given, else a placeholder.
-fn message(panic: &(dyn std::any::Any + Send)) -> &str {
-    panic
-        .downcast_ref::<&str>()
-        .copied()
-        .or_else(|| panic.downcast_ref::<String>().map(String::as_str))
-        .unwrap_or("no message")
-}
-
-thread_local! {
-    /// Whether the hook of `pass_over_tasks` already passed over a panic of this thread.
-    static PASSED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-/// Makes the panic hook pass over the first panic of a thread of a task, which `spawn_task` reports: the hook Ratatui
-/// set would give the terminal back and print over the screen that goes on (SUS-7). A second panic of that thread
-/// (one during the unwinding of the first, which aborts the process) reaches it, so the terminal is given back. A
-/// thread a task would start is none of these: a task starts none.
-fn pass_over_tasks() {
-    let before = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |info| {
-        let first_of_a_task =
-            std::thread::current().name() == Some(TASK_THREAD) && !PASSED.replace(true);
-        if !first_of_a_task {
-            before(info);
-        }
-    }));
+    // the loop quit with an error: nobody waits for the result
+    let end = move |result| drop(send.send(result));
+    panics::spawn(Caught::Task, move || run_task(job, &stem), end)
 }
 
 /// Starts the task `job` on `stem`, `shown` on `status` while it runs, or says there why it did not start; whether
@@ -172,8 +134,8 @@ fn start(
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
-/// is given back as it was, also on a panic of the loop or of the reads (Ratatui's hook); a task that panics ends as a
-/// failed one, the screen going on (SUS-7).
+/// is given back as it was, also on a panic of the loop or of the reads (Ratatui's hook); a task, a measure or a
+/// notification that panics ends as a failed one, the screen going on (SUS-7, SUS-8).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
@@ -191,7 +153,7 @@ pub fn run(
     });
     let (done, task_result) = mpsc::channel::<Result<String, String>>();
     let mut terminal = ratatui::try_init()?;
-    pass_over_tasks();
+    panics::pass_over_caught();
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
@@ -289,80 +251,16 @@ mod tests {
         panic!("boom on {stem}")
     }
 
-    /// A panic hook of the process.
-    type Hook = dyn Fn(&std::panic::PanicHookInfo<'_>) + Send + Sync + 'static;
-
-    /// The panic hook is global to the process: the tests that panic on a thread of a task, or that set it, take
-    /// turns.
-    static HOOK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
     // spec: SUS-7 (internal: the panic of a task of a screen that needs a real terminal)
     #[test]
     fn a_task_that_panics_sends_its_panic_as_a_failure() {
-        let _turn = HOOK
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let _turn = crate::panics::tests::turn();
         let (send, ended) = mpsc::channel();
         spawn_task(panics, Task::Start, "foo".to_string(), send).unwrap();
         assert_eq!(
             ended.recv_timeout(Duration::from_secs(5)),
             Ok(Err("the task panicked: boom on foo".to_string()))
         );
-    }
-
-    /// The names of the threads whose panic reached the hook `pass_over_tasks` wraps, while `body` runs; the hook of
-    /// the process given back after.
-    fn reaching_the_terminal(body: impl FnOnce()) -> Vec<Option<String>> {
-        use std::sync::{Arc, Mutex};
-        let _turn = HOOK
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let record = Arc::clone(&seen);
-        let original: Arc<Hook> = Arc::from(std::panic::take_hook());
-        let inner = Arc::clone(&original);
-        std::panic::set_hook(Box::new(move |info| {
-            let name = std::thread::current().name().map(String::from);
-            record.lock().unwrap().push(name);
-            inner(info);
-        }));
-        pass_over_tasks();
-        body();
-        drop(std::panic::take_hook());
-        std::panic::set_hook(Box::new(move |info| original(info)));
-        let seen = seen.lock().unwrap().clone();
-        seen
-    }
-
-    // spec: SUS-7 (internal: the panic hook of a screen that needs a real terminal)
-    #[test]
-    fn the_panic_of_a_task_reaches_no_hook_of_the_terminal() {
-        let seen = reaching_the_terminal(|| {
-            let (send, ended) = mpsc::channel();
-            spawn_task(panics, Task::Merge, "bar".to_string(), send).unwrap();
-            let result = ended.recv_timeout(Duration::from_secs(5)).unwrap();
-            assert!(result.is_err());
-            let named = std::thread::Builder::new().name("other".into());
-            named.spawn(|| panic!("seen")).unwrap().join().unwrap_err();
-        });
-        assert!(seen.contains(&Some("other".to_string())), "{seen:?}");
-        assert!(!seen.contains(&Some(TASK_THREAD.to_string())), "{seen:?}");
-    }
-
-    // spec: SUS-7 (internal: a second panic of a task aborts the process, which no test survives)
-    #[test]
-    fn a_second_panic_of_a_task_reaches_the_hook_of_the_terminal() {
-        let seen = reaching_the_terminal(|| {
-            let task = std::thread::Builder::new().name(TASK_THREAD.into());
-            let twice = || {
-                for _ in 0..2 {
-                    let _ = std::panic::catch_unwind(|| panic!("again"));
-                }
-            };
-            task.spawn(twice).unwrap().join().unwrap();
-        });
-        let task = Some(TASK_THREAD.to_string());
-        assert_eq!(seen.iter().filter(|n| **n == task).count(), 1, "{seen:?}");
     }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)

@@ -20,6 +20,7 @@ status line that shows what an action did or why it refused.
 - **SUS-3** (deterministic) The status line of SUS-2 must show every one of its messages whatever the width of the terminal: a message that does not fit after the one before it starts a row of its own below it, one wider than the screen goes on over the rows under it, the line taking as many rows as its messages need, at most a third of the height of the screen (one row at least), the panels keeping the others; a line that needs more rows than that shows its errors first, the others after them as long as they fit.
 - **SUS-6** (deterministic) The screen of STU-1 and `--print` must show the mark of Cardinal, ` ✦ Cardinal `, at the right end of the top border of the queue panel, against its corner, the screen drawing it in `accent`, taking no row of its own; a panel too narrow to hold its title, the mark and one cell of border between them shows its title alone.
 - **SUS-7** (deterministic) A task of a key of SUA, SUM or SUE (SUA-6) that panics must end like a task that failed: the status line of SUS-2 reads `the task panicked: <message of the panic>` in `fail`, the keys of SUA-6 start a task again, `q` pressed during it quits once it has panicked and prints that line on stderr, and the screen stays drawn in the terminal until the user quits, the panic printing nothing over it.
+- **SUS-8** (deterministic) A measure of STU-17 or a notification of STU-30 that panics must end like one that failed, the screen staying drawn and the panic printing nothing over it: the measure leaves the `Measures` panel showing `the measure panicked: <message of the panic>` above the last measure, as STU-19 shows a failed step, and `m` measures again; the notification leaves the status line showing `notify: the notification panicked: <message of the panic>` as STU-30 shows a failed one, the first time only.
 
 ### Contract
 
@@ -54,6 +55,10 @@ status line that shows what an action did or why it refused.
   `fail`, the screen is still drawn, and `s` on a ready issue starts its task.
 - (SUS-7) Given a merge whose task panics after the user pressed `q`, then the screen quits and prints `the task
   panicked: <message>` on stderr once the terminal is given back.
+- (SUS-8) Given a measure that panics with `boom`, then the `Measures` panel reads `the measure panicked: boom`
+  above the last measure, the screen is still drawn, and `m` starts a measure again.
+- (SUS-8) Given a notification that panics with `boom`, then the status line reads `notify: the notification
+  panicked: boom` in `fail`, once.
 - (SUS-1) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (SUS-4) Given no theme file, then every role has its default and no `theme:` line is shown.
 - (SUS-4) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read

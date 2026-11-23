@@ -295,7 +295,8 @@ the issues the trunk closed, as it does for the agent.
 While the screen runs, a worktree that starts to wait for the user (a new mark, or one of another session or time)
 sends one desktop notification, `<branch> waits` with the reason as its body, through `notify-send` or the program
 `CARDINAL_UI_NOTIFY` names, run with these two arguments; the waits found by the first read send nothing, and a
-program that fails shows `notify: <cause>` on the status line the first time only. `--print` notifies nothing.
+program that fails, or a notification that panics (`notify: the notification panicked: <message>`), shows
+`notify: <cause>` on the status line the first time only. `--print` notifies nothing.
 
 A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to) into
 `$XDG_CACHE_HOME/cardinal-ui/<project>-<hash of its path>` (under `~/.cache` when unset), outside the project since the
@@ -303,7 +304,8 @@ rows name projects and issues, then `cardinal-report --project <project> --last 
 for the charts (`revisions.json`) and `cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of
 transcripts, so the screen shows the last measure at once and measures again, on a thread of its own, when it starts
 and the last one is over an hour old, and on `m` of the charts and the measures screens: `measuring…` heads the table meanwhile, and a failed step shows its
-error above the last measure, whose files stay as they were. `--print` measures first when the measure is over an
+error above the last measure, whose files stay as they were, a measure that panics `the measure panicked:
+<message>`, `m` measuring again. `--print` measures first when the measure is over an
 hour old. `g` switches the screen to four bar charts of the last measure, then to the table of the measures, then back
 to the panels ([specs/steering-ui-charts.md](../specs/steering-ui-charts.md)): the charts draw the median input per session and the cached share over
 the last twelve groups of revisions, the fixes after per issue and the findings per review per milestone (the issues

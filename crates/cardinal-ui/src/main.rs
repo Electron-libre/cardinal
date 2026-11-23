@@ -24,6 +24,7 @@ mod merge;
 mod notify;
 mod palette;
 mod panels;
+mod panics;
 mod print;
 mod prioritize;
 mod release;

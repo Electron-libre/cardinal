@@ -2,12 +2,13 @@
 //! cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
 //! milestone, and the last 12 groups of revisions for the charts (SUC-4). The readers take about a minute each on a large history of transcripts, so the screen shows the last
 //! measure at once, measures again when it starts and the last one is over an hour old and on `m` (SUC-1), on a thread of its
-//! own.
+//! own, a panic of it ending as a failed measure (SUS-8).
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
+use crate::panics::{self, Caught};
 use crate::source::{cardinal, failure, parse, run};
 
 /// The age past which a measure is taken again (STU-17).
@@ -312,13 +313,27 @@ pub struct Status {
 pub struct Measurer {
     root: PathBuf,
     status: Arc<Mutex<Status>>,
+    /// Takes a measure of a project: `measure_project`, a fake in the tests.
+    job: fn(&Path) -> Result<(), String>,
+}
+
+/// Takes a measure of the project at `root` into its cache directory (STU-17, STU-18).
+fn measure_project(root: &Path) -> Result<(), String> {
+    let dir = directory(root).ok_or_else(|| "measures: no home directory".to_string())?;
+    measure(root, &dir)
 }
 
 impl Measurer {
     pub fn new(root: PathBuf) -> Self {
+        Self::with(root, measure_project)
+    }
+
+    /// A measurer whose measures run `job`.
+    fn with(root: PathBuf, job: fn(&Path) -> Result<(), String>) -> Self {
         Self {
             root,
             status: Arc::default(),
+            job,
         }
     }
 
@@ -332,16 +347,22 @@ impl Measurer {
         }
         status.running = true;
         status.error = None;
-        let me = self.clone();
-        std::thread::spawn(move || {
-            let result = directory(&me.root)
-                .ok_or_else(|| "measures: no home directory".to_string())
-                .and_then(|dir| measure(&me.root, &dir));
-            if let Ok(mut status) = me.status.lock() {
+        drop(status);
+        let (job, root) = (self.job, self.root.clone());
+        let shared = Arc::clone(&self.status);
+        let end = move |result: Result<(), String>| {
+            if let Ok(mut status) = shared.lock() {
                 status.running = false;
                 status.error = result.err();
             }
-        });
+        };
+        // a panic of the measure ends it as a failed one, so `m` measures again (SUS-8)
+        if let Err(e) = panics::spawn(Caught::Measure, move || job(&root), end) {
+            if let Ok(mut status) = self.status.lock() {
+                status.running = false;
+                status.error = Some(format!("measures: the measure did not start: {e}"));
+            }
+        }
     }
 
     /// Starts a measure when the last one is missing or over an hour old (STU-17).
@@ -356,5 +377,39 @@ impl Measurer {
         self.status
             .lock()
             .map_or((false, None), |s| (s.running, s.error.clone()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Instant;
+
+    fn panics(_: &Path) -> Result<(), String> {
+        panic!("boom")
+    }
+
+    /// The status of `m` once no measure runs, waiting at most 5 s.
+    fn ended(m: &Measurer) -> (bool, Option<String>) {
+        let end = Instant::now() + Duration::from_secs(5);
+        loop {
+            let status = m.status();
+            if !status.0 || Instant::now() > end {
+                return status;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    // spec: SUS-8 (internal: the thread of a measure of a screen that needs a real terminal)
+    #[test]
+    fn a_measure_that_panics_fails_and_measures_again() {
+        let _turn = crate::panics::tests::turn();
+        let m = Measurer::with(PathBuf::from("."), panics);
+        m.start();
+        let failed = (false, Some("the measure panicked: boom".to_string()));
+        assert_eq!(ended(&m), failed);
+        m.start();
+        assert_eq!(ended(&m), failed, "m measures again");
     }
 }

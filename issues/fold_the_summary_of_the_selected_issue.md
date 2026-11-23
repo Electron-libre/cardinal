@@ -52,8 +52,8 @@ summary shows the issue file of the work tree `cardinal-ui` reads (the trunk's f
    issue; the new code in a module `crates/cardinal-ui/src/summary.rs` (`screen.rs` is over the file size limit, it
    only gets the call), `source.rs` reads `title` and `goal`, `keys.rs` maps `i`; verified by Ratatui tests of the
    drawn screen; makes true SUQ-6, SUQ-7, SUQ-H3. (autonomous)
-3. [ ] Help line: `i summary` after `tab panel` when the selection is on an issue of the queue; verified by the tests
-   of `help.rs`; makes true SUA-15, SUA-H7.
+3. [x] Help line: `i summary` after `tab panel` when the selection is on an issue of the queue; verified by the tests
+   of `help.rs`; makes true SUA-15, SUA-H7. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -102,3 +102,21 @@ Code review: 1 findings
   with a test.
 
 not verified: the screen in a real terminal (the tests draw it in Ratatui's test backend). decisions needed: none.
+
+### 3. Help line
+done: the help line offers `i summary` after `tab panel` with the selection on an issue of the queue, also while a
+task runs (SUA-15); `steering-ui-actions.md` set `accepted`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: SUA-15, SUA-H7: `left: "q quit  r refresh  ↑↓ select  tab panel  f merge  E end merged  g charts"`, `right: "… tab panel  i summary  f merge …"`
+
+Code review: no findings
+
+not verified: none. decisions needed: none.

@@ -1,4 +1,4 @@
-//! The help line under the panels (SUA-15): the keys that always work, then the keys of the tasks that would act on
+//! The help line under the panels (SUA-15): the keys that always work, `i` on an issue of the queue, then the keys of the tasks that would act on
 //! what is selected in the read shown, so the user never reads a key that would only be refused. The keys still
 //! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
 //! never the guard.
@@ -62,7 +62,8 @@ impl Keys {
     }
 }
 
-/// The help line of the panels of `v` with `sel` selected, no key of a task while one runs (`busy`, SUA-6, SUA-15).
+/// The help line of the panels of `v` with `sel` selected: `i summary` with the selection on an issue of the queue
+/// (SUQ-6), no key of a task while one runs (`busy`, SUA-6, SUA-15).
 pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
     let at = |flags: &[bool], i: usize| flags.get(i).copied().unwrap_or(false);
     let keys = &v.keys;
@@ -74,7 +75,9 @@ pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
         (keys.merged.contains(&true), "E end merged"),
         (keys.release, "v release"),
     ];
+    let summary = (queue && sel.issue < v.stems.len()).then_some("i summary");
     std::iter::once(ALWAYS)
+        .chain(summary)
         .chain(
             offered
                 .iter()
@@ -119,11 +122,11 @@ mod tests {
         let always = "q quit  r refresh  ↑↓ select  tab panel";
         assert_eq!(
             line(&v, on(Focus::Queue, 0, 0), false),
-            format!("{always}  s start  E end merged  g charts")
+            format!("{always}  i summary  s start  E end merged  g charts")
         );
         assert_eq!(
             line(&v, on(Focus::Queue, 1, 0), false),
-            format!("{always}  f merge  E end merged  g charts")
+            format!("{always}  i summary  f merge  E end merged  g charts")
         );
         assert_eq!(
             line(&v, on(Focus::Worktrees, 0, 1), false),
@@ -155,7 +158,7 @@ mod tests {
         let mut sel = Selection::default();
         assert_eq!(
             line(&v, sel, false),
-            "q quit  r refresh  ↑↓ select  tab panel  f merge  E end merged  g charts"
+            "q quit  r refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  g charts"
         );
         sel.apply(&Action::Switch, &v);
         sel.apply(&Action::Down, &v);
@@ -177,7 +180,7 @@ mod tests {
         };
         assert_eq!(
             line(&v, Selection::default(), true),
-            "q quit  r refresh  ↑↓ select  tab panel  g charts"
+            "q quit  r refresh  ↑↓ select  tab panel  i summary  g charts"
         );
     }
 

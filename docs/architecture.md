@@ -279,6 +279,7 @@ flowchart LR
 | `spinner.rs` | the mark of an issue at work turned on the screen: the frame of the time it has run, written over the still mark `--print` keeps |
 | `measures.rs` | runs a measure into the cache directory of the user, its files renamed into place once every step succeeded, on a thread of its own; reads the last one into lines |
 | `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme, runs the terminal loop with the reads, the starts, the merges, the ends and the release, review and cut starts on threads of their own |
+| `mark.rs` | the mark ` ✦ Cardinal ` against the right corner of the top border of the queue, in `accent`, left out when the border cannot hold it next to the title (SUS-6) |
 | `summary.rs` | the summary of the selected issue, its title and its goal wrapped at the words under the queue, that `i` folds and unfolds |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |

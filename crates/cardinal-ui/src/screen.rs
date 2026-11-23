@@ -96,6 +96,7 @@ pub(crate) fn render(
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
+        crate::mark::draw(p, *area, buf, theme);
     }
     let n = panels.len();
     status.draw(areas[n], buf, theme);

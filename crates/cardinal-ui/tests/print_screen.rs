@@ -23,6 +23,20 @@ fn the_screen_holds_three_titled_panels_at_least_100_columns_wide() {
     assert!(out.lines().all(|l| l.chars().count() <= width), "{out}");
 }
 
+// spec: SUS-6
+#[test]
+fn the_first_line_ends_with_the_mark_of_cardinal() {
+    let p = project();
+    let cardinal = p.cardinal(&ok(QUEUE), &ok(ROADMAP));
+    let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
+    let first = out.lines().next().unwrap();
+    assert!(
+        first.starts_with("┌ Queue ") && first.ends_with(" ✦ Cardinal ┐"),
+        "{out}"
+    );
+    assert!(!out.contains('\x1b'), "no escape sequence: {out}");
+}
+
 // spec: STU-4
 #[test]
 fn a_long_queue_is_printed_whole() {

@@ -18,6 +18,7 @@ status line that shows what an action did or why it refused.
 - **SUS-1** (deterministic) `cardinal-ui`, run as a screen, must draw its panels in the roles of the theme of SUS-4: the borders in `border`, the titles in `accent`, the lines in `text` on `background`, the selected line on `selection` across the whole inner width of its panel, the help in `muted` on `surface`, the status line as SUS-2 says, and the words of the table under SUS-5 in their role, and `--print` none of these colors nor any escape sequence.
 - **SUS-2** (deterministic) The status line of the screen (what an action of SUA or SUE did or why it refused, a notification that failed (STU-30), an ignored theme line (SUS-5)) must be drawn on rows of its own (SUS-3), above the help line and only while it holds a message, on `surface` across the whole width: an error (a task that failed or refused, a key that starts nothing and says why, a failed notification, an ignored theme line) in `fail`, the result of a task that succeeded in `pass`, the others (a task that runs, `quitting once the task ends…`) in `text`, each message of the line in its own role when it holds several; it keeps its message until a task or a key that starts one replaces it, a failed notification until the screen quits, a read of STU-2 leaving it as it is.
 - **SUS-3** (deterministic) The status line of SUS-2 must show every one of its messages whatever the width of the terminal: a message that does not fit after the one before it starts a row of its own below it, one wider than the screen goes on over the rows under it, the line taking as many rows as its messages need, at most a third of the height of the screen (one row at least), the panels keeping the others; a line that needs more rows than that shows its errors first, the others after them as long as they fit.
+- **SUS-6** (deterministic) The screen of STU-1 and `--print` must show the mark of Cardinal, ` ✦ Cardinal `, at the right end of the top border of the queue panel, against its corner, the screen drawing it in `accent`, taking no row of its own; a panel too narrow to hold its title, the mark and one cell of border between them shows its title alone.
 
 ### Contract
 
@@ -31,7 +32,7 @@ status line that shows what an action did or why it refused.
   | `border` | the terminal's | the borders of the panels |
   | `text` | the terminal's | the lines of the panels, a message of the status line that is neither an error nor a success |
   | `muted` | ANSI dark gray | the help, `free`, `ended` and `session ended` |
-  | `accent` | ANSI cyan | the titles of the panels, the headings of the queue (SUQ-5), the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
+  | `accent` | ANSI cyan | the titles of the panels, the mark of SUS-6, the headings of the queue (SUQ-5), the `>` of the issue `next-issue` offers, the turning mark of SUQ-4 |
   | `selection` | reversed video | the selected line (its background when set) |
   | `pass` | ANSI green | the state `ready`, `merged`, the result of a task that succeeded on the status line |
   | `fail` | ANSI red | the state `blocked`, the line of an error of STU-6 or STU-19, a problem of the issue files, an error of the status line |
@@ -46,6 +47,8 @@ status line that shows what an action did or why it refused.
 - **SUS-H2** (happy; SUS-2) Given a merge of SUM-1 refused because the rebase of its branch met a conflict, then the status
   line reads why in `fail` on `surface` across the whole width; given a merge that succeeds, it reads
   `merged <stem> (<branch>) into <trunk>` in `pass`.
+- **SUS-H3** (happy; SUS-6) Given an 80×24 terminal, when the screen draws, then the top border of the queue panel
+  reads ` Queue ` at its left and ` ✦ Cardinal ` at its right in `accent`, and the queue keeps every row it had.
 - (SUS-1) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (SUS-4) Given no theme file, then every role has its default and no `theme:` line is shown.
 - (SUS-4) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read
@@ -68,9 +71,12 @@ status line that shows what an action did or why it refused.
   that fails, then the line takes two rows and the second reads `notify: <cause>` in `fail`.
 - (SUS-3) Given a screen 9 rows high and a status line whose messages need six rows, then it takes 3 rows, its
   errors on the first.
+- (SUS-6) Given `cardinal-ui --print`, then its first line ends with ` ✦ Cardinal ┐` and holds no escape sequence.
+- (SUS-6) Given a queue panel 20 columns wide, then its top border reads ` Queue ` and no mark.
 
 ## Non-goals
 
+- A drawing of the compass of `docs/logo/` over several rows, or the mark on the screen of the measures (SUC-6).
 - The layout of the panels and the defaults of the roles of SUS-5: they may change without a requirement.
 - Reading the theme again while the screen runs, other color forms than `#rrggbb` (ANSI names, 256-color indexes),
   bold or italic per role, or a theme template for a given generator: the generator writes the file.

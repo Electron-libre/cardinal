@@ -12,6 +12,9 @@ use crate::source::{Milestone, Milestones, Queue, State, Taken, Worktree};
 use crate::theme::Role;
 use crate::tree::{sections, Heading};
 
+/// The title of the queue panel, the one that bears the mark of Cardinal (SUS-6).
+pub(crate) const QUEUE: &str = "Queue";
+
 /// A panel: its title, its lines and the words of its lines drawn in a role.
 #[derive(Clone)]
 pub struct Panel {
@@ -360,7 +363,7 @@ fn queue(
             .iter()
             .map(|p| Styled::all(format!("! {p}"), Role::Fail)),
     );
-    (Panel::of("Queue", lines, !errors.is_empty()), selectable)
+    (Panel::of(QUEUE, lines, !errors.is_empty()), selectable)
 }
 
 /// The local time `HH:MM` of `seconds` since the Unix epoch, its date before it when it is not today (STU-13).

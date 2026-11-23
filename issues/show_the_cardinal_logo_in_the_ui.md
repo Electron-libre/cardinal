@@ -32,3 +32,41 @@ A steering UI to command
 
 # Hints
 * Keep the queue its rows on an 80×24 terminal: a logo that pushes an issue off the screen is worse than none.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+Show the mark ` ✦ Cardinal ` on the right of the top border of the `Queue` panel, in `accent`, on the screen and in
+`--print`, taking no row (SUS-6). Out of scope: a multi-row drawing of the compass, the measures screen (SUC-6).
+Means: the approach's option 2, the border title, rather than a header row.
+
+## Plan
+1. [x] Mark on the queue border: the mark drawn after the queue panel by `screen.rs` (`render`, module `mark.rs`), dropped when
+   the panel cannot hold the title, the mark and one border cell; verified by a screen test (80×24 buffer, accent
+   color, rows unchanged, narrow panel) and the `--print` test of `tests/print_screen.rs`; makes true SUS-6. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 4605550c93405e0553a5ba174f66c7cca13aee4e
+- Glyph: `✦ Cardinal` (1 a); `--print` shows the mark too (2 a).
+
+## Summary of deliverable 1
+done: the mark ` ✦ Cardinal ` ends the top border of the queue panel in `accent`, on the screen and in `--print`,
+dropped below 22 columns (`crates/cardinal-ui/src/mark.rs`); docs: `docs/usage.md`, `docs/architecture.md`.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | SUS-6 traced, `steering-ui-screen.md` accepted |
+| docs | updated |
+| code review | `low`, clean |
+
+red: SUS-6, SUS-H3: `assertion failed: rows[0].ends_with("─ ✦ Cardinal ┐")` and `left: "┌ Queue ─────────────┐"` against `right: "┌ Queue ─ ✦ Cardinal ┐"`
+
+Code review: no findings
+
+not verified: the glyph `✦` in a real terminal (one column wide in the test buffer)
+decisions needed: none

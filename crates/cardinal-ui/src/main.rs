@@ -17,6 +17,7 @@ mod cut;
 mod end;
 mod help;
 mod keys;
+mod mark;
 mod measures;
 mod merge;
 mod notify;

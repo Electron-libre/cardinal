@@ -73,6 +73,8 @@ pub enum Action {
     Charts,
     /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
     Summary,
+    /// `:`: opens the command palette on the panels (SUP-1).
+    Palette,
     /// `Esc`: back to the panels from the charts and the measures (SUC-1), else quit (STU-2).
     Back,
     Nothing,
@@ -162,6 +164,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
         KeyCode::Char('i') => Action::Summary,
+        KeyCode::Char(':') => Action::Palette,
         _ => Action::Nothing,
     }
 }

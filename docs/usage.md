@@ -269,7 +269,8 @@ projects directory given, they read the `projects/` of the configuration directo
 [specs/steering-ui-queue.md](../specs/steering-ui-queue.md), its actions in
 [specs/steering-ui-actions.md](../specs/steering-ui-actions.md), the end of a merged worktree in
 [specs/steering-ui-end.md](../specs/steering-ui-end.md), its theme and status line in
-[specs/steering-ui-screen.md](../specs/steering-ui-screen.md)) shows the
+[specs/steering-ui-screen.md](../specs/steering-ui-screen.md), its command palette in
+[specs/steering-ui-palette.md](../specs/steering-ui-palette.md)) shows the
 project of the current directory (the root of its work tree) in one terminal screen, in two panels (the measures have a screen of their own, below):
 
 | Panel | Read from | Each line |
@@ -369,7 +370,10 @@ read drops the claim (CLM-6). The help line under the panels offers, beside `q`,
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `E` while a worktree is merged, `v` while a milestone awaits its release (in
 zellij), `p` while the queue lists an open issue (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the first
-issue of the queue.
+issue of the queue. `:` opens over the panels the command palette: the same commands of the selection, then
+`r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
+widens again), the arrows move the highlight, `Enter` runs the highlighted one as its key would, `Esc` closes it; while
+it is open, the letters go to the filter and only `Ctrl+C` quits.
 
 Once the trunk holds the close of an issue, the UI ends what the issue left: `f` does it right after a merge whose
 `cardinal check` passed; for an issue merged by hand, `e` on its worktree (`Tab` moves the selection to the worktrees

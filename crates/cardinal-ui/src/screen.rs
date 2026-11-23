@@ -5,7 +5,7 @@
 //! for the user notifies the desktop (STU-29); `g` switches to the charts of the measures, then to their table, where
 //! `m` takes the measures again (STU-17), and back (SUC-1); the mark of an issue at work turns at each tick (SUQ-4);
 //! `i` unfolds the summary of the selected issue under the queue (SUQ-6); the help line under the panels offers the
-//! keys of the selection (SUA-15).
+//! keys of the selection (SUA-15); `:` opens the command palette over the panels (SUP-1).
 
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -18,10 +18,9 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 
 use crate::charts::{head, render_charts, Chart};
-use crate::keys::{
-    action, ended, job, quits, screen_key, task, Action, Ended, Screen, Selection, Task,
-};
+use crate::keys::{ended, job, quits, screen_key, task, Action, Ended, Screen, Selection, Task};
 use crate::notify::{self, Notifier, Wait};
+use crate::palette::Palette;
 use crate::panels::{Mark, Panel};
 use crate::spinner;
 use crate::status::{Kind, Status};
@@ -229,11 +228,11 @@ fn received(
 /// its queue and worktrees with the line `selected` of [`Selection::line`] highlighted (STU-1) over the help line of
 /// the selection, no key of a task while one runs (`busy`, SUA-15), or `reading the
 /// project…` before the first read, in the roles of `theme` (SUS-1); the summary of the selected issue under the
-/// queue when it is `unfolded` (SUQ-6).
+/// queue when it is `unfolded` (SUQ-6), and the command `palette` over them when it is open (SUP-1).
 pub(crate) fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    (selected, shown, busy, unfolded): (Selection, Screen, bool, bool),
+    (selected, shown, busy, unfolded, palette): (Selection, Screen, bool, bool, Option<&Palette>),
     status: &Status,
     theme: &Theme,
 ) {
@@ -267,6 +266,10 @@ pub(crate) fn draw(
                 status,
                 theme,
             ),
+        }
+        if let Some(p) = palette.filter(|_| shown == Screen::Panels) {
+            let all = crate::palette::commands(view, selected, busy);
+            crate::palette::draw(p, &all, area, f.buffer_mut(), theme);
         }
     } else {
         f.buffer_mut().set_style(area, theme.screen());
@@ -307,6 +310,7 @@ pub fn run(
         let mut quitting = false;
         let mut shown = Screen::Panels;
         let mut unfolded = false;
+        let mut palette = None;
         let started = Instant::now();
         loop {
             if schedule.start(Instant::now()) && ask.send(()).is_err() {
@@ -331,11 +335,17 @@ pub fn run(
                 // the mark at work turns at each tick, a read or not (SUQ-4)
                 spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
-            let state = (selected, shown, busy, unfolded);
+            let state = (selected, shown, busy, unfolded, palette.as_ref());
             terminal.draw(|f| draw(f, view.as_ref(), state, &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
-                    let (screen, key) = screen_key(shown, action(&key));
+                    let pressed = crate::palette::pressed(
+                        &mut palette,
+                        &key,
+                        view.as_ref(),
+                        (selected, busy),
+                    );
+                    let (screen, key) = screen_key(shown, pressed);
                     shown = screen;
                     let (now, later) = quits(&key, busy, quitting);
                     if now {
@@ -348,6 +358,7 @@ pub fn run(
                     match key {
                         Action::Quit | Action::Charts => {}
                         Action::Refresh => schedule.asked = true,
+                        Action::Palette if view.is_some() => palette = Some(Palette::default()),
                         Action::Summary => {
                             unfolded = crate::summary::toggle(unfolded, selected, view.as_ref());
                         }
@@ -787,7 +798,7 @@ mod tests {
                 draw(
                     f,
                     Some(&v),
-                    (selected, shown, false, false),
+                    (selected, shown, false, false, None),
                     &Status::default(),
                     &Theme::default(),
                 );

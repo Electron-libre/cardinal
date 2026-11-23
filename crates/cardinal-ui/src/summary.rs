@@ -182,7 +182,7 @@ mod tests {
                 crate::screen::draw(
                     f,
                     Some(v),
-                    (sel, Screen::Panels, false, unfolded),
+                    (sel, Screen::Panels, false, unfolded, None),
                     &Status::default(),
                     &Theme::default(),
                 );

@@ -1,6 +1,6 @@
 ---
 id: SUA
-status: accepted
+status: draft
 adrs: [0022, 0023, 0030, 0031]
 ---
 
@@ -22,7 +22,7 @@ branch, each refused with its reason when the project is not ready for it; the e
 - **SUA-13** (deterministic) withdrawn: moved to SUE-2.
 - **SUA-4** (deterministic) In a zellij session, the key `v`, when a milestone awaits its release (STU-1) or a release prepared is not tagged yet (an interrupted release that `skill:release` resumes), must start in the main worktree, in a new zellij tab named `release`, an interactive `claude` whose first message is `/release`, so the version, its reread, its review and its tag stay with `skill:release`; when SUA-11 refuses, it starts nothing and says why on the status line.
 - **SUA-16** (deterministic) In a zellij session, the key `p`, whatever the selection, must start in the main worktree, in a new zellij tab named `prioritize`, an interactive `claude` whose first message is `/prioritize-issues`, so the review of the `priority` and `depends_on` of the open issues, its proposal, its stop and its commit stay with `skill:prioritize-issues`; when SUA-17 refuses, it starts nothing and says why on the status line.
-- **SUA-15** (deterministic) The help line under the panels must list `q quit  r refresh  ↑↓ select  tab panel`, then `i summary` when the selection is in the queue on an issue (SUQ-6), a task running or not, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUA-2: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), `E end merged` (SUE-2: a row of the worktrees panel reads `merged`, whatever the selection), `v release` (SUA-4: in a zellij session, a milestone awaits its release, whatever the selection), `p prioritize` (SUA-16: in a zellij session, the queue lists an open issue, whatever the selection), then `g charts`, two spaces between two keys, none of `s`, `f`, `e`, `E`, `v` and `p` while a task runs (SUA-6); it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on, the first issue of the queue.
+- **SUA-15** (deterministic) The help line under the panels must list `: commands  ↑↓ select  tab panel  q quit`, then `i summary` when the selection is in the queue on an issue (SUQ-6), a task running or not, then, in this order and each only when its key would act on what is selected in the read shown, `s start` (SUA-1: in a zellij session, the selected issue of the queue `ready` and not taken, or taken only by a `working` claim whose session ended), `f merge` (SUA-2: the selected issue of the queue taken by a claim `merge pending`), `e end` (SUE-1: the selected worktree a linked worktree whose row reads `merged`), two spaces between two keys, none of `s`, `f` and `e` while a task runs (SUA-6); the keys that act whatever the selection (`E`, `v`, `p`, `r`, `g`) are found in the palette (SUP-1), not on the line; it is drawn anew at each read and each move of the selection; a key left out still acts and refuses as its requirement says when pressed; `--print` (STU-4) shows the line of the selection the screen starts on, the first issue of the queue.
 
 ### Contract
 
@@ -56,9 +56,9 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   lists open issues, and a clean main worktree on `trunk` with no live session, when the user presses `p`, then a tab
   `prioritize` runs `claude /prioritize-issues` in the main worktree, and the linked worktree is unchanged.
 - **SUA-H7** (happy; SUA-15) Given a queue whose first issue `foo` is taken by a claim `merge pending` and a
-  worktree of an issue `bar` whose row reads `merged`, when the user looks at the help line, then it reads `q quit  r
-  refresh  ↑↓ select  tab panel  i summary  f merge  E end merged  g charts`; when they press `Tab` and select the worktree of `bar`, it
-  reads `… tab panel  e end  E end merged  g charts`.
+  worktree of an issue `bar` whose row reads `merged`, when the user looks at the help line, then it reads `: commands  ↑↓
+  select  tab panel  q quit  i summary  f merge`; when they press `Tab` and select the worktree of `bar`, it reads `…
+  q quit  e end`.
 - (SUA-5) Given no `ZELLIJ` variable, when `cardinal-ui --start foo` runs, then it prints `start needs zellij` on
   stderr, exits 1 and runs neither `cardinal run worktree open` nor `zellij`.
 - (SUA-5) Given an issue `foo` claimed by a live session, when `cardinal-ui --start foo` runs, then it exits 1 saying
@@ -115,13 +115,13 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
 - (SUA-11) Given a `zellij new-tab` that fails, when `cardinal-ui --release` runs, then it exits 1 naming `zellij
   action new-tab`.
 - (SUA-6) Given a release start running, when the user presses `q`, then the screen quits once it has ended.
-- (SUA-15) Given a ready issue nothing takes selected outside a zellij session, then the help line offers no `s start`
-  nor `v release`, and `s` still says `start needs zellij: run cardinal-ui in a zellij session`.
+- (SUA-15) Given a ready issue nothing takes selected outside a zellij session, then the help line offers no `s start`,
+  and `s` still says `start needs zellij: run cardinal-ui in a zellij session`.
 - (SUA-15) Given a merge running on the selected issue `merge pending`, then the help line offers no `f merge` nor
   any other key of a task until it ends.
 - (SUA-15) Given a merge running on the selected issue, then the help line still offers `i summary`.
-- (SUA-15) Given an empty queue and no worktree `merged`, then the help line reads `q quit  r refresh  ↑↓ select  tab
-  panel  g charts`.
+- (SUA-15) Given an empty queue and no worktree `merged`, then the help line reads `: commands  ↑↓ select  tab
+  panel  q quit`.
 - (SUA-15) Given the selected issue taken by a live `working` claim, then the help line offers no `s start` nor `f
   merge`.
 - (SUA-17) Given no `ZELLIJ` variable, when `cardinal-ui --prioritize` runs, then it prints `prioritize needs zellij`
@@ -138,8 +138,8 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
   `next-issue` and its exit code, and opens no tab.
 - (SUA-17) Given a `zellij new-tab` that fails, when `cardinal-ui --prioritize` runs, then it exits 1 naming
   `zellij action new-tab`.
-- (SUA-15) Given an empty queue in a zellij session, then the help line offers no `p prioritize`, and `p` still says
-  `no open issue to prioritize`.
+- (SUA-15) Given an empty queue in a zellij session, then neither the help line nor the palette (SUP-1) offers `p
+  prioritize`, and `p` still says `no open issue to prioritize`.
 
 ## Non-goals
 
@@ -152,6 +152,6 @@ The happy paths SUA-H3, SUA-H4 and SUA-H6 moved to SUE-H2, SUE-H1 and SUE-H3 of 
 - Rebasing a diverged branch, merging anything but a fast-forward, or pushing the trunk: the rebase is the issue
   session's, the push the user's.
 - Offering `v release` for a release prepared but not tagged yet, which the read of the panels does not see (`roadmap
-  --open` leaves its milestones out): the key still resumes it (SUA-4), the help line does not list it.
+  --open` leaves its milestones out): the key still resumes it (SUA-4), the palette (SUP-1) does not list it.
 - Foreseeing in the help line every refusal of SUA-5, SUA-11 or SUE-3 (a worktree gone, a dirty main worktree, the
   skill `release` turned off): the line reads the conditions SUA-15 names, the key says the rest when pressed.

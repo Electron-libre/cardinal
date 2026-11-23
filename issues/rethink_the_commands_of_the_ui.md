@@ -33,3 +33,50 @@ A steering UI to command
 
 # Resources
 * `crates/cardinal-ui/src/keys.rs`, `crates/cardinal-ui/src/help.rs`, `crates/cardinal-ui/src/screen.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-23
+
+## Understanding
+A command palette on `:` lists the commands that act on the selection (same conditions as the help line), filtered by
+typing their name, `Enter` runs one as its key would; the single letters stay as shortcuts. The help line shrinks to
+`: commands`, the moves and the keys of the selection. Out of scope: a context menu, new key bindings, fuzzy ranking.
+
+## Plan
+1. [x] The palette (`crates/cardinal-ui/src/palette.rs`): the commands of SUP-1 from those of the help line
+   (`help::offered`), the filter, the highlight and the keys inside it, `:` opening it over the panels, `Enter` running
+   the action of the highlighted command through the path of its key, `Esc` closing it, nothing on the charts;
+   `screen.rs` (over the file size limit, its split is `split_the_screen_module_of_the_ui`) only gets the dispatch;
+   verified by the unit tests of `palette.rs`; makes true SUP-1 to SUP-5, SUP-H1, SUP-H2. (autonomous)
+2. [ ] The shorter help line: `: commands  ↑↓ select  tab panel  q quit` then `i`, `s`, `f`, `e` of the selection, the
+   global keys moved to the palette, with `README.md`, `docs/usage.md` and `docs/architecture.md`; verified by the
+   tests of `help.rs` and `--print`; makes true the amended SUA-15.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 4f63e1113ce4df9f81420bfcd524d9a56a9613e6
+- Design: a palette on `:` with the single letters kept (1 a); the help line keeps `: commands`, the moves, `q` and
+  the keys of the selection (2 a); the palette lists only the commands that act (3 a); no command reported missing (4 a).
+- Deliverables 1 and 2 of the validated plan merged into one (about 640 lines): the model alone left dead code that
+  `clippy -D warnings` refuses.
+
+## Summary of deliverable 1
+done: `:` opens a command palette over the panels, filtered by name, `Enter` runs the highlighted command as its key.
+
+| check | result |
+|---|---|
+| tests | `just check` green, 10 new tests in `palette.rs` |
+| lint | clippy `-D warnings` clean |
+| specs | SUP-1 to SUP-5, SUP-H1, SUP-H2 traced (internal: the screen needs a real terminal) |
+| docs | `README.md`, `docs/usage.md`, `docs/architecture.md`, `.claude/update-docs-map.md`, `main.rs` |
+| code review | `low`: no findings |
+
+red: SUP-1, SUP-2, SUP-3, SUP-4, SUP-5, SUP-H1, SUP-H2: `assertion left == right failed` (an empty list of commands,
+an `Action::Nothing` instead of `Action::Start`, a blank screen with no palette drawn)
+
+Code review: no findings
+
+not verified: the palette in a real terminal (drawn only through the `TestBackend`).
+decisions needed: none. `screen.rs` grows to 868 lines (limit 800): its split is the issue
+`split_the_screen_module_of_the_ui`.

@@ -3,7 +3,7 @@
 //! refuse on their own when pressed out of context (a read may have changed the project since): the line is a hint,
 //! never the guard.
 
-use crate::keys::{Focus, Selection};
+use crate::keys::{Action, Focus, Selection};
 use crate::screen::View;
 use crate::source::{State, Taken};
 
@@ -65,29 +65,53 @@ impl Keys {
     }
 }
 
-/// The help line of the panels of `v` with `sel` selected: `i summary` with the selection on an issue of the queue
-/// (SUQ-6), no key of a task while one runs (`busy`, SUA-6, SUA-15).
-pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
+/// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
+/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), then the keys of
+/// the tasks that would act, none while one runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
+pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str, Action)> {
     let at = |flags: &[bool], i: usize| flags.get(i).copied().unwrap_or(false);
     let keys = &v.keys;
     let queue = sel.focus == Focus::Queue;
-    let offered = [
-        (queue && at(&keys.start, sel.issue), "s start"),
-        (queue && at(&keys.merge, sel.issue), "f merge"),
-        (!queue && at(&keys.merged, sel.worktree), "e end"),
-        (keys.merged.contains(&true), "E end merged"),
-        (keys.release, "v release"),
-        (keys.prioritize, "p prioritize"),
+    let summary = crate::summary::selected(v, sel).is_some();
+    let tasks = [
+        (
+            queue && at(&keys.start, sel.issue),
+            "s start",
+            Action::Start,
+        ),
+        (
+            queue && at(&keys.merge, sel.issue),
+            "f merge",
+            Action::Merge,
+        ),
+        (
+            !queue && at(&keys.merged, sel.worktree),
+            "e end",
+            Action::End,
+        ),
+        (
+            keys.merged.contains(&true),
+            "E end merged",
+            Action::EndMerged,
+        ),
+        (keys.release, "v release", Action::Release),
+        (keys.prioritize, "p prioritize", Action::Prioritize),
     ];
-    let summary = crate::summary::selected(v, sel).map(|_| "i summary");
-    std::iter::once(ALWAYS)
-        .chain(summary)
+    std::iter::once((summary, "i summary", Action::Summary))
         .chain(
-            offered
-                .iter()
-                .filter(|(on, _)| *on && !busy)
-                .map(|(_, key)| *key),
+            tasks
+                .into_iter()
+                .map(|(on, label, a)| (on && !busy, label, a)),
         )
+        .filter(|(on, _, _)| *on)
+        .map(|(_, label, a)| (label, a))
+        .collect()
+}
+
+/// The help line of the panels of `v` with `sel` selected, a task running when `busy` (SUA-15).
+pub(crate) fn line(v: &View, sel: Selection, busy: bool) -> String {
+    std::iter::once(ALWAYS)
+        .chain(offered(v, sel, busy).into_iter().map(|(label, _)| label))
         .chain(std::iter::once(LAST))
         .collect::<Vec<_>>()
         .join("  ")

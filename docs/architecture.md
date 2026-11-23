@@ -282,7 +282,8 @@ flowchart LR
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |
-| `help.rs` | the help line under the panels: the keys that always work, then those of the tasks that would act on the selected issue or worktree, from what the read found |
+| `help.rs` | the help line under the panels: the keys that always work, then those of the tasks that would act on the selected issue or worktree, from what the read found; the palette lists the same ones |
+| `palette.rs` | the command palette `:` opens: the commands of the help line then those that always act, the text typed that filters them, the highlight, the keys while it is open, drawn over the panels |
 | `keys.rs` | the action of each key, the selection in the queue or the worktrees it moves, the task a key runs on what is selected |
 | `start.rs` | starts an issue session: checks the issue is ready and free, `cardinal run worktree open`, then `zellij action new-tab` running `claude` ([ADR 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)) |
 | `merge.rs` | merges an issue `merge pending`: refuses a detached, dirty or locked main worktree and a diverged branch, then `git merge --ff-only <branch>` and `cardinal check` in the main worktree |

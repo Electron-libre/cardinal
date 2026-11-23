@@ -83,7 +83,7 @@ closes needed a rebase, 1 conflicted (`ROADMAP.md`, lines added to the same list
    row of `merge.rs` in `docs/architecture.md`; verified by `rebase_issue.rs` and `merge.rs`; makes true RBI-2, SUM-3. (autonomous)
 
 Done: every deliverable committed; the refusal of `f` while the issue session waits in its tab is the follow-up
-`issues/end_the_waiting_session_before_rebasing_its_branch.md`.
+`issues/done/end_the_waiting_session_before_rebasing_its_branch.md`.
 
 ## Decisions
 - Mode: autonomous

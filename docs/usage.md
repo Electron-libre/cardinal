@@ -319,7 +319,8 @@ wait; on the panels, `m` does nothing. The numbers are trends with their sample,
 What an action did or why it refused, a failed notification and an ignored theme line go on the status line, rows
 of its own above the help line, drawn only while it holds a message and kept until a task, or a key that starts one,
 replaces it (a failed notification until the screen quits): an error in `fail`, a task done in `pass`, a task that
-runs and `quitting once the task ends…` in `text`. On a narrow terminal it wraps: a message that does not fit
+runs and `quitting once the task ends…` in `text`; a task that panics shows `the task panicked: <message>` as
+an error and frees the keys, the screen going on. On a narrow terminal it wraps: a message that does not fit
 after the one before it goes to the row below, up to a third of the screen, the errors first when even that is too
 few rows.
 

@@ -92,12 +92,79 @@ fn next(view: Option<&View>, selected: &mut Selection, status: &mut Status) {
     }
 }
 
+/// The name of the threads of the tasks, which the panic hook of `run` passes over (SUS-7).
+const TASK_THREAD: &str = "cardinal-ui task";
+
+/// Runs `job` on `stem` on a thread of its own and sends its result on `send`, a panic as the failed line `the task
+/// panicked: <message>`, so the screen learns it ended (SUS-7); an error when the thread could not start.
+fn spawn_task(
+    run_task: fn(Task, &str) -> Result<String, String>,
+    job: Task,
+    stem: String,
+    send: mpsc::Sender<Result<String, String>>,
+) -> std::io::Result<()> {
+    let body = move || {
+        let result = std::panic::catch_unwind(|| run_task(job, &stem))
+            .unwrap_or_else(|panic| Err(format!("the task panicked: {}", message(&*panic))));
+        // the loop quit with an error: nobody waits for the result
+        let _ = send.send(result);
+    };
+    std::thread::Builder::new()
+        .name(TASK_THREAD.into())
+        .spawn(body)
+        .map(drop)
+}
+
+/// The message of a panic: the text `panic!` was given, else a placeholder.
+fn message(panic: &(dyn std::any::Any + Send)) -> &str {
+    panic
+        .downcast_ref::<&str>()
+        .copied()
+        .or_else(|| panic.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("no message")
+}
+
+/// Makes the panic hook pass over the threads of the tasks, whose panic `spawn_task` reports: the hook Ratatui set
+/// would give the terminal back and print over the screen that goes on (SUS-7).
+fn pass_over_tasks() {
+    let before = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if std::thread::current().name() != Some(TASK_THREAD) {
+            before(info);
+        }
+    }));
+}
+
+/// Starts the task `job` on `stem`, `shown` on `status` while it runs, or says there why it did not start; whether
+/// it started (SUA-6).
+fn start(
+    run_task: fn(Task, &str) -> Result<String, String>,
+    (job, shown, stem): (Task, String, String),
+    send: mpsc::Sender<Result<String, String>>,
+    status: &mut Status,
+) -> bool {
+    match spawn_task(run_task, job, stem, send) {
+        Ok(()) => {
+            status.set(Status::new(shown, Kind::Other));
+            true
+        }
+        Err(e) => {
+            status.set(Status::new(
+                format!("the task did not start: {e}"),
+                Kind::Error,
+            ));
+            false
+        }
+    }
+}
+
 /// Runs the screen in the terminal until the user quits (STU-2): `read` gives the panels, run on a thread of its
 /// own so the keys are answered during a slow read; `run_task` runs the task of `s` or `f` on the selected issue, of
 /// `e` on the selected worktree, or of `v` or `E` (SUA-1, SUM-1, SUE-1, SUA-4, SUE-2), on a thread too, one at a time, its result on the status line; `measure` starts a measure on `m` of the charts and the measures (SUC-1),
 /// which runs apart (STU-17); each read notifies the desktop of its new waits (STU-29, STU-30). Gives the result of a task the user quit during, to print once the terminal is given
 /// back (SUA-6). It draws in the roles of `theme`, its status line opening on `status` (SUS-1, SUS-5). The terminal
-/// is given back as it was, also on a panic (Ratatui's hook).
+/// is given back as it was, also on a panic of the loop or of the reads (Ratatui's hook); a task that panics ends as a
+/// failed one, the screen going on (SUS-7).
 pub fn run(
     read: impl Fn() -> View + Send + 'static,
     run_task: fn(Task, &str) -> Result<String, String>,
@@ -115,6 +182,7 @@ pub fn run(
     });
     let (done, task_result) = mpsc::channel::<Result<String, String>>();
     let mut terminal = ratatui::try_init()?;
+    pass_over_tasks();
     let result = (|| {
         let mut view: Option<View> = None;
         let mut schedule = Schedule::default();
@@ -183,11 +251,8 @@ pub fn run(
                             schedule.asked = true;
                         }
                         k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
-                            Ok(Some((job, shown, stem))) if !busy => {
-                                busy = true;
-                                status.set(Status::new(shown, Kind::Other));
-                                let send = done.clone();
-                                std::thread::spawn(move || send.send(run_task(job, &stem)));
+                            Ok(Some(t)) if !busy => {
+                                busy = start(run_task, t, done.clone(), &mut status);
                             }
                             Err(why) if !busy => status.set(Status::new(why, Kind::Error)),
                             _ => {}
@@ -210,6 +275,47 @@ pub fn run(
 mod tests {
     use super::*;
     use crate::keys::tests::view;
+
+    fn panics(_: Task, stem: &str) -> Result<String, String> {
+        panic!("boom on {stem}")
+    }
+
+    // spec: SUS-7 (internal: the panic of a task of a screen that needs a real terminal)
+    #[test]
+    fn a_task_that_panics_sends_its_panic_as_a_failure() {
+        let (send, ended) = mpsc::channel();
+        spawn_task(panics, Task::Start, "foo".to_string(), send).unwrap();
+        assert_eq!(
+            ended.recv_timeout(Duration::from_secs(5)),
+            Ok(Err("the task panicked: boom on foo".to_string()))
+        );
+    }
+
+    // spec: SUS-7 (internal: the panic hook of a screen that needs a real terminal)
+    #[test]
+    fn the_panic_of_a_task_reaches_no_hook_of_the_terminal() {
+        use std::sync::{Arc, Mutex};
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let record = Arc::clone(&seen);
+        let before = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let name = std::thread::current().name().map(String::from);
+            record.lock().unwrap().push(name);
+            before(info);
+        }));
+        pass_over_tasks();
+        let (send, ended) = mpsc::channel();
+        spawn_task(panics, Task::Merge, "bar".to_string(), send).unwrap();
+        ended
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap()
+            .unwrap_err();
+        let named = std::thread::Builder::new().name("other".into());
+        named.spawn(|| panic!("seen")).unwrap().join().unwrap_err();
+        let seen = seen.lock().unwrap();
+        assert!(seen.contains(&Some("other".to_string())), "{seen:?}");
+        assert!(!seen.contains(&Some(TASK_THREAD.to_string())), "{seen:?}");
+    }
 
     // spec: STU-2 (internal: the timing of the reads of a screen that needs a real terminal)
     #[test]

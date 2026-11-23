@@ -285,7 +285,7 @@ flowchart LR
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
-| `terminal.rs` | the terminal loop: the reads of the project every 2 s and on `r`, one at a time, the keys of the screen, and the starts, the merges, the ends and the release, review, audit and cut starts on threads of their own |
+| `terminal.rs` | the terminal loop: the reads of the project every 2 s and on `r`, one at a time, the keys of the screen, and the starts, the merges, the ends and the release, review, audit and cut starts on threads of their own, a panic of one caught as its failed line, the panic hook passing over their threads (SUS-7) |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of its own, the first failure kept for the status line |
 | `help.rs` | the commands that would act on what the read found and on the selection, which the palette lists; the help line under the panels: `: commands`, the moves and `q`, then those of them that act on the selected issue, milestone or worktree |
 | `palette.rs` | the command palette `:` opens: the commands of the help line then those that always act, the text typed that filters them, the highlight, the keys while it is open, drawn over the panels |

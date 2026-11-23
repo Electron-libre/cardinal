@@ -19,6 +19,7 @@ status line that shows what an action did or why it refused.
 - **SUS-2** (deterministic) The status line of the screen (what an action of SUA or SUE did or why it refused, a notification that failed (STU-30), an ignored theme line (SUS-5)) must be drawn on rows of its own (SUS-3), above the help line and only while it holds a message, on `surface` across the whole width: an error (a task that failed or refused, a key that starts nothing and says why, a failed notification, an ignored theme line) in `fail`, the result of a task that succeeded in `pass`, the others (a task that runs, `quitting once the task ends…`) in `text`, each message of the line in its own role when it holds several; it keeps its message until a task or a key that starts one replaces it, a failed notification until the screen quits, a read of STU-2 leaving it as it is.
 - **SUS-3** (deterministic) The status line of SUS-2 must show every one of its messages whatever the width of the terminal: a message that does not fit after the one before it starts a row of its own below it, one wider than the screen goes on over the rows under it, the line taking as many rows as its messages need, at most a third of the height of the screen (one row at least), the panels keeping the others; a line that needs more rows than that shows its errors first, the others after them as long as they fit.
 - **SUS-6** (deterministic) The screen of STU-1 and `--print` must show the mark of Cardinal, ` ✦ Cardinal `, at the right end of the top border of the queue panel, against its corner, the screen drawing it in `accent`, taking no row of its own; a panel too narrow to hold its title, the mark and one cell of border between them shows its title alone.
+- **SUS-7** (deterministic) A task of a key of SUA, SUM or SUE (SUA-6) that panics must end like a task that failed: the status line of SUS-2 reads `the task panicked: <message of the panic>` in `fail`, the keys of SUA-6 start a task again, `q` pressed during it quits once it has panicked and prints that line on stderr, and the screen stays drawn in the terminal until the user quits, the panic printing nothing over it.
 
 ### Contract
 
@@ -49,6 +50,10 @@ status line that shows what an action did or why it refused.
   `merged <stem> (<branch>) into <trunk>` in `pass`.
 - **SUS-H3** (happy; SUS-6) Given an 80×24 terminal, when the screen draws, then the top border of the queue panel
   reads ` Queue ` at its left and ` ✦ Cardinal ` at its right in `accent`, and the queue keeps every row it had.
+- (SUS-7) Given a start whose task panics with `boom`, then the status line reads `the task panicked: boom` in
+  `fail`, the screen is still drawn, and `s` on a ready issue starts its task.
+- (SUS-7) Given a merge whose task panics after the user pressed `q`, then the screen quits and prints `the task
+  panicked: <message>` on stderr once the terminal is given back.
 - (SUS-1) Given the same theme file, when `cardinal-ui --print` runs, then its output holds no escape sequence.
 - (SUS-4) Given no theme file, then every role has its default and no `theme:` line is shown.
 - (SUS-4) Given `XDG_CONFIG_HOME` set to `config` (a relative path) and no `CARDINAL_UI_THEME`, then the theme is read
@@ -76,6 +81,8 @@ status line that shows what an action did or why it refused.
 
 ## Non-goals
 
+- Recovering the reads of the panels from a panic of their thread (STU-2): the screen quits with an error, the
+  terminal given back.
 - A drawing of the compass of `docs/logo/` over several rows, or the mark on the screen of the measures (SUC-6).
 - The layout of the panels and the defaults of the roles of SUS-5: they may change without a requirement.
 - Reading the theme again while the screen runs, other color forms than `#rrggbb` (ANSI names, 256-color indexes),

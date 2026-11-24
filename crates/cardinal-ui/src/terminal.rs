@@ -106,6 +106,20 @@ fn spawn_task(
     panics::spawn(Caught::Task, move || run_task(job, &stem), end)
 }
 
+/// The job of `action` (see [`job`]) once no task runs; while one runs (`busy`), nothing: neither a start nor
+/// the refusal of one (SUA-6).
+fn launch(
+    action: &Action,
+    sel: Selection,
+    v: Option<&View>,
+    busy: bool,
+) -> Result<Option<(Task, String, String)>, String> {
+    if busy {
+        return Ok(None);
+    }
+    job(action, sel, v)
+}
+
 /// Starts the task `job` on `stem`, `shown` on `status` while it runs, or says there why it did not start; whether
 /// it started (SUA-6).
 fn start(
@@ -223,13 +237,13 @@ pub fn run(
                             measure();
                             schedule.asked = true;
                         }
-                        k if task(&k, "").is_some() => match job(&k, selected, view.as_ref()) {
-                            Ok(Some(t)) if !busy => {
-                                busy = start(run_task, t, done.clone(), &mut status);
+                        k if task(&k, "").is_some() => {
+                            match launch(&k, selected, view.as_ref(), busy) {
+                                Ok(Some(t)) => busy = start(run_task, t, done.clone(), &mut status),
+                                Err(why) => status.set(Status::new(why, Kind::Error)),
+                                Ok(None) => {}
                             }
-                            Err(why) if !busy => status.set(Status::new(why, Kind::Error)),
-                            _ => {}
-                        },
+                        }
                         a => {
                             if let Some(v) = &view {
                                 selected.apply(&a, v);
@@ -248,6 +262,35 @@ pub fn run(
 mod tests {
     use super::*;
     use crate::keys::tests::view;
+    use crate::keys::Selection;
+    use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    // spec: SUA-6 (internal: the keys of a screen that needs a real terminal)
+    #[test]
+    fn no_key_starts_a_task_nor_shows_its_refusal_while_one_runs() {
+        let v = view(&["foo"], &[("/w/foo", Some("foo")), ("/w/main", None)]);
+        let sel = Selection::default();
+        for c in ['s', 'f', 'e', 'c', 'E', 'v', 'p', 'a'] {
+            let key = crate::keys::action(&KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
+            assert!(task(&key, "").is_some(), "{c} runs a task");
+            assert_eq!(
+                launch(&key, sel, Some(&v), true),
+                Ok(None),
+                "{c} while busy"
+            );
+        }
+        assert!(
+            matches!(
+                launch(&Action::Audit, sel, Some(&v), false),
+                Ok(Some((Task::Audit, _, _)))
+            ),
+            "a starts the audit once none runs"
+        );
+        assert!(
+            launch(&Action::End, sel, Some(&v), false).is_err(),
+            "e on the queue is refused"
+        );
+    }
 
     fn panics(_: Task, stem: &str) -> Result<String, String> {
         panic!("boom on {stem}")

@@ -382,7 +382,7 @@ is not an ancestor of the branch (another issue was merged since), it first runs
 then `cardinal run project-check` in the worktree of the branch, and merges only once both pass (`rebased and merged
 ...`); a conflict `rebase-issue` cannot settle, a live session in that worktree or a pushed branch merges nothing,
 the rebase aborted, and a failing project check keeps the rebase but merges nothing. The status line says what was merged or
-why nothing was; `s`, `f`, `e`, `c`, `E`, `v` and `p` start nothing while a start, a merge, an end, a release start, a review start or a cut start runs, and `q` then quits once it
+why nothing was; `s`, `f`, `e`, `c`, `E`, `v`, `p` and `a` start nothing, and show no refusal, while a start, a merge, an end, a release start, a review start, an audit start or a cut start runs, and `q` then quits once it
 ended, printing the result of a merge, an end, a release start or a review start. The next
 read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, `n` while the issue `next-issue` offers is not selected, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge

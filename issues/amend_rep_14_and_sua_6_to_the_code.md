@@ -32,3 +32,43 @@ Specs and docs true to the code
 
 # Resources
 * `skill:write-spec`, `crates/cardinal/tests/cardinal_report.rs`, `crates/cardinal-ui/src/keys.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+REP-14 and SUA-6 amended to what the code does: `--by milestone` accepted, the audit (`a`) among the starts that
+block the other keys and that `q` waits for. No change of behaviour. The guard of the keys while a task runs lives in
+the loop of `terminal.rs`, untested: it moves to a function of `keys.rs` that a test drives with every start key.
+
+## Plan
+1. [x] Amend REP-14 and SUA-6; extract the busy guard of the loop of `terminal.rs` into a function of its own (no change of behaviour);
+   verified by a test that `s`, `f`, `e`, `c`, `E`, `v`, `p` and `a` start nothing and show nothing while a task
+   runs, REP-14 by the checks of `setup_checks` (unknown or missing `--by` refused) and the `--by milestone` tests of
+   REP-20; makes true REP-14, SUA-6. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 99b20e6db1c9f6cc58479bc9fafa5281a929e636
+- REP-14 proved by the existing checks of `setup_checks` and the REP-20 tests, no new test (1 a).
+
+## Summary of deliverable 1
+
+done: REP-14 accepts `--by milestone`, SUA-6 names the audit and `a`; the busy guard of the loop is `launch` in
+`terminal.rs` (not `keys.rs`, which it would have pushed over 800 lines), `docs/usage.md` names `a`.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass, both `accepted` again |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: SUA-6: cannot find function `launch` in this scope
+
+Code review: no findings
+
+not verified: none
+decisions needed: none

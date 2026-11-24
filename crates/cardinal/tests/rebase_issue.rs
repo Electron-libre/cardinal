@@ -57,20 +57,27 @@ impl Repo {
             &main,
             &["worktree", "add", "-q", "-b", "foo", ws.to_str().unwrap()],
         );
-        let claim = format!(
-            "session s1\npid 1\nworktree {}\nbranch foo\nstate merge pending\n",
-            ws.display()
-        );
-        let path = main.join("claim.txt");
-        std::fs::write(&path, claim).unwrap();
-        let oid = git(&main, &["hash-object", "-w", path.to_str().unwrap()]);
-        std::fs::remove_file(&path).unwrap();
-        git(&main, &["update-ref", "refs/cardinal/claims/foo", &oid]);
-        Repo {
+        let r = Repo {
             _root: root,
             main,
             ws,
-        }
+        };
+        r.claim("foo", "foo");
+        r
+    }
+
+    /// Writes the claim `merge pending` of the issue `stem` on `branch`.
+    fn claim(&self, stem: &str, branch: &str) {
+        let claim = format!(
+            "session s1\npid 1\nworktree {}\nbranch {branch}\nstate merge pending\n",
+            self.ws.display()
+        );
+        let path = self.main.join("claim.txt");
+        std::fs::write(&path, claim).unwrap();
+        let oid = git(&self.main, &["hash-object", "-w", path.to_str().unwrap()]);
+        std::fs::remove_file(&path).unwrap();
+        let name = format!("refs/cardinal/claims/{stem}");
+        git(&self.main, &["update-ref", &name, &oid]);
     }
 
     fn rev(&self, name: &str) -> String {
@@ -347,6 +354,84 @@ fn refuses_a_branch_checked_out_nowhere() {
     let (code, _, err) = rebase(&r.main, "", "foo");
     assert_eq!(code, Some(1));
     assert!(err.contains("foo is checked out in no worktree"), "{err}");
+}
+
+// spec: RBI-3
+#[test]
+fn aborts_on_a_binary_file_changed_on_both_sides() {
+    let r = Repo::new();
+    commit(&r.main, "logo.bin", "\0base\n");
+    git(&r.ws, &["rebase", "-q", "trunk"]);
+    commit(&r.ws, "logo.bin", "\0base\n\0branch\n");
+    commit(&r.main, "logo.bin", "\0base\n\0trunk\n");
+    let foo = r.rev("foo");
+    let (code, _, err) = rebase(&r.main, "", "foo");
+    assert_eq!(code, Some(1), "{err}");
+    assert!(
+        err.contains("foo: conflict in logo.bin: rebase aborted"),
+        "{err}"
+    );
+    assert_eq!(r.rev("foo"), foo);
+    assert!(!r.rebase_in_progress());
+}
+
+// spec: RBI-4
+#[test]
+fn refuses_a_worktree_with_a_modified_tracked_file() {
+    let r = Repo::new();
+    commit(&r.ws, "feature.txt", "f\n");
+    commit(&r.main, "other.txt", "o\n");
+    std::fs::write(r.ws.join("README.md"), "changed\n").unwrap();
+    let foo = r.rev("foo");
+    let (code, _, err) = rebase(&r.main, "", "foo");
+    assert_eq!(code, Some(1));
+    let why = format!(
+        "worktree {} has uncommitted changes or untracked files",
+        r.ws.display()
+    );
+    assert!(err.contains(&why), "{err}");
+    assert_eq!(r.rev("foo"), foo);
+}
+
+// spec: RBI-4
+#[test]
+fn refuses_a_branch_that_is_the_trunk() {
+    let r = Repo::new();
+    r.claim("bar", "trunk");
+    let trunk = r.rev("trunk");
+    let (code, _, err) = rebase(&r.main, "", "bar");
+    assert_eq!(code, Some(1));
+    assert!(err.contains("trunk is the trunk"), "{err}");
+    assert_eq!(r.rev("trunk"), trunk);
+}
+
+// spec: RBI-4
+#[test]
+fn refuses_a_main_worktree_not_on_a_branch() {
+    let r = Repo::new();
+    commit(&r.ws, "feature.txt", "f\n");
+    commit(&r.main, "other.txt", "o\n");
+    git(&r.main, &["checkout", "-q", "--detach"]);
+    let foo = r.rev("foo");
+    let (code, _, err) = rebase(&r.ws, "", "foo");
+    assert_eq!(code, Some(1));
+    assert!(err.contains("main worktree not on a branch"), "{err}");
+    assert_eq!(r.rev("foo"), foo);
+}
+
+// spec: RBI-4
+#[test]
+fn refuses_a_bare_repository() {
+    let r = Repo::new();
+    let bare = r.main.with_file_name("bare.git");
+    let (from, to) = (r.main.to_str().unwrap(), bare.to_str().unwrap());
+    git(&r.main, &["clone", "-q", "--mirror", from, to]);
+    let (code, _, err) = rebase(&bare, "", "foo");
+    assert_eq!(code, Some(1), "{err}");
+    assert!(
+        err.contains("no main worktree: the repository is bare"),
+        "{err}"
+    );
 }
 
 // spec: RBI-5

@@ -259,18 +259,21 @@ pub(super) fn main(args: &[String]) -> u8 {
 mod tests {
     use super::settle;
 
+    // spec: RBI-2 (internal: the shape of a conflict hunk is cheaper to state on the text than through a rebase)
     #[test]
     fn keeps_both_sides_of_an_addition_over_an_empty_base() {
         let text = "a\n<<<<<<< HEAD\nx\n||||||| base\n=======\ny\n>>>>>>> c\nb\n";
         assert_eq!(settle(text).as_deref(), Some("a\nx\ny\nb\n"));
     }
 
+    // spec: RBI-3 (internal: the shape of a conflict hunk is cheaper to state on the text than through a rebase)
     #[test]
     fn refuses_a_hunk_that_changes_a_line_of_the_base() {
         let text = "<<<<<<< HEAD\nx\n||||||| base\nold\n=======\ny\n>>>>>>> c\n";
         assert_eq!(settle(text), None);
     }
 
+    // spec: RBI-3 (internal: the shape of a conflict hunk is cheaper to state on the text than through a rebase)
     #[test]
     fn refuses_a_hunk_without_its_base() {
         assert_eq!(settle("<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> c\n"), None);

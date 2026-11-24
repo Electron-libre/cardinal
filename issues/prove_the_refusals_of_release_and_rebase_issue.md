@@ -58,10 +58,10 @@ finds a gap (then it stops for a decision). `settings_hygiene.rs` stays untraced
    refused with the changelog unchanged; REL-5 run from a subdirectory; REL-6 assert the reread, commit and
    `release 0.3.0 --tag` steps; verified by `crates/cardinal/tests/release.rs`; makes true REL-3, REL-4, REL-5, REL-6
    (~60 lines, the file stays under 800). (autonomous)
-2. [ ] Rebase-issue: trace the three `settle` unit tests (RBI-2, RBI-3); one RBI-4 test each for a bare repository,
+2. [x] Rebase-issue: trace the three `settle` unit tests (RBI-2, RBI-3); one RBI-4 test each for a bare repository,
    a detached main worktree, the branch being the trunk, a modified tracked file; one RBI-3 test of a binary file
    changed on both sides; verified by `crates/cardinal/tests/rebase_issue.rs`; makes true RBI-2, RBI-3, RBI-4
-   (~120 lines).
+   (~120 lines). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -80,6 +80,25 @@ done: REL-4 seed test traced; REL-3 existing tag above the proposal, REL-5 run f
 red: REL-3, REL-5, REL-6: the tests pass on the existing code; checked by mutation instead: without the tag check
 `release 0.3.0` is accepted (release.rs:198), with the command run from the current directory `version.txt` lands in
 `sub/` (release.rs:275), with another wording of the next step the REL-6 assertion fails (release.rs:313).
+
+Code review: no findings
+
+not verified: nothing.
+
+## Summary of deliverable 2
+done: the `settle` unit tests traced (RBI-2, RBI-3); RBI-4 tests of a bare repository, a detached main worktree,
+the branch being the trunk, a modified tracked file; RBI-3 test of a binary file changed on both sides.
+
+| check | result |
+|---|---|
+| tests | `cargo test --test rebase_issue`: 21 passed |
+| lint, specs | `cardinal run project-check` |
+| docs | none: tests only |
+| code review | `/code-review low`: no findings |
+
+red: RBI-3, RBI-4: the tests pass on the existing code; checked by mutation instead: each refusal removed (bare,
+detached, trunk, tracked change, binary read as text) makes its own test fail (rebase_issue.rs:370, 392, 403, 418,
+431).
 
 Code review: no findings
 

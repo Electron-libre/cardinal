@@ -23,19 +23,7 @@ pub fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 /// The main worktree of the repository of `dir` and its branch, `None` when detached.
 pub fn main_worktree(dir: &Path) -> Result<(PathBuf, Option<String>), String> {
     let list = git(dir, &["worktree", "list", "--porcelain"])?;
-    let record = list.split("\n\n").next().unwrap_or_default();
-    if record.lines().any(|l| l == "bare") {
-        return Err("no main worktree: the repository is bare".to_string());
-    }
-    let path = record
-        .lines()
-        .find_map(|l| l.strip_prefix("worktree "))
-        .ok_or("git worktree list: no main worktree")?;
-    let branch = record
-        .lines()
-        .find_map(|l| l.strip_prefix("branch refs/heads/"))
-        .map(str::to_string);
-    Ok((PathBuf::from(path), branch))
+    cardinal_state::worktree::main(&cardinal_state::worktree::parse(&list))
 }
 
 /// The main worktree of the repository of `dir` and its trunk, once it is on a branch, clean and held by no running

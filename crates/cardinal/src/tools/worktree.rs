@@ -19,42 +19,15 @@ use crate::git::{run as git, run_ok as git_ok};
 /// The main worktree and the branch it has checked out (`None` when detached).
 fn main_worktree(cwd: &Path) -> Result<(PathBuf, Option<String>), String> {
     let all = worktrees(cwd).map_err(|_| "not inside a git repository".to_string())?;
-    let main = all.into_iter().next().ok_or("no worktree found")?;
-    if main.bare {
-        return Err("a bare repository has no main worktree".to_string());
-    }
-    Ok((main.path, main.branch))
+    cardinal_state::worktree::main(&all)
 }
 
-/// A worktree of `git worktree list`: its path, the branch it has checked out (`None` when detached) and its HEAD.
-pub(super) struct Worktree {
-    pub(super) path: PathBuf,
-    pub(super) branch: Option<String>,
-    pub(super) head: Option<String>,
-    /// Locked by `git worktree lock`: git refuses to remove or prune it.
-    locked: bool,
-    /// The repository is bare: this record stands for it, not for a work tree.
-    pub(super) bare: bool,
-}
+pub(super) use cardinal_state::worktree::Worktree;
 
 /// Every worktree, the main one first: the one reader of `git worktree list` of the tools.
 pub(super) fn worktrees(cwd: &Path) -> Result<Vec<Worktree>, String> {
     let list = git(cwd, &["worktree", "list", "--porcelain"])?;
-    Ok(list
-        .split("\n\n")
-        .filter_map(|record| {
-            let field = |key: &str| record.lines().find_map(|l| l.strip_prefix(key));
-            Some(Worktree {
-                path: PathBuf::from(field("worktree ")?),
-                branch: field("branch refs/heads/").map(str::to_string),
-                head: field("HEAD ").map(str::to_string),
-                locked: record
-                    .lines()
-                    .any(|l| l == "locked" || l.starts_with("locked ")),
-                bare: record.lines().any(|l| l == "bare"),
-            })
-        })
-        .collect())
+    Ok(cardinal_state::worktree::parse(&list))
 }
 
 /// The path of the worktree that has `branch` checked out.

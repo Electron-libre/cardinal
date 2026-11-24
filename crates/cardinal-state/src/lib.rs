@@ -2,6 +2,8 @@
 //! lines of a lock, a claim or a mark, and whether the session that wrote a lock or a claim still runs (WSL-1, CLM-11,
 //! STU-7). Runs no git: each binary runs it through its own runner. Depends on nothing but `std`.
 
+pub mod worktree;
+
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, SystemTime};

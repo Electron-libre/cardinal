@@ -50,10 +50,10 @@ Means: approach 1, a std-only library crate `crates/cardinal-state` (ADR 0033 dr
    `key value` parser), used by `issue_claim`, `workspace_lock`, `rebase_issue`, `session_scratch` and the UI's
    `source.rs` in place of their copies; verified by those unit tests and the existing tests of WSL-1, CLM-11,
    RBI-4 and STU-7; makes true nothing new (unchanged behaviour). ~350 lines. (autonomous)
-2. [ ] Worktree list in `cardinal-state`: a parser of `git worktree list --porcelain` and `main_worktree` over it
+2. [x] Worktree list in `cardinal-state`: a parser of `git worktree list --porcelain` and `main_worktree` over it
    (one error text: `no main worktree: the repository is bare`, that of RBI-4 and SUA-11), used by
    `worktree.rs`, `rebase_issue.rs` and the UI's `merge.rs`; verified by its unit tests and the existing tests of
-   RBI-4, SUA-11 and the worktree tool. ~250 lines.
+   RBI-4, SUA-11 and the worktree tool. ~250 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -74,6 +74,24 @@ Means: approach 1, a std-only library crate `crates/cardinal-state` (ADR 0033 dr
 | code review | see below |
 
 - red: none (refactor: the crate's tests failed to compile before it existed)
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2 summary
+- done: `cardinal_state::worktree` (`parse` of `git worktree list --porcelain`, `main`), read by `worktree.rs`,
+  `rebase_issue.rs` and the UI's `merge.rs` and `source.rs`; the bare-repository error of `worktree` is now that of
+  RBI-4 and SUA-11; docs.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass (clippy -D warnings) |
+| specs | pass (no requirement changed) |
+| docs | CLAUDE.md, docs/architecture.md |
+| code review | see below |
+
+- red: none (refactor: the module's tests failed to compile before it existed)
 - Code review: no findings
 - not verified: none
 - decisions needed: none

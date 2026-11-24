@@ -41,13 +41,8 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 /// The trunk and the worktree that has `branch` checked out (RBI-1, RBI-4).
 fn locate(dir: &Path, branch: &str) -> Result<(String, PathBuf), String> {
     let all = worktree::worktrees(dir)?;
-    let main = all.first();
-    if main.is_some_and(|m| m.bare) {
-        return Err("no main worktree: the repository is bare".to_string());
-    }
-    let trunk = main
-        .and_then(|m| m.branch.clone())
-        .ok_or("main worktree not on a branch")?;
+    let (_, trunk) = cardinal_state::worktree::main(&all)?;
+    let trunk = trunk.ok_or("main worktree not on a branch")?;
     if trunk == branch {
         return Err(format!("{branch} is the trunk"));
     }

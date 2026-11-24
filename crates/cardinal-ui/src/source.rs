@@ -411,26 +411,16 @@ pub fn worktrees(dir: &Path) -> Result<Vec<Worktree>, String> {
     if code != 0 {
         return Err(failure(name, code, &err));
     }
-    let mut list: Vec<Worktree> = Vec::new();
-    for line in out.lines() {
-        if let Some(path) = line.strip_prefix("worktree ") {
-            list.push(Worktree {
-                path: path.to_string(),
-                branch: None,
-                session: None,
-                merged: false,
-                locked: false,
-            });
-        } else if let (Some(b), Some(w)) =
-            (line.strip_prefix("branch refs/heads/"), list.last_mut())
-        {
-            w.branch = Some(b.to_string());
-        } else if line == "locked" || line.starts_with("locked ") {
-            if let Some(w) = list.last_mut() {
-                w.locked = true;
-            }
-        }
-    }
+    let mut list: Vec<Worktree> = cardinal_state::worktree::parse(&out)
+        .into_iter()
+        .map(|w| Worktree {
+            path: w.path.to_string_lossy().into_owned(),
+            branch: w.branch,
+            session: None,
+            merged: false,
+            locked: w.locked,
+        })
+        .collect();
     for w in &mut list {
         w.session = session_of(dir, Path::new(&w.path));
     }

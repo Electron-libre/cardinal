@@ -44,6 +44,16 @@ pub(crate) fn fenced<'a>(
     })
 }
 
+/// The index in `lines` of the line opening a fenced code block that no fence closes before their end (CKI-7).
+pub(crate) fn open_fence<'a>(lines: impl IntoIterator<Item = &'a str>) -> Option<usize> {
+    let mut open: Option<(Fence, usize)> = None;
+    for (i, line) in lines.into_iter().enumerate() {
+        open =
+            next_fence(open.map(|(f, _)| f), line).map(|f| open.map_or((f, i), |(_, at)| (f, at)));
+    }
+    open.map(|(_, at)| at)
+}
+
 /// What the `CommonMark` reading of a text says of one of its lines (RMP-1): whether it lies in a code block, whether it
 /// lies in an HTML comment, the byte ranges of the line inside inline code spans, and the paragraph its first inline
 /// text belongs to: the lines of one paragraph, or of the text of one list item, a heading or a table cell, share it.

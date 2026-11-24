@@ -323,3 +323,25 @@ fn a_blank_first_heading_is_no_title() {
         );
     }
 }
+
+// spec: CKI-7
+/// A fence left open hides the headings after it: its line is reported before the sections it hides.
+#[test]
+fn a_fence_left_open_is_reported_before_the_sections_it_hides() {
+    let tail = "code\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+    let open = format!("---\npriority: low\n---\n# Fix it\n\n# Goal\n\nMake it work:\n```\n{tail}");
+    let (ok, out) = check_front_matter(&open);
+    assert!(!ok, "{out}");
+    let fence = out.find("line 9: fenced code block left open");
+    let missing = out.find("missing section `# Approach`");
+    assert!(
+        fence.is_some() && missing.is_some() && fence < missing,
+        "{out}"
+    );
+
+    let closed = format!(
+        "---\npriority: low\n---\n# Fix it\n\n# Goal\n\nMake it work:\n```\ncode\n````\n{tail}"
+    );
+    let (ok, out) = check_front_matter(&closed);
+    assert!(ok && out.is_empty(), "{out}");
+}

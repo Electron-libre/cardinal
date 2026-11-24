@@ -1,6 +1,6 @@
 ---
 id: CKI
-status: draft
+status: accepted
 adrs: [0021]
 ---
 

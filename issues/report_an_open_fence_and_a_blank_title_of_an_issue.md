@@ -49,8 +49,8 @@ CKI-6 reads it (a bare `#` included), so the two tools agree on which line is th
 1. [ ] Blank title: `next_issue::heading` returns the trimmed text of the first heading (`is_heading`, outside fences),
    `None` when blank; `check-issue` reports ``no `# <Title>` heading`` on it; verified by a `check_issue.rs` test and a
    `next_issue_json.rs` test; makes true CKI-6, NXT-19.
-2. [ ] Open fence: `markdown` exposes the line of a fence left open at the end of the lines; `check-issue` reports
-   `line <n>: fenced code block left open` first; verified by a `check_issue.rs` test; makes true CKI-7.
+2. [x] Open fence: `markdown` exposes the line of a fence left open at the end of the lines; `check-issue` reports
+   `line <n>: fenced code block left open` first; verified by a `check_issue.rs` test; makes true CKI-7. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -69,3 +69,20 @@ done: a blank first heading (`# ` or a bare `#`) is no title: `check-issue` repo
 | code review | see below |
 
 red: CKI-6, NXT-19, NXT-1: `check-issue` accepted the blank title; `--json` gave `title: ""`, not `null`.
+
+## Summary of deliverable 2
+done: `check-issue` reports `line <n>: fenced code block left open` (the line of its opening fence in the file) before
+the heading problems; `markdown::open_fence` reads it with the fence grammar of QUA-12.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | clean |
+| specs | CKI accepted |
+| docs | n/a: no doc describes the problems of `check-issue` outside the spec |
+| code review | see below |
+
+red: CKI-7: `check-issue` reported only the missing `# Approach` and `# Resources`, no open fence.
+Code review: no findings
+
+not verified: none. decisions needed: none.

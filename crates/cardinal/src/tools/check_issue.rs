@@ -93,6 +93,12 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
             "`issues/done/{name}` already exists: pick another name"
         ));
     }
+    // a fence left open hides the headings after it: say so before the problems it causes (CKI-7)
+    let body = next_issue::body(text);
+    if let Some(at) = crate::markdown::open_fence(body.lines()) {
+        let n = text[..text.len() - body.len()].matches('\n').count() + at + 1;
+        out.push(format!("line {n}: fenced code block left open"));
+    }
     let lines = lines(text);
     let headings: Vec<&str> = lines
         .iter()

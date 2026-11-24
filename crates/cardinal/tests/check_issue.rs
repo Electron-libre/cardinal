@@ -345,3 +345,14 @@ fn a_fence_left_open_is_reported_before_the_sections_it_hides() {
     let (ok, out) = check_front_matter(&closed);
     assert!(ok && out.is_empty(), "{out}");
 }
+
+// spec: CKI-6
+/// A first heading `#  Goal` is a title, not the `# Goal` section: the goal is reported missing, never both.
+#[test]
+fn a_spaced_goal_heading_is_read_once() {
+    let text =
+        "---\npriority: low\n---\n#  Goal\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(text);
+    assert!(!ok && out.contains("missing section `# Goal`"), "{out}");
+    assert!(!out.contains("first heading must be the title"), "{out}");
+}

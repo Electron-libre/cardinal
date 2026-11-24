@@ -51,8 +51,13 @@ CKI-6 reads it (a bare `#` included), so the two tools agree on which line is th
    `next_issue_json.rs` test; makes true CKI-6, NXT-19.
 2. [x] Open fence: `markdown` exposes the line of a fence left open at the end of the lines; `check-issue` reports
    `line <n>: fenced code block left open` first; verified by a `check_issue.rs` test; makes true CKI-7. (autonomous)
+3. [x] Fixes of the `high` review: `check-issue` reads a first heading `# Goal` as the sections do; verified by a
+   `check_issue.rs` test; makes true CKI-6. (autonomous)
 
 ## Decisions
+- High review: finding 1 (a fence opened after a list marker) is the open issue
+  `read_the_fences_nested_in_list_items_as_commonmark`; finding 3 (three heading comparisons) filed as
+  `read_the_headings_of_an_issue_through_one_reader`.
 - Mode: autonomous
 - Base commit: 2c9bab78935c488c61b5e6ff2698da8c9d1889fe
 
@@ -83,6 +88,23 @@ the heading problems; `markdown::open_fence` reads it with the fence grammar of 
 | code review | see below |
 
 red: CKI-7: `check-issue` reported only the missing `# Approach` and `# Resources`, no open fence.
+Code review: no findings
+
+not verified: none. decisions needed: none.
+
+## Summary of deliverable 3
+done: the `# Goal` title check compares the first heading line as the section checks do, so `#  Goal` gets one
+problem (the missing goal), not two contradicting ones; a follow-up issue filed for the heading readers.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | clean |
+| specs | unchanged (CKI-6) |
+| docs | n/a |
+| code review | see below |
+
+red: CKI-6: `check-issue` reported both `first heading must be the title, not # Goal` and `missing section # Goal`.
 Code review: no findings
 
 not verified: none. decisions needed: none.

@@ -183,6 +183,26 @@ fn refuses_a_malformed_taken_written_or_too_low_version() {
     );
 }
 
+// spec: REL-3
+#[test]
+fn refuses_a_version_whose_tag_exists_above_the_proposed_one() {
+    let dir = repo();
+    tag(dir.path(), "v0.2.0");
+    git(dir.path(), &["checkout", "-q", "-b", "side"]);
+    commit(dir.path(), "feat: side", "side.txt");
+    tag(dir.path(), "v0.3.0");
+    git(dir.path(), &["checkout", "-q", "main"]);
+    commit(dir.path(), "feat: b", "b.txt");
+    assert_eq!(proposed(dir.path()), "0.3.0", "v0.3.0 is not reachable");
+    let out = release(dir.path(), &["0.3.0"]);
+    assert!(!out.status.success(), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("the tag v0.3.0 exists"),
+        "{out:?}"
+    );
+    assert!(!dir.path().join("CHANGELOG.md").exists());
+}
+
 // spec: REL-4
 #[test]
 fn writes_the_section_of_the_version_above_the_previous_ones() {
@@ -247,6 +267,20 @@ fn runs_the_version_command_of_the_project_with_the_version() {
     let dir = repo();
     config(
         dir.path(),
+        "[project]\nrelease_version_command = \"printf %s >version.txt\"\n",
+    );
+    let sub = dir.path().join("sub");
+    std::fs::create_dir(&sub).unwrap();
+    assert!(release(&sub, &["0.2.0"]).status.success());
+    assert!(
+        dir.path().join("version.txt").is_file(),
+        "run from the root"
+    );
+    assert!(!sub.join("version.txt").exists());
+
+    let dir = repo();
+    config(
+        dir.path(),
         "[project]\nrelease_version_command = \"false\"\n",
     );
     assert!(!release(dir.path(), &["0.2.0"]).status.success());
@@ -274,7 +308,10 @@ fn prepares_then_tags_locally_and_never_pushes() {
 
     let out = release(dir.path(), &["0.3.0"]);
     assert!(out.status.success(), "{out:?}");
-    assert!(stdout(&out).contains("--tag"), "{}", stdout(&out));
+    let printed = stdout(&out);
+    assert!(printed.contains("reread"), "{printed}");
+    assert!(printed.contains("commit the release"), "{printed}");
+    assert!(printed.contains("release 0.3.0 --tag"), "{printed}");
     assert_eq!(git(dir.path(), &["rev-parse", "HEAD"]), head, "no commit");
     assert_eq!(git(dir.path(), &["tag", "-l", "v0.3.0"]), "", "no tag");
 

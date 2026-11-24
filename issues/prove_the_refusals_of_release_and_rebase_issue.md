@@ -43,3 +43,44 @@ Specs and docs true to the code
 
 # Hints
 * `settings_hygiene.rs` checks the repository itself, not a requirement: leave it untraced.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+Tests only: trace the unit tests that already prove REL-4, RBI-2 and RBI-3, and add one behavior test per untested
+refusal or step of REL-3, REL-5, REL-6, RBI-3 and RBI-4. No change of the specs nor of the code, unless a new test
+finds a gap (then it stops for a decision). `settings_hygiene.rs` stays untraced.
+
+## Plan
+1. [x] Release: trace `the_seeded_changelog_is_the_header` (REL-4); REL-3 test of a tag `v0.3.0` on a side branch
+   refused with the changelog unchanged; REL-5 run from a subdirectory; REL-6 assert the reread, commit and
+   `release 0.3.0 --tag` steps; verified by `crates/cardinal/tests/release.rs`; makes true REL-3, REL-4, REL-5, REL-6
+   (~60 lines, the file stays under 800). (autonomous)
+2. [ ] Rebase-issue: trace the three `settle` unit tests (RBI-2, RBI-3); one RBI-4 test each for a bare repository,
+   a detached main worktree, the branch being the trunk, a modified tracked file; one RBI-3 test of a binary file
+   changed on both sides; verified by `crates/cardinal/tests/rebase_issue.rs`; makes true RBI-2, RBI-3, RBI-4
+   (~120 lines).
+
+## Decisions
+- Mode: autonomous
+- Base commit: b2f231e5e6900565ec01ffbf866c95f62919e5c6
+
+## Summary of deliverable 1
+done: REL-4 seed test traced; REL-3 existing tag above the proposal, REL-5 run from a subdirectory, REL-6 next steps.
+
+| check | result |
+|---|---|
+| tests | `cargo test --test release`: 12 passed |
+| lint, specs | `cardinal run project-check` |
+| docs | none: tests only |
+| code review | `/code-review low`: no findings |
+
+red: REL-3, REL-5, REL-6: the tests pass on the existing code; checked by mutation instead: without the tag check
+`release 0.3.0` is accepted (release.rs:198), with the command run from the current directory `version.txt` lands in
+`sub/` (release.rs:275), with another wording of the next step the REL-6 assertion fails (release.rs:313).
+
+Code review: no findings
+
+not verified: nothing.

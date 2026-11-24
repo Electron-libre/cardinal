@@ -575,6 +575,7 @@ fn git(root: &Path, args: &[&str]) -> Result<String, String> {
 mod tests {
     use super::*;
 
+    // spec: REL-4 (internal: the seed file is read from the source tree, not reachable through the binary)
     #[test]
     fn the_seeded_changelog_is_the_header() {
         let seed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../seed/CHANGELOG.md");

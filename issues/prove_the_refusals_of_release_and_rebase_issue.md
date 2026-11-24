@@ -62,6 +62,9 @@ finds a gap (then it stops for a decision). `settings_hygiene.rs` stays untraced
    a detached main worktree, the branch being the trunk, a modified tracked file; one RBI-3 test of a binary file
    changed on both sides; verified by `crates/cardinal/tests/rebase_issue.rs`; makes true RBI-2, RBI-3, RBI-4
    (~120 lines). (autonomous)
+3. [x] Review fixes of the `high` review: the RBI-3 binary test isolated from the global git attributes and
+   checking the worktree kept; the claim of the trunk test in the main worktree; the REL-5 subdirectory case reads
+   the version; the internal reason of the REL-4 trace reworded; verified by the same two test files. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -103,3 +106,21 @@ detached, trunk, tracked change, binary read as text) makes its own test fail (r
 Code review: no findings
 
 not verified: nothing.
+
+## Summary of deliverable 3
+done: the five nits of the `high` review fixed; update-docs of the whole issue: n/a (tests and spec tags only).
+
+| check | result |
+|---|---|
+| tests | `cargo test --test release --test rebase_issue`: 12 + 21 passed |
+| lint, specs | `cardinal run project-check` |
+| docs | none: tests only |
+| code review | `/code-review low`: no findings |
+
+red: none: stronger assertions on behaviour already proven green.
+
+Code review: no findings
+
+not verified: nothing.
+
+All deliverables done; nothing left.

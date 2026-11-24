@@ -62,15 +62,15 @@ impl Repo {
             main,
             ws,
         };
-        r.claim("foo", "foo");
+        r.claim("foo", "foo", &r.ws);
         r
     }
 
-    /// Writes the claim `merge pending` of the issue `stem` on `branch`.
-    fn claim(&self, stem: &str, branch: &str) {
+    /// Writes the claim `merge pending` of the issue `stem` on `branch`, checked out in `worktree`.
+    fn claim(&self, stem: &str, branch: &str, worktree: &Path) {
         let claim = format!(
             "session s1\npid 1\nworktree {}\nbranch {branch}\nstate merge pending\n",
-            self.ws.display()
+            worktree.display()
         );
         let path = self.main.join("claim.txt");
         std::fs::write(&path, claim).unwrap();
@@ -118,6 +118,8 @@ fn rebase(cwd: &Path, session: &str, stem: &str) -> (Option<i32>, String, String
         // the config of the developer (signing, conflict style) never reaches the tool
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
         .env("GIT_CONFIG_NOSYSTEM", "1")
+        // nor its global attributes (a `merge=text` would text-merge the binary file of RBI-3)
+        .env("XDG_CONFIG_HOME", "/nonexistent")
         .env_remove("CLAUDE_PID")
         .env_remove("CLAUDE_CODE_SESSION_ID");
     if !session.is_empty() {
@@ -373,6 +375,9 @@ fn aborts_on_a_binary_file_changed_on_both_sides() {
     );
     assert_eq!(r.rev("foo"), foo);
     assert!(!r.rebase_in_progress());
+    let kept = std::fs::read(r.ws.join("logo.bin")).unwrap();
+    assert_eq!(kept, b"\0base\n\0branch\n");
+    assert_eq!(git(&r.ws, &["status", "--porcelain"]), "");
 }
 
 // spec: RBI-4
@@ -397,7 +402,7 @@ fn refuses_a_worktree_with_a_modified_tracked_file() {
 #[test]
 fn refuses_a_branch_that_is_the_trunk() {
     let r = Repo::new();
-    r.claim("bar", "trunk");
+    r.claim("bar", "trunk", &r.main);
     let trunk = r.rev("trunk");
     let (code, _, err) = rebase(&r.main, "", "bar");
     assert_eq!(code, Some(1));

@@ -272,8 +272,9 @@ fn runs_the_version_command_of_the_project_with_the_version() {
     let sub = dir.path().join("sub");
     std::fs::create_dir(&sub).unwrap();
     assert!(release(&sub, &["0.2.0"]).status.success());
-    assert!(
-        dir.path().join("version.txt").is_file(),
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("version.txt")).unwrap(),
+        "0.2.0",
         "run from the root"
     );
     assert!(!sub.join("version.txt").exists());

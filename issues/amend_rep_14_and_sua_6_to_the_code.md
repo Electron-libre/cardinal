@@ -47,6 +47,9 @@ the loop of `terminal.rs`, untested: it moves to a function of `keys.rs` that a 
    verified by a test that `s`, `f`, `e`, `c`, `E`, `v`, `p` and `a` start nothing and show nothing while a task
    runs, REP-14 by the checks of `setup_checks` (unknown or missing `--by` refused) and the `--by milestone` tests of
    REP-20; makes true REP-14, SUA-6. (autonomous)
+2. [x] Docs of the whole issue and fixes of its `high` review: `docs/usage.md` names `a` among the keys that act
+   whatever the selection and in the palette, and prints the result of any task quit during; the docs of
+   `terminal.rs` name `p`, `c` and `a`; a redundant import dropped; verified by `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -67,6 +70,30 @@ done: REP-14 accepts `--by milestone`, SUA-6 names the audit and `a`; the busy g
 | code review | see below |
 
 red: SUA-6: cannot find function `launch` in this scope
+
+Code review: no findings
+
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2
+
+done: the docs of the issue and the fixes of the `high` review (`docs/usage.md`, the doc comments and an import of
+`terminal.rs`).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | `docs/usage.md` |
+| code review | see below |
+
+red: none
+
+High review: 4 findings: the keys `a` missing in `docs/usage.md` (fixed) and in the docs of `terminal.rs` (fixed),
+a redundant import (fixed), the type `docs` of 21d7d30 for a change that also moves code (not fixed: retyping it
+rewrites the history, not asked).
 
 Code review: no findings
 

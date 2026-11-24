@@ -383,13 +383,13 @@ then `cardinal run project-check` in the worktree of the branch, and merges only
 ...`); a conflict `rebase-issue` cannot settle, a live session in that worktree or a pushed branch merges nothing,
 the rebase aborted, and a failing project check keeps the rebase but merges nothing. The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `c`, `E`, `v`, `p` and `a` start nothing, and show no refusal, while a start, a merge, an end, a release start, a review start, an audit start or a cut start runs, and `q` then quits once it
-ended, printing the result of a merge, an end, a release start or a review start. The next
+ended, printing the result of that task. The next
 read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, `n` while the issue `next-issue` offers is not selected, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the issue
 the screen opens on. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
-awaits its release in zellij, `p` while the queue lists an open issue in zellij, `r` and `g`) are listed in the palette.
-`:` opens over the panels the command palette: the commands of the help line, then `E`, `v` and `p` under the
+awaits its release in zellij, `p` while the queue lists an open issue in zellij, `a` in zellij, `r` and `g`) are listed in the palette.
+`:` opens over the panels the command palette: the commands of the help line, then `E`, `v`, `p` and `a` under the
 same conditions, then `r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
 widens again), the arrows move the highlight (the list scrolls on a short screen), `Enter` runs the highlighted one as its key would, `Esc` closes it; while
 it is open, the letters go to the filter and only `Ctrl+C` quits.

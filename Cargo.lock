@@ -107,6 +107,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "libc",
  "pulldown-cmark",
  "serde_json",
  "sha2",

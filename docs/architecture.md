@@ -96,7 +96,8 @@ commit with no published binary. The tests of the tools and of the shared conten
 `tests/settings_hygiene.rs`) are the `cargo test` of this repository; consumers run none.
 
 The installed `cardinal` is only a launcher (`crates/cardinal/src/run.rs`): it finds the pinned revision and replaces
-itself (`exec`) by that revision's binary, so input, output and exit code are the tool's.
+itself (`exec`) by that revision's binary, so input, output and exit code are the tool's. A reader that closes stdout
+early (`| head`) ends it by `SIGPIPE`, as it ends `cat`, never by a panic (BIN-23, BIN-24).
 
 ```mermaid
 flowchart TD

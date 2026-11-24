@@ -35,3 +35,27 @@ One implementation per rule
 
 # Hints
 * `cardinal-ui` reads `next-issue --json` and `roadmap --json` through a pipe: check it still reads the whole output.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+Every subcommand of `cardinal` (the tools of `cardinal run` included, which exec `cardinal tool`) must end quietly
+when its stdout reader closes. Means: option 1 of the Approach, the default `SIGPIPE` disposition restored at the
+start of `main`, so one line covers every `println!`. Out of scope: `cardinal-ui`, a closed stderr.
+
+## Plan
+1. [x] Restore `SIGPIPE` in `main`: `libc` as a direct dependency (already in `Cargo.lock`), `signal(SIGPIPE, SIG_DFL)` under `cfg(unix)` before the parse; verified by a test of the binary that runs `cardinal tool roadmap` on a roadmap larger than a pipe buffer, closes the read end after the first line and asserts the `SIGPIPE` status and an empty stderr; makes true BIN-23, BIN-24. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 9873eb01fd332b2a33537167a9eb9a5734a13ba3
+- Exit status: killed by `SIGPIPE` (141 in a shell), as `cat` or `grep` (answer 1 a).
+
+## Deliverable 1
+- done: `main` restores the default `SIGPIPE` disposition, so a closed stdout ends `cardinal` as it ends `cat`.
+- checks: tests pass, lint clean, `check-specs` clean for BIN, docs updated (`docs/architecture.md`).
+- red: BIN-23, BIN-24: stderr held `failed printing to stdout: Broken pipe (os error 32)` from a panic.
+- Code review: no findings
+- not verified: macOS (the test runs on Linux; `SIGPIPE` is 13 there too).

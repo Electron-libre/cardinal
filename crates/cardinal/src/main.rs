@@ -122,7 +122,18 @@ fn print_changes(report: &Report) -> bool {
 /// The skill `update` names as its next step (SYN-61): the agent otherwise writes the commit message inline.
 const COMMIT_SKILL: &str = ".claude/skills/commit-message/SKILL.md";
 
+/// Let a closed stdout end the process by `SIGPIPE`, as `cat` ends, instead of the panic of `println!` (BIN-23, BIN-24):
+/// the Rust runtime ignores the signal, so a write to a pipe whose reader left fails instead.
+fn end_by_sigpipe_when_stdout_closes() {
+    #[cfg(unix)]
+    // SAFETY: called first in `main`, before any thread starts; restores the default disposition of one signal.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
 pub fn main() -> ExitCode {
+    end_by_sigpipe_when_stdout_closes();
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         // `--help` and `--version` print to stdout and exit 0; a real parse error goes to stderr.

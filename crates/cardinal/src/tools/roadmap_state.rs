@@ -120,7 +120,9 @@ pub(super) fn main(args: &[String]) -> u8 {
         eprintln!("{e}");
         return 2;
     }
+    // the configuration was checked above
     let table: Vec<Row> = close_issue::roadmap_documents(root, &[])
+        .unwrap_or_default()
         .into_iter()
         .flat_map(|(document, path)| {
             let file = path.iter().fold(root.to_path_buf(), |f, c| f.join(c));

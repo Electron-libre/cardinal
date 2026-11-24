@@ -1,6 +1,6 @@
 ---
 id: CLS
-status: draft
+status: accepted
 adrs: []
 ---
 
@@ -28,7 +28,7 @@ rely on it at every close, and `--relink` repairs the references to issues close
 - **CLS-4** (deterministic) After `close-issue issues/<stem>.md`, every relative Markdown link target of the moved file must designate from `issues/done/` the file or directory it designated from `issues/`, keeping its `#anchor` and its trailing `/`.
 - **CLS-6** (deterministic) `close-issue` must not rewrite a Markdown link written in an inline code span (on one line or over several, as in CommonMark) or a code block (fenced or indented, inside a quote or a list item or not, as `CommonMark` reads them), nor the text of a footnote (`[^1]: text`), nor a link inside an HTML comment or an HTML block, nor text `CommonMark` reads as no Markdown link (an autolink `<https://...>`, escaped brackets `\[a\](x)`).
 - **CLS-9** (deterministic) When it moves a tracked issue with `git mv`, `close-issue` must stage in the index the moved issue, whole (its last tracking included), and each other tracked file it rewrites (CLS-1, CLS-2, CLS-8) that matched `HEAD`, in the index and the work tree, before the close, its name never read as a glob; it must print, before the lines of CLS-7, `staged before the close: <file> (a bare `git commit` takes it too)` for each other file the index already held changed, then `staged: commit the close with `git commit` (no `git add` of issues/<stem>.md: git mv staged its removal)`. A rewritten file that held changes, staged or not, or every one when git cannot tell, is left unstaged and named once in `not staged: <file> (it held changes of yours)`. When git refuses to stage, `close-issue` says so on stderr, prints no `staged:` line and exits 1. An untracked issue (a plain rename) stages nothing and prints none of these lines; `--relink` stages nothing.
-- **CLS-10** (deterministic) When the `.claude/cardinal.toml` of the repository root or of the parent of the `issues` directory exists but cannot be read or parsed, or its `skipped_dirs` or `roadmap` of the `[project]` table is not a list of strings, `close-issue` (with `--relink` too) must exit 1 with one line on stderr naming the file, and the key when one is at fault, before moving or rewriting any file; a missing file or key is read as an empty list.
+- **CLS-10** (deterministic) When the `.claude/cardinal.toml` of the repository root or of the parent of the `issues` directory exists but cannot be read or parsed, or its `skipped_dirs` or `roadmap` of the `[project]` table is not a list of strings, `close-issue` (with `--relink` too) must exit 1 with an error on stderr naming the file, and the key when one is at fault, before moving or rewriting any file; a missing file or key is read as an empty list.
 
 ## Scenarios
 

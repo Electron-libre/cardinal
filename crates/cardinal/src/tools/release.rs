@@ -262,7 +262,7 @@ fn roadmap_writes(
     version: Version,
 ) -> Result<(Writes, Vec<(String, String)>), String> {
     let mut documents: Vec<(String, Vec<String>)> = Vec::new();
-    for (rel, at) in super::close_issue::roadmap_documents(root, &[]) {
+    for (rel, at) in super::close_issue::roadmap_documents(root, &[])? {
         if !documents.iter().any(|(_, seen)| *seen == at) {
             documents.push((rel, at));
         }

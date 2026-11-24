@@ -8,11 +8,12 @@
 //! Runs in any worktree, but refuses to close an issue of another worktree named by path. Frees the claim of the
 //! issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge brings the
 //! close to the trunk. Sets `done` the milestones of the roadmap whose last open issue it closed (CLS-8). Ends on the
-//! issue `next-issue` then offers.
+//! issue `next-issue` then offers. Refuses, before writing any file, a `.claude/cardinal.toml` it cannot read (CLS-10).
 //! Usage: `cardinal run close-issue issues/foo.md`; `cardinal run close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
 use super::{issue_claim, repo_files, roadmap};
+use crate::project_table::ProjectTable;
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
@@ -21,21 +22,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const SKIPPED_DIRS: [&str; 3] = [".git", "target", "node_modules"];
-
-/// Strings of `key = ["a", "b"]` in the `[project]` table of the configuration (`crate::config_of`); empty when absent.
-fn config_list(root: &std::path::Path, key: &str) -> Vec<String> {
-    let text = std::fs::read_to_string(crate::config_of(root)).unwrap_or_default();
-    let table: toml::Table = text.parse().unwrap_or_default();
-    let list = table
-        .get("project")
-        .and_then(|p| p.get(key))
-        .or_else(|| table.get(key));
-    list.and_then(toml::Value::as_array).map_or_default(|a| {
-        a.iter()
-            .filter_map(|v| v.as_str().map(str::to_string))
-            .collect()
-    })
-}
 
 fn is_text_file(path: &Path) -> bool {
     path.file_name().is_some_and(|n| n == "justfile")
@@ -46,10 +32,28 @@ fn is_text_file(path: &Path) -> bool {
 }
 
 /// The names of the directories whose files `close-issue` never rewrites in the repository at `root`.
-fn skipped_dirs(root: &Path) -> Vec<String> {
+fn skipped_dirs(root: &Path) -> Result<Vec<String>, String> {
     let mut skipped: Vec<String> = SKIPPED_DIRS.iter().map(|s| (*s).to_string()).collect();
-    skipped.extend(config_list(root, "skipped_dirs"));
-    skipped
+    skipped.extend(ProjectTable::read(root)?.list("skipped_dirs")?);
+    Ok(skipped)
+}
+
+/// The value of `read`, or its error on stderr and exit 1: `close-issue` refuses a broken configuration (CLS-10).
+fn config_or_exit<T>(read: Result<T, String>) -> T {
+    read.unwrap_or_else(|e| {
+        eprintln!("{e}");
+        std::process::exit(1);
+    })
+}
+
+/// Exits 1, before any file is written, when the configuration of the repository at `root` or of the project of the
+/// `issues` directory (relative to `root`) cannot be read or gives a key of another type (CLS-10).
+fn check_config(root: &Path, issues: &[String]) {
+    config_or_exit(skipped_dirs(root));
+    config_or_exit(roadmap_documents(
+        root,
+        &issues[..issues.len().saturating_sub(1)],
+    ));
 }
 
 /// Whether `skipped` names a directory of `path` (relative to the root).
@@ -61,9 +65,10 @@ fn in_skipped_dir(path: &Path, skipped: &[String]) -> bool {
 }
 
 /// Whether `close-issue` rewrites the references of the file `path` (relative to the repository at `root`): the commit
-/// gate accepts a rewrite only where the tool makes one (`review_gate`, REV-20).
+/// gate accepts a rewrite only where the tool makes one (`review_gate`, REV-20); none under a broken configuration,
+/// which `close-issue` refuses (CLS-10).
 pub(super) fn rewrites(root: &Path, path: &Path) -> bool {
-    is_text_file(path) && !in_skipped_dir(path, &skipped_dirs(root))
+    is_text_file(path) && skipped_dirs(root).is_ok_and(|skipped| !in_skipped_dir(path, &skipped))
 }
 
 /// The text files of the work tree at `root`, as git lists them (so never those of a nested worktree, ADR 0008),
@@ -413,16 +418,21 @@ pub(super) fn milestones_done(
 }
 
 /// The `roadmap` documents of the configuration of the project at `project` (components from the repository root
-/// `root`), each as written in the configuration and as components from `root`; `None` for one outside the repository.
-pub(super) fn roadmap_documents(root: &Path, project: &[String]) -> Vec<(String, RepoPath)> {
+/// `root`), each as written in the configuration and as components from `root`, leaving out one outside the
+/// repository; an error when the configuration cannot be read or its `roadmap` is not a list of strings.
+pub(super) fn roadmap_documents(
+    root: &Path,
+    project: &[String],
+) -> Result<Vec<(String, RepoPath)>, String> {
     let project_root = project.iter().fold(root.to_path_buf(), |p, c| p.join(c));
-    config_list(&project_root, "roadmap")
+    Ok(ProjectTable::read(&project_root)?
+        .list("roadmap")?
         .into_iter()
         .filter_map(|document| {
             let path = resolve(project, &document)?;
             Some((document, path))
         })
-        .collect()
+        .collect())
 }
 
 /// Set `done` the milestones of the `roadmap` documents of the project of `issues` (relative to `root`) that the close
@@ -432,7 +442,7 @@ fn set_milestones_done(root: &Path, issues: &[String], stem: &str) -> Vec<PathBu
     let closed = HashSet::from([stem.to_string()]);
     let file_of = |p: &[String]| p.iter().fold(root.to_path_buf(), |f, c| f.join(c));
     let mut written = Vec::new();
-    for (document, path) in roadmap_documents(root, project) {
+    for (document, path) in config_or_exit(roadmap_documents(root, project)) {
         let file = file_of(&path);
         let Ok(text) = std::fs::read_to_string(&file) else {
             continue;
@@ -467,7 +477,7 @@ fn relink(
     stems: &HashSet<String>,
     moved: Option<&str>,
 ) -> Vec<PathBuf> {
-    let skipped = skipped_dirs(root);
+    let skipped = config_or_exit(skipped_dirs(root));
     let moved = moved.map(|stem| {
         let mut path = issues.to_vec();
         path.extend(["done".to_string(), format!("{stem}.md")]);
@@ -714,6 +724,7 @@ fn relink_closed() -> u8 {
     }
     if let Some(root) = repo_root(Path::new(".")) {
         let issues = under(&root, Path::new("issues"));
+        check_config(&root, &issues);
         relink(&root, &issues, &stems, None);
     } else {
         eprintln!("not inside a git repository");
@@ -740,6 +751,9 @@ pub(super) fn main(args: &[String]) -> u8 {
         std::process::exit(1);
     }
     refuse_other_worktree(dir);
+    if let Some(root) = repo_root(dir) {
+        check_config(&root, &under(&root, dir));
+    }
     let done = dir.join("done");
     let target = done.join(name);
     if target.exists() {

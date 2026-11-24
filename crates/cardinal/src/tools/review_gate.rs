@@ -497,7 +497,9 @@ fn records_close_only(cwd: &Path, index: Option<&Path>, staged: &[Staged]) -> bo
     }
     let issues = [ISSUES_DIR.trim_end_matches('/').to_string()];
     let text = |id: &str| String::from_utf8(on_index(cwd, None, &["cat-file", "blob", id])?).ok();
+    // `close-issue` sets no milestone under a configuration it cannot read (CLS-10)
     let roadmaps: Vec<String> = close_issue::roadmap_documents(cwd, &[])
+        .unwrap_or_default()
         .into_iter()
         .map(|(_, path)| path.join("/"))
         .collect();

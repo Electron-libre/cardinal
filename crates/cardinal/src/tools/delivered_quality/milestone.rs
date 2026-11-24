@@ -11,7 +11,7 @@ use std::path::Path;
 pub(super) fn milestones(repo: &Path) -> HashMap<String, String> {
     let issues = ["issues".to_string()];
     let mut out = HashMap::new();
-    for (_, path) in close_issue::roadmap_documents(repo, &[]) {
+    for (_, path) in close_issue::roadmap_documents(repo, &[]).unwrap_or_default() {
         let file = path.iter().fold(repo.to_path_buf(), |f, c| f.join(c));
         let text = std::fs::read_to_string(file).unwrap_or_default();
         let lines: Vec<&str> = text.split_inclusive('\n').collect();

@@ -63,10 +63,10 @@ local file: out of scope.
    `rule_breaches::commit_scopes`, `next_issue::milestones`, `roadmap_state` go through it, each private parse
    deleted, the fallbacks their specs require kept explicit; verified by the existing tests of check-specs,
    delivered-quality, rule-breaches, next-issue and roadmap (~200 lines; the big files only shrink). (autonomous)
-3. [ ] `close-issue` refuses a broken configuration: its private `config_list` deleted, `skipped_dirs` and `roadmap`
+3. [x] `close-issue` refuses a broken configuration: its private `config_list` deleted, `skipped_dirs` and `roadmap`
    read through the reader and checked before any move, `--relink` too; verified by binary tests of
    `tests/close_issue.rs` on an invalid file and on a `skipped_dirs` string; makes true CLS-10 and sets the spec
-   `accepted` (~150 lines; `close_issue.rs` only shrinks).
+   `accepted` (~150 lines; `close_issue.rs` only shrinks). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -109,5 +109,26 @@ Code review: 2 findings
   `[project]`).
 - `test_files` lost the guard on a missing file: `ProjectTable::read` gives an empty table for a missing file, not
   an error (unit test `a_missing_file_is_empty_unless_required`).
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 3
+done: `close-issue` (and `--relink`) checks `skipped_dirs` and `roadmap` through `ProjectTable` before writing any
+file and exits 1 on a broken configuration; its private `config_list` is gone; `roadmap_documents` returns the error,
+`release <version>` now refuses it too, `roadmap`, `review-gate` and `delivered-quality` keep their empty fallback.
+CLS-10 says "an error on stderr" instead of "one line": a TOML parse error spans several lines. `specs/close-issue.md`
+is `accepted`.
+
+| check | result |
+|---|---|
+| tests | `just check` green; `tests/close_issue_config.rs` (2 binary tests) |
+| lint | clean |
+| specs | CLS-10 traced, spec `accepted` |
+| docs | `//!` of `close_issue.rs` names the refusal |
+| code review | low, see below |
+| file size | `close_issue.rs` 841 -> 855 lines: not split here, `issues/split_the_close_issue_tool.md` splits it |
+
+red: CLS-10: `"[project\n" issues/foo.md: left: Some(0) right: Some(1)` (close-issue closed the issue on an invalid file)
+Code review: no findings
 not verified: none
 decisions needed: none

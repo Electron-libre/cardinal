@@ -30,7 +30,7 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [read_the_project_table_through_one_reader](issues/done/read_the_project_table_through_one_reader.md)
-  - [share_one_git_runner_across_the_tools](issues/share_one_git_runner_across_the_tools.md)
+  - [share_one_git_runner_across_the_tools](issues/done/share_one_git_runner_across_the_tools.md)
   - [keep_the_stale_lock_rule_in_one_place](issues/keep_the_stale_lock_rule_in_one_place.md)
   - [read_the_goal_of_an_issue_with_the_shared_fence_grammar](issues/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md)
   - [drop_the_dead_code_allowance_of_the_transcripts](issues/drop_the_dead_code_allowance_of_the_transcripts.md)

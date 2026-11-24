@@ -26,10 +26,11 @@ impl From<Failure> for String {
     }
 }
 
-/// `git -C <dir>` with no input: the base of a command whose caller sets an environment or runs it with a deadline.
+/// `git` run in `dir` with no input: the base of a command whose caller sets an environment or runs it with a deadline.
+/// Its first argument is the caller's: a wrapper of git on the `PATH` reads the subcommand where git has it.
 pub(crate) fn command(dir: &Path) -> Command {
     let mut cmd = Command::new("git");
-    cmd.arg("-C").arg(dir).stdin(Stdio::null());
+    cmd.current_dir(dir).stdin(Stdio::null());
     cmd
 }
 
@@ -79,13 +80,13 @@ fn failure(name: &str, code: Option<i32>, stderr: &str) -> String {
     }
 }
 
-/// `git <args>` of `cmd`, without the leading `-C <dir>` and `-c <setting>` that only say where and how it runs (a
-/// `-c` of the subcommand, `git grep -c`, stays).
+/// `git <args>` of `cmd`, without the leading `-c <setting>` that only say how it runs (a `-c` of the subcommand,
+/// `git grep -c`, stays).
 fn name(cmd: &Command) -> String {
     let mut words = vec!["git".to_string()];
     let mut args = cmd.get_args();
     while let Some(arg) = args.next() {
-        if arg == "-C" || arg == "-c" {
+        if arg == "-c" {
             args.next();
         } else {
             words.push(arg.to_string_lossy().into_owned());
@@ -106,6 +107,13 @@ pub(crate) fn bytes(dir: &Path, args: &[&str]) -> Result<Vec<u8>, String> {
 /// The stdout of `git <args>` run in `dir`, its trailing whitespace trimmed.
 pub(crate) fn run(dir: &Path, args: &[&str]) -> Result<String, String> {
     bytes(dir, args).map(|out| String::from_utf8_lossy(&out).trim_end().to_string())
+}
+
+/// The stdout of `git <args>` run in `dir` with `input` as its stdin.
+pub(crate) fn run_stdin(dir: &Path, args: &[&str], input: &[u8]) -> Result<Vec<u8>, String> {
+    let mut cmd = command(dir);
+    cmd.args(args);
+    exec(cmd, Some(input)).map_err(String::from)
 }
 
 /// Whether `git <args>` succeeds in `dir`.

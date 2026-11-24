@@ -120,28 +120,14 @@ fn started_after(pid: &str, written: std::time::SystemTime) -> bool {
         .is_ok_and(|d| d > std::time::Duration::from_secs(2))
 }
 
+/// The stdout of `git args` in `dir` fed `input`, its end trimmed, `None` when it fails.
 fn git(dir: &Path, args: &[&str], input: Option<&str>) -> Option<String> {
-    let mut child = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .stdin(if input.is_some() {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    if let Some(text) = input {
-        use std::io::Write;
-        child.stdin.take()?.write_all(text.as_bytes()).ok()?;
-    }
-    let out = child.wait_with_output().ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).trim_end().to_string())
+    let out = match input {
+        Some(text) => crate::git::run_stdin(dir, args, text.as_bytes()),
+        None => crate::git::bytes(dir, args),
+    };
+    out.ok()
+        .map(|out| String::from_utf8_lossy(&out).trim_end().to_string())
 }
 
 /// The claim of `stem` and the object its ref points at, if any.
@@ -246,7 +232,8 @@ fn claim(issue: &str) -> Result<String, String> {
     };
     let (session, pid) = (env("CLAUDE_CODE_SESSION_ID")?, env("CLAUDE_PID")?);
     let here = Path::new(".");
-    let top = git(here, &["rev-parse", "--show-toplevel"], None)
+    let top = crate::git::toplevel(here)
+        .map(|top| top.to_string_lossy().into_owned())
         .ok_or("not in a git repository: there is nothing to claim the issue in")?;
     let inside = std::fs::canonicalize(dir)
         .ok()

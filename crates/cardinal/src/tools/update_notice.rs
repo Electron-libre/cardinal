@@ -105,7 +105,7 @@ fn contains(clone: &Path, pinned: &str, commit: &str, end: Instant) -> Option<bo
     if commit_of(clone, commit, end).is_none() {
         return Some(false);
     }
-    let mut ancestor = git(clone);
+    let mut ancestor = crate::git::command(clone);
     ancestor.args(["merge-base", "--is-ancestor", commit, pinned]);
     match within(ancestor, end)?.status.code()? {
         0 => Some(true),
@@ -127,7 +127,7 @@ fn latest_release(cache: &Path, source: &str, end: Instant) -> Option<(String, S
             return release;
         }
     }
-    let mut query = Command::new("git");
+    let mut query = crate::git::command(Path::new("."));
     query.args(["ls-remote", "--tags", source]);
     if std::env::var_os("GIT_SSH_COMMAND").is_none() && std::env::var_os("GIT_SSH").is_none() {
         // an ssh source must never ask the terminal for a passphrase or a host key
@@ -220,16 +220,9 @@ fn version(tag: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(version)
 }
 
-/// `git -C <dir>`.
-fn git(dir: &Path) -> Command {
-    let mut cmd = Command::new("git");
-    cmd.arg("-C").arg(dir);
-    cmd
-}
-
 /// The stdout of `git -C <dir> <args>` when it succeeds before `end`.
 fn git_in(dir: &Path, args: &[&str], end: Instant) -> Option<String> {
-    let mut cmd = git(dir);
+    let mut cmd = crate::git::command(dir);
     cmd.args(args);
     succeeded(cmd, end)
 }

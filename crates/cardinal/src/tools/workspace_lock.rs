@@ -12,7 +12,6 @@
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::{Duration, SystemTime};
 
 use super::issue_claim::{self, alive};
@@ -50,18 +49,17 @@ impl Holder {
 
 /// The path of the lock of the worktree of `cwd` (WSL-9: per worktree).
 fn lock_path(cwd: &Path) -> Option<PathBuf> {
-    let out = Command::new("git")
-        .args([
+    crate::git::run(
+        cwd,
+        &[
             "rev-parse",
             "--path-format=absolute",
             "--git-path",
             "cardinal-session",
-        ])
-        .current_dir(cwd)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())?;
-    Some(PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()))
+        ],
+    )
+    .ok()
+    .map(PathBuf::from)
 }
 
 fn read(path: &Path) -> Option<Holder> {
@@ -149,14 +147,7 @@ fn owns(holder: &Holder, claim: &issue_claim::Claim) -> bool {
 /// counts) to the caller's session and process, each by compare-and-swap with the value read (WSL-12).
 fn hand_claims(holder: &Holder, caller: &Caller, cwd: &Path) {
     let canonical = |p: &Path| std::fs::canonicalize(p).ok();
-    let Some(top) = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .current_dir(cwd)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .and_then(|o| canonical(Path::new(String::from_utf8_lossy(&o.stdout).trim())))
-    else {
+    let Some(top) = crate::git::toplevel(cwd).and_then(|top| canonical(&top)) else {
         return;
     };
     for (stem, old, claim) in issue_claim::all(cwd) {
@@ -265,26 +256,20 @@ fn returned_from(holder: &Holder, caller: &Caller, lock: &Path) -> bool {
 /// worktree of `cwd`, or an issue it claims `working` (`owns`); an unreadable status counts as work in
 /// progress. Any change counts, whoever made it (ADR 0027).
 fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
-    let status = Command::new("git")
-        .args([
+    let status = crate::git::bytes(
+        cwd,
+        &[
             "--no-optional-locks",
             "status",
             "--porcelain",
             "--untracked-files=normal",
-        ])
-        .current_dir(cwd)
-        .output()
-        .ok()
-        .filter(|o| o.status.success());
-    let Some(status) = status else {
+        ],
+    );
+    let Ok(status) = status else {
         return Some("its git status, which could not be read".to_string());
     };
-    if !status.stdout.is_empty() {
-        let lines: Vec<&[u8]> = status
-            .stdout
-            .trim_ascii_end()
-            .split(|&b| b == b'\n')
-            .collect();
+    if !status.is_empty() {
+        let lines: Vec<&[u8]> = status.trim_ascii_end().split(|&b| b == b'\n').collect();
         let mut paths: Vec<String> = lines
             .iter()
             .take(MAX_PATHS)

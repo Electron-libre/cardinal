@@ -32,12 +32,10 @@ const PROGRESS: [&str; 10] = [
     "Finished",
 ];
 
+/// The stdout of `git args` in `dir`, as it is, empty when it fails.
 fn git(dir: &str, args: &[&str]) -> String {
-    Command::new("git")
-        .args(args)
-        .current_dir(dir)
-        .output()
-        .map_or_default(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+    crate::git::bytes(Path::new(dir), args)
+        .map_or_default(|out| String::from_utf8_lossy(&out).into_owned())
 }
 
 /// The directory to check: where `CLAUDE_PROJECT_DIR` sits in its work tree, taken in the work tree of the event's

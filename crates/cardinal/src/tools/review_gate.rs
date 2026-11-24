@@ -30,9 +30,8 @@ use super::shell::{self, GIT_VALUE_OPTIONS};
 use crate::features;
 
 use std::collections::HashSet;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 
 const REVIEW_SKILL: &str = "code-review";
 /// A commit of files under this directory only (the issues) needs no review, unless the issue files are off.
@@ -50,23 +49,9 @@ struct Snapshot {
     files: Vec<String>,
 }
 
+/// The stdout of `git args` in `cwd` fed `stdin`, empty when it fails.
 fn git(cwd: &Path, args: &[&str], stdin: &[u8]) -> Vec<u8> {
-    let Ok(mut child) = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-    else {
-        return Vec::new();
-    };
-    let mut pipe = child.stdin.take().unwrap();
-    let input = stdin.to_vec();
-    let writer = std::thread::spawn(move || pipe.write_all(&input).ok());
-    let out = child.wait_with_output().map_or_default(|o| o.stdout);
-    writer.join().ok();
-    out
+    crate::git::run_stdin(cwd, args, stdin).unwrap_or_default()
 }
 
 /// Names from `-z` output (NUL separated, never quoted by git).
@@ -359,13 +344,7 @@ fn sets_hooks_path(command: &str) -> bool {
 
 /// The root of the work tree `cwd` is in (git lists untracked files under the current directory only).
 fn toplevel(cwd: &Path) -> PathBuf {
-    let out = git(cwd, &["rev-parse", "--show-toplevel"], b"");
-    let root = String::from_utf8_lossy(&out).trim().to_string();
-    if root.is_empty() {
-        cwd.to_path_buf()
-    } else {
-        PathBuf::from(root)
-    }
+    crate::git::toplevel(cwd).unwrap_or_else(|| cwd.to_path_buf())
 }
 
 /// A file of the git directory of the repository `cwd` belongs to, `None` outside a repository.
@@ -375,9 +354,10 @@ pub(super) fn waiver_path(cwd: &Path) -> Option<PathBuf> {
 }
 
 fn git_file(cwd: &Path, name: &str) -> Option<PathBuf> {
-    let out = git(cwd, &["rev-parse", "--git-path", name], b"");
-    let path = String::from_utf8_lossy(&out).trim().to_string();
-    (!path.is_empty()).then(|| cwd.join(path))
+    crate::git::run(cwd, &["rev-parse", "--git-path", name])
+        .ok()
+        .filter(|path| !path.is_empty())
+        .map(|path| cwd.join(path))
 }
 
 fn marker_path(cwd: &Path) -> Option<PathBuf> {
@@ -414,15 +394,12 @@ enum Waiver {
 /// The output of `git args` run on the index git commits (`index`, when git handed one, else the repository's), or
 /// `None` when git fails: unlike `git`, a failed read must not pass for an empty one.
 fn on_index(cwd: &Path, index: Option<&Path>, args: &[&str]) -> Option<Vec<u8>> {
-    let mut git = Command::new("git");
-    git.args(args).current_dir(cwd).stderr(Stdio::null());
+    let mut git = crate::git::command(cwd);
+    git.args(args);
     if let Some(index) = index {
         git.env("GIT_INDEX_FILE", index);
     }
-    git.output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| o.stdout)
+    crate::git::exec(git, None).ok()
 }
 
 /// A file the index git commits changes against `HEAD`, as `git diff --raw` gives it.

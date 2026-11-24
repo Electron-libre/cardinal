@@ -6,7 +6,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Command;
 
 use anyhow::Result;
 
@@ -86,30 +86,29 @@ pub enum Plan {
 /// The output of `git args` run in `dir`, `None` when it fails. The repository is the project's, not the one a hook or an
 /// alias that runs `sync` is in.
 fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
-    let out = git_raw(dir, args)?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    let out = crate::git::exec(git_command(dir, args), None).ok()?;
+    Some(String::from_utf8_lossy(&out).trim().to_string())
 }
 
-fn git_raw(dir: &Path, args: &[&str]) -> Option<Output> {
-    Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
+/// `git args` in `dir`, outside the repository whose hook runs it.
+fn git_command(dir: &Path, args: &[&str]) -> Command {
+    let mut cmd = crate::git::command(dir);
+    cmd.args(args)
         .env_remove("GIT_DIR")
         .env_remove("GIT_WORK_TREE")
         .env_remove("GIT_COMMON_DIR")
-        .env_remove("GIT_INDEX_FILE")
-        .output()
-        .ok()
+        .env_remove("GIT_INDEX_FILE");
+    cmd
 }
 
 /// Whether `core.hooksPath` is set for the repository of `root` (`git config` exits 1 for an unset key).
 fn hooks_path_set(root: &Path) -> bool {
     // any other failure (an unreadable config) is treated as set: better no gate than one in the wrong directory
-    git_raw(root, &["config", "--get", "core.hooksPath"])
-        .is_none_or(|out| out.status.code() != Some(1))
+    crate::git::exec(
+        git_command(root, &["config", "--get", "core.hooksPath"]),
+        None,
+    )
+    .map_or_else(|failure| failure.code != Some(1), |_| true)
 }
 
 /// The hooks directory of the git repository of `root`, `None` when `root` is not the top of one.

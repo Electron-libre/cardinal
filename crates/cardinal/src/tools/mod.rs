@@ -2,7 +2,6 @@
 //! of the pinned revision). Each reads its arguments, standard input and current directory, and returns its exit code.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::project_table::ProjectTable;
 
@@ -246,24 +245,13 @@ pub fn run(args: &[String]) -> u8 {
 
 /// Root of the repository holding the current directory.
 fn repo_root() -> Result<PathBuf, String> {
-    let out = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .map_err(|e| format!("cannot run git to find the repository root: {e}"))?;
-    if !out.status.success() {
-        return Err("not inside a git repository: cannot locate .claude/cardinal.toml".into());
-    }
-    let root = String::from_utf8_lossy(&out.stdout);
-    Ok(root.strip_suffix('\n').unwrap_or(&root).into())
+    crate::git::toplevel(Path::new("."))
+        .ok_or_else(|| "not inside a git repository: cannot locate .claude/cardinal.toml".into())
 }
 
 /// The root of the work tree holding `dir`, empty outside git.
 fn toplevel(dir: &Path) -> String {
-    Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .current_dir(dir)
-        .output()
-        .map_or_default(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    crate::git::toplevel(dir).map_or_default(|top| top.to_string_lossy().into_owned())
 }
 
 /// A command a project declares for a hook, run by `sh -c`, or its default (`None`), and the file-name patterns of the

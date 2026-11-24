@@ -80,7 +80,7 @@ fenced code block is never the title, in the text and in `--json`. Out of scope:
 - `high` review, 5 findings:
   - the headings of `check-issue` and the `# Milestone` of `next-issue` read inside fenced blocks (2 findings,
     pre-existing), and `(no file)` printed for an existing issue with no title (from finding 3):
-    `issues/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`, in the milestone `One implementation per rule`.
+    `issues/done/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`, in the milestone `One implementation per rule`.
   - a fence left open before the title gives no title: kept, QUA-12 reads an unclosed fence to the end of the text.
   - a bare `#` line and the trailing spaces or closing `#` of the title (nit, pre-existing): kept, NXT-19 reads the
     line after `# ` as is.

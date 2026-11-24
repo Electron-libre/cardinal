@@ -10,7 +10,7 @@ but two malformed issues still get a misleading answer: a fence left open hides 
 title `# ` counts as a title. `check-issue` should name the real problem, and `next-issue` print no empty title.
 
 # Findings
-* `high` review of `issues/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from
+* `high` review of `issues/done/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from
   the code, not run.
 * `crates/cardinal/src/tools/check_issue.rs`: with a fence opened in the goal and never closed, `markdown::fenced`
   reads every line after it as fenced, so `check-issue` reports the real `# Approach` and `# Resources` (or the title)
@@ -34,4 +34,4 @@ One implementation per rule
 
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/tools/next_issue.rs`, `crates/cardinal/src/markdown.rs`.
-* `issues/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`.
+* `issues/done/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`.

@@ -14,11 +14,11 @@ The work done before this file existed is in `issues/done/`.
   tool list named as the code reads them.
 - Why: the code audit of 2026-11-24 found requirements a test would prove wrong, refusals with no test and documents
   that mislead who changes a key or a tool.
-- State: in issues
+- State: done
 - Issues:
   - [amend_rep_14_and_sua_6_to_the_code](issues/done/amend_rep_14_and_sua_6_to_the_code.md)
   - [prove_the_refusals_of_release_and_rebase_issue](issues/done/prove_the_refusals_of_release_and_rebase_issue.md)
-  - [bring_the_architecture_doc_and_the_tool_list_in_step](issues/bring_the_architecture_doc_and_the_tool_list_in_step.md)
+  - [bring_the_architecture_doc_and_the_tool_list_in_step](issues/done/bring_the_architecture_doc_and_the_tool_list_in_step.md)
 
 ## One implementation per rule
 

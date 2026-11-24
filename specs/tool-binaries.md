@@ -91,3 +91,4 @@ from before the rename keep that name (BIN-3, BIN-5).
   (they fail as a missing command, which never blocks the agent, until `update` moves them to `cardinal`), and an
   installed `cardinal` older than BIN-15 and BIN-16: it cannot refuse what it does not check.
 - A closed standard error, or a standard output that fails for another reason than a closed reader (a full disk).
+- A closed stdout under a pinned revision older than BIN-23, whose binary still panics: `cardinal run` execs the tool of the pinned revision (BIN-1).

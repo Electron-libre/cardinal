@@ -47,6 +47,7 @@ start of `main`, so one line covers every `println!`. Out of scope: `cardinal-ui
 
 ## Plan
 1. [x] Restore `SIGPIPE` in `main`: `libc` as a direct dependency (already in `Cargo.lock`), `signal(SIGPIPE, SIG_DFL)` under `cfg(unix)` before the parse; verified by a test of the binary that runs `cardinal tool roadmap` on a roadmap larger than a pipe buffer, closes the read end after the first line and asserts the `SIGPIPE` status and an empty stderr; makes true BIN-23, BIN-24. (autonomous)
+2. [x] Fixes of the `high` review: a panic hook raises `SIGPIPE` only for the panic of a closed stdout, the signal stays ignored for the pipes to the git children; `libc::SIGPIPE` in the test; a non-goal for a pinned revision older than the fix; verified by the test of deliverable 1 and an internal test of the panic predicate; makes true BIN-23, BIN-24. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -59,3 +60,11 @@ start of `main`, so one line covers every `println!`. Out of scope: `cardinal-ui
 - red: BIN-23, BIN-24: stderr held `failed printing to stdout: Broken pipe (os error 32)` from a panic.
 - Code review: no findings
 - not verified: macOS (the test runs on Linux; `SIGPIPE` is 13 there too).
+
+## Deliverable 2
+- done: the global `SIG_DFL` of deliverable 1 would have killed `cardinal` on a git child that exits before reading its stdin (the review gate then passing a commit unreviewed); a panic hook now raises `SIGPIPE` only on the panic of a closed stdout.
+- checks: tests pass, lint clean, `check-specs` clean for BIN, docs unchanged (the sentence of `docs/architecture.md` still holds).
+- red: none (the finding is a kill on a pipe to a child, which no cheap test of the binary provokes; the predicate test proves which panics end by `SIGPIPE`).
+- High review: 3 findings: the global `SIG_DFL` (fixed here), BIN-23 too broad for an older pinned revision (non-goal added), the hard-coded 13 (now `libc::SIGPIPE`).
+- Code review: no findings
+- not verified: a git child closing its stdin early, by a test of the binary.

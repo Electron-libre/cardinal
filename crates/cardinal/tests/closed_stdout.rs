@@ -6,9 +6,6 @@ use std::io::{BufRead, BufReader, Read};
 use std::os::unix::process::ExitStatusExt;
 use std::process::{Command, Stdio};
 
-/// `SIGPIPE` on every Unix the binary is released for (Linux, macOS).
-const SIGPIPE: i32 = 13;
-
 /// More milestones than a pipe buffers (64 KiB on Linux), so the tool still writes after the reader closed.
 fn large_roadmap() -> String {
     let mut text = String::from("# Roadmap\n");
@@ -51,5 +48,5 @@ fn a_tool_whose_reader_closes_its_stdout_ends_by_sigpipe_without_a_panic() {
     let status = child.wait().unwrap();
     assert!(first.starts_with("| milestone |"), "{first}");
     assert_eq!(stderr, "");
-    assert_eq!(status.signal(), Some(SIGPIPE), "{status:?}");
+    assert_eq!(status.signal(), Some(libc::SIGPIPE), "{status:?}");
 }

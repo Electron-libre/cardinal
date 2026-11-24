@@ -122,13 +122,36 @@ fn print_changes(report: &Report) -> bool {
 /// The skill `update` names as its next step (SYN-61): the agent otherwise writes the commit message inline.
 const COMMIT_SKILL: &str = ".claude/skills/commit-message/SKILL.md";
 
-/// Let a closed stdout end the process by `SIGPIPE`, as `cat` ends, instead of the panic of `println!` (BIN-23, BIN-24):
-/// the Rust runtime ignores the signal, so a write to a pipe whose reader left fails instead.
+/// Whether a panic message is the one `println!` raises when the reader of stdout has left (`EPIPE`).
+#[cfg(unix)]
+fn is_closed_stdout(message: &str) -> bool {
+    message.starts_with("failed printing to stdout")
+        && message.ends_with(&format!("(os error {})", libc::EPIPE))
+}
+
+/// End by `SIGPIPE`, as `cat` ends, when `println!` panics on a closed stdout (BIN-23, BIN-24). The Rust runtime
+/// ignores the signal, and it stays ignored for the other pipes: a git child that exits before reading all its stdin
+/// stays an error its caller handles, not a kill.
 fn end_by_sigpipe_when_stdout_closes() {
     #[cfg(unix)]
-    // SAFETY: called first in `main`, before any thread starts; restores the default disposition of one signal.
-    unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    {
+        let default = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let payload = info.payload();
+            let message = payload
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| payload.downcast_ref::<&str>().copied());
+            if message.is_some_and(is_closed_stdout) {
+                // SAFETY: restores the default disposition of one signal, then raises it on this process, which
+                // ends it at once; no other state is touched.
+                unsafe {
+                    libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+                    libc::raise(libc::SIGPIPE);
+                }
+            }
+            default(info);
+        }));
     }
 }
 
@@ -200,5 +223,27 @@ pub fn main() -> ExitCode {
             eprintln!("error: {e:#}");
             ExitCode::from(NOT_A_REFUSAL)
         }
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::is_closed_stdout;
+
+    // spec: BIN-23 (internal: only the panic of a closed stdout may end the process; a broken pipe to a child stays an error)
+    #[test]
+    fn only_the_panic_of_a_closed_stdout_ends_by_sigpipe() {
+        assert!(is_closed_stdout(
+            "failed printing to stdout: Broken pipe (os error 32)"
+        ));
+        assert!(!is_closed_stdout(
+            "failed printing to stdout: No space left on device (os error 28)"
+        ));
+        assert!(!is_closed_stdout(
+            "cannot write to git: Broken pipe (os error 32)"
+        ));
+        assert!(!is_closed_stdout(
+            "failed printing to stderr: Broken pipe (os error 32)"
+        ));
     }
 }

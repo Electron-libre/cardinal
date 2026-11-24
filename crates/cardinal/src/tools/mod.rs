@@ -245,8 +245,13 @@ pub fn run(args: &[String]) -> u8 {
 
 /// Root of the repository holding the current directory.
 fn repo_root() -> Result<PathBuf, String> {
-    crate::git::toplevel(Path::new("."))
-        .ok_or_else(|| "not inside a git repository: cannot locate .claude/cardinal.toml".into())
+    let mut cmd = crate::git::command(Path::new("."));
+    cmd.args(["rev-parse", "--show-toplevel"]);
+    match crate::git::exec(cmd, None) {
+        Ok(out) => Ok(PathBuf::from(String::from_utf8_lossy(&out).trim_end())),
+        Err(failure) if failure.code.is_none() => Err(failure.into()),
+        Err(_) => Err("not inside a git repository: cannot locate .claude/cardinal.toml".into()),
+    }
 }
 
 /// The root of the work tree holding `dir`, empty outside git.

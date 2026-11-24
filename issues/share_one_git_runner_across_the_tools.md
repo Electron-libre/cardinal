@@ -61,6 +61,8 @@ become RBI-4's `git <args>: exit <code>: <first stderr line>`. Out of scope: the
 4. [x] One reader of the worktrees: `worktree.rs`'s `worktrees`/`main_worktree` shared (`pub(crate)`), used by
    `rebase_issue::locate`, `issue_claim::trunk`, `next_issue` and the branch lookup of `close_issue`; verified by the
    tests of `rebase-issue`, `issue-claim`, `next-issue`, `close-issue` and `worktree`; ~200 lines. (autonomous)
+5. [x] Docs and fixes of the `high` review of the whole issue; verified by `tests/update_cli.rs` (SYN-17) and the
+   tests of `git.rs`. (autonomous)
 
 The files over the size limit it touches (`lib.rs`, `close_issue.rs`, `rule_breaches.rs`, `delivered_quality.rs`) only
 lose lines: the new code goes to `src/git.rs`.
@@ -69,6 +71,8 @@ lose lines: the new code goes to `src/git.rs`.
 - Mode: autonomous
 - Base commit: 2e4eac504b1ea5ec88076b847b829fa078199a32
 - `lib.rs`: the stderr of `clone`, `fetch`, `checkout` is captured, its first line in the error (1 a).
+
+Done: every deliverable committed; nothing left.
 
 ## Summaries
 
@@ -116,5 +120,23 @@ lose lines: the new code goes to `src/git.rs`.
 - checks: project-check pass; deliverable-size within.
 - red: none (a refactor: the tests of `rebase-issue` (RBI-4 texts), `issue-claim`, `next-issue`, `worktree` stay green).
 - Code review: no findings
+- not verified: none.
+- decisions needed: none.
+
+### Deliverable 5 (docs and `high` review)
+- done: `docs/architecture.md` names the runner and the worktree reader; the fixes below.
+- checks: project-check pass; deliverable-size 85 lines, within.
+- red: SYN-17: `["sync"]: ... is gone from the source (or the source is unreachable: see git's message above)`, no
+  `git fetch --quiet origin <hash>: exit` in it.
+- Code review (high, whole issue): 7 findings:
+  1. `lib.rs`: the SYN-17 error pointed at a git message no longer shown; fixed, it carries the fetch failure (tested).
+  2. a spawn failure in a missing directory read `cannot run git: ...`; fixed, `cannot run git in <dir>: ...` (tested).
+  3. `repo_files` matched `not a git repository` on the first stderr line only; fixed, `Failure` keeps the whole stderr.
+  4. `check-commits` took a git killed by a signal for one that could not start (exit 2); fixed, `code` is `None` only
+     when git could not start; it prints the failure line, not the whole stderr (uniform text, decision 1 a).
+  5. `repo_root` said "not inside a git repository" when git could not run; fixed, the spawn failure is reported.
+  6. the commit of a unit test of `git.rs` read the user's signing and hooks settings; fixed.
+  7. the architecture doc claimed `update-notice` runs through `exec`, and a comment still said `-C`; fixed.
+- Code review (low, the fixes): no findings
 - not verified: none.
 - decisions needed: none.

@@ -467,9 +467,10 @@ fn resolve_in(dir: &Path, url: &str, rev: Option<&str>) -> Result<String> {
     }
     // No branch or tag points to the pinned commit any more: ask the source for it by hash (hosts differ
     // on whether they serve it; a refusal is reported below).
-    let _ = git(Some(dir), &["fetch", "--quiet", "origin", rev]);
+    let fetched = git(Some(dir), &["fetch", "--quiet", "origin", rev]);
     if !resolves(dir, rev) {
-        bail!("{url}: the pinned commit {rev} is gone from the source (or the source is unreachable: see git's message above); run `cardinal update` to pin a current revision");
+        let why = fetched.map_or_else(|e| e.to_string(), |()| "it served no such commit".into());
+        bail!("{url}: the pinned commit {rev} is gone from the source (or the source is unreachable: {why}); run `cardinal update` to pin a current revision");
     }
     git_output(dir, &["rev-parse", &format!("{rev}^{{commit}}")])
 }

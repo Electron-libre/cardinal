@@ -9,8 +9,10 @@ use std::process::{Command, Stdio};
 /// A git command that did not succeed.
 #[derive(Debug)]
 pub(crate) struct Failure {
-    /// Its exit code, `None` when it could not start or a signal ended it.
+    /// Its exit code, `-1` when a signal ended it, `None` when it could not start.
     pub(crate) code: Option<i32>,
+    /// Its whole stderr, for a caller that recognizes a message of git.
+    pub(crate) stderr: String,
     text: String,
 }
 
@@ -38,6 +40,17 @@ pub(crate) fn command(dir: &Path) -> Command {
 /// write): its stdout, or its failure.
 pub(crate) fn exec(mut cmd: Command, input: Option<&[u8]>) -> Result<Vec<u8>, Failure> {
     let name = name(&cmd);
+    let cmd_dir = cmd.get_current_dir().map(Path::to_path_buf);
+    let cannot_run = |e: std::io::Error| {
+        let place = cmd_dir
+            .as_deref()
+            .map_or_default(|d| format!(" in {}", d.display()));
+        Failure {
+            code: None,
+            stderr: String::new(),
+            text: format!("cannot run git{place}: {e}"),
+        }
+    };
     if input.is_some() {
         cmd.stdin(Stdio::piped());
     }
@@ -45,10 +58,7 @@ pub(crate) fn exec(mut cmd: Command, input: Option<&[u8]>) -> Result<Vec<u8>, Fa
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| Failure {
-            code: None,
-            text: format!("cannot run git: {e}"),
-        })?;
+        .map_err(cannot_run)?;
     let pipe = child.stdin.take();
     let out = std::thread::scope(|scope| {
         if let (Some(input), Some(mut pipe)) = (input, pipe) {
@@ -57,23 +67,21 @@ pub(crate) fn exec(mut cmd: Command, input: Option<&[u8]>) -> Result<Vec<u8>, Fa
         }
         child.wait_with_output()
     })
-    .map_err(|e| Failure {
-        code: None,
-        text: format!("cannot run git: {e}"),
-    })?;
+    .map_err(cannot_run)?;
     if out.status.success() {
         return Ok(out.stdout);
     }
-    let code = out.status.code();
+    let code = out.status.code().unwrap_or(-1);
+    let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
     Err(Failure {
-        code,
-        text: failure(&name, code, &String::from_utf8_lossy(&out.stderr)),
+        code: Some(code),
+        text: failure(&name, code, &stderr),
+        stderr,
     })
 }
 
-/// The failure line of RBI-4: `name` (`git <args>`), its exit code (`-1` for a signal) and the first line of `stderr`.
-fn failure(name: &str, code: Option<i32>, stderr: &str) -> String {
-    let code = code.unwrap_or(-1);
+/// The failure line of RBI-4: `name` (`git <args>`), its exit code and the first line of `stderr`.
+fn failure(name: &str, code: i32, stderr: &str) -> String {
     match stderr.lines().find(|l| !l.trim().is_empty()) {
         Some(first) => format!("{name}: exit {code}: {}", first.trim()),
         None => format!("{name}: exit {code}"),
@@ -173,6 +181,18 @@ mod tests {
     }
 
     #[test]
+    fn a_missing_directory_is_named_and_has_no_exit_code() {
+        let gone = tempfile::tempdir().unwrap().path().join("gone");
+        let failure = exec(command(&gone), None).unwrap_err();
+        assert_eq!(failure.code, None);
+        let text = failure.to_string();
+        assert!(
+            text.starts_with(&format!("cannot run git in {}: ", gone.display())),
+            "{text}"
+        );
+    }
+
+    #[test]
     fn a_setting_of_the_subcommand_stays_in_its_name() {
         let mut cmd = command(Path::new("."));
         cmd.args(["-c", "a=b", "grep", "-c", "x"]);
@@ -181,8 +201,7 @@ mod tests {
 
     #[test]
     fn a_failure_with_a_silent_stderr_ends_on_its_exit_code() {
-        assert_eq!(failure("git x", Some(1), "\n  \n"), "git x: exit 1");
-        assert_eq!(failure("git x", None, ""), "git x: exit -1");
+        assert_eq!(failure("git x", 1, "\n  \n"), "git x: exit 1");
     }
 
     #[test]
@@ -210,6 +229,10 @@ mod tests {
                 "user.name=t",
                 "-c",
                 "user.email=t@t",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "core.hooksPath=/dev/null",
                 "commit",
                 "-qm",
                 "a",

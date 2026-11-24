@@ -220,7 +220,7 @@ fn version(tag: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(version)
 }
 
-/// The stdout of `git -C <dir> <args>` when it succeeds before `end`.
+/// The stdout of `git <args>` run in `dir` when it succeeds before `end`.
 fn git_in(dir: &Path, args: &[&str], end: Instant) -> Option<String> {
     let mut cmd = crate::git::command(dir);
     cmd.args(args);

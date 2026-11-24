@@ -20,7 +20,7 @@ pub fn repo_files(dir: &Path, paths: &[&str]) -> Result<Option<Vec<PathBuf>>, St
         .env("LC_ALL", "C");
     let out = match crate::git::exec(cmd, None) {
         Ok(out) => out,
-        Err(failure) if failure.to_string().contains("not a git repository") => return Ok(None),
+        Err(failure) if failure.stderr.contains("not a git repository") => return Ok(None),
         Err(failure) => return Err(format!("{failure} (in {})", dir.display())),
     };
     let mut files: Vec<PathBuf> = out

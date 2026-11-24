@@ -1,6 +1,6 @@
 # 0033. The CLI and the UI share the rules of the worktree state
 
-Status: Proposed
+Status: Accepted
 Date: 2026-11-24
 
 ## Context
@@ -17,8 +17,8 @@ A library crate of the workspace, `crates/cardinal-state`, holds the rules both 
 worktree on disk: the parsing of the `key value` lines of a lock, a claim or a mark, whether the process of a pid runs
 and whether it took the number of the session that wrote a lock or a claim, and the parsing of `git worktree list
 --porcelain` with its main worktree. It runs no git itself: each binary runs git through its own runner and hands it
-the output. It depends on nothing but `std`. `cardinal` and `cardinal-ui` depend on it by path; ADR 0030 still holds
-for everything else: the UI never depends on the `cardinal` crate.
+the output. It depends on nothing but `std`. `cardinal` and `cardinal-ui` depend on it by path. This partly supersedes ADR 0030,
+which still holds for everything else: the UI never depends on the `cardinal` crate.
 
 ## Consequences
 The CLI and the UI can no longer disagree on which session holds a worktree. The UI built from one revision reads the

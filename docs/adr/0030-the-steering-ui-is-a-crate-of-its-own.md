@@ -1,6 +1,6 @@
 # 0030. The steering UI is a crate of its own
 
-Status: Accepted
+Status: Accepted, partly superseded by 0033 (the UI shares the crate `cardinal-state` with `cardinal`)
 Date: 2026-11-20
 
 ## Context

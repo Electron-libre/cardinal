@@ -64,17 +64,12 @@ fn reason(event: &serde_json::Value) -> String {
         .to_string()
 }
 
-/// The session a mark names.
-fn named(text: &str) -> Option<&str> {
-    text.lines().find_map(|l| l.strip_prefix("session "))
-}
-
 /// Writes the mark whole: a temporary file beside it, renamed over it (SWT-3); a mark of the same session keeps the
 /// time its wait began (SWT-1).
 fn wait(mark: &Path, session: &str, reason: &str) {
     let session = session.replace('\n', " ");
     let earlier = fs::read_to_string(mark).ok().and_then(|text| {
-        (named(&text) == Some(session.as_str()))
+        (cardinal_state::field(&text, "session") == Some(session.as_str()))
             .then(|| {
                 text.lines()
                     .find_map(|l| l.strip_prefix("since ")?.parse::<u64>().ok())
@@ -98,7 +93,7 @@ fn work(mark: &Path, session: &str) {
     let Ok(text) = fs::read_to_string(mark) else {
         return;
     };
-    if named(&text) == Some(session) {
+    if cardinal_state::field(&text, "session") == Some(session) {
         fs::remove_file(mark).ok();
     }
 }

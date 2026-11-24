@@ -26,12 +26,12 @@ pub struct Lock {
 }
 
 impl Lock {
-    /// The lock of `text`, `None` without its `session` or its `pid` line; values trimmed.
+    /// The lock of `text`, `None` without its `session` or its `pid` line.
     #[must_use]
     pub fn parse(text: &str) -> Option<Self> {
         Some(Lock {
-            session: field(text, "session")?.trim().to_string(),
-            pid: field(text, "pid")?.trim().to_string(),
+            session: field(text, "session")?.to_string(),
+            pid: field(text, "pid")?.to_string(),
         })
     }
 
@@ -93,7 +93,9 @@ pub fn started_after(pid: &str, written: SystemTime) -> bool {
     let Ok(elapsed) = String::from_utf8_lossy(&out.stdout).trim().parse::<u64>() else {
         return false;
     };
-    let started = SystemTime::now() - Duration::from_secs(elapsed);
+    let Some(started) = SystemTime::now().checked_sub(Duration::from_secs(elapsed)) else {
+        return false;
+    };
     started
         .duration_since(written)
         .is_ok_and(|d| d > PID_REUSE_MARGIN)
@@ -102,6 +104,20 @@ pub fn started_after(pid: &str, written: SystemTime) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Whether `ps -o etimes=` reads the start of a process here (procps): without it no process counts as started
+    /// after a lock, by design.
+    fn ps_reads_starts() -> bool {
+        Command::new("ps")
+            .args(["-o", "etimes=", "-p", &std::process::id().to_string()])
+            .output()
+            .is_ok_and(|o| {
+                String::from_utf8_lossy(&o.stdout)
+                    .trim()
+                    .parse::<u64>()
+                    .is_ok()
+            })
+    }
 
     #[test]
     fn a_field_is_the_value_after_its_key_and_one_space() {
@@ -114,7 +130,7 @@ mod tests {
 
     #[test]
     fn a_lock_needs_its_session_and_its_pid_and_round_trips() {
-        let lock = Lock::parse("session s1 \npid 42\n").unwrap();
+        let lock = Lock::parse("session s1\npid 42\n").unwrap();
         assert_eq!(
             lock,
             Lock {
@@ -147,6 +163,9 @@ mod tests {
         };
         std::fs::write(&path, lock.text()).unwrap();
         assert!(lock.runs(&path), "written after the process started");
+        if !ps_reads_starts() {
+            return;
+        }
         let file = std::fs::File::options().write(true).open(&path).unwrap();
         file.set_modified(SystemTime::UNIX_EPOCH).unwrap();
         assert!(lock_taken(&lock.pid, &path));
@@ -171,10 +190,10 @@ mod tests {
             &std::process::id().to_string(),
             SystemTime::now()
         ));
-        assert!(started_after(
-            &std::process::id().to_string(),
-            SystemTime::UNIX_EPOCH
-        ));
         assert!(!started_after("", SystemTime::UNIX_EPOCH));
+        if ps_reads_starts() {
+            let me = std::process::id().to_string();
+            assert!(started_after(&me, SystemTime::UNIX_EPOCH));
+        }
     }
 }

@@ -59,11 +59,10 @@ fn pending_branch(root: &Path, stem: &str) -> Result<String, String> {
 /// The worktree of the repository of `dir` that has `branch` checked out.
 fn worktree_of(dir: &Path, branch: &str) -> Result<PathBuf, String> {
     let list = git(dir, &["worktree", "list", "--porcelain"])?;
-    let line = format!("branch refs/heads/{branch}");
-    list.split("\n\n")
-        .find(|r| r.lines().any(|l| l == line))
-        .and_then(|r| r.lines().find_map(|l| l.strip_prefix("worktree ")))
-        .map(PathBuf::from)
+    cardinal_state::worktree::parse(&list)
+        .into_iter()
+        .find(|w| w.branch.as_deref() == Some(branch))
+        .map(|w| w.path)
         .ok_or_else(|| format!("{branch} is checked out in no worktree"))
 }
 

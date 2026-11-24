@@ -62,4 +62,4 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0030. The steering UI is a crate of its own](0030-the-steering-ui-is-a-crate-of-its-own.md) | Accepted, partly superseded by 0033 |
 | [0031. The steering UI drives zellij from outside, and a hook marks a waiting session](0031-the-steering-ui-drives-zellij-from-outside.md) | Accepted |
 | [0032. A session continued in another hands it its worktree lock](0032-a-session-continued-in-another-hands-it-its-worktree-lock.md) | Accepted |
-| [0033. The CLI and the UI share the rules of the worktree state](0033-the-cli-and-the-ui-share-the-rules-of-the-worktree-state.md) | Proposed |
+| [0033. The CLI and the UI share the rules of the worktree state](0033-the-cli-and-the-ui-share-the-rules-of-the-worktree-state.md) | Accepted |

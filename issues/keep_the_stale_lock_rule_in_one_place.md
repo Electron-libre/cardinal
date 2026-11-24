@@ -54,6 +54,9 @@ Means: approach 1, a std-only library crate `crates/cardinal-state` (ADR 0033 dr
    (one error text: `no main worktree: the repository is bare`, that of RBI-4 and SUA-11), used by
    `worktree.rs`, `rebase_issue.rs` and the UI's `merge.rs`; verified by its unit tests and the existing tests of
    RBI-4, SUA-11 and the worktree tool. ~250 lines. (autonomous)
+3. [x] Docs and fixes of the `high` review: the last copies (`worktree_of` of the UI, the mark reader of
+   `session-wait`) go through `cardinal-state`, no panic on an early clock, ADR statuses; verified by the project
+   check. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -94,4 +97,26 @@ Means: approach 1, a std-only library crate `crates/cardinal-state` (ADR 0033 dr
 - red: none (refactor: the module's tests failed to compile before it existed)
 - Code review: no findings
 - not verified: none
+- decisions needed: none
+
+## Deliverable 3 summary (docs and fixes of the `high` review)
+- done: the UI's `worktree_of` and `session-wait`'s mark reader go through `cardinal-state`; `Lock::parse` keeps
+  values untrimmed, as the former `workspace_lock` and UI readers did; `started_after` returns false instead of
+  panicking on a clock before the start of the process; its tests skip the start checks without procps `etimes`;
+  ADR 0033 accepted, ADR 0030 marked partly superseded.
+- not fixed: the error texts of `worktree` for a bare repository (now that of RBI-4 and SUA-11) and for an empty list
+  change on purpose: no spec, test or skill cites the old ones; `rebase-issue` no longer trims the lock values (a
+  lock is written by `workspace-lock` only, untrimmed).
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass (clippy -D warnings) |
+| specs | pass |
+| docs | ADR 0030, ADR 0033, ADR index |
+| code review | see below |
+
+- red: none (fixes of a review, no new behaviour)
+- Code review: 1 finding: `Lock::parse` no longer trims (a CRLF lock): not fixed, only `workspace-lock` writes the lock, through `Lock::text`
+- not verified: the tests on a host without procps `etimes` (macOS, busybox)
 - decisions needed: none

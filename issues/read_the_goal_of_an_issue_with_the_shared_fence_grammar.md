@@ -39,6 +39,8 @@ the other rules of the goal (paragraphs, list items).
 1. [x] Goal read through `markdown::fenced`: `goal` iterates the body with `fenced` and drops its `fence` state;
    verified by a test of `crates/cardinal/tests/next_issue.rs` (a goal with a four-backtick block holding ```` ``` ````
    and `# install`, and a line indented by four spaces starting with ```` ``` ````); makes true NXT-19 (amended). (autonomous)
+2. [x] Fixes of the `high` review of the issue: NXT-19 cites QUA-12 instead of a partial summary, its scenario renders,
+   the doc comment of `goal` rewrapped; verified by `check-specs` and `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -57,6 +59,30 @@ the other rules of the goal (paragraphs, list items).
 | code review | no findings |
 
 - red: NXT-19: `left: String("Intro.")`, `right: String("Intro. ```indented after.")`
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+
+- done: fixes of the `high` review (6 findings).
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no page describes the fences of the goal |
+| code review | no findings |
+
+- red: none
+- `high` review, 6 findings:
+  - fixed: the code spans of the NXT-19 scenario (5 backticks), the `goal` row cites QUA-12 instead of a partial
+    summary, the doc comment of `goal` rewrapped.
+  - a fence nested in a list item (2 findings, from the QUA-12 grammar this issue adopts, shared by every tool):
+    `issues/read_the_fences_nested_in_list_items_as_commonmark.md`.
+  - the title read without the fence grammar (pre-existing): `issues/read_the_title_of_an_issue_with_the_shared_fence_grammar.md`,
+    in the milestone `One implementation per rule`.
 - Code review: no findings
 - not verified: none
 - decisions needed: none

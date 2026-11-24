@@ -31,8 +31,9 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
 }
 
 /// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `# ` outside a
-/// fenced code block (`markdown::fenced`, QUA-12), its fenced code blocks left out, the lines of each paragraph trimmed and joined by one space, a list item
-/// opening a paragraph, the paragraphs joined by a newline; `None` when the section is missing or holds no text.
+/// fenced code block (`markdown::fenced`, QUA-12), its fenced code blocks left out, the lines of each paragraph
+/// trimmed and joined by one space, a list item opening a paragraph, the paragraphs joined by a newline; `None` when
+/// the section is missing or holds no text.
 fn goal(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
     let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);

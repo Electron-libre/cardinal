@@ -22,7 +22,7 @@ screen, runs the child, restores), against opening it in a new zellij pane or ta
 * `specs/steering-ui-actions.md`: new requirements (open, edit, the refusals: no program found, no file).
 
 # Milestone
-A steering UI to command
+Cardinal UI
 
 # Resources
 * `crates/cardinal-ui/src/terminal.rs`, `keys.rs`, `palette.rs`, `zellij.rs`; `specs/steering-ui-palette.md`.

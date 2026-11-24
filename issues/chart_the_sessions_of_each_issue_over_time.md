@@ -28,7 +28,7 @@ Measure first: whether the files of a measure (STU-17) already hold the per-issu
 * `specs/steering-ui-charts.md`: new requirements; maybe `specs/delivered-quality.md` or `specs/evaluation.md`.
 
 # Milestone
-A steering UI to command
+Cardinal UI
 
 # Resources
 * `crates/cardinal-ui/src/charts.rs`, `measures.rs`; `specs/evaluation.md` (EVA-6), `specs/delivered-quality.md`.

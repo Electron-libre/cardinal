@@ -24,7 +24,7 @@ Show `used <n>% · resets <HH:MM>` per limit on the status or measures line, `un
 * `specs/steering-ui.md`: a new requirement; the spec of the status line script if 1 is chosen.
 
 # Milestone
-A steering UI to command
+Cardinal UI
 
 # Resources
 * `crates/cardinal-ui/src/status.rs`, `measures.rs`; `specs/steering-ui.md` (STU-16 to STU-19).

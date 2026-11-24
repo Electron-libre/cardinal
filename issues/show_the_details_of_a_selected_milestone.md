@@ -26,7 +26,7 @@ fold for a milestone: `i` on a selected heading unfolds a panel with its name, s
 * `specs/steering-ui-queue.md`: SUQ-6, SUQ-7 (amended); the spec of `cardinal run roadmap` (the JSON fields).
 
 # Milestone
-A steering UI to command
+Cardinal UI
 
 # Resources
 * `crates/cardinal-ui/src/summary.rs`, `crates/cardinal/src/tools/roadmap.rs`, `specs/steering-ui-queue.md`.

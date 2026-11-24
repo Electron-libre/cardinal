@@ -20,5 +20,8 @@ responsibility, every part under the limit, with no change of behaviour.
 2. The git and worktree helpers go to the shared runner of `share_one_git_runner_across_the_tools`.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
+# Milestone
+Files small enough to review
+
 # Resources
 * `crates/cardinal/src/tools/close_issue.rs`, `docs/architecture.md` (the module list it may name).

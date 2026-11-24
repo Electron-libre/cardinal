@@ -20,5 +20,8 @@ responsibility, every part under the limit, with no change of behaviour.
 2. Move 790-909 to `cardinal_report/verdicts.rs`, beside the existing `output.rs`.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
+# Milestone
+Files small enough to review
+
 # Resources
 * `crates/cardinal/src/tools/cardinal_report.rs`, `docs/architecture.md` (the module list it may name).

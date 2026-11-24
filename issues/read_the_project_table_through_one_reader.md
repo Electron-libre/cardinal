@@ -31,6 +31,9 @@ configuration is reported the same way everywhere.
 3. Route the readers above through it, deleting the private copies; keep the top-level fallback only where a spec
    requires it.
 
+# Milestone
+One implementation per rule
+
 # Resources
 * `crates/cardinal/src/tools/mod.rs`, `crates/cardinal/src/lib.rs:325`, `specs/release.md` (REL-16),
   `specs/file-size.md` (SIZ-8, SIZ-10), `specs/close-issue.md`.

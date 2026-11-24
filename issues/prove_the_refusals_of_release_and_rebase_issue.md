@@ -35,6 +35,9 @@ outcome: those tests traced, and one test per untested refusal.
 # Specs
 * `specs/release.md`: REL-3, REL-4, REL-5, REL-6. `specs/rebase-issue.md`: RBI-2, RBI-3, RBI-4.
 
+# Milestone
+Specs and docs true to the code
+
 # Resources
 * `crates/cardinal/tests/release.rs`, `crates/cardinal/tests/rebase_issue.rs`.
 

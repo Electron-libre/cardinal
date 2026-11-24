@@ -20,5 +20,8 @@ grammar, so `next-issue --json` (shown by `cardinal-ui`) reads an issue as the o
 1. Iterate the body with `markdown::fenced` and drop the local `fence` state.
 2. A test of a goal with an indented fence and one with a longer closing fence.
 
+# Milestone
+One implementation per rule
+
 # Resources
 * `crates/cardinal/src/markdown.rs`, `crates/cardinal/tests/next_issue.rs`.

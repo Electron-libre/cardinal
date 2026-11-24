@@ -30,5 +30,8 @@ lists. The outcome: each names what the code reads and accepts.
 2. Change the message of `worktree.rs:303` to name `cardinal run worktree close`, and the two `about` lines.
 3. Add `update` and `upgrade` to `CLAUDE.md`.
 
+# Milestone
+Specs and docs true to the code
+
 # Resources
 * `skill:update-docs`, `docs/adr/0028-a-consumer-needs-only-cardinal.md`.

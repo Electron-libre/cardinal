@@ -22,5 +22,8 @@ responsibility, every part under the limit, with no change of behaviour.
 2. Optionally move `check` (1219-1312) to a module of its own.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
+# Milestone
+Files small enough to review
+
 # Resources
 * `crates/cardinal/src/lib.rs`, `docs/architecture.md` (the module list it may name).

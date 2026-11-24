@@ -16,5 +16,8 @@ flag a function of the module that loses its last caller. The outcome: the allow
 # Approach
 1. Delete the line, run `just check`; mark `#[cfg(test)]` an item only the tests use, if any.
 
+# Milestone
+One implementation per rule
+
 # Resources
 * `crates/cardinal/src/tools/transcripts.rs`, `docs/adr/0010-the-tools-ship-in-the-harness-binary.md`.

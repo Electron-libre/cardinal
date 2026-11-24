@@ -28,6 +28,9 @@ A decision of architecture (ADR 0030 makes the UI a crate of its own), to take a
 # Specs
 * `specs/workspace-lock.md` (WSL-1), `specs/steering-ui.md` (STU-7): unchanged behaviour.
 
+# Milestone
+One implementation per rule
+
 # Resources
 * `docs/adr/0030-the-steering-ui-is-a-crate-of-its-own.md`, `docs/architecture.md` (steering UI section),
   `crates/cardinal-ui/Cargo.toml`.

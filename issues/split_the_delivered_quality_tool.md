@@ -21,5 +21,8 @@ responsibility, every part under the limit, with no change of behaviour.
 2. Move 35-158 and 587-690 to `delivered_quality/history.rs`, beside the existing `milestone.rs`.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
+# Milestone
+Files small enough to review
+
 # Resources
 * `crates/cardinal/src/tools/delivered_quality.rs`, `docs/architecture.md` (the module list it may name).

@@ -19,5 +19,8 @@ responsibility, every part under the limit, with no change of behaviour.
 1. Move 693-927 to `rule_breaches/commits.rs`.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
+# Milestone
+Files small enough to review
+
 # Resources
 * `crates/cardinal/src/tools/rule_breaches.rs`, `docs/architecture.md` (the module list it may name).

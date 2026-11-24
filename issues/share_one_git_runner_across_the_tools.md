@@ -28,6 +28,9 @@ every tool, with no change of behaviour beyond uniform error texts.
 2. Route the tools through it, one deliverable per few tools; keep the error texts a spec or a test fixes.
 3. Make `rebase_issue` and `close_issue` read the worktrees through `worktree.rs`.
 
+# Milestone
+One implementation per rule
+
 # Resources
 * The files above; the specs whose error messages name a git failure (`specs/rebase-issue.md` RBI-4).
 

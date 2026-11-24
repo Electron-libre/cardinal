@@ -7,6 +7,49 @@ issues once it is shaped; the `priority` and `depends_on` of each issue file ord
 A line `- On hold: <reason>` defers a milestone: `cardinal run next-issue` offers none of its issues until it is removed.
 The work done before this file existed is in `issues/done/`.
 
+## Specs and docs true to the code
+
+- Goal: make the specs, their tests and the documents state what the code does: the requirements that contradict
+  the code amended, the refusals of `release` and `rebase-issue` proved and traced, the architecture doc and the
+  tool list named as the code reads them.
+- Why: the code audit of 2026-11-24 found requirements a test would prove wrong, refusals with no test and documents
+  that mislead who changes a key or a tool.
+- State: in issues
+- Issues:
+  - [amend_rep_14_and_sua_6_to_the_code](issues/amend_rep_14_and_sua_6_to_the_code.md)
+  - [prove_the_refusals_of_release_and_rebase_issue](issues/prove_the_refusals_of_release_and_rebase_issue.md)
+  - [bring_the_architecture_doc_and_the_tool_list_in_step](issues/bring_the_architecture_doc_and_the_tool_list_in_step.md)
+
+## One implementation per rule
+
+- Goal: give each rule the tools share one implementation: the reader of the `[project]` table, the git runner and
+  the top-level lookup, the stale-lock rule of the CLI and the UI, the fence grammar of the goal of an issue, and no
+  dead-code allowance hiding a function that lost its callers.
+- Why: the code audit of 2026-11-24 found these rules copied across the tools, each copy with its own error policy,
+  so a fix in one leaves the others wrong.
+- State: in issues
+- Issues:
+  - [read_the_project_table_through_one_reader](issues/read_the_project_table_through_one_reader.md)
+  - [share_one_git_runner_across_the_tools](issues/share_one_git_runner_across_the_tools.md)
+  - [keep_the_stale_lock_rule_in_one_place](issues/keep_the_stale_lock_rule_in_one_place.md)
+  - [read_the_goal_of_an_issue_with_the_shared_fence_grammar](issues/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md)
+  - [drop_the_dead_code_allowance_of_the_transcripts](issues/drop_the_dead_code_allowance_of_the_transcripts.md)
+
+## Files small enough to review
+
+- Goal: split the files over the size limit of `cardinal run file-size` by responsibility, with no change of
+  behaviour.
+- Why: the code audit of 2026-11-24 found the crate root and five tools too long to review whole, and each change
+  grows them.
+- State: in issues
+- Issues:
+  - [split_the_crate_root_of_cardinal](issues/split_the_crate_root_of_cardinal.md)
+  - [split_the_spec_checker](issues/split_the_spec_checker.md)
+  - [split_the_close_issue_tool](issues/split_the_close_issue_tool.md)
+  - [split_the_cardinal_report_tool](issues/split_the_cardinal_report_tool.md)
+  - [split_the_delivered_quality_tool](issues/split_the_delivered_quality_tool.md)
+  - [split_the_rule_breaches_tool](issues/split_the_rule_breaches_tool.md)
+
 ## User control
 
 - Goal: let the user confirm each irreversible action and answer each question of the agent in a prompt of Claude

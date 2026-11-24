@@ -27,5 +27,8 @@ requirements amended to the behaviour of the code, each proved by a traced test.
 # Specs
 * `specs/cardinal-report.md`: REP-14. `specs/steering-ui-actions.md`: SUA-6.
 
+# Milestone
+Specs and docs true to the code
+
 # Resources
 * `skill:write-spec`, `crates/cardinal/tests/cardinal_report.rs`, `crates/cardinal-ui/src/keys.rs`.

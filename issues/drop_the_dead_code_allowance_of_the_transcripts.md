@@ -53,3 +53,8 @@ Out of scope: any other change of the module.
 - Code review: no findings
 - not verified: nothing
 - decisions needed: none
+
+## Whole issue
+- update-docs on `62562d9..HEAD`: nothing to update.
+- Code review (high): no findings.
+- Done: nothing left.

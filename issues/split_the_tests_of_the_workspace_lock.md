@@ -41,6 +41,8 @@ assertions, every `// spec:` citation stays on its test. Out of scope: any chang
 2. [x] Hand-over tests: move WSL-11 to WSL-13 and their helpers (`hook_with_transcript`, `transcript`, `append`,
    `claim_of`, `issue_claim`) to `tests/workspace_lock_handover.rs`; verified by `just check` and `cardinal run
    file-size` no longer listing the file; ~730 lines counted. (autonomous)
+3. [x] Docs and high review of the issue: `update-docs` on `base..HEAD`; verified by its grep and the `high` review.
+   (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -63,3 +65,14 @@ assertions, every `// spec:` citation stays on its test. Out of scope: any chang
 - red: none (a move, no new test)
 - Code review: no findings
 - checks: `just check` green (16 + 10 tests pass, 26 as before); `file-size` no longer lists the file; not verified: nothing.
+
+## Deliverable 3
+- done: `update-docs` on `813cb80..HEAD`: no document names the moved files; `.claude/update-docs-map.md` gets the row
+  a move of test code lacked.
+- red: none (docs only)
+- Code review (`high`, whole issue): 2 findings, both pre-existing in the moved helpers, not fixed here (a move only):
+  `claim_as` writes its blob under `<dir>/.git/`, which panics for a linked worktree (every call passes `r.main`
+  today); `dead()` returns a reaped pid the kernel may reuse (unlikely: Linux allocates pids sequentially).
+  Left to the user whether to file them as issues.
+- Code review: no findings (`low`, this deliverable)
+- checks: `just check` green; not verified: nothing.

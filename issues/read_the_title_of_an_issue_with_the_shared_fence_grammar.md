@@ -40,6 +40,8 @@ fenced code block is never the title, in the text and in `--json`. Out of scope:
 1. [x] Title read through `markdown::fenced`: `heading` skips the fenced lines; verified by a test of
    `crates/cardinal/tests/next_issue_json.rs` (a body opening with a code block holding `# install deps`, then
    `# Real title`); makes true NXT-19 (amended). (autonomous)
+2. [x] Review of the whole issue: the `high` review's findings settled, a follow-up issue filed; verified by
+   `check-issue` and `next-issue`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -59,5 +61,31 @@ fenced code block is never the title, in the text and in `--json`. Out of scope:
 
 - red: NXT-19: `left: String("install deps")`, `right: "Real title"`
 - Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+
+- done: `high` review of the issue; no code change, one follow-up issue.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no page describes how the title is read |
+| code review | `high`: 5 findings, none fixed in this issue; `low` of the roadmap edit: no findings |
+
+- red: none
+- `high` review, 5 findings:
+  - the headings of `check-issue` and the `# Milestone` of `next-issue` read inside fenced blocks (2 findings,
+    pre-existing), and `(no file)` printed for an existing issue with no title (from finding 3):
+    `issues/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`, in the milestone `One implementation per rule`.
+  - a fence left open before the title gives no title: kept, QUA-12 reads an unclosed fence to the end of the text.
+  - a bare `#` line and the trailing spaces or closing `#` of the title (nit, pre-existing): kept, NXT-19 reads the
+    line after `# ` as is.
+  - the text mode and the `~~~` or unclosed fences not tested (nit): kept, the text mode goes through the same
+    `heading`, and `markdown::fenced` has its own tests of the fence kinds.
+- Code review: 5 findings
 - not verified: none
 - decisions needed: none

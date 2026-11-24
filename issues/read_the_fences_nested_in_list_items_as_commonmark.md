@@ -11,7 +11,7 @@ text, or left open to the end of the file. The tools that read issue sections (`
 `delivered-quality`) should read such a block as CommonMark does.
 
 # Findings
-* `high` review of `issues/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from the
+* `high` review of `issues/done/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from the
   code, not run.
 * A goal holding `10. Run:` then `    ```sh`, `    cargo install x`, `    ```` reads as
   ``10. Run: ```sh cargo install x ``` `` in `next-issue --json` (shown by `cardinal-ui`, SUQ-6).

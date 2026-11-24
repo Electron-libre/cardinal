@@ -10,7 +10,7 @@ while its goal now skips the fenced blocks (`markdown::fenced`, QUA-12). The tit
 grammar, so both fields of `next-issue --json` read an issue alike.
 
 # Findings
-* `high` review of `issues/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from the
+* `high` review of `issues/done/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md` (2026-11-24), read from the
   code, not run.
 * `crates/cardinal/src/tools/next_issue.rs` (`heading`): an issue whose body opens with ```` ```sh ````,
   `# install deps`, ```` ``` ```` then `# Real title` is titled `install deps`, in the text and in `--json`.

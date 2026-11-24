@@ -81,7 +81,7 @@ the other rules of the goal (paragraphs, list items).
     summary, the doc comment of `goal` rewrapped.
   - a fence nested in a list item (2 findings, from the QUA-12 grammar this issue adopts, shared by every tool):
     `issues/read_the_fences_nested_in_list_items_as_commonmark.md`.
-  - the title read without the fence grammar (pre-existing): `issues/read_the_title_of_an_issue_with_the_shared_fence_grammar.md`,
+  - the title read without the fence grammar (pre-existing): `issues/done/read_the_title_of_an_issue_with_the_shared_fence_grammar.md`,
     in the milestone `One implementation per rule`.
 - Code review: no findings
 - not verified: none

@@ -235,6 +235,17 @@ fn a_missing_heading_and_an_unknown_milestone_are_null() {
 
 // spec: NXT-19
 #[test]
+fn the_title_is_read_outside_the_fenced_blocks() {
+    let r = repo(&[(
+        "a",
+        "---\npriority: low\n---\n```sh\n# install deps\n```\n# Real title\n",
+    )]);
+    let (doc, _, _) = document(r.path());
+    assert_eq!(issue(&doc, "a")["title"], "Real title");
+}
+
+// spec: NXT-19
+#[test]
 fn the_goal_joins_the_lines_of_each_paragraph() {
     let r = repo(&[
         (

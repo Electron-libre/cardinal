@@ -18,16 +18,15 @@ use std::path::Path;
 use super::issue_claim::{self, Claim};
 use crate::project_table::ProjectTable;
 
-/// The first `# ` heading after the front matter of the issue `stem`, `None` when it has none or cannot be read.
+/// The first line opening with `# ` after the front matter of the issue `stem`, outside a fenced code block
+/// (`markdown::fenced`, QUA-12, NXT-19); `None` when it has none or cannot be read.
 fn heading(dir: &Path, stem: &str) -> Option<String> {
-    std::fs::read_to_string(dir.join(format!("{stem}.md")))
-        .ok()
-        .and_then(|t| {
-            let body = split_front_matter(&t).map_or(0, |(_, _, body)| body);
-            t[body..]
-                .lines()
-                .find_map(|l| l.strip_prefix("# ").map(str::to_string))
-        })
+    let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
+    let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
+    let title = crate::markdown::fenced(text[body..].lines())
+        .filter(|&(_, fenced)| !fenced)
+        .find_map(|(l, _)| l.strip_prefix("# ").map(str::to_string));
+    title
 }
 
 /// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `# ` outside a

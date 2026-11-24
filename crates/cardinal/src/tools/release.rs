@@ -11,9 +11,10 @@ use std::fmt::{self, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use super::roadmap;
 use super::transcripts::commit_config;
-use super::{project_str, roadmap};
 use crate::features;
+use crate::project_table::ProjectTable;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
 pub(crate) const HEADER: &str = "# Changelog
@@ -225,18 +226,18 @@ fn prepare(root: &Path, version: Version) -> Result<(), String> {
     }
     let mut writes = vec![(path, before, insert(&text, &new))];
     writes.extend(roadmaps);
-    let written =
-        write_all(&writes).and_then(|()| match project_str(root, "release_version_command") {
-            Some(command) => Command::new("sh")
-                .arg("-c")
-                .arg(format!("{command} {version}"))
-                .current_dir(root)
-                .status()
-                .is_ok_and(|s| s.success())
-                .then_some(())
-                .ok_or_else(|| format!("the release_version_command `{command} {version}` failed")),
-            None => Ok(()),
-        });
+    let command = setting(root, "release_version_command")?;
+    let written = write_all(&writes).and_then(|()| match command {
+        Some(command) => Command::new("sh")
+            .arg("-c")
+            .arg(format!("{command} {version}"))
+            .current_dir(root)
+            .status()
+            .is_ok_and(|s| s.success())
+            .then_some(())
+            .ok_or_else(|| format!("the release_version_command `{command} {version}` failed")),
+        None => Ok(()),
+    });
     if let Err(e) = written {
         // Leave the files as they were, so the same release can be prepared again.
         for (path, before, _) in &writes {
@@ -267,7 +268,7 @@ fn roadmap_writes(
             documents.push((rel, at));
         }
     }
-    let archive = match project_str(root, "roadmap_archive") {
+    let archive = match setting(root, "roadmap_archive")? {
         Some(a) => Some(
             super::close_issue::resolve(&[], &a)
                 .filter(|at| documents.iter().any(|(_, d)| d == at))
@@ -367,7 +368,7 @@ fn proposed(root: &Path) -> Result<(Version, Option<Version>, Vec<Commit>), Stri
         .lines()
         .filter_map(Version::parse)
         .max();
-    let breaking_files = super::config_list(root, "release_breaking_files").unwrap_or_default();
+    let breaking_files = ProjectTable::read(root)?.list("release_breaking_files")?;
     let commits = match last {
         Some(last) => commits(root, last, &breaking_files)?,
         None => Vec::new(),
@@ -547,6 +548,14 @@ fn insert(text: &str, new: &str) -> String {
 }
 
 /// The output of `git <args>` in `root`, or its error.
+/// The string `key` of the `[project]` table, trimmed, `None` when absent or blank; an error when the configuration is
+/// broken or the key of another type, which `release` refuses rather than read as absent.
+fn setting(root: &Path, key: &str) -> Result<Option<String>, String> {
+    let project = ProjectTable::read(root)?;
+    let value = project.str(key)?.map_or_default(str::trim);
+    Ok((!value.is_empty()).then(|| value.to_string()))
+}
+
 fn git(root: &Path, args: &[&str]) -> Result<String, String> {
     let out = Command::new("git")
         .args(args)

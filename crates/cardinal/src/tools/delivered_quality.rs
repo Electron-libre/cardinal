@@ -431,7 +431,8 @@ struct DocFiles {
 
 impl DocFiles {
     fn read(repo: &Path) -> Self {
-        // a configuration that cannot be read counts the default doc files (QUA-14)
+        // a configuration that cannot be read, or a key of another type, counts the default doc files, as QUA-14 does
+        // for a `root_docs` it cannot read
         let project = ProjectTable::read(repo).ok();
         let architecture = project
             .as_ref()

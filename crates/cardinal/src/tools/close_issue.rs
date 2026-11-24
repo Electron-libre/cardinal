@@ -719,17 +719,18 @@ fn relink_closed() -> u8 {
                 .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
         })
         .collect();
+    let root = repo_root(Path::new("."));
+    if let Some(root) = root.as_deref().filter(|_| Path::new("issues").is_dir()) {
+        check_config(root, &under(root, Path::new("issues")));
+    }
     if stems.is_empty() {
         return 0;
     }
-    if let Some(root) = repo_root(Path::new(".")) {
-        let issues = under(&root, Path::new("issues"));
-        check_config(&root, &issues);
-        relink(&root, &issues, &stems, None);
-    } else {
+    let Some(root) = root else {
         eprintln!("not inside a git repository");
         std::process::exit(1);
-    }
+    };
+    relink(&root, &under(&root, Path::new("issues")), &stems, None);
     0
 }
 

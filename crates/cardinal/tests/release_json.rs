@@ -207,11 +207,21 @@ fn prints_the_warnings_of_the_convention_on_stderr_only() {
 // spec: REL-16
 #[test]
 fn refuses_a_configuration_it_cannot_parse() {
-    let dir = repo();
-    config(dir.path(), "[project\n");
-    tag(dir.path(), "v0.2.0");
-    commit(dir.path(), "feat: b", "b.txt");
-    let out = release(dir.path(), &["--json"]);
-    assert!(!out.status.success(), "{out:?}");
-    assert!(out.stdout.is_empty(), "{out:?}");
+    for text in [
+        "[project\n",
+        "[project]\nrelease_breaking_files = [\"cardinal-format\", 1]\n",
+        "[project]\nroadmap = [\"ROADMAP.md\"]\nroadmap_archive = 1\n",
+    ] {
+        let dir = repo();
+        config(dir.path(), text);
+        tag(dir.path(), "v0.2.0");
+        commit(dir.path(), "feat: b", "b.txt");
+        let out = release(dir.path(), &["--json"]);
+        assert!(!out.status.success(), "{text:?}: {out:?}");
+        assert!(out.stdout.is_empty(), "{text:?}: {out:?}");
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("cardinal.toml"),
+            "{text:?}: {out:?}"
+        );
+    }
 }

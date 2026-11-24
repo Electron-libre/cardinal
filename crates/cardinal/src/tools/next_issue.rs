@@ -312,7 +312,8 @@ fn milestone(text: &str) -> Option<String> {
 /// The milestones of the `roadmap` documents of the configuration of `root`, in order, each with the value of its
 /// `On hold:` field (NXT-16); `None` when no document can be read (NXT-14).
 fn milestones(root: &Path) -> Option<Vec<(String, Option<String>)>> {
-    // a configuration that cannot be read gives no milestone, the issues ordered by priority (NXT-14)
+    // a configuration that cannot be read, or a `roadmap` of another type, gives no milestone: the issues are then
+    // ordered by priority, as with no `roadmap` key (NXT-14)
     let texts: Vec<String> = ProjectTable::read(root)
         .and_then(|p| p.list("roadmap"))
         .unwrap_or_default()

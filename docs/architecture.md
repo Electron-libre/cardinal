@@ -61,6 +61,13 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 | the tools and the skills | `roadmap` (`next-issue`, `roadmap`, `close-issue`, `release`, `review-gate`, `delivered-quality`), `architecture` (`delivered-quality`), `user_language` (`language-hint`, `rule-breaches`) |
 | the skills, through the agent | `test_conventions`, `confidential`, `merge_back` |
 
+The tools read the `[project]` table through one reader, `ProjectTable` (`crates/cardinal/src/project_table.rs`): a
+missing file or key is an absence, a file that cannot be read or parsed, or a key of another type, is an error naming
+the file and the key. The hooks, `delivered-quality`, `next-issue` and `rule-breaches` take that error for the
+default, as their specs say, and `project-check` for an unset `check_command` (PCK-2); the other tools report it
+(`close-issue` refuses to close, CLS-10). `fixed_context_budget` and `user_language`, read with the other tables of
+the file and with `.claude/cardinal.local.toml`, keep their own readers.
+
 The change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else
 project-specific (a quality benchmark, a smoke test, the language-specific recipes of the `justfile`) stays in the
 project.

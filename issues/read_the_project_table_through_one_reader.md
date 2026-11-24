@@ -67,6 +67,10 @@ local file: out of scope.
    read through the reader and checked before any move, `--relink` too; verified by binary tests of
    `tests/close_issue.rs` on an invalid file and on a `skipped_dirs` string; makes true CLS-10 and sets the spec
    `accepted` (~150 lines; `close_issue.rs` only shrinks). (autonomous)
+4. [x] Docs of the whole issue and the fixes of its `high` review: `docs/architecture.md` describes the reader and
+   its exceptions, `.claude/update-docs-map.md` routes a new key through it; `release` refuses a key of another type,
+   `close-issue --relink` checks the configuration with no done issue; verified by `tests/release_json.rs` and
+   `tests/close_issue_config.rs`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -132,3 +136,33 @@ red: CLS-10: `"[project\n" issues/foo.md: left: Some(0) right: Some(1)` (close-i
 Code review: no findings
 not verified: none
 decisions needed: none
+
+## Summary of deliverable 4
+done: docs of the issue (`docs/architecture.md`, `.claude/update-docs-map.md`) and the fixes of the `high` review.
+
+| check | result |
+|---|---|
+| tests | `just check` green; REL-16 test extended to `release_breaking_files` and `roadmap_archive` of another type, CLS-10 test to `--relink` with no done issue |
+| lint | clean |
+| specs | no new problem |
+| docs | updated |
+| code review | high on the issue: 9 findings; low on this deliverable below |
+
+red: REL-16, CLS-10: not run red: both the extensions and their fixes were written in this deliverable (the old
+code returned 0 on an empty `issues/done/` and read a mixed `release_breaking_files` as empty)
+
+High review, 9 findings:
+- `release` read a wrong-typed `release_breaking_files`, `release_version_command` or `roadmap_archive` as absent:
+  fixed, read through `ProjectTable` with `?` (`setting`).
+- `--relink` skipped the check with no done issue: fixed.
+- Keys outside `[project]` are no longer read: not fixed, decided in the plan.
+- `rule-breaches`, `delivered-quality`, `next-issue` read a mixed list as none: not fixed, the fallback of answer 1 a;
+  the comments now say so without overclaiming their spec.
+- The doc claimed every reader: fixed, it names `fixed_context_budget` and `user_language`.
+- `project-check` reports a broken file as an unset key: pre-existing, as PCK-2 requires; the doc says so.
+- `roadmap` exits 2 on a missing file: pre-existing, kept (RMP-5 reads "cannot be read").
+Code review: no findings
+not verified: none
+decisions needed: none
+
+Issue done: every reader of the issue goes through `ProjectTable`; nothing left.

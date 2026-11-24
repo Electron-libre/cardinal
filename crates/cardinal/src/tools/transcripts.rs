@@ -2,7 +2,6 @@
 //! the projects directory, its projects and sessions, the sub-agent transcripts of a session, the parsed lines, the
 //! filter of the messages the user typed, and what a session is resolved to (its repository, project, start and the
 //! Cardinal revision then).
-#![allow(dead_code)]
 
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;

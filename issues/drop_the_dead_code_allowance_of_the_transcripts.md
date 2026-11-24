@@ -21,3 +21,35 @@ One implementation per rule
 
 # Resources
 * `crates/cardinal/src/tools/transcripts.rs`, `docs/adr/0010-the-tools-ship-in-the-harness-binary.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+Remove the module-wide `#![allow(dead_code)]` of `transcripts.rs` so the compiler flags any item that loses its last
+caller. A probe build and clippy (all targets) without it report no warning: no item needs `#[cfg(test)]`.
+Out of scope: any other change of the module.
+
+## Plan
+1. [x] Drop the allowance: delete `#![allow(dead_code)]` of `crates/cardinal/src/tools/transcripts.rs`; verified by
+   `cardinal run project-check` (clippy -D warnings) passing with no warning; no spec requirement (pure refactor). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 62562d9141b4a6c6be8377d93e564093604c87d4
+
+## Summary of deliverable 1
+- done: the module-wide `#![allow(dead_code)]` of `transcripts.rs` is gone; no item was dead.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | clippy -D warnings clean |
+| specs | unchanged (pure refactor) |
+| docs | nothing to update |
+
+- red: none (no test: the compiler is the check)
+- Code review: no findings
+- not verified: nothing
+- decisions needed: none

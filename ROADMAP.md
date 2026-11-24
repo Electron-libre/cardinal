@@ -33,7 +33,7 @@ The work done before this file existed is in `issues/done/`.
   - [share_one_git_runner_across_the_tools](issues/done/share_one_git_runner_across_the_tools.md)
   - [keep_the_stale_lock_rule_in_one_place](issues/done/keep_the_stale_lock_rule_in_one_place.md)
   - [read_the_goal_of_an_issue_with_the_shared_fence_grammar](issues/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md)
-  - [drop_the_dead_code_allowance_of_the_transcripts](issues/drop_the_dead_code_allowance_of_the_transcripts.md)
+  - [drop_the_dead_code_allowance_of_the_transcripts](issues/done/drop_the_dead_code_allowance_of_the_transcripts.md)
   - [exit_quietly_when_the_reader_of_stdout_closes](issues/done/exit_quietly_when_the_reader_of_stdout_closes.md)
 
 ## Files small enough to review

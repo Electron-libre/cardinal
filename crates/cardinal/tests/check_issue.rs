@@ -268,3 +268,32 @@ fn a_done_issue_is_refused_with_one_problem() {
         );
     }
 }
+
+// spec: CKI-6
+/// A `# ` line inside a fenced code block is never a heading: before the title it is not reported as the first
+/// heading, and a required section quoted only there is missing.
+#[test]
+fn a_fenced_heading_is_no_section() {
+    let fenced_first = "---\npriority: low\n---\n```markdown\n# Goal\n```\n# Fix it\n\n# Goal\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(fenced_first);
+    assert!(ok && out.is_empty(), "{out}");
+
+    let quoted = "---\npriority: low\n---\n# Fix it\n\n# Goal\n\nMake it work:\n\n```markdown\n# Approach\n# Resources\n# Tracking\n```\n";
+    let (ok, out) = check_front_matter(quoted);
+    assert!(!ok, "{out}");
+    assert!(
+        out.contains("missing section `# Approach`")
+            && out.contains("missing section `# Resources`"),
+        "{out}"
+    );
+    assert!(!out.contains("Tracking"), "{out}");
+}
+
+// spec: CKI-6
+/// A fenced `# Goal` heading is not the goal: the real goal, its text after a fenced `# ` line, is not empty.
+#[test]
+fn a_fenced_heading_does_not_end_the_goal() {
+    let text = "---\npriority: low\n---\n~~~\n# Goal\n\n# Notes\n~~~\n# Fix it\n\n# Goal\n\n```\n# Notes\n```\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(text);
+    assert!(ok && out.is_empty(), "{out}");
+}

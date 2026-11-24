@@ -22,8 +22,7 @@ use crate::project_table::ProjectTable;
 /// (`markdown::fenced`, QUA-12, NXT-19); `None` when it has none or cannot be read.
 fn heading(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
-    let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
-    let title = crate::markdown::fenced(text[body..].lines())
+    let title = crate::markdown::fenced(body(&text).lines())
         .filter(|&(_, fenced)| !fenced)
         .find_map(|(l, _)| l.strip_prefix("# ").map(str::to_string));
     title
@@ -35,10 +34,9 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
 /// the section is missing or holds no text.
 fn goal(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
-    let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
     let mut inside = false;
     let mut paragraphs: Vec<Vec<&str>> = vec![Vec::new()];
-    for (raw, fenced) in crate::markdown::fenced(text[body..].lines()) {
+    for (raw, fenced) in crate::markdown::fenced(body(&text).lines()) {
         if fenced {
             continue;
         }
@@ -182,6 +180,11 @@ fn issue_stems(dir: &Path) -> Vec<String> {
     });
     stems.sort();
     stems
+}
+
+/// The text of the issue `text` after its front matter (all of it when it opens none): where its headings are read.
+pub(super) fn body(text: &str) -> &str {
+    &text[split_front_matter(text).map_or(0, |(_, _, body)| body)..]
 }
 
 /// The lines of the front matter of `text` (between a first line `---` and the next `---`, line endings kept) and

@@ -7,13 +7,21 @@ use std::path::Path;
 
 use super::next_issue;
 
-/// True when the section exists and has no text before the next `# ` heading.
-fn section_is_empty(text: &str, heading: &str) -> bool {
-    let mut lines = text.lines();
-    lines.by_ref().any(|l| l.trim() == heading)
+/// The lines of the body of the issue, each with whether it is a heading: a line opening with `# ` outside a fenced
+/// code block (`markdown::fenced`, QUA-12, CKI-6).
+fn lines(text: &str) -> Vec<(&str, bool)> {
+    crate::markdown::fenced(next_issue::body(text).lines())
+        .map(|(l, fenced)| (l, !fenced && l.starts_with("# ")))
+        .collect()
+}
+
+/// True when the section exists and holds only blank lines before the next heading (CKI-6).
+fn section_is_empty(lines: &[(&str, bool)], heading: &str) -> bool {
+    let mut lines = lines.iter();
+    lines.by_ref().any(|&(l, h)| h && l.trim() == heading)
         && lines
-            .take_while(|l| !l.starts_with("# "))
-            .all(|l| l.trim().is_empty())
+            .take_while(|&&(_, h)| !h)
+            .all(|(l, _)| l.trim().is_empty())
 }
 
 /// The problems of the keys that order the issue (CKI-1, CKI-2, CKI-5): its `priority`, its `depends_on` and its
@@ -80,7 +88,8 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
             "`issues/done/{name}` already exists: pick another name"
         ));
     }
-    let headings: Vec<&str> = text.lines().filter(|l| l.starts_with("# ")).collect();
+    let lines = lines(text);
+    let headings: Vec<&str> = lines.iter().filter(|(_, h)| *h).map(|(l, _)| *l).collect();
     match headings.first() {
         None => out.push("no `# <Title>` heading".to_string()),
         Some(t) if t.trim() == "# Goal" => {
@@ -97,11 +106,11 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
     if headings.iter().any(|h| h.trim() == "# Tracking") {
         out.push("`# Tracking` is written by issue-workflow".to_string());
     }
-    if section_is_empty(text, "# Goal") {
+    if section_is_empty(&lines, "# Goal") {
         out.push("`# Goal` is empty".to_string());
     }
     // `# Specs` is optional, but when present it must name something.
-    if section_is_empty(text, "# Specs") {
+    if section_is_empty(&lines, "# Specs") {
         out.push(
             "`# Specs` is empty: name the spec and requirement ids, or drop the section"
                 .to_string(),

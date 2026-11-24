@@ -1,6 +1,6 @@
 ---
 id: NXT
-status: accepted
+status: draft
 adrs: [0019, 0021]
 ---
 
@@ -17,7 +17,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 
 ### Behaviour
 
-- **NXT-1** (deterministic) `next-issue` must order the open issues (the `*.md` files of `issues/`) that are ready (NXT-7) by the milestone of each (NXT-10), then by the `priority` of its front matter (the lines between a first line `---` and the next `---`, a value in quotes read without them), `high` before `medium` before `low`, then the oldest first (the date of the first commit that added the file under `issues/`, a file git does not track or outside a git repository after the tracked ones), then by stem, and print the first free one (PAR-4) with its title and the `why` of its front matter.
+- **NXT-1** (deterministic) `next-issue` must order the open issues (the `*.md` files of `issues/`) that are ready (NXT-7) by the milestone of each (NXT-10), then by the `priority` of its front matter (the lines between a first line `---` and the next `---`, a value in quotes read without them), `high` before `medium` before `low`, then the oldest first (the date of the first commit that added the file under `issues/`, a file git does not track or outside a git repository after the tracked ones), then by stem, and print the first free one (PAR-4) with its title (the `title` of NXT-19, `(no title)` when it has none) and the `why` of its front matter.
 - **NXT-7** (deterministic) An open issue is ready when every stem of the `depends_on` of its front matter (`depends_on: [<stem>, <stem>...]` on one line, `[]` or no key for none) is an issue of `issues/done/`, else blocked: `next-issue` must never offer a blocked issue.
 - **NXT-11** (deterministic) `next-issue` must list each blocked issue after the ready ones, in the order of NXT-1, on a line `Blocked: <stem> (by <stem>, <stem>...)` naming the stems that are not done.
 - **NXT-15** (deterministic) An open issue whose front matter has an `on_hold` key is on hold, its reason the value of the key (unquoted as NXT-1 reads `why`, then trimmed): `next-issue` must never offer it but list it after the blocked ones, in the order of NXT-1, on a line `On hold: <stem> (<reason>)` instead of a `Blocked:` line, followed by `, blocked by <stem>, <stem>...` (the stems of NXT-11) when it is also blocked; an issue whose `depends_on` names it stays blocked (NXT-7).
@@ -32,7 +32,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - **NXT-6** (deterministic) withdrawn: no queue is left to hide a rank.
 - **NXT-8** (deterministic) A stem of `depends_on` that is neither an open issue nor an issue of `issues/done/`, or a `depends_on` that is not a list of stems, must be reported on stderr as `unknown dependency of <stem>: <dependency>` or `invalid depends_on: <stem>` with exit code 1, the issue counting as blocked by it.
 - **NXT-9** (deterministic) Open issues whose dependencies form a cycle must be reported on stderr once per group of issues that depend on each other as `dependency cycle: <stem>, <stem>...` (its stems sorted) with exit code 1, the issues of the cycle staying blocked.
-- **NXT-10** (deterministic) The milestone of an issue is the first non-empty line of its `# Milestone` section, and its order the position of the `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them) of the same name in the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory), read in the listed order: `next-issue` must order the issues of an earlier milestone first, and those with no milestone after those with one.
+- **NXT-10** (deterministic) The milestone of an issue is the first non-empty line of its `# Milestone` section (from a line `# Milestone`, maybe followed by a note after a space, to the next line opening with `# `, both after its front matter and outside a fenced code block as QUA-12 reads them, its fenced lines left out), and its order the position of the `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them) of the same name in the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory), read in the listed order: `next-issue` must order the issues of an earlier milestone first, and those with no milestone after those with one.
 - **NXT-12** (deterministic) When the free issues are all blocked or on hold (NXT-15), `next-issue` must print `No ready issue: every free one waits on another.` instead of an issue, or `No ready issue: every free one is on hold or waits on another.` when one of them is on hold.
 - **NXT-13** (deterministic) A milestone that no roadmap heading names must be reported on stderr as `unknown milestone of <stem>: <name>` with exit code 1, the issue ordered as one with no milestone.
 - **NXT-14** (deterministic) With no `roadmap` key, or roadmap documents that cannot be read, `next-issue` must order the ready issues by priority then tie-breaker, with no milestone report.
@@ -67,6 +67,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 
 - (NXT-1) Given `b.md` of priority `high` and `a.md` of priority `low`, both with no milestone, when `next-issue` runs, then it prints `b` as next.
 - (NXT-1) Given `a.md` and `b.md` of priority `medium`, committed in that order, when `next-issue` runs, then it prints `a` as next.
+- (NXT-1) Given `a.md` of priority `high` whose only `# ` line lies inside a fenced block, when `next-issue` runs, then it prints `a` as next with the title `(no title)`.
 - (NXT-2) Given `a.md` of priority `low` and `c.md` with no front matter, when `next-issue` runs, then it prints `a` as next, lists `c` after it, reports `issue without a priority: c` and exits 1.
 - (NXT-2) Given `c.md` of priority `urgent`, when `next-issue` runs, then it reports `issue without a priority: c` and exits 1.
 - (NXT-7) Given `a.md` of priority `high` with `depends_on: [b]` and `b.md` of priority `low`, when `next-issue` runs, then it prints `b` as next and `Blocked: a (by b)` (NXT-11); once `b.md` is in `issues/done/`, it prints `a` as next.
@@ -76,6 +77,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - (NXT-9) Given `a.md` with `depends_on: [b]` and `b.md` with `depends_on: [a]`, when `next-issue` runs, then it reports `dependency cycle: a, b` once, lists both as blocked and exits 1.
 - (NXT-10) Given a roadmap with the headings `## One` then `## Two`, `a.md` of priority `high` in milestone `Two` and `b.md` of priority `low` in milestone `One`, when `next-issue` runs, then it prints `b` as next.
 - (NXT-10) Given a roadmap with an HTML comment holding `## Two`, then the headings `## One` and `## Two`, `a.md` of priority `high` in milestone `Two` and `b.md` of priority `low` in milestone `One`, when `next-issue` runs, then it prints `b` as next.
+- (NXT-10) Given a roadmap with the headings `## One` then `## Two`, `a.md` of priority `high` in milestone `Two` whose goal quotes a fenced `# Milestone` then `One`, and `b.md` of priority `low` in milestone `One`, when `next-issue` runs, then it prints `b` as next; and so when the `# Milestone` section of `a.md` holds a fenced block with a `# ` line before `Two`.
 - (NXT-13) Given `a.md` in milestone `Gone` that no roadmap heading names, when `next-issue` runs, then it reports `unknown milestone of a: Gone` and exits 1.
 - (NXT-15) Given `a.md` of priority `high` with `on_hold: 'waits for the next model'` and `b.md` of priority `low`, when `next-issue` runs, then it prints `b` as next and `On hold: a (waits for the next model)`, and no `Blocked: a` line; once the key is removed, it prints `a` as next.
 - (NXT-15) Given `a.md` on hold and `b.md` with `depends_on: [a]`, when `next-issue` runs, then it lists `Blocked: b (by a)` and `On hold: a (...)`.

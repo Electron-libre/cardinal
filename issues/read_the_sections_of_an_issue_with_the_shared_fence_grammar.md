@@ -39,3 +39,45 @@ One implementation per rule
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/tools/next_issue.rs`, `crates/cardinal/src/markdown.rs`.
 * `issues/done/read_the_title_of_an_issue_with_the_shared_fence_grammar.md`, `issues/done/read_the_goal_of_an_issue_with_the_shared_fence_grammar.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+`check-issue` (its title, required sections, `# Tracking` and empty `# Goal`) and the `# Milestone` of `next-issue`
+read the `# ` lines of an issue after its front matter through `markdown::fenced` (QUA-12), as the title and the goal
+already do; `next-issue` prints `(no title)` for an issue with no title. Out of scope: the other readers of issues.
+
+## Plan
+1. [x] `check-issue` headings through `markdown::fenced`: `headings` and `section_is_empty` read the body after the
+   front matter, fenced lines never a heading; verified by tests of `crates/cardinal/tests/check_issue.rs` (a fenced
+   `# Goal` before the title, `# Approach`/`# Resources` only fenced, a fenced `# ` line inside `# Goal`); makes true
+   CKI-6. (autonomous)
+2. [ ] `next-issue` milestone and missing title: `milestone` reads its section through `markdown::fenced`, `title`
+   prints `(no title)` for a readable file with none; verified by tests of `crates/cardinal/tests/next_issue_json.rs`
+   (`tests/next_issue.rs` is over the file size limit); makes true NXT-10, NXT-1 (amended).
+3. [ ] Review of the whole issue: `update-docs` on `base..HEAD` and the `high` review, their fixes; verified by
+   `project-check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 1c13e93ccdba1768e6a453b4c0b9ce95ef5c5eaa
+
+## Deliverable 1
+
+- done: `check-issue` reads its headings after the front matter through `markdown::fenced`; `next_issue::body` shared
+  by `heading`, `goal` and `check-issue`; CKI-6 added, the CKI requirements under `### Behaviour` / `### Contract`.
+
+| check | result |
+|---|---|
+| tests | pass (`check_issue` 9/9) |
+| lint | pass |
+| specs | pass, `check-issue` back to `accepted` |
+| docs | n/a: no page describes how `check-issue` reads the headings |
+| code review | no findings |
+
+- red: CKI-6: `first heading must be the title, not `# Goal``, `` `# Goal` is empty``
+- Code review: no findings
+- not verified: none
+- decisions needed: none

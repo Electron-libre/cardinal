@@ -9,7 +9,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::issue_claim;
+use super::{issue_claim, worktree};
 use crate::git::{command, exec, Failure};
 
 const USAGE: &str = "usage: cardinal run rebase-issue <stem>";
@@ -40,28 +40,20 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 
 /// The trunk and the worktree that has `branch` checked out (RBI-1, RBI-4).
 fn locate(dir: &Path, branch: &str) -> Result<(String, PathBuf), String> {
-    let list = git(dir, &["worktree", "list", "--porcelain"])?;
-    let mut records = list.split("\n\n").filter(|r| !r.trim().is_empty());
-    let main = records.next().unwrap_or_default();
-    if main.lines().any(|l| l == "bare") {
+    let all = worktree::worktrees(dir)?;
+    let main = all.first();
+    if main.is_some_and(|m| m.bare) {
         return Err("no main worktree: the repository is bare".to_string());
     }
-    let branch_of = |record: &str| {
-        record
-            .lines()
-            .find_map(|l| l.strip_prefix("branch refs/heads/"))
-            .map(str::to_string)
-    };
-    let trunk = branch_of(main).ok_or("main worktree not on a branch")?;
+    let trunk = main
+        .and_then(|m| m.branch.clone())
+        .ok_or("main worktree not on a branch")?;
     if trunk == branch {
         return Err(format!("{branch} is the trunk"));
     }
-    let worktree = list
-        .split("\n\n")
-        .find(|r| branch_of(r).as_deref() == Some(branch))
-        .and_then(|r| r.lines().find_map(|l| l.strip_prefix("worktree ")))
+    let worktree = worktree::worktree_of(&all, branch)
         .ok_or_else(|| format!("{branch} is checked out in no worktree"))?;
-    Ok((trunk, PathBuf::from(worktree)))
+    Ok((trunk, worktree))
 }
 
 /// Why the worktree `wt` of `branch` must not be rewritten, if it must not (RBI-4).

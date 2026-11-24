@@ -58,9 +58,9 @@ become RBI-4's `git <args>: exit <code>: <first stderr line>`. Out of scope: the
 3. [x] The other tools and `lib.rs`: `close_issue`, `next_issue`, `rule_breaches`, `language_hint`, `session_wait`,
    `repo_files`, `commit_check`, `check_commits`, `delivered_quality`, `transcripts`, `lib.rs` (`git`, `git_output`,
    `resolves`, `ls-files`); verified by their existing tests; ~450 lines. (autonomous)
-4. [ ] One reader of the worktrees: `worktree.rs`'s `worktrees`/`main_worktree` shared (`pub(crate)`), used by
+4. [x] One reader of the worktrees: `worktree.rs`'s `worktrees`/`main_worktree` shared (`pub(crate)`), used by
    `rebase_issue::locate`, `issue_claim::trunk`, `next_issue` and the branch lookup of `close_issue`; verified by the
-   tests of `rebase-issue`, `issue-claim`, `next-issue`, `close-issue` and `worktree`; ~200 lines.
+   tests of `rebase-issue`, `issue-claim`, `next-issue`, `close-issue` and `worktree`; ~200 lines. (autonomous)
 
 The files over the size limit it touches (`lib.rs`, `close_issue.rs`, `rule_breaches.rs`, `delivered_quality.rs`) only
 lose lines: the new code goes to `src/git.rs`.
@@ -107,4 +107,14 @@ lose lines: the new code goes to `src/git.rs`.
 - red: none (a refactor: the tests of these tools stay green).
 - Code review: no findings
 - not verified: a failing `clone` or `fetch` of `cardinal init`/`update` (network) shows the failure line.
+- decisions needed: none.
+
+### Deliverable 4
+- done: `worktree::worktrees` (with a `bare` field) is the one reader of `git worktree list`; `main_worktree`,
+  `rebase_issue::locate`, `issue_claim::trunk` and the branches of `next_issue` read it. `close_issue` lists no
+  worktree (its `worktree_of` reads the common directory and the top level of one directory), so it is left as is.
+- checks: project-check pass; deliverable-size within.
+- red: none (a refactor: the tests of `rebase-issue` (RBI-4 texts), `issue-claim`, `next-issue`, `worktree` stay green).
+- Code review: no findings
+- not verified: none.
 - decisions needed: none.

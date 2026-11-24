@@ -197,12 +197,11 @@ pub(super) fn current_branch(dir: &Path) -> String {
 
 /// The trunk: the branch checked out by the main worktree, if any.
 pub(super) fn trunk(dir: &Path) -> Option<String> {
-    let list = git(dir, &["worktree", "list", "--porcelain"], None)?;
-    list.split("\n\n")
+    super::worktree::worktrees(dir)
+        .ok()?
+        .into_iter()
         .next()?
-        .lines()
-        .find_map(|l| l.strip_prefix("branch refs/heads/"))
-        .map(str::to_string)
+        .branch
 }
 
 /// Claim the issue file `issue` for the session of the environment (CLM-1 to CLM-4, CLM-9).

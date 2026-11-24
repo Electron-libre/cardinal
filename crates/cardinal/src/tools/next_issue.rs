@@ -144,26 +144,24 @@ fn branches(dir: &Path, stems: &[&str]) -> (Vec<Branch>, String) {
     .into_iter()
     .map(|b| (b, None))
     .collect();
-    let (mut path, mut first) = (String::new(), true);
-    let mut trunk = String::new();
-    for line in git_lines(dir, &["worktree", "list", "--porcelain"]) {
-        if let Some(p) = line.strip_prefix("worktree ") {
-            path = p.to_string();
-        } else if let Some(b) = line.strip_prefix("branch refs/heads/") {
-            if first {
+    let all = super::worktree::worktrees(dir).unwrap_or_default();
+    let trunk = match all.first() {
+        Some(main) => match &main.branch {
+            Some(b) => {
                 out.retain(|(name, _)| name != b);
-                trunk = b.to_string();
-            } else if let Some(entry) = out.iter_mut().find(|(name, _)| name == b) {
-                entry.1 = Some(path.clone());
+                b.clone()
             }
-            first = false;
-        } else if let Some(h) = line
-            .strip_prefix("HEAD ")
-            .filter(|_| first && trunk.is_empty())
-        {
-            trunk = h.to_string();
-        } else if line.is_empty() {
-            first = false;
+            // a detached main worktree: its commit stands for the trunk
+            None => main.head.clone().unwrap_or_default(),
+        },
+        None => String::new(),
+    };
+    for linked in all.iter().skip(1) {
+        let entry = out
+            .iter_mut()
+            .find(|(name, _)| linked.branch.as_ref() == Some(name));
+        if let Some(entry) = entry {
+            entry.1 = Some(linked.path.to_string_lossy().into_owned());
         }
     }
     let branches = out

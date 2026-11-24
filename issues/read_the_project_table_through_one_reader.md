@@ -59,10 +59,10 @@ local file: out of scope.
    `git_diff::limit` and the check of `release.rs:138` go through it, their behaviour unchanged; verified by unit
    tests of the reader (missing, unreadable, invalid, wrong type) and the existing tests of project-check, lint-gate,
    format-hook, file-size, deliverable-size and release (~300 lines). (autonomous)
-2. [ ] The other readers: `check_specs::config_names` and `bounds`, `delivered_quality::DocFiles::read`,
+2. [x] The other readers: `check_specs::config_names` and `bounds`, `delivered_quality::DocFiles::read`,
    `rule_breaches::commit_scopes`, `next_issue::milestones`, `roadmap_state` go through it, each private parse
    deleted, the fallbacks their specs require kept explicit; verified by the existing tests of check-specs,
-   delivered-quality, rule-breaches, next-issue and roadmap (~200 lines; the big files only shrink).
+   delivered-quality, rule-breaches, next-issue and roadmap (~200 lines; the big files only shrink). (autonomous)
 3. [ ] `close-issue` refuses a broken configuration: its private `config_list` deleted, `skipped_dirs` and `roadmap`
    read through the reader and checked before any move, `--relink` too; verified by binary tests of
    `tests/close_issue.rs` on an invalid file and on a `skipped_dirs` string; makes true CLS-10 and sets the spec
@@ -87,5 +87,27 @@ done: `ProjectTable` in `crates/cardinal/src/project_table.rs`; `Declared::of`, 
 
 red: none (no requirement: a refactor; the reader's tests did not compile before the module)
 Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2
+done: `check_specs::config_names`, `bounds` and `test_files`, `DocFiles::read`, `rule_breaches::commit_scopes` and
+`next_issue::milestones` read through `ProjectTable` (new `ProjectTable::of` for a configuration read at a commit);
+`roadmap` already did through `config_list`. A `skipped_dirs` of another type is now a problem of `check-specs`.
+
+| check | result |
+|---|---|
+| tests | `just check` green, existing tests unchanged |
+| lint | clean |
+| specs | no new problem |
+| docs | doc comments of `test_files` updated |
+| code review | low, 2 findings, none fixed (see below) |
+
+red: none (refactor)
+Code review: 2 findings
+- `config_names` drops the top-level fallback: intended, decided in the plan (no spec or test sets a key outside
+  `[project]`).
+- `test_files` lost the guard on a missing file: `ProjectTable::read` gives an empty table for a missing file, not
+  an error (unit test `a_missing_file_is_empty_unless_required`).
 not verified: none
 decisions needed: none

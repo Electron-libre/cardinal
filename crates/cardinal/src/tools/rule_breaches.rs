@@ -16,6 +16,7 @@ use super::scratch_writes;
 use super::shell;
 use super::transcripts;
 use crate::features;
+use crate::project_table::ProjectTable;
 
 use chrono::DateTime;
 use serde_json::Value;
@@ -735,18 +736,12 @@ fn conventional(subject: &str, scopes: &[String]) -> bool {
         && !description.ends_with('.')
 }
 
-/// The `commit_scopes` of the configuration of a commit.
+/// The `commit_scopes` of the configuration of a commit; none when it gives no list of strings (BRE-9).
 fn commit_scopes(config: Option<&toml::Table>) -> Vec<String> {
-    let list = config
-        .and_then(|c| c.get("project"))
-        .and_then(|p| p.get("commit_scopes"))
-        .and_then(toml::Value::as_array);
-    list.map_or_default(|l| {
-        l.iter()
-            .filter_map(toml::Value::as_str)
-            .map(str::to_string)
-            .collect()
-    })
+    config
+        .and_then(|c| ProjectTable::of(PathBuf::from(crate::CONFIG), c).ok())
+        .and_then(|p| p.list("commit_scopes").ok())
+        .unwrap_or_default()
 }
 
 /// A session checked against the rules, with what places it.

@@ -39,6 +39,11 @@ impl ProjectTable {
         let config: toml::Table = text
             .parse()
             .map_err(|e| format!("invalid {}: {e}", path.display()))?;
+        Self::of(path, &config)
+    }
+
+    /// The table of the parsed configuration `config`, read from `path`.
+    pub(crate) fn of(path: PathBuf, config: &toml::Table) -> Result<Self, String> {
         let table = match config.get("project") {
             None => toml::Table::new(),
             Some(toml::Value::Table(table)) => table.clone(),

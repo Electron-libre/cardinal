@@ -11,6 +11,7 @@
 //! one over the `spec_max_*` bounds of `.claude/cardinal.toml` (CLR-13 to CLR-16).
 
 use super::repo_files;
+use crate::project_table::ProjectTable;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -111,13 +112,14 @@ impl Spec {
 /// defaults, its problem being reported with the `skipped_dirs`.
 fn bounds(root: &Path) -> ([u64; 3], Vec<String>) {
     let path = crate::config_of(root);
-    let table = crate::read_config(root).unwrap_or_default();
+    let project = ProjectTable::read(root).ok();
     let mut problems = Vec::new();
     let values = BOUNDS.map(|Bound { key, default, .. }| {
-        match table.get("project").and_then(|p| p.get(key)) {
-            None => default,
-            Some(value) => value
-                .as_integer()
+        match project.as_ref().map_or(Ok(None), |p| p.int(key)) {
+            Ok(None) => default,
+            value => value
+                .ok()
+                .flatten()
                 .and_then(|n| u64::try_from(n).ok())
                 .filter(|&n| n > 0)
                 .unwrap_or_else(|| {
@@ -756,33 +758,14 @@ pub(super) fn name_matches(pattern: &str, name: &str) -> bool {
 /// of the key: a value that is not a list of strings (TRC-16), an entry holding a path separator (TRC-15). A
 /// `cardinal.toml` that does not parse gives the default, its problem being reported with the `skipped_dirs`.
 pub(super) fn config_names(root: &Path, key: &str, default: &str) -> (Vec<String>, Vec<String>) {
-    let path = crate::config_of(root);
-    let table: toml::Table = std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|text| text.parse().ok())
-        .unwrap_or_default();
-    let value = table
-        .get("project")
-        .and_then(|p| p.get(key))
-        .or_else(|| table.get(key));
     let mut problems = Vec::new();
-    let names: Vec<String> = match value.map(|v| {
-        v.as_array().map(|a| {
-            a.iter()
-                .map(toml::Value::as_str)
-                .collect::<Option<Vec<_>>>()
-        })
-    }) {
-        None => Vec::new(),
-        Some(Some(Some(names))) => names.into_iter().map(str::to_string).collect(),
-        Some(_) => {
-            problems.push(format!(
-                "{}: `{key}` must be a list of strings",
-                path.display()
-            ));
+    let names = ProjectTable::read(root).map_or_default(|p| {
+        p.list(key).unwrap_or_else(|e| {
+            problems.push(e);
             Vec::new()
-        }
-    };
+        })
+    });
+    let path = crate::config_of(root);
     for name in names.iter().filter(|n| n.contains(['/', '\\'])) {
         problems.push(format!(
             "{}: `{key}` entry `{name}` must be a name, not a path",
@@ -810,14 +793,13 @@ fn internal_dirs(root: &Path) -> (Vec<String>, Vec<String>) {
 /// The test files of the root, whatever the layout of the project (TRC-9, TRC-11): those whose name matches a pattern
 /// of `spec_patterns`, but those under `.git`, `node_modules`, a `target` beside a `Cargo.toml` (the build output) or
 /// a directory named like one of the `skipped_dirs` of `.claude/cardinal.toml` (TRC-10); a failure of git, or a
-/// `cardinal.toml` that does not parse, is a problem in `out`.
+/// `cardinal.toml` that cannot be read or parsed or whose `skipped_dirs` is not a list of strings, is a problem in
+/// `out`.
 pub(super) fn test_files(root: &Path, out: &mut Vec<String>) -> Vec<PathBuf> {
     let mut names = vec![".git".to_string(), "node_modules".to_string()];
-    match super::config_list(root, "skipped_dirs") {
+    match ProjectTable::read(root).and_then(|p| p.list("skipped_dirs")) {
         Ok(dirs) => names.extend(dirs),
-        // a project with no `cardinal.toml` skips nothing more
-        Err(e) if crate::config_of(root).exists() => out.push(e),
-        Err(_) => {}
+        Err(e) => out.push(e),
     }
     let patterns = spec_patterns(root).0;
     let skipped = |dir: &Path| {

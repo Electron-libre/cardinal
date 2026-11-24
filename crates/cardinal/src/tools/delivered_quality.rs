@@ -11,6 +11,7 @@ use super::check_specs::{
     citation, citation_list, config_names, is_cited_id, markers, name_matches, shape, spec_patterns,
 };
 use super::transcripts;
+use crate::project_table::ProjectTable;
 
 mod milestone;
 
@@ -430,24 +431,16 @@ struct DocFiles {
 
 impl DocFiles {
     fn read(repo: &Path) -> Self {
-        let table: toml::Table = std::fs::read_to_string(crate::config_of(repo))
-            .ok()
-            .and_then(|text| text.parse().ok())
-            .unwrap_or_default();
-        let project = table.get("project");
+        // a configuration that cannot be read counts the default doc files (QUA-14)
+        let project = ProjectTable::read(repo).ok();
         let architecture = project
-            .and_then(|p| p.get("architecture"))
-            .and_then(toml::Value::as_str)
+            .as_ref()
+            .and_then(|p| p.str("architecture").ok().flatten())
             .map(str::to_string);
         let roadmap = project
-            .and_then(|p| p.get("roadmap"))
-            .and_then(toml::Value::as_array)
-            .map_or_default(|a| {
-                a.iter()
-                    .filter_map(toml::Value::as_str)
-                    .map(str::to_string)
-                    .collect()
-            });
+            .as_ref()
+            .and_then(|p| p.list("roadmap").ok())
+            .unwrap_or_default();
         DocFiles {
             root_docs: config_names(repo, "root_docs", "README.md").0,
             architecture,

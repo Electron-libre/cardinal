@@ -17,6 +17,7 @@ use std::path::Path;
 use std::process::Command;
 
 use super::issue_claim::{self, Claim};
+use crate::project_table::ProjectTable;
 
 /// The first `# ` heading after the front matter of the issue `stem`, `None` when it has none or cannot be read.
 fn heading(dir: &Path, stem: &str) -> Option<String> {
@@ -311,7 +312,9 @@ fn milestone(text: &str) -> Option<String> {
 /// The milestones of the `roadmap` documents of the configuration of `root`, in order, each with the value of its
 /// `On hold:` field (NXT-16); `None` when no document can be read (NXT-14).
 fn milestones(root: &Path) -> Option<Vec<(String, Option<String>)>> {
-    let texts: Vec<String> = super::config_list(root, "roadmap")
+    // a configuration that cannot be read gives no milestone, the issues ordered by priority (NXT-14)
+    let texts: Vec<String> = ProjectTable::read(root)
+        .and_then(|p| p.list("roadmap"))
         .unwrap_or_default()
         .into_iter()
         .filter_map(|rel| std::fs::read_to_string(root.join(rel)).ok())

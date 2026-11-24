@@ -40,3 +40,52 @@ One implementation per rule
 
 # Hints
 * A test of each tool on an invalid `cardinal.toml` proves the single policy through the binary.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+One reader of the `[project]` table (`crates/cardinal/src/project_table.rs`): a missing file or key is an absence, an
+unreadable or invalid file, or a key of another type, is an `Err` naming the file (and the key); each caller whose spec
+takes a broken file for a default (CLG-7, FMT-1, QUA-14, NXT-14, BRE-9) says so at its call site. `close-issue` now
+refuses a broken configuration (CLS-10). The top-level fallback (`table.get(key)` outside `[project]`) goes: no spec
+or test asks for it. `features.rs`, `budget.rs`, `language_hint.rs` and `check_specs.rs:113` read other tables or the
+local file: out of scope.
+
+## Plan
+1. [x] Reader and the shared helpers: `ProjectTable` (`read`, `from_table`, `str`, `list`, `int`) in a module of its own
+   (`lib.rs` is over the file size limit); `config_list`, `project_value`/`project_str`, `Declared::of`,
+   `git_diff::limit` and the check of `release.rs:138` go through it, their behaviour unchanged; verified by unit
+   tests of the reader (missing, unreadable, invalid, wrong type) and the existing tests of project-check, lint-gate,
+   format-hook, file-size, deliverable-size and release (~300 lines). (autonomous)
+2. [ ] The other readers: `check_specs::config_names` and `bounds`, `delivered_quality::DocFiles::read`,
+   `rule_breaches::commit_scopes`, `next_issue::milestones`, `roadmap_state` go through it, each private parse
+   deleted, the fallbacks their specs require kept explicit; verified by the existing tests of check-specs,
+   delivered-quality, rule-breaches, next-issue and roadmap (~200 lines; the big files only shrink).
+3. [ ] `close-issue` refuses a broken configuration: its private `config_list` deleted, `skipped_dirs` and `roadmap`
+   read through the reader and checked before any move, `--relink` too; verified by binary tests of
+   `tests/close_issue.rs` on an invalid file and on a `skipped_dirs` string; makes true CLS-10 and sets the spec
+   `accepted` (~150 lines; `close_issue.rs` only shrinks).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2e4eac504b1ea5ec88076b847b829fa078199a32
+- Broken configuration where a spec asks for a default (CLG-7, FMT-1, QUA-14, NXT-14, BRE-9): the fallback is kept, explicit at the call site (answer 1 a).
+
+## Summary of deliverable 1
+done: `ProjectTable` in `crates/cardinal/src/project_table.rs`; `Declared::of`, `project_str`, `config_list`,
+`git_diff::limit` and the REL-16 check of `release.rs` read through it (`project_value` deleted).
+
+| check | result |
+|---|---|
+| tests | `just check` green, 5 new unit tests of the reader |
+| lint | clean |
+| specs | `check-specs`: no new problem (CLS-9 warning predates) |
+| docs | no doc names the readers |
+| code review | low, no findings |
+
+red: none (no requirement: a refactor; the reader's tests did not compile before the module)
+Code review: no findings
+not verified: none
+decisions needed: none

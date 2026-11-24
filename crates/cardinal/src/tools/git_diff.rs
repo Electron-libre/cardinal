@@ -28,27 +28,19 @@ pub(super) fn empty_tree(root: &Path) -> Result<String, String> {
 /// The integer `key` of the `[project]` table of the configuration, at least `min`, `default` when the file or the
 /// key is absent (SIZ-8, SIZ-10).
 pub(super) fn limit(root: &Path, key: &str, default: u64, min: u64) -> Result<u64, String> {
-    let path = crate::config_of(root);
-    let text = match std::fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(default),
-        Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
+    let project = crate::project_table::ProjectTable::read(root)?;
+    let wrong = || {
+        format!(
+            "{key} of {} is not an integer of at least {min}",
+            project.path().display()
+        )
     };
-    let table: toml::Table = text
-        .parse()
-        .map_err(|e| format!("invalid {}: {e}", path.display()))?;
-    match table.get("project").and_then(|p| p.get(key)) {
+    match project.int(key).map_err(|_| wrong())? {
         None => Ok(default),
-        Some(value) => value
-            .as_integer()
-            .and_then(|n| u64::try_from(n).ok())
+        Some(n) => u64::try_from(n)
+            .ok()
             .filter(|n| *n >= min)
-            .ok_or_else(|| {
-                format!(
-                    "{key} of {} is not an integer of at least {min}",
-                    path.display()
-                )
-            }),
+            .ok_or_else(wrong),
     }
 }
 

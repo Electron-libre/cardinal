@@ -47,6 +47,7 @@ mod launcher;
 mod markdown;
 mod memory;
 mod migration;
+mod project_table;
 pub mod run;
 mod settings;
 pub mod tools;

@@ -135,16 +135,8 @@ fn run(args: &[String]) -> Result<(), String> {
 /// The proposal of REL-15: the version to number, `null` when no commit follows the last tag, the last tag, the commits
 /// since it, and the milestones REL-9 would list. Writes nothing.
 fn document(root: &Path) -> Result<serde_json::Value, String> {
-    // The other readers of the configuration take a broken one for a missing one: a program would believe it (REL-16).
-    let config = crate::config_of(root);
-    match std::fs::read_to_string(&config) {
-        Ok(text) => {
-            text.parse::<toml::Table>()
-                .map_err(|e| format!("invalid {}: {e}", config.display()))?;
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(format!("cannot read {}: {e}", config.display())),
-    }
+    // A broken configuration is refused, not read as a missing one: a program would believe it (REL-16).
+    crate::project_table::ProjectTable::read(root)?;
     let (proposal, last, commits) = proposed(root)?;
     let count = match last {
         Some(_) => commits.len(),

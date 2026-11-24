@@ -1,6 +1,6 @@
 ---
 id: CLS
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -14,15 +14,21 @@ rely on it at every close, and `--relink` repairs the references to issues close
 
 ## Requirements
 
+### Behaviour
+
 - **CLS-1** (deterministic) After `close-issue issues/<stem>.md`, every path `issues/<stem>.md` that starts a word (after the start of the text, a space or one of `` `"'([<{=,: ``) in a text file of the repository must read `issues/done/<stem>.md`.
+- **CLS-5** (deterministic) `close-issue --relink` must rewrite the references of CLS-1 and CLS-2 for every issue file in `issues/done/`.
+- **CLS-7** (deterministic) After moving an issue, `close-issue` must print on stdout, as its last line or lines, the next issue `next-issue` would offer once the closed one is gone (`Next: issues/<stem>.md` and its title, NXT-1, NXT-7 and PAR-4), or `No open issue.`, `Every open issue is taken.` or `No ready issue: every free one waits on another.` when there is none; `--relink` prints none.
+- **CLS-8** (deterministic) After moving an issue, `close-issue` must set to `done` the `State:` line of each milestone (a `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them), its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory) whose `State:` is `in issues`, whose `Issues:` list links the closed issue, and whose every link of that list to the `issues` directory (a URL or another document aside), resolved against the directory of the document once rewritten (CLS-2), designates an existing file of `issues/done/`, changing no other line and printing `milestone <name> done in <document>` for each; any other milestone (another state, an issue still open, an empty list) stays as it is, and `--relink` sets none.
+
+### Contract
+
 - **CLS-2** (deterministic) After `close-issue issues/<stem>.md`, the target of every Markdown link of a `.md` file (`[text](target)`, `![text](target)` or a reference definition `[label]: target`, as `CommonMark` reads them, in a quote or a list item or not) that, resolved against the directory of that file, is the closed issue file must point at the issue in `issues/done/`, keeping its relative form and its `#anchor` (`../issues/foo.md#goal` becomes `../issues/done/foo.md#goal`).
 - **CLS-3** (deterministic) `close-issue` must not rewrite a link target that holds a directory before `issues/` (`../issues/foo.md`, `docs/issues/foo.md`) when that target, resolved against the directory of its file, is not the closed issue file.
 - **CLS-4** (deterministic) After `close-issue issues/<stem>.md`, every relative Markdown link target of the moved file must designate from `issues/done/` the file or directory it designated from `issues/`, keeping its `#anchor` and its trailing `/`.
-- **CLS-5** (deterministic) `close-issue --relink` must rewrite the references of CLS-1 and CLS-2 for every issue file in `issues/done/`.
 - **CLS-6** (deterministic) `close-issue` must not rewrite a Markdown link written in an inline code span (on one line or over several, as in CommonMark) or a code block (fenced or indented, inside a quote or a list item or not, as `CommonMark` reads them), nor the text of a footnote (`[^1]: text`), nor a link inside an HTML comment or an HTML block, nor text `CommonMark` reads as no Markdown link (an autolink `<https://...>`, escaped brackets `\[a\](x)`).
-- **CLS-7** (deterministic) After moving an issue, `close-issue` must print on stdout, as its last line or lines, the next issue `next-issue` would offer once the closed one is gone (`Next: issues/<stem>.md` and its title, NXT-1, NXT-7 and PAR-4), or `No open issue.`, `Every open issue is taken.` or `No ready issue: every free one waits on another.` when there is none; `--relink` prints none.
-- **CLS-8** (deterministic) After moving an issue, `close-issue` must set to `done` the `State:` line of each milestone (a `## <name>` heading outside code blocks and HTML comments (as RMP-1 of `specs/roadmap.md` reads them), its section read without the lines inside them) of the `roadmap` documents of `.claude/cardinal.toml` (of the parent of the `issues` directory) whose `State:` is `in issues`, whose `Issues:` list links the closed issue, and whose every link of that list to the `issues` directory (a URL or another document aside), resolved against the directory of the document once rewritten (CLS-2), designates an existing file of `issues/done/`, changing no other line and printing `milestone <name> done in <document>` for each; any other milestone (another state, an issue still open, an empty list) stays as it is, and `--relink` sets none.
 - **CLS-9** (deterministic) When it moves a tracked issue with `git mv`, `close-issue` must stage in the index the moved issue, whole (its last tracking included), and each other tracked file it rewrites (CLS-1, CLS-2, CLS-8) that matched `HEAD`, in the index and the work tree, before the close, its name never read as a glob; it must print, before the lines of CLS-7, `staged before the close: <file> (a bare `git commit` takes it too)` for each other file the index already held changed, then `staged: commit the close with `git commit` (no `git add` of issues/<stem>.md: git mv staged its removal)`. A rewritten file that held changes, staged or not, or every one when git cannot tell, is left unstaged and named once in `not staged: <file> (it held changes of yours)`. When git refuses to stage, `close-issue` says so on stderr, prints no `staged:` line and exits 1. An untracked issue (a plain rename) stages nothing and prints none of these lines; `--relink` stages nothing.
+- **CLS-10** (deterministic) When the `.claude/cardinal.toml` of the repository root or of the parent of the `issues` directory exists but cannot be read or parsed, or its `skipped_dirs` or `roadmap` of the `[project]` table is not a list of strings, `close-issue` (with `--relink` too) must exit 1 with one line on stderr naming the file, and the key when one is at fault, before moving or rewriting any file; a missing file or key is read as an empty list.
 
 ## Scenarios
 
@@ -40,6 +46,8 @@ rely on it at every close, and `--relink` repairs the references to issues close
 - (CLS-6) Given `docs/a.md` holding `<!-- [c](../issues/foo.md) -->`, an HTML block `<div>[d](../issues/foo.md)</div>` and `\[e\](../issues/foo.md)`, when `close-issue issues/foo.md` runs, then the three are unchanged.
 - (CLS-7) Given `issues/foo.md` of priority `high` and `issues/bar.md` of priority `low` titled `Bar`, when `close-issue issues/foo.md` runs, then its output ends with `Next: issues/bar.md` and `Bar`; closing `issues/bar.md` then ends with `No open issue.`.
 - (CLS-1) Given `docs/a.md` holding `` `issues/foo.md` `` (a path from the root), when `close-issue issues/foo.md` runs, then it reads `` `issues/done/foo.md` ``.
+- (CLS-10) Given a `.claude/cardinal.toml` that does not parse, when `close-issue issues/foo.md` runs, then it exits 1 naming the file, and `issues/foo.md` and the documents citing it are unchanged.
+- (CLS-10) Given `skipped_dirs = "vendor"` (a string, not a list), when `close-issue issues/foo.md` runs, then it exits 1 naming `skipped_dirs`, and no file moves.
 
 - (CLS-8) Given `ROADMAP.md` with milestone `One` (`in issues`) listing `issues/foo.md` and `issues/done/bar.md`, milestone `Two` (`in issues`) listing `issues/foo.md` and `issues/baz.md` (open), and milestone `Three` (`shaped`) listing `issues/foo.md`, when `close-issue issues/foo.md` runs, then only `One` reads `- State: done` and the output names it.
 - (CLS-8) Given milestone `Four` (`in issues`) whose issues are all in `issues/done/` but that does not list the closed issue, when `close-issue issues/foo.md` runs, then `Four` is unchanged.

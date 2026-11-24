@@ -4,6 +4,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::project_table::ProjectTable;
+
 mod audit_sources;
 mod cardinal_changes;
 mod cardinal_report;
@@ -287,34 +289,18 @@ impl Declared {
         if root.is_empty() {
             return default;
         }
-        let Ok(table) = std::fs::read_to_string(crate::config_of(Path::new(&root)))
-            .unwrap_or_default()
-            .parse::<toml::Table>()
+        // a broken configuration gives the default: the hook never blocks an edit (CLG-7, FMT-1)
+        let Ok(project) = ProjectTable::read(Path::new(&root)) else {
+            return default;
+        };
+        let (Ok(Some(command)), Ok(patterns)) = (project.str(command_key), project.list(files_key))
         else {
             return default;
         };
-        let project = table.get("project");
-        let Some(command) = project
-            .and_then(|p| p.get(command_key))
-            .and_then(toml::Value::as_str)
-        else {
-            return default;
-        };
-        let patterns = match project.and_then(|p| p.get(files_key)) {
-            None => Some(Vec::new()),
-            Some(files) => files.as_array().and_then(|a| {
-                a.iter()
-                    .map(|v| v.as_str().map(String::from))
-                    .collect::<Option<Vec<_>>>()
-            }),
-        };
-        match patterns {
-            Some(patterns) => Declared {
-                root,
-                command: Some(command.trim().into()),
-                patterns,
-            },
-            None => default,
+        Declared {
+            command: Some(command.trim().into()),
+            root,
+            patterns,
         }
     }
 
@@ -333,37 +319,16 @@ impl Declared {
     }
 }
 
-/// The value of `key` in the `[project]` table of `.claude/cardinal.toml`, if any.
-fn project_value(root: &Path, key: &str) -> Option<toml::Value> {
-    let text = std::fs::read_to_string(crate::config_of(root)).ok()?;
-    let table: toml::Table = text.parse().ok()?;
-    table.get("project")?.get(key).cloned()
-}
-
-/// The string `key` of the `[project]` table, trimmed, if any and not blank.
+/// The string `key` of the `[project]` table, trimmed, if any and not blank; `None` too when the configuration is
+/// broken or the key of another type, each caller refusing a missing value (PCK-2).
 fn project_str(root: &Path, key: &str) -> Option<String> {
-    project_value(root, key)?
-        .as_str()
-        .map(str::trim)
-        .filter(|c| !c.is_empty())
-        .map(String::from)
+    let project = ProjectTable::read(root).ok()?;
+    let value = project.str(key).ok()??.trim();
+    (!value.is_empty()).then(|| value.to_string())
 }
 
-/// Strings of `key = ["a", "b"]` in the `[project]` table of the configuration (`crate::config_of`); empty when the key is absent.
+/// The strings of the list `key` of the `[project]` table of the configuration, which must exist; empty when the key
+/// is absent.
 fn config_list(root: &Path, key: &str) -> Result<Vec<String>, String> {
-    let path = crate::config_of(root);
-    let text = std::fs::read_to_string(&path)
-        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
-    let table: toml::Table = text
-        .parse()
-        .map_err(|e| format!("invalid {}: {e}", path.display()))?;
-    let list = table
-        .get("project")
-        .and_then(|p| p.get(key))
-        .or_else(|| table.get(key));
-    Ok(list.and_then(toml::Value::as_array).map_or_default(|a| {
-        a.iter()
-            .filter_map(|v| v.as_str().map(str::to_string))
-            .collect()
-    }))
+    ProjectTable::read_required(root)?.list(key)
 }

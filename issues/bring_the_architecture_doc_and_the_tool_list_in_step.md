@@ -35,3 +35,42 @@ Specs and docs true to the code
 
 # Resources
 * `skill:update-docs`, `docs/adr/0028-a-consumer-needs-only-cardinal.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+Make `docs/architecture.md` (key table, worktree command names, steering UI section), the `about` lines of
+`commit-check` and `issue-claim`, the refusal of `worktree close` from inside the worktree, and `CLAUDE.md` name what
+the code reads and accepts. No spec change: PAR-11 asks only that the message name the main worktree.
+
+## Plan
+1. [x] Docs and messages in step: the key table (`roadmap_archive`, the tools reading `roadmap`, `architecture`,
+   `user_language`), `cardinal run worktree open|close` in the architecture doc, `charts.rs`, the cut edge and the
+   audit and cut sessions in the steering UI section, the message of `worktree.rs` naming `cardinal run worktree
+   close`, the `about` lines with `[<rev>]` and `--release <stem>`, `update` and `upgrade` in `CLAUDE.md`; verified by
+   the PAR-11 test asserting the command named, `project-check`; makes true PAR-11 (message). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 96227c96eab4255f33089de4327f295d9d37d48b
+- 1 a: `CLAUDE.md:24` keeps `just open-worktree`, the recipe still exists.
+
+## Deliverable 1
+done: the key table, the worktree commands, the steering UI section, the refusal of `worktree close`, the `about`
+lines and the subcommands of `CLAUDE.md` name what the code reads and accepts.
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | pass, no change |
+| docs | `update-docs`: `docs/architecture.md`, `CLAUDE.md`; `docs/usage.md:465` keeps the recipe `close-worktree`, which exists |
+| code review | low, see below |
+
+red: PAR-11: `FAIL - close refuses from the worktree to remove and names the main worktree and the command`
+
+Code review: no findings
+
+not verified: none. decisions needed: none.

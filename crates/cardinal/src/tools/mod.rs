@@ -93,7 +93,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "commit-check",
-        about: "validate a commit message read from stdin against the commit convention",
+        about: "[<rev>]: validate a commit message read from stdin, or the message of <rev>, against the commit convention",
         main: commit_check::main,
     },
     Tool {
@@ -123,7 +123,7 @@ pub const TOOLS: &[Tool] = &[
     },
     Tool {
         name: "issue-claim",
-        about: "issues/<stem>.md: claim an issue for the Claude Code session that works it",
+        about: "issues/<stem>.md | --release <stem>: claim an issue for the Claude Code session that works it, or release the claim of an ended session",
         main: issue_claim::main,
     },
     Tool {

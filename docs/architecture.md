@@ -54,11 +54,12 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 
 | Read by | Keys |
 |---|---|
-| the tools | `commit_scopes`, `root_docs`, `skipped_dirs`, `spec_files`, `internal_dirs`, `spec_max_requirements`, `spec_max_bytes`, `spec_max_intent`, `release_breaking_files` |
+| the tools | `commit_scopes`, `root_docs`, `skipped_dirs`, `spec_files`, `internal_dirs`, `spec_max_requirements`, `spec_max_bytes`, `spec_max_intent`, `release_breaking_files`, `roadmap_archive` (`release`) |
 | the hooks, `project-check` and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `check_command`, `release_version_command` |
 | `deliverable-size`, `file-size` | `deliverable_size_limit`, `issue_size_limit`, `file_size_limit` |
 | `cardinal` itself | `fixed_context_budget`, and `disabled` of the `[cardinal]` table |
-| the skills, through the agent | `roadmap`, `architecture`, `test_conventions`, `confidential`, `user_language`, `merge_back` |
+| the tools and the skills | `roadmap` (`next-issue`, `roadmap`, `close-issue`, `delivered-quality`), `architecture` (`delivered-quality`), `user_language` (`language-hint`, `rule-breaches`) |
+| the skills, through the agent | `test_conventions`, `confidential`, `merge_back` |
 
 The change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else
 project-specific (a quality benchmark, a smoke test, the language-specific recipes of the `justfile`) stays in the
@@ -195,7 +196,7 @@ a tool `cardinal run` does not know.
 ## Parallel issues
 
 Two agents can drive two issues at once, each in its own worktree (one the user opens on the branch they
-pick, with `git worktree add` or `open-worktree`, next to the main one): separate working tree and index, shared
+pick, with `git worktree add` or `cardinal run worktree open`, next to the main one): separate working tree and index, shared
 object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
 [ADR 0023](adr/0023-worktrees-open-next-to-the-main-one-with-no-issue.md),
 [ADR 0011](adr/0011-the-user-opens-the-issue-worktree.md), spec
@@ -206,7 +207,7 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
   `next-issue` and `close-issue`.
 - **Taken** is the worktree itself, or a branch holding commits not on the main branch (PAR-3): `next-issue` reads
   `git for-each-ref`, `git worktree list`, `git cherry` and `git merge-tree --write-tree`, so every worktree sees it
-  and no file needs cleaning. A leftover branch with neither is listed `Stale:` for `close-worktree` to clean (PAR-4,
+  and no file needs cleaning. A leftover branch with neither is listed `Stale:` for `cardinal run worktree close` to clean (PAR-4,
   PAR-6).
 - **Claim**: `cardinal run issue-claim issues/<stem>.md` takes the ref `refs/cardinal/claims/<stem>` by
   compare-and-swap (`git update-ref <ref> <blob> ""`) for the session of `CLAUDE_CODE_SESSION_ID` and its process
@@ -216,9 +217,9 @@ object store ([ADR 0003](adr/0003-one-worktree-per-issue.md),
   deletes it. `issue-claim --release <stem>` deletes, from anywhere, a `working` claim whose process is gone, for an
   issue given up or whose worktree was removed (CLM-10). A claim records when it was written (`since`): a process of
   its pid that started later took the number of a session that crashed, and counts as gone (CLM-11).
-- **Personal configuration**: `open-worktree` copies the git-ignored `.claude/cardinal.local.toml` of the main
+- **Personal configuration**: `cardinal run worktree open` copies the git-ignored `.claude/cardinal.local.toml` of the main
   worktree into the new one (PAR-17), so the person's `user_language` follows them.
-- **Nesting**: `open-worktree` puts the worktrees next to the main one; for those the former `start-issue` nested
+- **Nesting**: `cardinal run worktree open` puts the worktrees next to the main one; for those the former `start-issue` nested
   under `.claude/worktrees/` (ADR 0008), the scanners (`close-issue`,
   `check-specs`, `spec-coverage`) take their files from git (`repo_files.rs`, `git ls-files -co --exclude-standard`,
   PAR-14, [ADR 0009](adr/0009-scanners-list-the-repository-files-through-git.md)), which never lists a nested
@@ -252,7 +253,7 @@ documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), c
 git. It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to
 merge an issue closed on its branch (SUM-1), after `cardinal run rebase-issue` and `project-check` when the branch diverged (SUM-3), its waiting session ended first (SUM-4), then ends the session, the tab and the worktree that issue left (SUE-3), or
-starts a release session or a review of the priorities in the main worktree (SUA-4, SUA-16). It is not managed content and a consumer does not need it; the
+starts in the main worktree a release session, a review of the priorities, an audit of the code or the cut of a milestone into issues (SUA-4, SUA-16, SUA-23, SUA-19). It is not managed content and a consumer does not need it; the
 release workflow does not build it.
 
 ```mermaid
@@ -268,6 +269,7 @@ flowchart LR
   ui -->|"release --json, zellij action new-tab<br/>claude /release (awaiting release)"| release["release tab in the main worktree"]
   ui -->|"next-issue --json, zellij action new-tab<br/>claude /prioritize-issues (p)"| prioritize["prioritize tab in the main worktree"]
   ui -->|"zellij action new-tab<br/>claude /audit-code (a)"| audit["audit tab in the main worktree"]
+  ui -->|"roadmap --open --json, zellij action new-tab<br/>claude /create-issue (c on a milestone)"| cut["tab of the milestone in the main worktree"]
   cache --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
@@ -286,6 +288,7 @@ flowchart LR
 | `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme |
 | `mark.rs` | the mark ` ✦ Cardinal ` against the right corner of the top border of the queue, in `accent`, left out when the border cannot hold it next to the title (SUS-6) |
 | `summary.rs` | the summary of the selected issue, its title and its goal wrapped at the words under the queue, that `i` folds and unfolds |
+| `charts.rs` | the charts of the measures behind `g`: four series of the last measure by group of revisions and by milestone, each row a name, a bar from zero, the number and its sample (SUC-1 to SUC-4) |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |

@@ -46,9 +46,9 @@ first heading counts as no title in both tools. The title of `next-issue` become
 CKI-6 reads it (a bare `#` included), so the two tools agree on which line is the title.
 
 ## Plan
-1. [ ] Blank title: `next_issue::heading` returns the trimmed text of the first heading (`is_heading`, outside fences),
+1. [x] Blank title: `next_issue::heading` returns the trimmed text of the first heading (`is_heading`, outside fences),
    `None` when blank; `check-issue` reports ``no `# <Title>` heading`` on it; verified by a `check_issue.rs` test and a
-   `next_issue_json.rs` test; makes true CKI-6, NXT-19.
+   `next_issue_json.rs` test; makes true CKI-6, NXT-19. (autonomous)
 2. [x] Open fence: `markdown` exposes the line of a fence left open at the end of the lines; `check-issue` reports
    `line <n>: fenced code block left open` first; verified by a `check_issue.rs` test; makes true CKI-7. (autonomous)
 3. [x] Fixes of the `high` review: `check-issue` reads a first heading `# Goal` as the sections do; verified by a
@@ -74,6 +74,11 @@ done: a blank first heading (`# ` or a bare `#`) is no title: `check-issue` repo
 | code review | see below |
 
 red: CKI-6, NXT-19, NXT-1: `check-issue` accepted the blank title; `--json` gave `title: ""`, not `null`.
+
+Code review: 1 finding
+- CKI-7 has no code yet: by plan, deliverable 2 implements it (the spec stays `draft` until then).
+
+not verified: none. decisions needed: none.
 
 ## Summary of deliverable 2
 done: `check-issue` reports `line <n>: fenced code block left open` (the line of its opening fence in the file) before

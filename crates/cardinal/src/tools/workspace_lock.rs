@@ -14,38 +14,15 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use super::issue_claim::{self, alive};
+use cardinal_state::Lock as Holder;
+
+use super::issue_claim;
 
 /// A mutex older than this was left by a process that died holding it.
 const STALE_MUTEX: Duration = Duration::from_secs(10);
 
 /// The paths of the work in progress a refusal lists at most.
 const MAX_PATHS: usize = 10;
-
-/// The holder of a lock.
-#[derive(PartialEq)]
-struct Holder {
-    session: String,
-    pid: String,
-}
-
-impl Holder {
-    fn parse(text: &str) -> Option<Self> {
-        let field = |key: &str| {
-            text.lines()
-                .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
-                .map(str::to_string)
-        };
-        Some(Holder {
-            session: field("session")?,
-            pid: field("pid")?,
-        })
-    }
-
-    fn text(&self) -> String {
-        format!("session {}\npid {}\n", self.session, self.pid)
-    }
-}
 
 /// The path of the lock of the worktree of `cwd` (WSL-9: per worktree).
 fn lock_path(cwd: &Path) -> Option<PathBuf> {
@@ -60,10 +37,6 @@ fn lock_path(cwd: &Path) -> Option<PathBuf> {
     )
     .ok()
     .map(PathBuf::from)
-}
-
-fn read(path: &Path) -> Option<Holder> {
-    Holder::parse(&std::fs::read_to_string(path).ok()?)
 }
 
 /// The mutex of `lock`, removed when dropped.
@@ -114,18 +87,12 @@ enum Verdict {
     Kept(String),
 }
 
-/// Whether the lock at `lock` naming `holder` is stale: no process of its pid runs, or another process took the number
-/// after the lock was last written (WSL-1).
-fn stale(holder: &Holder, lock: &Path) -> bool {
-    !alive(&holder.pid) || issue_claim::lock_taken(&holder.pid, lock)
-}
-
 /// Whether `holder` keeps the lock of the worktree of `cwd` from the caller: only another session of another process
 /// whose lock is not stale, has work in progress, was not continued in the caller and is not a session the user left
 /// to go back to the caller (WSL-3, WSL-10, WSL-11, WSL-13).
 fn keeps(holder: &Holder, caller: &Caller, cwd: &Path, lock: &Path) -> Verdict {
     let me = &caller.me;
-    if holder.session == me.session || holder.pid == me.pid || stale(holder, lock) {
+    if holder.session == me.session || holder.pid == me.pid || !holder.runs(lock) {
         return Verdict::Free;
     }
     let Some(work) = in_progress(holder, cwd) else {
@@ -292,7 +259,7 @@ fn in_progress(holder: &Holder, cwd: &Path) -> Option<String> {
 /// continued in the caller or left for it (WSL-12): `Ok` when it holds it, else the holder that keeps it and its
 /// work in progress.
 fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)> {
-    let before = read(path);
+    let before = Holder::read(path);
     if before.as_ref() == Some(&caller.me) {
         return Ok(());
     }
@@ -301,7 +268,7 @@ fn take(path: &Path, caller: &Caller, cwd: &Path) -> Result<(), (Holder, String)
     let Some(_mutex) = Mutex::take(path) else {
         return Ok(());
     };
-    let holder = read(path);
+    let holder = Holder::read(path);
     let verdict = match (&holder, verdict) {
         (None, _) => Verdict::Free,
         (Some(h), Some(v)) if before.as_ref() == Some(h) => v,
@@ -329,7 +296,7 @@ fn release(path: &Path, session: &str) {
     let Some(_mutex) = Mutex::take(path) else {
         return;
     };
-    if read(path).is_some_and(|h| h.session == session) {
+    if Holder::read(path).is_some_and(|h| h.session == session) {
         let _ = std::fs::remove_file(path);
     }
 }

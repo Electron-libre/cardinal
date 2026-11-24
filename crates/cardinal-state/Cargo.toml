@@ -1,0 +1,12 @@
+[package]
+name = "cardinal-state"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "The rules cardinal and cardinal-ui both apply to the state of a worktree on disk (ADR 0033)"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

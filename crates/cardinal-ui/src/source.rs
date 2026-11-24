@@ -3,9 +3,10 @@
 //! (WSL-9) and its wait mark (SWT-3), and, in a zellij session, the names of its tabs (STU-10). A source that cannot
 //! be read gives the line its panel shows instead (STU-6).
 
+pub use cardinal_state::alive;
+use cardinal_state::{field, Lock};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{Duration, SystemTime};
 
 use serde_json::Value;
 
@@ -327,39 +328,6 @@ pub fn queue(dir: &Path, tabs: &[String]) -> Result<Queue, String> {
     })
 }
 
-/// Whether the process `pid` runs.
-pub fn alive(pid: &str) -> bool {
-    pid.parse::<u32>().is_ok_and(|p| p > 0)
-        && Command::new("kill")
-            .args(["-0", pid])
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|s| s.success())
-}
-
-/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process
-/// that took the number of the session: a stale lock (WSL-1, STU-7).
-fn started_after(pid: &str, lock: &Path) -> bool {
-    let Some(written) = std::fs::metadata(lock).and_then(|m| m.modified()).ok() else {
-        return false;
-    };
-    let Ok((out, _, 0)) = run(
-        "ps",
-        Path::new("ps"),
-        &["-o", "etimes=", "-p", pid],
-        lock.parent().unwrap_or(lock),
-    ) else {
-        return false;
-    };
-    let Ok(elapsed) = out.trim().parse::<u64>() else {
-        return false;
-    };
-    let started = SystemTime::now() - Duration::from_secs(elapsed);
-    started
-        .duration_since(written)
-        .is_ok_and(|d| d > Duration::from_secs(2))
-}
-
 /// The path of the file `name` of the git directory of the worktree `path`.
 pub fn git_path(path: &Path, name: &str) -> Option<PathBuf> {
     let args = ["rev-parse", "--path-format=absolute", "--git-path", name];
@@ -391,13 +359,6 @@ pub fn worktree_git_path(repo: &Path, path: &Path, name: &str) -> Option<PathBuf
         .map(|admin| admin.join(name))
 }
 
-/// The value of the line `<key> <value>` of `text`.
-fn field(text: &str, key: &str) -> Option<String> {
-    text.lines()
-        .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
-        .map(str::to_string)
-}
-
 /// The session of the lock of the worktree `path`, read from the file `cardinal-session` of its git directory
 /// (WSL-9), with the wait mark `cardinal-waiting` that names it while it runs (SWT-3); `None` when there is none
 /// (STU-7, STU-13).
@@ -410,15 +371,17 @@ pub fn session(path: &Path) -> Option<Session> {
 fn session_of(repo: &Path, path: &Path) -> Option<Session> {
     let file = |name| std::fs::read_to_string(worktree_git_path(repo, path, name)?).ok();
     let lock = worktree_git_path(repo, path, "cardinal-session")?;
-    let text = std::fs::read_to_string(&lock).ok()?;
-    let id = field(&text, "session")?;
-    let pid = field(&text, "pid")?;
-    let alive = alive(&pid) && !started_after(&pid, &lock);
+    let holder = Lock::read(&lock)?;
+    let alive = holder.runs(&lock);
+    let Lock { session: id, pid } = holder;
     let waiting = file("cardinal-waiting")
-        .filter(|mark| alive && field(mark, "session").as_deref() == Some(id.as_str()))
+        .filter(|mark| alive && field(mark, "session") == Some(id.as_str()))
         .and_then(|mark| {
             let since = field(&mark, "since")?.parse().ok()?;
-            Some((since, field(&mark, "reason").unwrap_or_default()))
+            Some((
+                since,
+                field(&mark, "reason").unwrap_or_default().to_string(),
+            ))
         });
     Some(Session {
         id,

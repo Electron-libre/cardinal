@@ -7,7 +7,6 @@
 //! --release <stem>` to delete a `working` claim whose process no longer runs (CLM-10), from anywhere.
 
 use std::path::Path;
-use std::process::{Command, Stdio};
 
 /// The namespace of the claims, under no ref the default refspecs push (CLM-8).
 const PREFIX: &str = "refs/cardinal/claims/";
@@ -26,9 +25,8 @@ pub(super) struct Claim {
 
 impl Claim {
     fn parse(text: &str) -> Self {
-        let field = |key: &str| {
-            text.lines()
-                .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
+        let field = |key| {
+            cardinal_state::field(text, key)
                 .unwrap_or_default()
                 .to_string()
         };
@@ -58,14 +56,14 @@ impl Claim {
     /// Whether the process of the claim still runs: a process of its pid runs (`kill -0`) and did not start after
     /// the claim was written, when the claim says when (CLM-11).
     pub fn alive(&self) -> bool {
-        alive(&self.pid) && !self.pid_taken()
+        cardinal_state::alive(&self.pid) && !self.pid_taken()
     }
 
     /// Whether a process of its `pid` started more than 2 seconds after the claim was written: another process took
     /// the number of the session that wrote it (CLM-11); false with no `since` or a start that cannot be read.
     pub fn pid_taken(&self) -> bool {
         self.since.is_some_and(|s| {
-            started_after(
+            cardinal_state::started_after(
                 &self.pid,
                 std::time::UNIX_EPOCH + std::time::Duration::from_secs(s),
             )
@@ -79,45 +77,6 @@ pub(super) fn now() -> Option<u64> {
         .duration_since(std::time::UNIX_EPOCH)
         .ok()
         .map(|d| d.as_secs())
-}
-
-/// Whether the process `pid` runs; false for an empty or invalid id.
-pub(super) fn alive(pid: &str) -> bool {
-    pid.parse::<u32>().is_ok_and(|p| p > 0)
-        && Command::new("kill")
-            .args(["-0", pid])
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|s| s.success())
-}
-
-/// Whether the process `pid` started more than 2 seconds after the lock `lock` was last written: another process that
-/// took the number of the session that wrote it, a stale lock (WSL-1, RBI-4); false when its mtime cannot be read.
-pub(super) fn lock_taken(pid: &str, lock: &Path) -> bool {
-    std::fs::metadata(lock)
-        .and_then(|m| m.modified())
-        .is_ok_and(|written| started_after(pid, written))
-}
-
-/// Whether the process `pid` started more than 2 seconds after `written`: another process that took the number of
-/// the session that wrote a lock or a claim then; false when its start cannot be read. The start is read from
-/// `ps -o etimes=` (procps) against the wall clock: a `ps` without that field gives false, and a wall clock stepped
-/// forward after `written` can give true for the session that wrote it.
-fn started_after(pid: &str, written: std::time::SystemTime) -> bool {
-    let Ok(out) = Command::new("ps")
-        .args(["-o", "etimes=", "-p", pid])
-        .stderr(Stdio::null())
-        .output()
-    else {
-        return false;
-    };
-    let Ok(elapsed) = String::from_utf8_lossy(&out.stdout).trim().parse::<u64>() else {
-        return false;
-    };
-    let started = std::time::SystemTime::now() - std::time::Duration::from_secs(elapsed);
-    started
-        .duration_since(written)
-        .is_ok_and(|d| d > std::time::Duration::from_secs(2))
 }
 
 /// The stdout of `git args` in `dir` fed `input`, its end trimmed, `None` when it fails.

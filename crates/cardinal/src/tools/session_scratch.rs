@@ -12,7 +12,7 @@ use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-use super::issue_claim::alive;
+use cardinal_state::alive;
 
 /// The name of a scratch directory before its session id.
 const PREFIX: &str = "claude-scratch-";

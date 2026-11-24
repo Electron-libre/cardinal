@@ -105,6 +105,7 @@ name = "cardinal"
 version = "6.2.0"
 dependencies = [
  "anyhow",
+ "cardinal-state",
  "chrono",
  "clap",
  "libc",
@@ -116,9 +117,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cardinal-state"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "cardinal-ui"
 version = "0.1.0"
 dependencies = [
+ "cardinal-state",
  "chrono",
  "ratatui",
  "serde_json",

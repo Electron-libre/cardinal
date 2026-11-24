@@ -66,18 +66,11 @@ fn refusal(wt: &Path, branch: &str, trunk: &str) -> Result<Option<String>, Strin
     }
     let gitdir = git(wt, &["rev-parse", "--absolute-git-dir"])?;
     let path = Path::new(&gitdir).join("cardinal-session");
-    if let Ok(lock) = std::fs::read_to_string(&path) {
-        let field = |key: &str| {
-            lock.lines()
-                .find_map(|l| l.strip_prefix(key)?.strip_prefix(' '))
-                .map(str::trim)
-        };
-        if let (Some(session), Some(pid)) = (field("session"), field("pid")) {
-            let caller = std::env::var("CLAUDE_CODE_SESSION_ID").unwrap_or_default();
-            let runs = issue_claim::alive(pid) && !issue_claim::lock_taken(pid, &path);
-            if session != caller && runs {
-                return Ok(Some(format!("session {session} works in {}", wt.display())));
-            }
+    if let Some(lock) = cardinal_state::Lock::read(&path) {
+        let caller = std::env::var("CLAUDE_CODE_SESSION_ID").unwrap_or_default();
+        if lock.session != caller && lock.runs(&path) {
+            let session = lock.session;
+            return Ok(Some(format!("session {session} works in {}", wt.display())));
         }
     }
     let head = format!("refs/heads/{branch}");

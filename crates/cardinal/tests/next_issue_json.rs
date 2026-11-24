@@ -366,3 +366,22 @@ fn an_issue_that_is_not_utf8_prints_no_title() {
         "{out}{err}"
     );
 }
+
+// spec: NXT-19
+// spec: NXT-1
+/// A blank first heading, `# ` or a bare `#`, is no title: the heading after it is not taken in its place.
+#[test]
+fn a_blank_first_heading_is_no_title() {
+    let r = repo(&[
+        ("a", "---\npriority: high\n---\n# \n\n# Goal\n\nDo it.\n"),
+        ("b", "---\npriority: low\n---\n#\n\n# Goal\n\nDo it.\n"),
+    ]);
+    let (doc, _, _) = document(r.path());
+    assert_eq!(issue(&doc, "a")["title"], Value::Null);
+    assert_eq!(issue(&doc, "b")["title"], Value::Null);
+    let (_, out, err) = tool(r.path(), "1", &["next-issue"]);
+    assert!(
+        out.contains("Next: issues/a.md\n  (no title)\n"),
+        "{out}{err}"
+    );
+}

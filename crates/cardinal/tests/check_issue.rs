@@ -309,3 +309,17 @@ fn a_goal_next_issue_reads_as_empty_is_empty() {
         assert!(!ok && out.contains("`# Goal` is empty"), "{goal}: {out}");
     }
 }
+
+// spec: CKI-6
+/// A blank first heading, `# ` or a bare `#`, is no title, even with the sections after it.
+#[test]
+fn a_blank_first_heading_is_no_title() {
+    for title in ["# ", "#"] {
+        let text = format!("---\npriority: low\n---\n{title}\n\n# Goal\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n");
+        let (ok, out) = check_front_matter(&text);
+        assert!(
+            !ok && out.contains("no `# <Title>` heading"),
+            "{title:?}: {out}"
+        );
+    }
+}

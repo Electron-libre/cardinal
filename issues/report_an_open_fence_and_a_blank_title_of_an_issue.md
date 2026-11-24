@@ -35,3 +35,37 @@ One implementation per rule
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/tools/next_issue.rs`, `crates/cardinal/src/markdown.rs`.
 * `issues/done/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-24
+
+## Understanding
+`check-issue` names a fenced block left open (its opening line) before the heading problems it causes, and a blank
+first heading counts as no title in both tools. The title of `next-issue` becomes the text of the first heading as
+CKI-6 reads it (a bare `#` included), so the two tools agree on which line is the title.
+
+## Plan
+1. [ ] Blank title: `next_issue::heading` returns the trimmed text of the first heading (`is_heading`, outside fences),
+   `None` when blank; `check-issue` reports ``no `# <Title>` heading`` on it; verified by a `check_issue.rs` test and a
+   `next_issue_json.rs` test; makes true CKI-6, NXT-19.
+2. [ ] Open fence: `markdown` exposes the line of a fence left open at the end of the lines; `check-issue` reports
+   `line <n>: fenced code block left open` first; verified by a `check_issue.rs` test; makes true CKI-7.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2c9bab78935c488c61b5e6ff2698da8c9d1889fe
+
+## Summary of deliverable 1
+done: a blank first heading (`# ` or a bare `#`) is no title: `check-issue` reports ``no `# <Title>` heading``,
+`next-issue` prints `(no title)` and `--json` gives `title: null`; one `next_issue::title_of` read by both tools.
+
+| check | result |
+|---|---|
+| tests | pass (`just check`) |
+| lint | clean |
+| specs | NXT accepted, CKI draft until CKI-7 |
+| docs | n/a: no doc describes the title outside the specs |
+| code review | see below |
+
+red: CKI-6, NXT-19, NXT-1: `check-issue` accepted the blank title; `--json` gave `title: ""`, not `null`.

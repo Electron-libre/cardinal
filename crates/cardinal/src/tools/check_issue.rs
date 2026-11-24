@@ -99,11 +99,9 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         .filter(|l| is_heading(l))
         .map(|l| l.0)
         .collect();
-    match headings.first() {
+    match next_issue::title_of(text) {
         None => out.push("no `# <Title>` heading".to_string()),
-        Some(t) if t.trim() == "# Goal" => {
-            out.push("first heading must be the title, not `# Goal`".to_string());
-        }
+        Some("Goal") => out.push("first heading must be the title, not `# Goal`".to_string()),
         Some(_) => {}
     }
     for required in ["# Goal", "# Approach", "# Resources"] {

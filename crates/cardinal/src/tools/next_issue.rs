@@ -18,14 +18,19 @@ use std::path::Path;
 use super::issue_claim::{self, Claim};
 use crate::project_table::ProjectTable;
 
-/// The first line opening with `# ` after the front matter of the issue `stem`, outside a fenced code block
-/// (`markdown::fenced`, QUA-12, NXT-19); `None` when it has none or cannot be read.
+/// The title of the issue `stem` (NXT-19): the `title` of its text; `None` when it has none or cannot be read.
 fn heading(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
-    let title = crate::markdown::fenced(body(&text).lines())
-        .filter(|&(_, fenced)| !fenced)
-        .find_map(|(l, _)| l.strip_prefix("# ").map(str::to_string));
-    title
+    title_of(&text).map(str::to_string)
+}
+
+/// The text after the `#` of the first heading of the issue `text` (`is_heading`, after its front matter and outside a
+/// fenced code block, QUA-12), trimmed; `None` when it has none or that text is blank (CKI-6, NXT-19).
+pub(super) fn title_of(text: &str) -> Option<&str> {
+    crate::markdown::fenced(body(text).lines())
+        .find(|&(l, fenced)| !fenced && is_heading(l))
+        .map(|(l, _)| l[1..].trim())
+        .filter(|t| !t.is_empty())
 }
 
 /// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `# ` outside a

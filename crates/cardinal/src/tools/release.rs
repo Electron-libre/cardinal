@@ -14,6 +14,7 @@ use std::process::Command;
 use super::roadmap;
 use super::transcripts::commit_config;
 use crate::features;
+use crate::git::run as git;
 use crate::project_table::ProjectTable;
 
 /// The header of a new `CHANGELOG.md`, the text of the seeded one.
@@ -547,29 +548,12 @@ fn insert(text: &str, new: &str) -> String {
     format!("{text}{sep}{new}")
 }
 
-/// The output of `git <args>` in `root`, or its error.
 /// The string `key` of the `[project]` table, trimmed, `None` when absent or blank; an error when the configuration is
 /// broken or the key of another type, which `release` refuses rather than read as absent.
 fn setting(root: &Path, key: &str) -> Result<Option<String>, String> {
     let project = ProjectTable::read(root)?;
     let value = project.str(key)?.map_or_default(str::trim);
     Ok((!value.is_empty()).then(|| value.to_string()))
-}
-
-fn git(root: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
-        .args(args)
-        .current_dir(root)
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if !out.status.success() {
-        return Err(format!(
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&out.stderr).trim()
-        ));
-    }
-    Ok(String::from_utf8_lossy(&out.stdout).trim_end().to_string())
 }
 
 #[cfg(test)]

@@ -3,7 +3,6 @@
 //! `.claude/cardinal.toml`.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// The lock files, left out with `issues/` (SIZ-4), which counts when the issue files are off (FEA-37).
 const LOCK_FILES: &[&str] = &[
@@ -112,38 +111,10 @@ pub(super) fn git(
     index: Option<&Path>,
     stdin: Option<&[u8]>,
 ) -> Result<Vec<u8>, String> {
-    use std::io::Write as _;
-    use std::process::Stdio;
-    let mut command = Command::new("git");
-    command
-        .args(args)
-        .current_dir(root)
-        .stdin(if stdin.is_some() {
-            Stdio::piped()
-        } else {
-            Stdio::null()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    let mut command = crate::git::command(root);
+    command.args(args);
     if let Some(index) = index {
         command.env("GIT_INDEX_FILE", index);
     }
-    let mut child = command
-        .spawn()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if let (Some(input), Some(mut pipe)) = (stdin, child.stdin.take()) {
-        pipe.write_all(input)
-            .map_err(|e| format!("cannot write to git: {e}"))?;
-    }
-    let out = child
-        .wait_with_output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if !out.status.success() {
-        return Err(format!(
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&out.stderr).trim()
-        ));
-    }
-    Ok(out.stdout)
+    crate::git::exec(command, stdin).map_err(String::from)
 }

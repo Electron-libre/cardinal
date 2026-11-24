@@ -12,8 +12,8 @@ use chrono::{DateTime, FixedOffset};
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use transcripts::{
-    default_branch, for_each_line, git, git_bytes, pinned_revision, project_name, projects,
-    projects_root, repository, revision, sessions, shown, subagents, Place, CONFIGS,
+    default_branch, for_each_line, git, pinned_revision, project_name, projects, projects_root,
+    repository, revision, sessions, shown, subagents, Place, CONFIGS,
 };
 
 const HEADER: &str =
@@ -69,8 +69,8 @@ struct CommitTree<'a> {
 
 impl<'a> CommitTree<'a> {
     fn new(repo: &'a Path, commit: &'a str) -> Self {
-        let listing =
-            git_bytes(repo, &["ls-tree", "-r", "-z", "--full-tree", commit]).unwrap_or_default();
+        let listing = crate::git::bytes(repo, &["ls-tree", "-r", "-z", "--full-tree", commit])
+            .unwrap_or_default();
         let links = listing
             .split(|&b| b == 0)
             .filter_map(|entry| {
@@ -91,10 +91,11 @@ impl Tree for CommitTree<'_> {
         let mut path = resolve(Path::new(""), path)?;
         for _ in 0..LINKS {
             let link = *self.links.get(&path)?;
-            let blob = git_bytes(
+            let blob = crate::git::bytes(
                 self.repo,
                 &["cat-file", "blob", &format!("{}:{path}", self.commit)],
-            )?;
+            )
+            .ok()?;
             if !link {
                 return Some((path, blob));
             }

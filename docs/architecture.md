@@ -101,7 +101,9 @@ tool under `crates/cardinal/src/tools/`, listed in `TOOLS`
 [`specs/tool-binaries.md`](../specs/tool-binaries.md)). A hook, a recipe or a skill calls `cardinal run <tool> [args]`.
 A consumer needs only `cardinal` (ADR 0028; the recipes of `cardinal/` are optional aliases), and Rust only for a
 commit with no published binary. The tests of the tools and of the shared content (`tests/skills.rs`,
-`tests/settings_hygiene.rs`) are the `cargo test` of this repository; consumers run none.
+`tests/settings_hygiene.rs`) are the `cargo test` of this repository; consumers run none. Every git command of the
+crate is built and run by `crates/cardinal/src/git.rs`, whose failure names the command, its exit code and the first
+line of its stderr.
 
 The installed `cardinal` is only a launcher (`crates/cardinal/src/run.rs`): it finds the pinned revision and replaces
 itself (`exec`) by that revision's binary, so input, output and exit code are the tool's. A reader that closes stdout

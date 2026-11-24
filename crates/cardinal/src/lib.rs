@@ -43,6 +43,7 @@ pub use budget::warnings as budget_warnings;
 mod entries;
 mod features;
 mod gate;
+mod git;
 mod launcher;
 mod markdown;
 mod memory;

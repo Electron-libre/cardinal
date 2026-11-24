@@ -8,52 +8,34 @@
 //! Usage: `cardinal run rebase-issue <stem>`, from any worktree.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use super::issue_claim;
+use crate::git::{command, exec, Failure};
 
 const USAGE: &str = "usage: cardinal run rebase-issue <stem>";
 
 /// Runs `git args` in `dir` with no hook nor editor, the conflicts in `zdiff3` style (the lines both sides added
-/// alike stay out of the hunk): its exit code, stdout and stderr.
-fn run(dir: &Path, args: &[&str]) -> Result<(i32, String, String), String> {
-    let out = Command::new("git")
-        .args([
-            "-c",
-            "core.hooksPath=/dev/null",
-            "-c",
-            "merge.conflictStyle=zdiff3",
-        ])
-        .args(args)
-        .current_dir(dir)
-        .env("GIT_EDITOR", "true")
-        .env("GIT_SEQUENCE_EDITOR", "true")
-        // a conflicted file named `[d].md` is that file, never a glob
-        .env("GIT_LITERAL_PATHSPECS", "1")
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    Ok((
-        out.status.code().unwrap_or(-1),
-        String::from_utf8_lossy(&out.stdout).into_owned(),
-        String::from_utf8_lossy(&out.stderr).into_owned(),
-    ))
+/// alike stay out of the hunk): its stdout, or its failure (RBI-4).
+fn run(dir: &Path, args: &[&str]) -> Result<Vec<u8>, Failure> {
+    let mut cmd = command(dir);
+    cmd.args([
+        "-c",
+        "core.hooksPath=/dev/null",
+        "-c",
+        "merge.conflictStyle=zdiff3",
+    ])
+    .args(args)
+    .env("GIT_EDITOR", "true")
+    .env("GIT_SEQUENCE_EDITOR", "true")
+    // a conflicted file named `[d].md` is that file, never a glob
+    .env("GIT_LITERAL_PATHSPECS", "1");
+    exec(cmd, None)
 }
 
-/// The failure line of RBI-4: the command, its exit code and the first line of its stderr.
-fn failure(args: &[&str], code: i32, err: &str) -> String {
-    let name = format!("git {}", args.join(" "));
-    match err.lines().find(|l| !l.trim().is_empty()) {
-        Some(first) => format!("{name}: exit {code}: {}", first.trim()),
-        None => format!("{name}: exit {code}"),
-    }
-}
-
-/// The stdout of `git args` in `dir`, or its failure line.
+/// The stdout of `git args` in `dir`, its end trimmed, or its failure line.
 fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
-    match run(dir, args)? {
-        (0, out, _) => Ok(out.trim_end().to_string()),
-        (code, _, err) => Err(failure(args, code, &err)),
-    }
+    let out = run(dir, args)?;
+    Ok(String::from_utf8_lossy(&out).trim_end().to_string())
 }
 
 /// The trunk and the worktree that has `branch` checked out (RBI-1, RBI-4).
@@ -194,10 +176,10 @@ fn rebase(dir: &Path, stem: &str) -> Result<Vec<String>, String> {
     let (trunk, wt) = locate(dir, &branch)?;
     let onto = format!("refs/heads/{trunk}");
     let ancestor = ["merge-base", "--is-ancestor", &onto, "HEAD"];
-    match run(&wt, &ancestor)? {
-        (0, _, _) => return Ok(vec![format!("{branch} already holds {trunk}")]),
-        (1, _, _) => {}
-        (code, _, err) => return Err(failure(&ancestor, code, &err)),
+    match run(&wt, &ancestor) {
+        Ok(_) => return Ok(vec![format!("{branch} already holds {trunk}")]),
+        Err(failure) if failure.code == Some(1) => {}
+        Err(failure) => return Err(failure.into()),
     }
     if let Some(why) = refusal(&wt, &branch, &trunk)? {
         return Err(why);
@@ -205,16 +187,15 @@ fn rebase(dir: &Path, stem: &str) -> Result<Vec<String>, String> {
     let mut lines = Vec::new();
     let mut git_step: Vec<&str> = vec!["rebase", "--quiet", &onto];
     loop {
-        let (code, _, err) = run(&wt, &git_step)?;
-        if code == 0 {
+        let Err(failure) = run(&wt, &git_step) else {
             lines.push(format!("rebased {branch} onto {trunk}"));
             return Ok(lines);
-        }
+        };
         let in_progress = ["rebase-merge", "rebase-apply"]
             .iter()
             .any(|d| git(&wt, &["rev-parse", "--git-path", d]).is_ok_and(|p| wt.join(p).exists()));
         if !in_progress {
-            return Err(failure(&git_step, code, &err));
+            return Err(failure.into());
         }
         match settle_all(&wt) {
             Ok(Ok(files)) => lines.extend(files.into_iter().map(|f| format!("settled {f}"))),
@@ -222,7 +203,7 @@ fn rebase(dir: &Path, stem: &str) -> Result<Vec<String>, String> {
                 git(&wt, &["rebase", "--abort"])?;
                 let files = match other {
                     Ok(Err(files)) if !files.is_empty() => files,
-                    Ok(_) => return Err(failure(&git_step, code, &err)),
+                    Ok(_) => return Err(failure.into()),
                     Err(e) => return Err(e),
                 };
                 return Err(format!(

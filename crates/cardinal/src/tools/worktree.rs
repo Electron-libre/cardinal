@@ -13,25 +13,8 @@
 //! Usage: `cardinal run worktree open foo`, `cardinal run worktree close foo` (`... --force`).
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
-fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if out.status.success() {
-        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
-    } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
-    }
-}
-
-fn git_ok(dir: &Path, args: &[&str]) -> bool {
-    git(dir, args).is_ok()
-}
+use crate::git::{run as git, run_ok as git_ok};
 
 /// The main worktree and the branch it has checked out (`None` when detached).
 fn main_worktree(cwd: &Path) -> Result<(PathBuf, Option<String>), String> {

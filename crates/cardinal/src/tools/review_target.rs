@@ -5,7 +5,8 @@
 //! untracked file would escape the diff, printing nothing (RVT-4, RVT-6).
 
 use std::path::Path;
-use std::process::Command;
+
+use crate::git::run as git;
 
 pub fn main(args: &[String]) -> u8 {
     let base = match args {
@@ -74,19 +75,6 @@ fn target(base: Option<&str>) -> Result<String, String> {
         .chain(std::iter::once("--".to_string()))
         .chain(pathspecs.iter().map(|p| quoted(p)));
     Ok(words.collect::<Vec<_>>().join(" "))
-}
-
-/// The stdout of `git <args>` run in `root`, or why it failed.
-fn git(root: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
-        .args(args)
-        .current_dir(root)
-        .output()
-        .map_err(|e| format!("cannot run git: {e}"))?;
-    if !out.status.success() {
-        return Err(String::from_utf8_lossy(&out.stderr).trim().to_string());
-    }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
 /// `word` in single quotes, a `'` of it written `'\''` (RVT-5).

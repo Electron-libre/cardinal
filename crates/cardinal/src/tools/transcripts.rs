@@ -7,7 +7,6 @@
 use chrono::{DateTime, FixedOffset};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use crate::{CONFIG, LOCK};
 
@@ -317,20 +316,9 @@ impl Place {
     }
 }
 
+/// The standard output of a successful git command in `dir`, its trailing whitespace trimmed.
 pub fn git(dir: &Path, args: &[&str]) -> Option<String> {
-    git_bytes(dir, args).map(|out| String::from_utf8_lossy(&out).trim().to_string())
-}
-
-/// The standard output of a successful git command in `dir`, as it is.
-pub fn git_bytes(dir: &Path, args: &[&str]) -> Option<Vec<u8>> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())?;
-    Some(out.stdout)
+    crate::git::run(dir, args).ok()
 }
 
 /// The main worktree of the repository holding `cwd`: a linked worktree counts with its main repository, a submodule
@@ -365,7 +353,7 @@ pub fn repository(cwd: &str, branches: &[String]) -> Option<PathBuf> {
     if common.file_name().is_some_and(|n| n == ".git") {
         common.parent().map(Path::to_path_buf)
     } else {
-        git(dir, &["rev-parse", "--show-toplevel"]).map(PathBuf::from)
+        crate::git::toplevel(dir)
     }
 }
 
@@ -382,8 +370,7 @@ fn sibling(gone: &Path, branches: &[String]) -> Option<PathBuf> {
         .filter(|r| !r.is_empty())
         .map(|r| gone.with_file_name(r))
         .filter(|r| {
-            git(r, &["rev-parse", "--show-toplevel"])
-                .is_some_and(|top| r.canonicalize().is_ok_and(|r| Path::new(&top) == r))
+            crate::git::toplevel(r).is_some_and(|top| r.canonicalize().is_ok_and(|r| top == r))
         })
         .find_map(|r| repository(r.to_str()?, &[]))
 }

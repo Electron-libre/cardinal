@@ -468,7 +468,7 @@ fn spec_shape(repo: &Path, close: &str, paths: &BTreeSet<String>) -> Option<[u64
     let mut args = vec!["ls-tree", "-z", "--name-only", close, "--"];
     args.extend(paths.iter().map(String::as_str));
     for path in git(repo, &args)?.split('\0').filter(|p| paths.contains(*p)) {
-        let bytes = transcripts::git_bytes(repo, &["show", &format!("{close}:{path}")])?;
+        let bytes = crate::git::bytes(repo, &["show", &format!("{close}:{path}")]).ok()?;
         let text = String::from_utf8_lossy(&bytes);
         sums[0] += 1;
         for (sum, measure) in sums[1..].iter_mut().zip(shape(repo, path, &text)) {

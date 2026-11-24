@@ -1,6 +1,6 @@
 ---
 id: NXT
-status: draft
+status: accepted
 adrs: [0019, 0021]
 ---
 

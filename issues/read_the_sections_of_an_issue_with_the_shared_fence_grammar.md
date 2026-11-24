@@ -54,9 +54,9 @@ already do; `next-issue` prints `(no title)` for an issue with no title. Out of 
    front matter, fenced lines never a heading; verified by tests of `crates/cardinal/tests/check_issue.rs` (a fenced
    `# Goal` before the title, `# Approach`/`# Resources` only fenced, a fenced `# ` line inside `# Goal`); makes true
    CKI-6. (autonomous)
-2. [ ] `next-issue` milestone and missing title: `milestone` reads its section through `markdown::fenced`, `title`
+2. [x] `next-issue` milestone and missing title: `milestone` reads its section through `markdown::fenced`, `title`
    prints `(no title)` for a readable file with none; verified by tests of `crates/cardinal/tests/next_issue_json.rs`
-   (`tests/next_issue.rs` is over the file size limit); makes true NXT-10, NXT-1 (amended).
+   (`tests/next_issue.rs` is over the file size limit); makes true NXT-10, NXT-1 (amended). (autonomous)
 3. [ ] Review of the whole issue: `update-docs` on `base..HEAD` and the `high` review, their fixes; verified by
    `project-check`.
 
@@ -78,6 +78,24 @@ already do; `next-issue` prints `(no title)` for an issue with no title. Out of 
 | code review | no findings |
 
 - red: CKI-6: `first heading must be the title, not `# Goal``, `` `# Goal` is empty``
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 2
+
+- done: `milestone` of `next_issue.rs` reads its section after the front matter through `markdown::fenced`; `title`
+  prints `(no title)` for a readable issue with no title, `(no file)` only for one it cannot read.
+
+| check | result |
+|---|---|
+| tests | pass (`next_issue_json` 14/14, `next_issue` 19/19) |
+| lint | pass |
+| specs | pass, `next-issue` back to `accepted` |
+| docs | n/a: no page describes how the milestone or the title is read |
+| code review | no findings |
+
+- red: NXT-10, NXT-1: `left: String("One")`, `right: "Two"`; the text printed `Next: issues/a.md` then `(no file)`
 - Code review: no findings
 - not verified: none
 - decisions needed: none

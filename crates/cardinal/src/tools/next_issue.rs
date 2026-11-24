@@ -81,8 +81,13 @@ fn list_item(line: &str) -> bool {
         || (digits > 0 && line[digits..].starts_with(". "))
 }
 
+/// The title printed for the issue `stem` (NXT-1): its heading, `(no title)` when it has none, `(no file)` when it
+/// cannot be read.
 fn title(dir: &Path, stem: &str) -> String {
-    heading(dir, stem).unwrap_or_else(|| "(no file)".to_string())
+    heading(dir, stem).unwrap_or_else(|| {
+        let readable = std::fs::read_to_string(dir.join(format!("{stem}.md"))).is_ok();
+        (if readable { "(no title)" } else { "(no file)" }).to_string()
+    })
 }
 
 fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
@@ -267,15 +272,18 @@ pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
     Some(stems)
 }
 
-/// The milestone named by the first non-empty line of the `# Milestone` section of `text` (NXT-10).
+/// The milestone named by the first non-empty line of the `# Milestone` section of `text` (NXT-10): its heading and
+/// the next one read after the front matter and outside a fenced code block (`markdown::fenced`, QUA-12), its fenced
+/// lines left out.
 fn milestone(text: &str) -> Option<String> {
-    let mut lines = text.lines();
+    let mut lines = crate::markdown::fenced(body(text).lines()).filter(|&(_, fenced)| !fenced);
     // the heading of the template of `skill:create-issue` carries a note: `# Milestone (optional; ...)`
-    lines.by_ref().find(|l| {
+    lines.by_ref().find(|(l, _)| {
         let l = l.trim_end();
         l == "# Milestone" || l.starts_with("# Milestone ")
     })?;
     lines
+        .map(|(l, _)| l)
         .take_while(|l| !l.starts_with("# "))
         .map(str::trim)
         .find(|l| !l.is_empty())

@@ -288,3 +288,51 @@ fn the_goal_reads_its_fences_with_the_shared_grammar() {
     let (doc, _, _) = document(r.path());
     assert_eq!(issue(&doc, "a")["goal"], json!("Intro. ```indented after."));
 }
+
+/// `repo` with a roadmap of the milestones `One` then `Two`.
+fn repo_with_roadmap(issues: &[(&str, &str)]) -> tempfile::TempDir {
+    let r = repo(issues);
+    std::fs::create_dir_all(r.path().join(".claude")).unwrap();
+    std::fs::write(
+        r.path().join(".claude/cardinal.toml"),
+        "[project]\nroadmap = [\"ROADMAP.md\"]\n",
+    )
+    .unwrap();
+    std::fs::write(r.path().join("ROADMAP.md"), "## One\n\n## Two\n").unwrap();
+    r
+}
+
+// spec: NXT-10
+/// A `# Milestone` quoted in a fenced block is not the section, and a fenced `# ` line inside the section does not end
+/// it: the issue of the later milestone comes after the one of the earlier milestone.
+#[test]
+fn the_milestone_is_read_outside_the_fenced_blocks() {
+    for a in [
+        "---\npriority: high\n---\n# A\n\n# Goal\n```\n# Milestone\nOne\n```\n\n# Milestone\nTwo\n",
+        "---\npriority: high\n---\n# A\n\n# Milestone\n```\n# not a heading\n```\nTwo\n",
+    ] {
+        let r = repo_with_roadmap(&[
+            ("a", a),
+            ("b", "---\npriority: low\n---\n# B\n\n# Milestone\nOne\n"),
+        ]);
+        let (doc, code, err) = document(r.path());
+        assert_eq!(code, Some(0), "{err}");
+        assert_eq!(issue(&doc, "a")["milestone"], "Two", "{a}");
+        assert_eq!(doc["next"], "b");
+    }
+}
+
+// spec: NXT-1
+/// An issue with no title outside a fenced block is printed with the title `(no title)`.
+#[test]
+fn an_issue_with_no_title_prints_no_title() {
+    let r = repo(&[(
+        "a",
+        "---\npriority: high\n---\n```\n# fenced\n```\nno heading\n",
+    )]);
+    let (_, out, err) = tool(r.path(), "1", &["next-issue"]);
+    assert!(
+        out.contains("Next: issues/a.md\n  (no title)\n"),
+        "{out}{err}"
+    );
+}

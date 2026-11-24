@@ -17,7 +17,7 @@ dependencies and a title it can read.
 ### Behaviour
 
 - **CKI-3** (deterministic) `check-issue` must accept a file with a valid `priority` and no `depends_on` key, or `depends_on: []`.
-- **CKI-6** (deterministic) `check-issue` must read the headings of the file as the lines opening with `# ` after its front matter and outside a fenced code block as QUA-12 reads them, a section running to the next such heading, and exit 1 reporting `no `# <Title>` heading` when there is none, `first heading must be the title, not `# Goal`` when the first is `# Goal`, `missing section `<heading>`` for each of `# Goal`, `# Approach` and `# Resources` that no heading is, `` `# Tracking` is written by issue-workflow`` when one heading is `# Tracking`, and `` `# Goal` is empty`` when the `# Goal` section holds only blank lines.
+- **CKI-6** (deterministic) `check-issue` must read the headings of the file as the lines opening with `# `, or a bare `#`, after its front matter and outside a fenced code block as QUA-12 reads them, a section running to the next such heading, and exit 1 reporting ``no `# <Title>` heading`` when there is none, ``first heading must be the title, not `# Goal` `` when the first is `# Goal`, ``missing section `<heading>` `` for each of `# Goal`, `# Approach` and `# Resources` that no heading is, `` `# Tracking` is written by issue-workflow`` when one heading is `# Tracking`, and `` `# Goal` is empty`` when the `# Goal` section holds no text outside its fenced code blocks (the `goal` of NXT-19 is then `null`).
 
 ### Contract
 
@@ -38,6 +38,7 @@ dependencies and a title it can read.
 - (CKI-4) Given `issues/done/a.md` with `depends_on: [b]` and `issues/b.md` open, when `check-issue issues/done/a.md` runs, or `check-issue a.md` from `issues/done`, then it reports only the done issue and exits 1.
 - (CKI-6) Given `issues/a.md` whose body opens with a fenced block holding `# Goal`, then `# Fix it`, `# Goal`, `# Approach` and `# Resources` with text, when `check-issue` runs, then it reports no heading problem; given one whose `# Approach` and `# Resources` lie only inside a fenced block of its goal, then it reports both sections missing and exits 1.
 - (CKI-6) Given `issues/a.md` whose `# Goal` section holds a fenced block quoting a `# Notes` heading, then text, when `check-issue` runs, then it does not report the goal empty.
+- (CKI-6) Given `issues/a.md` whose `# Goal` section holds only a fenced block, or a bare `#` line before its text, when `check-issue` runs, then it reports the goal empty and exits 1.
 - (CKI-5) Given `issues/a.md` of priority `low` with `on_hold: ''`, when `check-issue` runs, then it reports the hold without a reason and exits 1, and so with `on_hold: '  '`; with `on_hold: 'after the release'`, it reports no front matter problem.
 
 ## Non-goals

@@ -7,21 +7,26 @@ use std::path::Path;
 
 use super::next_issue;
 
-/// The lines of the body of the issue, each with whether it is a heading: a line opening with `# ` outside a fenced
-/// code block (`markdown::fenced`, QUA-12, CKI-6).
+/// The lines of the body of the issue, each with whether it lies in a fenced code block (`markdown::fenced`, QUA-12).
 fn lines(text: &str) -> Vec<(&str, bool)> {
-    crate::markdown::fenced(next_issue::body(text).lines())
-        .map(|(l, fenced)| (l, !fenced && l.starts_with("# ")))
-        .collect()
+    crate::markdown::fenced(next_issue::body(text).lines()).collect()
 }
 
-/// True when the section exists and holds only blank lines before the next heading (CKI-6).
+/// Whether the line is a heading: one `next_issue::is_heading` reads, outside a fenced code block (CKI-6).
+fn is_heading(&(line, fenced): &(&str, bool)) -> bool {
+    !fenced && next_issue::is_heading(line)
+}
+
+/// True when the section exists and holds no text outside a fenced code block before the next heading, as the goal
+/// of `next-issue` reads it (CKI-6).
 fn section_is_empty(lines: &[(&str, bool)], heading: &str) -> bool {
     let mut lines = lines.iter();
-    lines.by_ref().any(|&(l, h)| h && l.trim() == heading)
+    lines
+        .by_ref()
+        .any(|l| is_heading(l) && l.0.trim() == heading)
         && lines
-            .take_while(|&&(_, h)| !h)
-            .all(|(l, _)| l.trim().is_empty())
+            .take_while(|l| !is_heading(l))
+            .all(|&(l, fenced)| fenced || l.trim().is_empty())
 }
 
 /// The problems of the keys that order the issue (CKI-1, CKI-2, CKI-5): its `priority`, its `depends_on` and its
@@ -89,7 +94,11 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         ));
     }
     let lines = lines(text);
-    let headings: Vec<&str> = lines.iter().filter(|(_, h)| *h).map(|(l, _)| *l).collect();
+    let headings: Vec<&str> = lines
+        .iter()
+        .filter(|l| is_heading(l))
+        .map(|l| l.0)
+        .collect();
     match headings.first() {
         None => out.push("no `# <Title>` heading".to_string()),
         Some(t) if t.trim() == "# Goal" => {

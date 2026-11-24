@@ -336,3 +336,33 @@ fn an_issue_with_no_title_prints_no_title() {
         "{out}{err}"
     );
 }
+
+// spec: NXT-10
+/// A bare `#` ends the `# Milestone` section as it ends the goal: what follows it names no milestone.
+#[test]
+fn a_bare_hash_ends_the_milestone_section() {
+    let r = repo_with_roadmap(&[(
+        "a",
+        "---\npriority: high\n---\n# A\n\n# Milestone\n#\nTwo\n",
+    )]);
+    let (doc, code, err) = document(r.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(issue(&doc, "a")["milestone"], Value::Null);
+}
+
+// spec: NXT-1
+/// An issue file that is not UTF-8 is there: its title is `(no title)`, not `(no file)`.
+#[test]
+fn an_issue_that_is_not_utf8_prints_no_title() {
+    let r = repo(&[("a", "---\npriority: high\n---\n# A\n")]);
+    std::fs::write(
+        r.path().join("issues/a.md"),
+        b"---\npriority: high\n---\n# A \xe9\n",
+    )
+    .unwrap();
+    let (_, out, err) = tool(r.path(), "1", &["next-issue"]);
+    assert!(
+        out.contains("Next: issues/a.md\n  (no title)\n"),
+        "{out}{err}"
+    );
+}

@@ -41,7 +41,7 @@ fn goal(dir: &Path, stem: &str) -> Option<String> {
             continue;
         }
         let line = raw.trim();
-        if raw.starts_with("# ") || raw.trim_end() == "#" {
+        if is_heading(raw) {
             if inside {
                 break;
             }
@@ -81,12 +81,12 @@ fn list_item(line: &str) -> bool {
         || (digits > 0 && line[digits..].starts_with(". "))
 }
 
-/// The title printed for the issue `stem` (NXT-1): its heading, `(no title)` when it has none, `(no file)` when it
-/// cannot be read.
+/// The title printed for the issue `stem` (NXT-1): its heading, `(no title)` when it has none or cannot be read as text,
+/// `(no file)` when the file is gone.
 fn title(dir: &Path, stem: &str) -> String {
     heading(dir, stem).unwrap_or_else(|| {
-        let readable = std::fs::read_to_string(dir.join(format!("{stem}.md"))).is_ok();
-        (if readable { "(no title)" } else { "(no file)" }).to_string()
+        let there = dir.join(format!("{stem}.md")).is_file();
+        (if there { "(no title)" } else { "(no file)" }).to_string()
     })
 }
 
@@ -187,6 +187,11 @@ fn issue_stems(dir: &Path) -> Vec<String> {
     stems
 }
 
+/// Whether `line` ends a section of an issue: a line opening with `# `, or a bare `#` (an empty heading).
+pub(super) fn is_heading(line: &str) -> bool {
+    line.starts_with("# ") || line.trim_end() == "#"
+}
+
 /// The text of the issue `text` after its front matter (all of it when it opens none): where its headings are read.
 pub(super) fn body(text: &str) -> &str {
     &text[split_front_matter(text).map_or(0, |(_, _, body)| body)..]
@@ -284,7 +289,7 @@ fn milestone(text: &str) -> Option<String> {
     })?;
     lines
         .map(|(l, _)| l)
-        .take_while(|l| !l.starts_with("# "))
+        .take_while(|l| !is_heading(l))
         .map(str::trim)
         .find(|l| !l.is_empty())
         .map(str::to_string)

@@ -57,8 +57,8 @@ already do; `next-issue` prints `(no title)` for an issue with no title. Out of 
 2. [x] `next-issue` milestone and missing title: `milestone` reads its section through `markdown::fenced`, `title`
    prints `(no title)` for a readable file with none; verified by tests of `crates/cardinal/tests/next_issue_json.rs`
    (`tests/next_issue.rs` is over the file size limit); makes true NXT-10, NXT-1 (amended). (autonomous)
-3. [ ] Review of the whole issue: `update-docs` on `base..HEAD` and the `high` review, their fixes; verified by
-   `project-check`.
+3. [x] Review of the whole issue: `update-docs` on `base..HEAD` and the `high` review, their fixes; verified by
+   `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -96,6 +96,31 @@ already do; `next-issue` prints `(no title)` for an issue with no title. Out of 
 | code review | no findings |
 
 - red: NXT-10, NXT-1: `left: String("One")`, `right: "Two"`; the text printed `Next: issues/a.md` then `(no file)`
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## Deliverable 3
+
+- done: `update-docs` on `base..HEAD` (no page describes these readers: n/a); the `high` review settled: one
+  `next_issue::is_heading` (a line opening with `# ` or a bare `#`) shared by `goal`, `milestone` and `check-issue`,
+  the goal of `check-issue` empty when it holds no text outside its fenced blocks, `(no file)` only for a file that
+  is gone, the quoted messages of CKI-6 fixed; CKI-6, NXT-1, NXT-10 and NXT-19 amended.
+
+| check | result |
+|---|---|
+| tests | pass (`check_issue` 10/10, `next_issue_json` 16/16, `next_issue` 19/19) |
+| lint | pass |
+| specs | pass |
+| docs | n/a: no page describes how the headings of an issue are read |
+| code review | no findings |
+
+- red: CKI-6, NXT-10, NXT-1: `` `# Goal` is empty`` not reported; `unknown milestone of a: #`; `(no file)` printed
+  for a non-UTF-8 issue
+- High review: 6 findings: 4 fixed (empty goal and bare `#` agreement of the three readers, `(no file)` of a non-UTF-8
+  file, the nested backticks of CKI-6); 2 filed as
+  [report_an_open_fence_and_a_blank_title_of_an_issue](report_an_open_fence_and_a_blank_title_of_an_issue.md) (the
+  open fence, the blank title: new requirements).
 - Code review: no findings
 - not verified: none
 - decisions needed: none

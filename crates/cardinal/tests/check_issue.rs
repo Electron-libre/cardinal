@@ -297,3 +297,15 @@ fn a_fenced_heading_does_not_end_the_goal() {
     let (ok, out) = check_front_matter(text);
     assert!(ok && out.is_empty(), "{out}");
 }
+
+// spec: CKI-6
+/// The goal is empty when `next-issue` reads none: it holds only a fenced block, or a bare `#` heading ends it before
+/// its text.
+#[test]
+fn a_goal_next_issue_reads_as_empty_is_empty() {
+    for goal in ["```\nexample\n```\n", "#\nMake it work.\n"] {
+        let text = format!("---\npriority: low\n---\n# Fix it\n\n# Goal\n{goal}\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n");
+        let (ok, out) = check_front_matter(&text);
+        assert!(!ok && out.contains("`# Goal` is empty"), "{goal}: {out}");
+    }
+}

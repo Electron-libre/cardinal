@@ -19,7 +19,6 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 const SKIPPED_DIRS: [&str; 3] = [".git", "target", "node_modules"];
 
@@ -506,13 +505,9 @@ fn relink(
 
 /// `git --literal-pathspecs args` run in `root`, its output `None` when it fails: a file name is never a glob.
 fn git_literal(root: &Path, args: &[&OsStr]) -> Option<Vec<u8>> {
-    let out = Command::new("git")
-        .arg("--literal-pathspecs")
-        .args(args)
-        .current_dir(root)
-        .output()
-        .ok()?;
-    out.status.success().then_some(out.stdout)
+    let mut cmd = crate::git::command(root);
+    cmd.arg("--literal-pathspecs").args(args);
+    crate::git::exec(cmd, None).ok()
 }
 
 /// The paths of the NUL-separated output of git run in `root`, canonical (relative to the top of the work tree).
@@ -631,25 +626,17 @@ fn under(root: &Path, dir: &Path) -> RepoPath {
 
 /// Root of the git repository containing `dir`; the references are only rewritten inside it.
 fn repo_root(dir: &Path) -> Option<std::path::PathBuf> {
-    let out = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .current_dir(dir)
-        .output()
-        .ok()?;
-    out.status
-        .success()
-        .then(|| std::path::PathBuf::from(String::from_utf8_lossy(&out.stdout).trim()))
+    crate::git::toplevel(dir)
 }
 
 /// The git common directory of the repository of `dir` and the top of its worktree, canonical.
 fn worktree_of(dir: &Path) -> Option<(std::path::PathBuf, std::path::PathBuf)> {
-    let out = Command::new("git")
-        .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
-        .current_dir(dir)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())?;
-    let common = std::fs::canonicalize(String::from_utf8_lossy(&out.stdout).trim()).ok()?;
+    let common = crate::git::run(
+        dir,
+        &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    )
+    .ok()?;
+    let common = std::fs::canonicalize(common).ok()?;
     Some((common, std::fs::canonicalize(repo_root(dir)?).ok()?))
 }
 
@@ -763,24 +750,27 @@ pub(super) fn main(args: &[String]) -> u8 {
     }
     std::fs::create_dir_all(&done).expect("done dir is creatable");
     // Run git in the issue's directory with paths relative to it, so the caller's directory does not matter.
-    let tracked = Command::new("git")
-        .args(["ls-files", "--error-unmatch", "--"])
-        .arg(name)
-        .current_dir(dir)
-        .output()
-        .is_ok_and(|o| o.status.success());
+    let git = |args: &[&OsStr]| {
+        let mut cmd = crate::git::command(dir);
+        cmd.args(args);
+        crate::git::exec(cmd, None)
+    };
+    let tracked = git(&[
+        "ls-files".as_ref(),
+        "--error-unmatch".as_ref(),
+        "--".as_ref(),
+        name,
+    ])
+    .is_ok();
     let issue_path = canonical(issue);
     let before = tracked
         .then(|| repo_root(dir).map(|root| Before::read(&root)))
         .flatten();
     let moved = if tracked {
-        Command::new("git")
-            .arg("mv")
-            .arg(name)
-            .arg(Path::new("done").join(name))
-            .current_dir(dir)
-            .status()
-            .is_ok_and(|s| s.success())
+        let into = Path::new("done").join(name);
+        git(&["mv".as_ref(), name, into.as_os_str()])
+            .inspect_err(|failure| eprintln!("{failure}"))
+            .is_ok()
     } else {
         std::fs::rename(issue, &target).is_ok()
     };

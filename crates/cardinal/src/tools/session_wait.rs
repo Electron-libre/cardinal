@@ -11,7 +11,6 @@
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// The name of the mark in the git directory of a worktree (SWT-3).
@@ -44,15 +43,13 @@ pub(super) fn main(args: &[String]) -> u8 {
 
 /// The path of the mark of the worktree of `cwd`; `None` outside a git repository (SWT-3, SWT-4).
 fn mark_path(cwd: &Path) -> Option<PathBuf> {
-    let out = Command::new("git")
-        .args(["rev-parse", "--path-format=absolute", "--git-path", MARK])
-        .current_dir(cwd)
-        .stdin(Stdio::null())
-        .stderr(Stdio::null())
-        .output()
-        .ok()?;
-    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    (out.status.success() && !path.is_empty()).then(|| PathBuf::from(path))
+    crate::git::run(
+        cwd,
+        &["rev-parse", "--path-format=absolute", "--git-path", MARK],
+    )
+    .ok()
+    .filter(|path| !path.is_empty())
+    .map(PathBuf::from)
 }
 
 /// Why the session waits: `stop` at the end of a turn, else the first line of the notification (SWT-1).

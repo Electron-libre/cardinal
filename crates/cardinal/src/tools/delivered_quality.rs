@@ -19,7 +19,6 @@ use chrono::{DateTime, Duration, FixedOffset};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use transcripts::{
     default_branch, for_each_line, git, is_validation, issue_file_stem, projects, projects_root,
     repository, revision, session_of, sessions, sorted_entries, subagents, typed_text, Place, Span,
@@ -654,29 +653,20 @@ fn blamed(repo: &Path, fix: &str) -> HashSet<String> {
         }
         args.extend([parent.as_str(), "--", old]);
         // the user's `blame.ignoreRevsFile` makes blame fail in a repository without that file, or skip a commit
-        let Ok(out) = Command::new("git")
-            .arg("-C")
-            .arg(repo)
+        let mut blame = crate::git::command(repo);
+        blame
             .args(&args)
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .output()
-        else {
+            .env("GIT_CONFIG_NOSYSTEM", "1");
+        let Ok(out) = crate::git::exec(blame, None) else {
             continue;
         };
-        if !out.status.success() {
-            continue;
-        }
         // the header line of each blamed group opens with the hash of its commit (40 hex digits, 64 with SHA-256)
-        writers.extend(
-            String::from_utf8_lossy(&out.stdout)
-                .lines()
-                .filter_map(|l| {
-                    let hash = l.split(' ').next()?;
-                    (hash.len() >= 40 && hash.chars().all(|c| c.is_ascii_hexdigit()))
-                        .then(|| hash.to_string())
-                }),
-        );
+        writers.extend(String::from_utf8_lossy(&out).lines().filter_map(|l| {
+            let hash = l.split(' ').next()?;
+            (hash.len() >= 40 && hash.chars().all(|c| c.is_ascii_hexdigit()))
+                .then(|| hash.to_string())
+        }));
     }
     writers
 }

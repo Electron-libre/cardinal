@@ -4,16 +4,14 @@
 //! (`stop_hook_active`). It lets go whenever the text cannot be judged, so it never blocks for its own failure. Spec: `specs/language-hint.md`.
 
 use super::language::{Language, HINT_MARK};
-use super::transcripts::{git, typed_text};
+use super::transcripts::typed_text;
 use serde_json::Value;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 /// The root of the work tree holding `dir`, when it has a configuration (`crate::config_of`).
 fn root_at(dir: &Path) -> Option<PathBuf> {
-    let root =
-        PathBuf::from(git(dir, &["rev-parse", "--show-toplevel"]).filter(|r| !r.is_empty())?);
-    Some(root).filter(|r| crate::config_of(r).exists())
+    crate::git::toplevel(dir).filter(|r| crate::config_of(r).exists())
 }
 
 /// The language of the configuration of the work tree of the event's `cwd`, else of `CLAUDE_PROJECT_DIR` (LNG-3),

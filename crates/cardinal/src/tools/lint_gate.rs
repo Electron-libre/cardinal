@@ -45,19 +45,14 @@ fn work_tree(event: &serde_json::Value) -> String {
     let Some(cwd) = event["cwd"].as_str() else {
         return project;
     };
-    let root = git(cwd, &["rev-parse", "--show-toplevel"]);
-    let prefix = git(&project, &["rev-parse", "--show-prefix"]);
-    if root.trim().is_empty()
-        || git(&project, &["rev-parse", "--show-toplevel"])
-            .trim()
-            .is_empty()
-    {
+    let (Some(root), Some(_)) = (
+        crate::git::toplevel(Path::new(cwd)),
+        crate::git::toplevel(Path::new(&project)),
+    ) else {
         return project;
-    }
-    Path::new(root.trim())
-        .join(prefix.trim())
-        .to_string_lossy()
-        .into_owned()
+    };
+    let prefix = git(&project, &["rev-parse", "--show-prefix"]);
+    root.join(prefix.trim()).to_string_lossy().into_owned()
 }
 
 /// The changed and untracked files the lint checks, outside the `.claude` directories whose scripts are not project

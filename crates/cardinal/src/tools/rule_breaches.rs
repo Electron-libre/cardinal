@@ -407,8 +407,7 @@ fn proposes_plan(call: &Call, relative: Option<&str>) -> bool {
 
 /// The work tree holding `cwd`: its git top level, else `cwd` itself (a removed worktree).
 fn worktree(cwd: &str) -> PathBuf {
-    git(Path::new(cwd), &["rev-parse", "--show-toplevel"])
-        .map_or_else(|| PathBuf::from(cwd), PathBuf::from)
+    crate::git::toplevel(Path::new(cwd)).unwrap_or_else(|| PathBuf::from(cwd))
 }
 
 #[derive(Default)]

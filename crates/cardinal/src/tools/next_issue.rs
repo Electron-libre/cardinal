@@ -14,7 +14,6 @@
 //! `--json` prints the queue as one JSON object for a program instead of the text (NXT-18, NXT-19).
 
 use std::path::Path;
-use std::process::Command;
 
 use super::issue_claim::{self, Claim};
 use crate::project_table::ProjectTable;
@@ -99,19 +98,12 @@ fn title(dir: &Path, stem: &str) -> String {
 }
 
 fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
-    Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map_or_default(|o| {
-            String::from_utf8_lossy(&o.stdout)
-                .lines()
-                .map(str::to_string)
-                .collect()
-        })
+    crate::git::bytes(dir, args).map_or_default(|out| {
+        String::from_utf8_lossy(&out)
+            .lines()
+            .map(str::to_string)
+            .collect()
+    })
 }
 
 /// Whether `branch` holds work that `trunk` lacks; true when git cannot tell, so unmerged work is never ignored.
@@ -120,18 +112,8 @@ fn git_lines(dir: &Path, args: &[&str]) -> Vec<String> {
 /// with `merged` of `worktree.rs`.
 fn has_own_commits(dir: &Path, trunk: &str, branch: &str) -> bool {
     let branch = format!("refs/heads/{branch}");
-    let equivalent = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(["cherry", trunk, &branch])
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .is_some_and(|o| {
-            !String::from_utf8_lossy(&o.stdout)
-                .lines()
-                .any(|l| l.starts_with('+'))
-        });
+    let equivalent = crate::git::run(dir, &["cherry", trunk, &branch])
+        .is_ok_and(|out| !out.lines().any(|l| l.starts_with('+')));
     if equivalent {
         return false;
     }

@@ -6,7 +6,7 @@
 //! message of a revision, CMC-2).
 
 use std::io::Read;
-use std::process::Command;
+use std::path::Path;
 
 use super::cardinal_changes::{expectation, METRICS, RULE_METRIC, WASTE_METRIC};
 use super::{config_list, repo_root};
@@ -136,30 +136,23 @@ pub(super) fn violations(
 /// The message of the commit `rev` names at the current directory, `rev` resolved first so that a path or a range is
 /// refused rather than read as a pathspec (CMC-2, CMC-3).
 pub(super) fn message_of(rev: &str) -> Result<String, String> {
-    let git = |args: &[&str]| {
-        Command::new("git")
-            .args(args)
-            .output()
-            .map_err(|e| format!("cannot run git: {e}"))
-    };
+    let here = Path::new(".");
     let refused = || format!("cannot read the message of the revision `{rev}`");
     let commit = format!("{rev}^{{commit}}");
-    let out = git(&[
-        "rev-parse",
-        "--verify",
-        "--quiet",
-        "--end-of-options",
-        &commit,
-    ])?;
-    if !out.status.success() {
-        return Err(refused());
-    }
-    let hash = String::from_utf8_lossy(&out.stdout).trim().to_string();
-    let out = git(&["log", "-1", "--format=%B", &hash, "--"])?;
-    if !out.status.success() {
-        return Err(refused());
-    }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    let hash = crate::git::run(
+        here,
+        &[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            "--end-of-options",
+            &commit,
+        ],
+    )
+    .map_err(|_| refused())?;
+    let out = crate::git::bytes(here, &["log", "-1", "--format=%B", hash.trim(), "--"])
+        .map_err(|_| refused())?;
+    Ok(String::from_utf8_lossy(&out).into_owned())
 }
 
 /// The message to check: of the revision given, else read on stdin (CMC-1, CMC-3).

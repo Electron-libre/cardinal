@@ -11,7 +11,6 @@ use std::fmt::{self, Write as _};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Component, Path, PathBuf};
-use std::process::{Command, Stdio};
 
 use anyhow::{bail, Context, Result};
 use sha2::{Digest, Sha256};
@@ -396,44 +395,27 @@ fn path_bytes(path: &Path) -> std::borrow::Cow<'_, [u8]> {
     path.to_string_lossy().into_owned().into_bytes().into()
 }
 
+/// Runs `git args` in `dir`, else in the current directory.
 fn git(dir: Option<&Path>, args: &[&str]) -> Result<()> {
-    let mut cmd = Command::new("git");
-    if let Some(dir) = dir {
-        cmd.arg("-C").arg(dir);
-    }
-    let status = cmd.args(args).status().context("running git")?;
-    if !status.success() {
-        bail!("git {} failed", args.join(" "));
-    }
-    Ok(())
+    git::bytes(dir.unwrap_or(Path::new(".")), args)
+        .map(drop)
+        .map_err(anyhow::Error::msg)
 }
 
 fn resolves(dir: &Path, rev: &str) -> bool {
-    Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args([
+    git::run_ok(
+        dir,
+        &[
             "rev-parse",
             "--verify",
             "--quiet",
             &format!("{rev}^{{commit}}"),
-        ])
-        .output()
-        .is_ok_and(|o| o.status.success())
+        ],
+    )
 }
 
 fn git_output(dir: &Path, args: &[&str]) -> Result<String> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .stderr(Stdio::inherit())
-        .output()
-        .context("running git")?;
-    if !out.status.success() {
-        bail!("git {} failed", args.join(" "));
-    }
-    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    git::run(dir, args).map_err(anyhow::Error::msg)
 }
 
 fn cache_dir() -> Result<PathBuf> {
@@ -1006,16 +988,10 @@ fn leftovers(
     if names.is_empty() {
         return Vec::new();
     }
-    // quiet: outside a git repository, git says so on stderr
-    let listed = match Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["ls-files", "-z"])
-        .stderr(Stdio::null())
-        .output()
-    {
-        Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).into_owned(),
-        _ => return Vec::new(),
+    // outside a git repository there is nothing to list
+    let listed = match git::bytes(root, &["ls-files", "-z"]) {
+        Ok(out) => String::from_utf8_lossy(&out).into_owned(),
+        Err(_) => return Vec::new(),
     };
     let mut paths: Vec<&str> = listed
         .split('\0')

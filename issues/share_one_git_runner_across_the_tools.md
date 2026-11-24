@@ -55,9 +55,9 @@ become RBI-4's `git <args>: exit <code>: <first stderr line>`. Out of scope: the
 2. [x] The hooks: `review_gate`, `lint_gate`, `workspace_lock`, `issue_claim`, `gate.rs`, `tools/mod.rs` (`repo_root`,
    `toplevel`), `update_notice` (its deadline kept through `command`); no process added on the hot paths; verified by
    their existing tests; ~450 lines. (autonomous)
-3. [ ] The other tools and `lib.rs`: `close_issue`, `next_issue`, `rule_breaches`, `language_hint`, `session_wait`,
+3. [x] The other tools and `lib.rs`: `close_issue`, `next_issue`, `rule_breaches`, `language_hint`, `session_wait`,
    `repo_files`, `commit_check`, `check_commits`, `delivered_quality`, `transcripts`, `lib.rs` (`git`, `git_output`,
-   `resolves`, `ls-files`); verified by their existing tests; ~450 lines.
+   `resolves`, `ls-files`); verified by their existing tests; ~450 lines. (autonomous)
 4. [ ] One reader of the worktrees: `worktree.rs`'s `worktrees`/`main_worktree` shared (`pub(crate)`), used by
    `rebase_issue::locate`, `issue_claim::trunk`, `next_issue` and the branch lookup of `close_issue`; verified by the
    tests of `rebase-issue`, `issue-claim`, `next-issue`, `close-issue` and `worktree`; ~200 lines.
@@ -95,4 +95,16 @@ lose lines: the new code goes to `src/git.rs`.
   not fixed, no caller reads it: `rev-parse`, `status`, `diff`, `ls-files` print nothing worth reading on failure, and
   the partial output of `hash-object --stdin-paths` was already replaced by one hash per file when short.
 - not verified: none.
+- decisions needed: none.
+
+### Deliverable 3
+- done: `close_issue`, `next_issue`, `rule_breaches`, `language_hint`, `lint_gate` (its top level), `session_wait`,
+  `repo_files`, `commit_check`, `check_commits`, `delivered_quality` and `lib.rs` run git through `crate::git`; no
+  `Command::new("git")` is left outside `git.rs` but a test helper; `git mv` of `close-issue` and the `clone`, `fetch`,
+  `checkout` of `lib.rs` now print the failure line instead of git's stderr (1 a); `repo_files` and `check-commits`
+  print the failure line.
+- checks: project-check pass; deliverable-size 306 lines, within; docs: no page cites the old texts.
+- red: none (a refactor: the tests of these tools stay green).
+- Code review: no findings
+- not verified: a failing `clone` or `fetch` of `cardinal init`/`update` (network) shows the failure line.
 - decisions needed: none.

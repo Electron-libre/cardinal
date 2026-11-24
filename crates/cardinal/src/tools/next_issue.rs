@@ -31,28 +31,18 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
 }
 
 /// The text of the `# Goal` section of the issue `stem` (NXT-19): up to the next line opening with `# ` outside a
-/// code block, its code blocks left out, the lines of each paragraph trimmed and joined by one space, a list item
+/// fenced code block (`markdown::fenced`, QUA-12), its fenced code blocks left out, the lines of each paragraph trimmed and joined by one space, a list item
 /// opening a paragraph, the paragraphs joined by a newline; `None` when the section is missing or holds no text.
 fn goal(dir: &Path, stem: &str) -> Option<String> {
     let text = std::fs::read_to_string(dir.join(format!("{stem}.md"))).ok()?;
     let body = split_front_matter(&text).map_or(0, |(_, _, body)| body);
-    // the marker of the code block the line is in, closed only by the same one
-    let mut fence: Option<&str> = None;
     let mut inside = false;
     let mut paragraphs: Vec<Vec<&str>> = vec![Vec::new()];
-    for raw in text[body..].lines() {
+    for (raw, fenced) in crate::markdown::fenced(text[body..].lines()) {
+        if fenced {
+            continue;
+        }
         let line = raw.trim();
-        if let Some(marker) = ["```", "~~~"].into_iter().find(|m| line.starts_with(m)) {
-            fence = match fence {
-                None => Some(marker),
-                Some(open) if open == marker => None,
-                open => open,
-            };
-            continue;
-        }
-        if fence.is_some() {
-            continue;
-        }
         if raw.starts_with("# ") || raw.trim_end() == "#" {
             if inside {
                 break;

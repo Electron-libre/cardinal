@@ -44,7 +44,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 |---|---|
 | `stem` | the stem of the issue file |
 | `title` | the first `# ` heading after its front matter, `null` when it has none |
-| `goal` | the text of its `# Goal` section, up to the next line opening with `# ` outside a code block, its code blocks (fenced by ```` ``` ```` or `~~~`) left out, each paragraph its lines trimmed and joined by one space, a line opening a list item (`* `, `- `, or digits then `. `) starting a paragraph, the paragraphs joined by `"\n"`; `null` when it has no such section or the section holds no text |
+| `goal` | the text of its `# Goal` section, up to the next line opening with `# ` outside a fenced code block, its fenced code blocks left out (the fence grammar of QUA-12: a fence indented by three spaces at most, closed by a bare fence of its character at least as long), each paragraph its lines trimmed and joined by one space, a line opening a list item (`* `, `- `, or digits then `. `) starting a paragraph, the paragraphs joined by `"\n"`; `null` when it has no such section or the section holds no text |
 | `priority` | `"high"`, `"medium"` or `"low"`; `null` for an issue NXT-2 reports |
 | `why` | the `why` of its front matter, `""` when it has none |
 | `milestone` | the name of its milestone (NXT-10), `null` when it has none or NXT-13 reports it unknown |
@@ -93,6 +93,7 @@ with another branch over a shared list (ADR 0019, ADR 0021).
 - (NXT-19) Given `a.md` with a front matter and no heading, and `b.md` in milestone `Gone` that no roadmap heading names, when `next-issue --json` runs, then `a` has `title` `null` and `b` has `milestone` `null`.
 - (NXT-19) Given `a.md` whose `# Goal` holds two lines, an empty line and a third line before `# Findings`, when `next-issue --json` runs, then `a` has `goal` the first two lines joined by a space, `\n`, then the third.
 - (NXT-19) Given a `# Goal` that holds a code block with a line `# install`, a list of two items and a `## ` heading, then its `goal` holds no line of the code block, each item on a line of its own, and the `## ` line in the text of its paragraph.
+- (NXT-19) Given a `# Goal` that holds a block opened by ```` ```` ```` and holding a line ```` ``` ```` then a line `# install`, a line indented by four spaces that starts with ```` ``` ````, and text after the block's closing ```` ```` ````, then its `goal` holds the indented line and the text after the block, and neither line of the block.
 - (NXT-19) Given `a.md` with no `# Goal` section, and `b.md` whose `# Goal` is followed at once by `# Findings`, then both have `goal` `null`.
 - (NXT-18) Given `a.md`, when `next-issue --jsn` or `next-issue issues other` runs, then it prints nothing on stdout and exits 2.
 - (NXT-19) Given no open issue, when `next-issue --json` runs, then it prints `{"version":1,"next":null,"issues":[]}`.

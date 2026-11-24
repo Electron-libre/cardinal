@@ -266,3 +266,14 @@ fn an_unknown_option_or_a_second_directory_is_refused() {
         assert!(err.contains("unknown argument"), "{err}");
     }
 }
+
+// spec: NXT-19
+#[test]
+fn the_goal_reads_its_fences_with_the_shared_grammar() {
+    let r = repo(&[(
+        "a",
+        "---\npriority: low\n---\n# A\n# Goal\nIntro.\n````\n```\n# install\n````\n    ```indented\nafter.\n# Findings\nx\n",
+    )]);
+    let (doc, _, _) = document(r.path());
+    assert_eq!(issue(&doc, "a")["goal"], json!("Intro. ```indented after."));
+}

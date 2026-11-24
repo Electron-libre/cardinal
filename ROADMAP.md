@@ -47,3 +47,7 @@ The work done before this file existed is in `issues/done/`.
   - [end_a_task_that_panics_in_the_ui](issues/done/end_a_task_that_panics_in_the_ui.md)
   - [end_a_measure_or_a_notification_that_panics_in_the_ui](issues/done/end_a_measure_or_a_notification_that_panics_in_the_ui.md)
   - [keep_the_ui_working_after_a_zellij_session_is_renamed](issues/done/keep_the_ui_working_after_a_zellij_session_is_renamed.md)
+  - [show_the_details_of_a_selected_milestone](issues/show_the_details_of_a_selected_milestone.md)
+  - [read_the_markdown_documents_from_the_ui](issues/read_the_markdown_documents_from_the_ui.md)
+  - [chart_the_sessions_of_each_issue_over_time](issues/chart_the_sessions_of_each_issue_over_time.md)
+  - [show_the_claude_usage_limits_in_the_ui](issues/show_the_claude_usage_limits_in_the_ui.md)

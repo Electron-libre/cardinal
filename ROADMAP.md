@@ -16,7 +16,7 @@ The work done before this file existed is in `issues/done/`.
   that mislead who changes a key or a tool.
 - State: in issues
 - Issues:
-  - [amend_rep_14_and_sua_6_to_the_code](issues/amend_rep_14_and_sua_6_to_the_code.md)
+  - [amend_rep_14_and_sua_6_to_the_code](issues/done/amend_rep_14_and_sua_6_to_the_code.md)
   - [prove_the_refusals_of_release_and_rebase_issue](issues/prove_the_refusals_of_release_and_rebase_issue.md)
   - [bring_the_architecture_doc_and_the_tool_list_in_step](issues/bring_the_architecture_doc_and_the_tool_list_in_step.md)
 

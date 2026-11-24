@@ -300,7 +300,7 @@ fn close(cwd: &Path, arg: &str, force: bool) -> Result<String, String> {
             .zip(std::fs::canonicalize(dir).ok())
             .is_some_and(|(here, target)| here.starts_with(target));
         if inside {
-            return Err(format!("the current directory is inside {}: run `cardinal run worktree close` from the main worktree {}; nothing was removed", dir.display(), main.display()));
+            return Err(format!("the current directory is inside {}: run `cardinal run worktree close {arg}` from the main worktree {}; nothing was removed", dir.display(), main.display()));
         }
         if target.locked {
             return Err(format!(

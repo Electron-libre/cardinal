@@ -58,7 +58,7 @@ Everything that differs between projects is a value of `.claude/cardinal.toml`, 
 | the hooks, `project-check` and `release` | `lint_command`, `lint_files`, `format_command`, `format_files`, `check_command`, `release_version_command` |
 | `deliverable-size`, `file-size` | `deliverable_size_limit`, `issue_size_limit`, `file_size_limit` |
 | `cardinal` itself | `fixed_context_budget`, and `disabled` of the `[cardinal]` table |
-| the tools and the skills | `roadmap` (`next-issue`, `roadmap`, `close-issue`, `delivered-quality`), `architecture` (`delivered-quality`), `user_language` (`language-hint`, `rule-breaches`) |
+| the tools and the skills | `roadmap` (`next-issue`, `roadmap`, `close-issue`, `release`, `review-gate`, `delivered-quality`), `architecture` (`delivered-quality`), `user_language` (`language-hint`, `rule-breaches`) |
 | the skills, through the agent | `test_conventions`, `confidential`, `merge_back` |
 
 The change-to-documents table of `update-docs` is the project's `.claude/update-docs-map.md`. Anything else
@@ -259,7 +259,7 @@ release workflow does not build it.
 ```mermaid
 flowchart LR
   ui["cardinal-ui"] -->|"cardinal run next-issue --json"| queue["queue, claims, goals"]
-  ui -->|"cardinal run roadmap --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
+  ui -->|"cardinal run roadmap --open --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
   ui -->|"notify-send or CARDINAL_UI_NOTIFY<br/>(a new wait)"| desktop["desktop notification"]

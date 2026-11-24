@@ -523,7 +523,7 @@ fn close_refuses_from_inside_the_worktree(c: &Ctx) -> Checks {
             "close refuses from the worktree to remove and names the main worktree and the command",
             !inside
                 && msg.contains(c.repo.to_str().unwrap())
-                && msg.contains("run `cardinal run worktree close` from the main worktree"),
+                && msg.contains("run `cardinal run worktree close c` from the main worktree"),
         ),
         (
             "close refuses from a subdirectory of it, with or without --force",

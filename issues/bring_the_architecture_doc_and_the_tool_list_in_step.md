@@ -51,6 +51,9 @@ the code reads and accepts. No spec change: PAR-11 asks only that the message na
    audit and cut sessions in the steering UI section, the message of `worktree.rs` naming `cardinal run worktree
    close`, the `about` lines with `[<rev>]` and `--release <stem>`, `update` and `upgrade` in `CLAUDE.md`; verified by
    the PAR-11 test asserting the command named, `project-check`; makes true PAR-11 (message). (autonomous)
+2. [x] Fixes of the high review: the refusal names the target (`cardinal run worktree close <arg>`) and the test
+   asserts it; `release` and `review-gate` among the readers of `roadmap`; the diagram reads `roadmap --open --json`;
+   verified by the PAR-11 test, `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -74,3 +77,20 @@ red: PAR-11: `FAIL - close refuses from the worktree to remove and names the mai
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Deliverable 2
+done: the four findings of the `high` review of `96227c9..HEAD` fixed (all nits or pre-existing).
+
+| check | result |
+|---|---|
+| tests | pass (`project-check`) |
+| lint | pass |
+| specs | pass, no change |
+| docs | `docs/architecture.md` |
+| code review | low, see below |
+
+red: PAR-11: not observed, the assertion and the message changed in the same edit
+
+Code review: no findings
+
+not verified: the red of PAR-11 (see above). decisions needed: none.

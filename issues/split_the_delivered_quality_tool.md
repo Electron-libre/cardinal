@@ -59,6 +59,8 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 5. [x] Later fix tests: move `blame_fixture`, `blame_checks`, `later_issue_fixture`, `later_issue_checks` (QUA-4) to
    `tests/delivered_quality_later_fixes.rs` (~215 moved, ~450 counted); `tests/delivered_quality.rs` left at ~740
    lines; verified by the tests and `file-size`. (autonomous)
+6. [x] Docs and high review: the module doc of the root lists its modules; the two nits of the `high` review fixed;
+   verified by `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -144,5 +146,21 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 
 - red: none (a move, no new test)
 - Code review: 0 findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 6 (docs and high review)
+- done: the module doc of the root lists its modules; the two nits of the `high` review fixed (`Event` private again,
+  the doc of `tests/delivered_quality.rs` no longer claims the message check of the sessions file).
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs (`update-docs` on `base..HEAD`) | the module doc of the root; no document names the moved files |
+| code review | high on the issue, low on this deliverable |
+
+- red: none (no new test)
+- Code review: 2 findings (high), both fixed: the doc of `tests/delivered_quality.rs` claimed the message check;
+  `Event` was `pub(super)` with no user outside `sessions.rs`
 - not verified: nothing
 - decisions needed: none

@@ -6,6 +6,8 @@
 //! is printed.
 //! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` (default the
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
+//! Modules: `history` (the commits of the default branch, those of an issue, its reverts and blamed lines),
+//! `sessions` (the transcript sessions and the columns they give), `milestone` (the milestone of an issue).
 
 use super::check_specs::{
     citation, citation_list, config_names, is_cited_id, markers, name_matches, shape, spec_patterns,

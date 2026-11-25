@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 /// What a session tells of the issue it worked on, at a timestamp.
-pub(super) enum Event {
+enum Event {
     Validation,
     Other,
     FailedCheck,

@@ -1,6 +1,6 @@
 //! Behavior test for `cardinal tool delivered-quality` on a fixture repository: the commits of each done issue, the fixes and
 //! reverts of its files after the close, its deliverables, revision, reviews, traced ids and changed lines, no text of
-//! a commit, an issue or a message. The transcript columns are in `delivered_quality_sessions.rs`, the lines a later
+//! a commit or an issue. The transcript columns are in `delivered_quality_sessions.rs`, the lines a later
 //! fix changes in `delivered_quality_later_fixes.rs`.
 
 mod delivered_quality_common;

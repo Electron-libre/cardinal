@@ -41,10 +41,10 @@ Moving `source` and `config` alone leaves ~990 lines, so the lock and `check` mo
 1. [x] Move the fetch of the source (`is_git_url` to `checkout`, lines 338-531) to `src/source.rs` and the edit and read
    of the configuration (`read_config`, `set_rev`, `is_table_header`, `source_and_rev`, `format_of`, `readable`) to
    `src/config.rs`; verified by `cardinal run project-check` unchanged green and `file-size`; ~650 counted lines. (autonomous)
-2. [ ] Move the lock and its fingerprints (`fingerprint` to `write_lock`, lines 145-291) to `src/lock.rs` and `check`
+2. [x] Move the lock and its fingerprints (`fingerprint` to `write_lock`, lines 145-291) to `src/lock.rs` and `check`
    (`Checked`, `check`, `in_ci`, `retention_warnings`, `config_dir`, `check_with`) to `src/check.rs`, name the modules
    in the crate doc; verified by `cardinal run project-check` green and `cardinal run file-size` no longer listing
-   `lib.rs`; ~600 counted lines.
+   `lib.rs`; ~600 counted lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -62,6 +62,24 @@ re-imported by `lib.rs` so every caller and `tests.rs` stay as they are; the mov
 | lint | clippy `-D warnings` clean |
 | specs | no change (pure refactor) |
 | docs | no doc names these items |
+| code review | see below |
+
+red: none (a move, proven by the existing tests)
+Code review: no findings
+
+not verified: nothing
+decisions needed: none
+
+## Summary of deliverable 2
+done: the lock and the fingerprints moved to `src/lock.rs`, `check` to `src/check.rs`, re-imported by `lib.rs`; the
+crate doc names the four modules; `lib.rs` is 767 lines, under the limit.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | clippy `-D warnings` clean |
+| specs | no change (pure refactor) |
+| docs | crate doc of `lib.rs` names the modules |
 | code review | see below |
 
 red: none (a move, proven by the existing tests)

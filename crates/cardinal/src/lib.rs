@@ -4,16 +4,16 @@
 //! (project-owned: copied once, never again), and may hold `entries/.claude/settings.json`, the entries of the
 //! project's settings it manages (`entries.rs`). `.claude/cardinal.lock` records the hash of each managed file as
 //! written and the managed entries, so a later sync tells a local edit from a source change.
+//!
+//! This root holds `init`, `sync` and `update`; `source.rs` fetches a git source, `config.rs` reads and edits the
+//! configuration, `lock.rs` reads and writes the lock, `check.rs` compares the project with it.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::ffi::OsString;
-use std::fmt::{self, Write as _};
+use std::fmt;
 use std::fs;
-use std::io::ErrorKind;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
-use sha2::{Digest, Sha256};
 
 /// Project configuration, relative to the project root.
 pub const CONFIG: &str = ".claude/cardinal.toml";
@@ -38,6 +38,9 @@ pub const FORMAT: u32 = 11;
 const SOURCE_FORMAT: &str = "cardinal-format";
 
 mod budget;
+mod check;
+pub use check::{check, retention_warnings, Checked};
+pub(crate) use check::{config_dir, in_ci};
 mod config;
 pub use budget::warnings as budget_warnings;
 use config::format_of;
@@ -47,6 +50,9 @@ mod features;
 mod gate;
 mod git;
 mod launcher;
+mod lock;
+use lock::{fingerprint, fingerprint_of, is_inside, read_lock, write_lock, Lock};
+pub(crate) use lock::{hash, is_executable, managed_files};
 mod markdown;
 mod memory;
 mod migration;
@@ -152,41 +158,6 @@ impl Report {
     }
 }
 
-/// Hash of `bytes`, followed by `+x` for an executable file: a mode change is a change.
-fn fingerprint(bytes: &[u8], executable: bool) -> String {
-    let mut print = hash(bytes);
-    if executable {
-        print.push_str("+x");
-    }
-    print
-}
-
-#[cfg(unix)]
-fn is_executable(path: &Path) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-    fs::metadata(path).is_ok_and(|m| m.permissions().mode() & 0o111 != 0)
-}
-
-#[cfg(not(unix))]
-fn is_executable(_path: &Path) -> bool {
-    false
-}
-
-/// Fingerprint of the file at `path`, `None` when it cannot be read.
-fn fingerprint_of(path: &Path) -> Option<String> {
-    let bytes = fs::read(path).ok()?;
-    Some(fingerprint(&bytes, is_executable(path)))
-}
-
-fn hash(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .fold(String::new(), |mut s, b| {
-            let _ = write!(s, "{b:02x}");
-            s
-        })
-}
-
 /// Relative paths (with `/`) of every file under `dir`, sorted. A missing `dir` is empty.
 fn list(dir: &Path) -> Result<Vec<String>> {
     fn walk(base: &Path, dir: &Path, out: &mut Vec<String>) -> Result<()> {
@@ -206,98 +177,6 @@ fn list(dir: &Path) -> Result<Vec<String>> {
     }
     out.sort();
     Ok(out)
-}
-
-/// A path of the lock must stay inside the project: relative, no `..`.
-fn is_inside(rel: &str) -> bool {
-    Path::new(rel)
-        .components()
-        .all(|c| matches!(c, Component::Normal(_)))
-}
-
-/// What the lock records: the fingerprint of each managed file, the managed entries of the settings, and the format of
-/// the source it was synced from (1 when it records none, SYN-41).
-#[derive(Debug, Default)]
-struct Lock {
-    files: BTreeMap<String, String>,
-    entries: Vec<entries::Entry>,
-    format: u32,
-}
-
-/// The mark of a lock line that holds a managed entry of the settings instead of a file.
-const ENTRY: &str = "entry";
-/// The mark of the lock line that holds the format of the source it was synced from, followed by one space: a
-/// `cardinal` older than SYN-41 skips a line with no two spaces.
-const FORMAT_LINE: &str = "format ";
-
-/// The lock of the project, `None` when it has none yet; an error when its source has a format this `cardinal` does
-/// not read, judged before any other line (SYN-42).
-fn read_lock(root: &Path) -> Result<Option<Lock>> {
-    let path = root.join(LOCK);
-    let text = match fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e).with_context(|| format!("reading {}", path.display())),
-    };
-    let lines = || text.lines().filter(|l| !l.starts_with('#'));
-    let mut lock = Lock {
-        format: 1,
-        ..Lock::default()
-    };
-    for format in lines().filter_map(|line| line.strip_prefix(FORMAT_LINE)) {
-        let format: u32 = format
-            .parse()
-            .with_context(|| format!("{}: not a format: {format}", path.display()))?;
-        if format > FORMAT {
-            bail!("{LOCK} was synced from a source of the format {format}, this one reads up to {FORMAT}: install it with {}", install_hint(root));
-        }
-        lock.format = format;
-    }
-    for line in lines().filter(|l| !l.starts_with(FORMAT_LINE)) {
-        let Some((h, rel)) = line.split_once("  ") else {
-            continue;
-        };
-        if h == ENTRY {
-            let entry = entries::Entry::from_lock(rel)
-                .with_context(|| format!("reading {}", path.display()))?;
-            lock.entries.push(entry);
-            continue;
-        }
-        if !is_inside(rel) {
-            bail!("{}: path outside the project: {rel}", path.display());
-        }
-        lock.files.insert(rel.to_string(), h.to_string());
-    }
-    Ok(Some(lock))
-}
-
-/// The managed files the lock of the project at `root` lists, sorted by path; none when it has no lock.
-pub(crate) fn managed_files(root: &Path) -> Result<Vec<String>> {
-    Ok(read_lock(root)?.map_or_default(|lock| lock.files.into_keys().collect()))
-}
-
-/// The command that installs the `cardinal` of the revision the configuration pins, quoted, or what to install when it
-/// cannot be read.
-fn install_hint(root: &Path) -> String {
-    match source_and_rev(root) {
-        Ok((source, rev)) => format!("`{}`", launcher::install(&source, rev.as_deref())),
-        Err(_) => "the cardinal of this revision".to_string(),
-    }
-}
-
-/// Write the lock of a sync from a source of the format `format`.
-fn write_lock(root: &Path, lock: &Lock, format: u32) -> Result<()> {
-    let mut text = String::from(
-        "# Written by `cardinal sync`: hashes of the managed files, then the managed settings entries. Do not edit.\n",
-    );
-    let _ = writeln!(text, "{FORMAT_LINE}{format}");
-    for (path, h) in &lock.files {
-        let _ = writeln!(text, "{h}  {path}");
-    }
-    for entry in &lock.entries {
-        let _ = writeln!(text, "{ENTRY}  {}", entry.to_lock());
-    }
-    write(&root.join(LOCK), text.as_bytes())
 }
 
 fn write(path: &Path, bytes: &[u8]) -> Result<()> {
@@ -882,101 +761,6 @@ fn update_in(
         changed,
         sync,
     })
-}
-
-/// What `check` found: `problems` make it fail, `warnings` do not.
-#[derive(Debug, Default, PartialEq, Eq)]
-pub struct Checked {
-    /// Managed files modified or deleted since the last sync, and the native review gate when the project should have
-    /// it and does not, and the hook commands the launcher on the path refuses (BIN-15).
-    pub problems: Vec<String>,
-    /// What the project's settings lack or run in vain (SYN-24 to SYN-26).
-    pub warnings: Vec<String>,
-}
-
-/// Managed files modified or deleted since the last sync, one line each, and the native review gate when the project
-/// should have it and does not. Under CI (the `CI` environment variable is set) the gate is not looked at: a fresh
-/// clone has no git hooks, and nobody commits there. It also warns of what the project's settings lack: the deny rules of
-/// the review waiver (when the review hook is among the managed files), the hooks they run, the attribution turned off.
-/// A hook command whose subcommand the `cardinal` on the path refuses is a problem too
-/// (BIN-15).
-///
-/// # Errors
-/// When the project was never synced (no lock file) or the lock cannot be read.
-pub fn check(root: &Path) -> Result<Checked> {
-    check_with(root, in_ci())
-}
-
-/// Whether `CI` says so: set, and not empty, `0` or `false`.
-fn in_ci() -> bool {
-    std::env::var("CI")
-        .is_ok_and(|v| !matches!(v.trim().to_lowercase().as_str(), "" | "0" | "false"))
-}
-
-/// The warnings on the retention of the transcripts (SYN-28), printed by `check`, `sync` and `update`; none under CI,
-/// and none on the user settings when the project turns off the measure of the harness that reads them (FEA-28): its
-/// own settings still sweep the transcripts of every project. Kept out of `check` and `sync`, which read the project
-/// only: these read the user settings too.
-#[must_use]
-pub fn retention_warnings(root: &Path) -> Vec<String> {
-    if in_ci() {
-        return Vec::new();
-    }
-    if features::is_off(root, features::HARNESS_MEASURE) {
-        return settings::project_retention(root);
-    }
-    let user = config_dir().map(|dir| dir.join("settings.json"));
-    settings::retention(root, user.as_deref())
-}
-
-/// The configuration directory of Claude Code: `CLAUDE_CONFIG_DIR`, or else `~/.claude`; `None` when neither is set.
-pub(crate) fn config_dir() -> Option<PathBuf> {
-    config_dir_of(
-        std::env::var_os("CLAUDE_CONFIG_DIR"),
-        std::env::var_os("HOME"),
-    )
-}
-
-fn config_dir_of(config_dir: Option<OsString>, home: Option<OsString>) -> Option<PathBuf> {
-    let set = |var: Option<OsString>| var.filter(|v| !v.is_empty()).map(PathBuf::from);
-    set(config_dir).or_else(|| set(home).map(|h| h.join(".claude")))
-}
-
-fn check_with(root: &Path, ci: bool) -> Result<Checked> {
-    let Some(lock) = read_lock(root)? else {
-        bail!("no {LOCK}: run `cardinal sync` first");
-    };
-    let gated = gate::manages(&lock.entries, lock.files.keys());
-    let text = fs::read_to_string(root.join(entries::SETTINGS)).ok();
-    let hooks = text
-        .as_deref()
-        .and_then(|text| serde_json::from_str(text).ok())
-        .map_or_default(|settings| launcher::refused(&settings));
-    let install = install_hint(root);
-    let problems = lock
-        .files
-        .iter()
-        .filter_map(|(rel, locked)| match fingerprint_of(&root.join(rel)) {
-            None => Some(format!("missing: {rel}")),
-            Some(print) if print != *locked => Some(format!("modified: {rel}")),
-            Some(_) => None,
-        })
-        .chain(entries::missing(text.as_deref(), &lock.entries))
-        .chain(gate::problem(root, !ci && gated))
-        .chain(hooks.iter().map(|command| {
-            format!(
-                "refused: the installed cardinal cannot run the hook `{command}` of {}: install {install} first",
-                entries::SETTINGS
-            )
-        }))
-        .collect();
-    let attribution = !features::is_off(root, features::NO_AI_ATTRIBUTION);
-    let mut warnings =
-        settings::warnings(root, gated, &|path| root.join(path).is_file(), attribution);
-    if source_and_rev(root).is_ok_and(|(source, _)| is_git_url(&source)) {
-        warnings.extend(format_hint(lock.format));
-    }
-    Ok(Checked { problems, warnings })
 }
 
 #[cfg(test)]

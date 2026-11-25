@@ -43,6 +43,8 @@ helpers (step 2 of the Approach), already on the shared runner `crate::git` sinc
 2. [x] Move the milestones (`listed_issues`, `is_closed`, `done_stem`, `milestones_done`, `roadmap_documents`,
    `set_milestones_done`, its CLS-8 test) to `close_issue/milestones.rs`, re-exported likewise (~320 lines); verified
    by `cardinal run project-check` unchanged and `cardinal run file-size` listing no `close_issue` file. (autonomous)
+3. [x] Docs and fixes of the `high` review: the module doc of `close_issue.rs` names its two modules, rewrapped at
+   120; `config_or_exit` and `components` back to private; the blank line lost by the move restored. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -61,5 +63,14 @@ done: milestones moved to `close_issue/milestones.rs` (162 lines), re-exported; 
 first doc line of `listed_issues`, dropped by the move of deliverable 1, restored.
 red: none (a move, no new behaviour)
 Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 3
+done: `update-docs` over the issue (only the module doc of `close_issue.rs` names the modules; ADR 0009 historical),
+and the 4 nits of the `high` review fixed.
+red: none (no new behaviour)
+Code review: 4 findings (high, all nits): `config_or_exit` back to private; `components` no longer re-exported;
+module doc rewrapped at 120; blank line before `relink` restored. Low review of this deliverable: no findings.
 not verified: none
 decisions needed: none

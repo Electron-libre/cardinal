@@ -33,7 +33,7 @@ fn relink_text(text: &str, stems: &HashSet<String>) -> String {
 /// A path relative to the repository root, as its components.
 pub(in crate::tools) type RepoPath = Vec<String>;
 
-pub(in crate::tools) fn components(path: &Path) -> RepoPath {
+pub(super) fn components(path: &Path) -> RepoPath {
     path.components()
         .map(|c| c.as_os_str().to_string_lossy().into_owned())
         .collect()

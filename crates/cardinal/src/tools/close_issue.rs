@@ -3,12 +3,13 @@
 //! Then rewrites every `issues/foo.md` mentioned in the other text files of the repo to
 //! `issues/done/foo.md`, and every Markdown link that resolves to the issue from the directory of its file
 //! (`../issues/foo.md` from `docs/`), so no document keeps pointing at the old path; the relative links of the moved
-//! issue are rebased so they still resolve from `issues/done/`. The files are those git lists (tracked and
-//! untracked, not ignored), so the issue worktrees nested under `.claude/worktrees/` keep their own files.
-//! Runs in any worktree, but refuses to close an issue of another worktree named by path. Frees the claim of the
-//! issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge brings the
-//! close to the trunk. Sets `done` the milestones of the roadmap whose last open issue it closed (CLS-8). Ends on the
-//! issue `next-issue` then offers. Refuses, before writing any file, a `.claude/cardinal.toml` it cannot read (CLS-10).
+//! issue are rebased so they still resolve from `issues/done/` (the rewriting of a text: `relink.rs`). The files are
+//! those git lists (tracked and untracked, not ignored), so the issue worktrees nested under `.claude/worktrees/` keep
+//! their own files. Runs in any worktree, but refuses to close an issue of another worktree named by path. Frees the
+//! claim of the issue (`issue_claim.rs`): deleted on the trunk, `merge pending` on another branch until the merge
+//! brings the close to the trunk. Sets `done` the milestones of the roadmap whose last open issue it closed (CLS-8,
+//! `milestones.rs`). Ends on the issue `next-issue` then offers. Refuses, before writing any file, a
+//! `.claude/cardinal.toml` it cannot read (CLS-10).
 //! Usage: `cardinal run close-issue issues/foo.md`; `cardinal run close-issue --relink` fixes the references to
 //! every issue already in `issues/done/` (run it once to repair old dangling paths).
 
@@ -19,8 +20,8 @@ use super::{issue_claim, repo_files};
 use crate::project_table::ProjectTable;
 use milestones::set_milestones_done;
 pub(super) use milestones::{is_closed, listed_issues, milestones_done, roadmap_documents};
-use relink::RepoPath;
-pub(super) use relink::{components, relink_links, resolve, rewritten};
+use relink::{components, RepoPath};
+pub(super) use relink::{relink_links, resolve, rewritten};
 
 use std::collections::HashSet;
 use std::ffi::OsStr;
@@ -44,7 +45,7 @@ fn skipped_dirs(root: &Path) -> Result<Vec<String>, String> {
 }
 
 /// The value of `read`, or its error on stderr and exit 1: `close-issue` refuses a broken configuration (CLS-10).
-pub(super) fn config_or_exit<T>(read: Result<T, String>) -> T {
+fn config_or_exit<T>(read: Result<T, String>) -> T {
     read.unwrap_or_else(|e| {
         eprintln!("{e}");
         std::process::exit(1);
@@ -97,6 +98,7 @@ fn text_files(root: &Path, skipped: &[String]) -> Vec<std::path::PathBuf> {
         .filter(|p| is_text_file(p) && !skipped_dir(p))
         .collect()
 }
+
 /// Rewrite the references to the given closed issues of the `issues/` directory `issues` (relative to `root`) in
 /// every text file under `root`; `moved` is the stem of the issue just moved, whose own links are rebased. Returns the
 /// files written.

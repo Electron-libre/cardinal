@@ -251,12 +251,22 @@ enum Section<'a> {
     Absent,
 }
 
-/// The lines of `text` after the line `heading` (trailing spaces ignored), up to the next line that `ends` accepts,
+/// Whether `line` is a heading of the level of `heading` (`# Tracking`, `## Plan`) that names its section as
+/// `check-issue` names one (`next_issue::names_section`, CKI-6): `#  Tracking ` or `## Plan (notes)` (QUA-12).
+fn names(line: &str, heading: &str) -> bool {
+    let name = heading.trim_start_matches('#');
+    // the `#` of a level beyond the first, `##` keeping one for `names_section`
+    let deeper = &heading[..heading.len() - name.len() - 1];
+    line.strip_prefix(deeper)
+        .is_some_and(|rest| super::next_issue::names_section(rest, name.trim()))
+}
+
+/// The lines of `text` after the heading that names `heading` (`names`), up to the next line that `ends` accepts,
 /// both outside a fenced code block (QUA-12).
 fn section<'a>(text: &'a str, heading: &str, ends: impl Fn(&str) -> bool) -> Section<'a> {
     let mut quoted = false;
     let mut lines = crate::markdown::fenced(text.lines()).skip_while(|&(line, fenced)| {
-        let found = line.trim_end() == heading;
+        let found = names(line, heading);
         quoted |= found && fenced;
         fenced || !found
     });

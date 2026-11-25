@@ -52,9 +52,9 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
    `section_is_empty` and the required and `# Tracking` headings of `check-issue`; the empty `# Specs` check written in
    CKI-6; verified by `tests/check_issue.rs` (a `# Specs (optional; ...)` left empty, `# Goal (why)`, `# Goals`);
    makes true CKI-6. (autonomous)
-2. [ ] `delivered_quality::section` takes a level and a name and finds its heading through `heading_name` and the
+2. [x] `delivered_quality::section` takes a level and a name and finds its heading through `heading_name` and the
    rule of 1, its fence reading kept; verified by a new `tests/delivered_quality_headings.rs` (`#  Tracking`,
-   `## Plan (two lines)`, QUA-2 start); makes true QUA-12.
+   `## Plan (two lines)`, QUA-2 start); makes true QUA-12. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -77,6 +77,27 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
 
 - red: CKI-6: `issues/a.md: missing section `# Goal`` / `missing section `# Resources`` for `# Goal (why)`,
   `# Resources (links)`.
+- Code review: no findings.
+- not verified: none.
+- decisions needed: none.
+
+## Deliverable 2
+- done: `delivered_quality::section` finds `# Tracking` and `## Plan` through `names_section` at their level
+  (QUA-2, QUA-3, QUA-6, QUA-11), its fence reading kept; specs `check-issue` and `delivered-quality` back to
+  `accepted`.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | clippy clean |
+| specs | QUA-12 traced (`tests/delivered_quality_headings.rs`), both specs `accepted` |
+| docs | n/a: the rule is stated only in QUA-12 and CKI-6 |
+| code review | no findings |
+
+- red: QUA-12: `left: ["0", "1", "0", "0"] right: ["2", "3", "1", "1"]` (`deliverables`, `commits`, `reviews`,
+  `review_findings` of an issue with `#  Tracking` and `## Plan (two lines)`).
+- file size: `delivered_quality.rs` grows from 1217 to 1227 lines (the `names` helper); its split is
+  `issues/split_the_delivered_quality_tool.md`.
 - Code review: no findings.
 - not verified: none.
 - decisions needed: none.

@@ -13,7 +13,7 @@ prove.
 
 # Findings
 * `cardinal run file-size --all` on 2026-11-25.
-* Split out of [split_the_cardinal_report_tool](split_the_cardinal_report_tool.md): with this split, that issue
+* Split out of [split_the_cardinal_report_tool](done/split_the_cardinal_report_tool.md): with this split, that issue
   counted ~3,400 changed lines, over the issue size limit of 3,000.
 * The helpers (`S`, `base`, `sessions`, `write`, `run`, `tables`, `cell`, `tool_command`, 7-200 and 1594) serve every
   check; those of the verdicts (`hash`, `verdicts`, `two`, `pair`, `change`, `verdict`, 936-1006) also serve

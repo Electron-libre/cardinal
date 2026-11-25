@@ -36,3 +36,47 @@ One implementation per rule
 * `crates/cardinal/src/tools/next_issue.rs` (`heading_name`, `milestone`), `crates/cardinal/src/tools/check_issue.rs`,
   `crates/cardinal/src/tools/delivered_quality.rs`.
 * `issues/done/read_the_headings_of_an_issue_through_one_reader.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+A section heading is named once, by `next_issue::heading_name`, and names a section when that name is the section's
+alone or followed by a space and a note: `check-issue` (required sections, `# Tracking`, empty `# Goal` and `# Specs`),
+`next-issue` (`# Milestone`) and `delivered-quality` (`# Tracking`, `## Plan`, QUA-2/3/6/11) all read it so. Out of
+scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay as they are.
+
+## Plan
+1. [x] Section name rule: `next_issue::names_section(heading, name)` next to `heading_name`, used by `milestone`,
+   `section_is_empty` and the required and `# Tracking` headings of `check-issue`; the empty `# Specs` check written in
+   CKI-6; verified by `tests/check_issue.rs` (a `# Specs (optional; ...)` left empty, `# Goal (why)`, `# Goals`);
+   makes true CKI-6. (autonomous)
+2. [ ] `delivered_quality::section` takes a level and a name and finds its heading through `heading_name` and the
+   rule of 1, its fence reading kept; verified by a new `tests/delivered_quality_headings.rs` (`#  Tracking`,
+   `## Plan (two lines)`, QUA-2 start); makes true QUA-12.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 57ea1fa75c3f43c8f2a15781eae7135bb2781e03
+- Question 1 (a): the name-and-note rule applies to the sections `delivered-quality` reads too.
+- File size: `delivered_quality.rs` (1217 lines) is changed in place, net ~0 lines; its new tests go to a file of their
+  own, `tests/delivered_quality_headings.rs`, since `tests/delivered_quality.rs` (1611) is over the limit.
+
+## Deliverable 1
+- done: `next_issue::names_section` (name alone or followed by a space and a note) reads `# Milestone`, the required
+  sections, `# Tracking`, a first `# Goal` and the empty `# Goal` and `# Specs` of `check-issue`.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | clippy clean |
+| specs | CKI-6 and QUA-12 amended, `draft` (QUA-12 traced in deliverable 2) |
+| docs | n/a: the rule is stated only in CKI-6 |
+| code review | no findings |
+
+- red: CKI-6: `issues/a.md: missing section `# Goal`` / `missing section `# Resources`` for `# Goal (why)`,
+  `# Resources (links)`.
+- Code review: no findings.
+- not verified: none.
+- decisions needed: none.

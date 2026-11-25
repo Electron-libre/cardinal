@@ -363,3 +363,24 @@ fn a_spaced_heading_names_its_section() {
     );
     assert!(!out.contains("missing section `# Goal`"), "{out}");
 }
+
+// spec: CKI-6
+/// A heading names a section by its name alone or followed by a space and a note, as the template of
+/// `skill:create-issue` writes `# Specs (optional; ...)`: such a section is found, empty or not; `# Goals` is no goal.
+#[test]
+fn a_heading_with_a_note_names_its_section() {
+    let noted = "---\npriority: low\n---\n# Fix it\n\n# Goal (why)\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Specs (optional; when the issue changes what a capability does)\n\n# Resources (links)\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(noted);
+    assert!(!ok && out.contains("`# Specs` is empty"), "{out}");
+    assert!(!out.contains("missing section"), "{out}");
+
+    let tracked = format!("{GOOD}\n# Tracking (notes)\n");
+    let (ok, out) = check_front_matter(&tracked);
+    assert!(
+        !ok && out.contains("`# Tracking` is written by issue-workflow"),
+        "{out}"
+    );
+
+    let (ok, out) = check_front_matter(&GOOD.replace("# Goal", "# Goals"));
+    assert!(!ok && out.contains("missing section `# Goal`"), "{out}");
+}

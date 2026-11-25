@@ -203,6 +203,15 @@ pub(super) fn heading_name(line: &str) -> Option<&str> {
     is_heading(line).then(|| line[1..].trim())
 }
 
+/// Whether the heading `line` names the section `name` (CKI-6): its `heading_name` is `name` alone, or followed by a
+/// space and a note, as the template of `skill:create-issue` writes `# Specs (optional; ...)`.
+pub(super) fn names_section(line: &str, name: &str) -> bool {
+    heading_name(line).is_some_and(|n| {
+        n.strip_prefix(name)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+    })
+}
+
 /// The text of the issue `text` after its front matter (all of it when it opens none): where its headings are read.
 pub(super) fn body(text: &str) -> &str {
     &text[split_front_matter(text).map_or(0, |(_, _, body)| body)..]
@@ -293,10 +302,9 @@ pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
 /// lines left out.
 fn milestone(text: &str) -> Option<String> {
     let mut lines = crate::markdown::fenced(body(text).lines()).filter(|&(_, fenced)| !fenced);
-    // the heading of the template of `skill:create-issue` carries a note: `# Milestone (optional; ...)`
-    lines.by_ref().find(|&(l, _)| {
-        heading_name(l).is_some_and(|n| n == "Milestone" || n.starts_with("Milestone "))
-    })?;
+    lines
+        .by_ref()
+        .find(|&(l, _)| names_section(l, "Milestone"))?;
     lines
         .map(|(l, _)| l)
         .take_while(|l| !is_heading(l))

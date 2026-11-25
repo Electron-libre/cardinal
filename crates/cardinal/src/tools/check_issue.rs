@@ -23,7 +23,7 @@ fn section_is_empty(lines: &[(&str, bool)], name: &str) -> bool {
     let mut lines = lines.iter();
     lines
         .by_ref()
-        .any(|l| is_heading(l) && next_issue::heading_name(l.0) == Some(name))
+        .any(|l| is_heading(l) && next_issue::names_section(l.0, name))
         && lines
             .take_while(|l| !is_heading(l))
             .all(|&(l, fenced)| fenced || l.trim().is_empty())
@@ -100,24 +100,28 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         out.push(format!("line {n}: fenced code block left open"));
     }
     let lines = lines(text);
-    // the names of the headings, read as `next-issue` reads the title, the goal and the milestone (CKI-6)
+    // the headings, read as `next-issue` reads the title, the goal and the milestone (CKI-6)
     let headings: Vec<&str> = lines
         .iter()
         .filter(|l| is_heading(l))
-        .filter_map(|l| next_issue::heading_name(l.0))
+        .map(|l| l.0)
         .collect();
+    let names = |name: &str| headings.iter().any(|h| next_issue::names_section(h, name));
     if next_issue::title_of(text).is_none() {
         out.push("no `# <Title>` heading".to_string());
-    } else if headings.first() == Some(&"Goal") {
+    } else if headings
+        .first()
+        .is_some_and(|h| next_issue::names_section(h, "Goal"))
+    {
         out.push("first heading must be the title, not `# Goal`".to_string());
     }
     for required in ["Goal", "Approach", "Resources"] {
-        if !headings.contains(&required) {
+        if !names(required) {
             out.push(format!("missing section `# {required}`"));
         }
     }
     out.extend(front_matter_problems(&dir, stem, text));
-    if headings.contains(&"Tracking") {
+    if names("Tracking") {
         out.push("`# Tracking` is written by issue-workflow".to_string());
     }
     if section_is_empty(&lines, "Goal") {

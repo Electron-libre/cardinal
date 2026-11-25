@@ -11,7 +11,7 @@ comment `# Tracking` in the front matter starts the tracking for `delivered-qual
 three tools from the same first line.
 
 # Findings
-* `high` review of `issues/end_the_sections_of_delivered_quality_at_every_heading.md` (2026-11-25), read from the code,
+* `high` review of `issues/done/end_the_sections_of_delivered_quality_at_every_heading.md` (2026-11-25), read from the code,
   not run: `section` of `crates/cardinal/src/tools/delivered_quality.rs` scans `text.lines()` whole, while QUA-6 and
   QUA-11 now end `# Tracking` at the headings as CKI-6 reads them.
 

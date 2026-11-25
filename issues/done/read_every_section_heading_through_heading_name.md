@@ -124,7 +124,7 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
   `goal` `Null` for `# Goal (why)`; `reviews` 0 for an issue titled `# Tracking down a leak`.
 - High review: 7 findings. F1 (goal), F2 and F3 (prose titles), F5 (tab), F6 (guard) fixed here; F4 (an empty
   `# Specs (optional; ...)` reported) is the intent of this issue, not changed; F7 (pre-existing, a bare `#` does
-  not end `# Tracking` in `delivered-quality`) filed as `issues/end_the_sections_of_delivered_quality_at_every_heading.md`.
+  not end `# Tracking` in `delivered-quality`) filed as `issues/done/end_the_sections_of_delivered_quality_at_every_heading.md`.
 - Code review: no findings.
 - not verified: none.
 - decisions needed: none.

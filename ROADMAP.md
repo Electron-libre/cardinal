@@ -38,7 +38,7 @@ The work done before this file existed is in `issues/done/`.
   - [report_an_open_fence_and_a_blank_title_of_an_issue](issues/done/report_an_open_fence_and_a_blank_title_of_an_issue.md)
   - [read_the_headings_of_an_issue_through_one_reader](issues/done/read_the_headings_of_an_issue_through_one_reader.md)
   - [read_every_section_heading_through_heading_name](issues/done/read_every_section_heading_through_heading_name.md)
-  - [end_the_sections_of_delivered_quality_at_every_heading](issues/end_the_sections_of_delivered_quality_at_every_heading.md)
+  - [end_the_sections_of_delivered_quality_at_every_heading](issues/done/end_the_sections_of_delivered_quality_at_every_heading.md)
   - [read_the_sections_of_delivered_quality_after_the_front_matter](issues/read_the_sections_of_delivered_quality_after_the_front_matter.md)
   - [read_a_heading_indented_by_three_spaces_at_most](issues/read_a_heading_indented_by_three_spaces_at_most.md)
   - [drop_the_dead_code_allowance_of_the_transcripts](issues/done/drop_the_dead_code_allowance_of_the_transcripts.md)

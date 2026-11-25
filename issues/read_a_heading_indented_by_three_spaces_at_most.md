@@ -11,7 +11,7 @@ Markdown renderer and leaves the section open for `check-issue`, `next-issue` an
 headings with the indentation rule of the fences, or state that a heading starts at column 0.
 
 # Findings
-* `high` review of `issues/end_the_sections_of_delivered_quality_at_every_heading.md` (2026-11-25), read from the code,
+* `high` review of `issues/done/end_the_sections_of_delivered_quality_at_every_heading.md` (2026-11-25), read from the code,
   not run: `# Tracking`, `Code review: 1 finding`, ` # Notes`, `Code review: 3 findings` count 2 reviews and 4
   findings, while a renderer shows the second review under `# Notes`.
 

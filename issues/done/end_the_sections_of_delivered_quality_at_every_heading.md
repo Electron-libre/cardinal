@@ -76,8 +76,8 @@ Code review: 5 findings
 1. The scenario of QUA-6/QUA-11 named no citation of ABC-1: fixed.
 2. The test did not prove a bare `#` inside a fence nor one with trailing spaces: added to it (dropping the fence guard
    of `section` now fails it).
-3. `section` reads the front matter, CKI-6 does not (pre-existing): `issues/read_the_sections_of_delivered_quality_after_the_front_matter.md`.
-4. `is_heading` ignores a heading indented by 1-3 spaces (pre-existing): `issues/read_a_heading_indented_by_three_spaces_at_most.md`.
+3. `section` reads the front matter, CKI-6 does not (pre-existing): not filed, no issue file holds such a front matter.
+4. `is_heading` ignores a heading indented by 1-3 spaces (pre-existing): not filed, no issue file indents a heading.
 5. `deliverables` ends `## Plan` at any line starting with `#`, `#42` included (pre-existing): kept by decision 1 a.
 
 ## Deliverable 2

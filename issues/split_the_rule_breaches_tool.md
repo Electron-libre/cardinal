@@ -12,15 +12,21 @@ responsibility, every part under the limit, with no change of behaviour.
 
 # Findings
 * Code audit of 2026-11-24 (`cardinal run file-size --all`).
+* `crates/cardinal/tests/rule_breaches.rs` holds 1467 lines (`cardinal run file-size --all`, 2026-11-25), over the
+  limit too.
 * The transcript model (86-312), the verdicts of each rule (414-692) and the checks of the commit convention
   (`managed_paths`, `conventional`, `commit_scopes`, `Record`, `check_commits`, `record` at 693-927).
 
 # Approach
 1. Move 693-927 to `rule_breaches/commits.rs`.
+2. Split `crates/cardinal/tests/rule_breaches.rs`: the tests of the commit convention from those of the transcript
+   rules, as the source, into a test file of its own beside it (as `delivered_quality_headings.rs`), its helpers
+   shared through `tests/common`; a deliverable of its own, cut in two if the move counts over the limit.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
 # Milestone
 Files small enough to review
 
 # Resources
+* `crates/cardinal/tests/rule_breaches.rs`.
 * `crates/cardinal/src/tools/rule_breaches.rs`, `docs/architecture.md` (the module list it may name).

@@ -56,6 +56,9 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_cardinal_report_tool](issues/split_the_cardinal_report_tool.md)
   - [split_the_delivered_quality_tool](issues/split_the_delivered_quality_tool.md)
   - [split_the_rule_breaches_tool](issues/split_the_rule_breaches_tool.md)
+  - [split_the_tests_of_the_skills](issues/split_the_tests_of_the_skills.md)
+  - [split_the_tests_of_the_review_gate](issues/split_the_tests_of_the_review_gate.md)
+  - [split_the_tests_of_session_metrics](issues/split_the_tests_of_session_metrics.md)
 
 ## User control
 
@@ -111,4 +114,5 @@ The work done before this file existed is in `issues/done/`.
   - [show_the_details_of_a_selected_milestone](issues/show_the_details_of_a_selected_milestone.md)
   - [read_the_markdown_documents_from_the_ui](issues/read_the_markdown_documents_from_the_ui.md)
   - [chart_the_sessions_of_each_issue_over_time](issues/chart_the_sessions_of_each_issue_over_time.md)
+  - [draw_the_sessions_of_each_issue_on_the_charts_screen](issues/draw_the_sessions_of_each_issue_on_the_charts_screen.md)
   - [show_the_claude_usage_limits_in_the_ui](issues/show_the_claude_usage_limits_in_the_ui.md)

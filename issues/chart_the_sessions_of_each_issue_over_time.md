@@ -6,8 +6,10 @@ why: 'a comfort: the charts give medians per revision and milestone, not how eac
 
 # Goal
 The charts screen (SUC-2) draws medians per group of revisions and ratios per milestone. The expected outcome is a
-timeline of the coding sessions, one point per issue in the order it was closed: its estimated size, the time it
-took, the tokens used, the tool calls and the quality of what was delivered, so a drift shows over time.
+timeline of the coding sessions, one point per issue in the order it was closed: the time it took, the tokens used,
+the tool calls and the quality of what was delivered, so a drift shows over time. This cut gives the rows per issue
+the screen reads; `draw_the_sessions_of_each_issue_on_the_charts_screen` draws them. An estimated complexity of the
+issue is out of scope (no issue states one today).
 
 # Findings
 * `session-metrics` gives one row per session with its `issues` (EVA-6), tokens and tool calls; `delivered-quality`
@@ -17,15 +19,13 @@ took, the tokens used, the tool calls and the quality of what was delivered, so 
 
 # Approach
 Measure first: whether the files of a measure (STU-17) already hold the per-issue rows, or a measure must keep them.
-1. Join the sessions to their issue (EVA-6) and to its quality row (QUA-1); per issue: wall time (first start to
-   last end), tokens, tool calls, fixes after, findings per review, changed lines.
-2. Estimated complexity: the changed lines the plan announces (issue-workflow step 1), or a new front matter field;
-   to be decided at step 1.
-3. Draw on the charts screen a series per metric over the closing dates (ratatui `Chart`, or the bars of SUC-3 per
-   issue), the newest last.
+1. Join the sessions to their issue (EVA-6) and to its quality row (QUA-1); per issue: closing date, wall time (first
+   start to last end), tokens, tool calls, fixes after, findings per review, changed lines.
+2. Expose the rows where the UI reads them (a measure file, or the JSON of a tool), the newest last.
 
 # Specs
-* `specs/steering-ui-charts.md`: new requirements; maybe `specs/delivered-quality.md` or `specs/evaluation.md`.
+* `specs/evaluation.md` or `specs/delivered-quality.md`: the rows per issue; `specs/steering-ui.md` (STU-17) if a
+  measure keeps them.
 
 # Milestone
 Cardinal UI
@@ -34,5 +34,6 @@ Cardinal UI
 * `crates/cardinal-ui/src/charts.rs`, `measures.rs`; `specs/evaluation.md` (EVA-6), `specs/delivered-quality.md`.
 
 # Hints
-* The size of the issue: likely over the limit of issue-workflow step 1; cut the metrics if so.
+* Split on 2026-11-25 (`skill:prioritize-issues`): the drawing went to
+  `draw_the_sessions_of_each_issue_on_the_charts_screen`.
 * REP-8: no text of a message nor of an issue in the outputs that leave the project.

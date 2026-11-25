@@ -12,6 +12,8 @@ responsibility, every part under the limit, with no change of behaviour.
 
 # Findings
 * Code audit of 2026-11-24 (`cardinal run file-size --all`).
+* `crates/cardinal/tests/check_specs.rs` holds 1915 lines (`cardinal run file-size --all`, 2026-11-25), over the limit
+  too.
 * The parsing and validation of the specs (18-669), the scan of the test files for citations (`citation`, `markers`,
   `citation_list`, `name_matches`, `config_names`, `spec_patterns`, `test_files`, `citations` at 670-937) and the
   driver of problems and warnings (938-1122).
@@ -19,10 +21,14 @@ responsibility, every part under the limit, with no change of behaviour.
 
 # Approach
 1. Move 670-937 to a `citations` module of the tools, which `spec-coverage` and `mod.rs` then use directly.
+2. Split `crates/cardinal/tests/check_specs.rs`: the tests of RER from those of CLR, TRC, PAR and BBB, into a test
+   file of its own beside it (as `delivered_quality_headings.rs`), its helpers shared through `tests/common`; a
+   deliverable of its own, cut in two if the move counts over the limit.
 A move only, in a deliverable of its own (`deliverable-size` counts a move that also edits twice).
 
 # Milestone
 Files small enough to review
 
 # Resources
+* `crates/cardinal/tests/check_specs.rs`.
 * `crates/cardinal/src/tools/check_specs.rs`, `docs/architecture.md` (the module list it may name).

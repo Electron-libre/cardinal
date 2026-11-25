@@ -11,7 +11,7 @@ why: 'only a bare `#` line inside a `# Tracking` section is read differently'
 Give the three tools the same end of a section.
 
 # Findings
-* `high` review of `issues/read_every_section_heading_through_heading_name.md` (2026-11-25), read from the code, not
+* `high` review of `issues/done/read_every_section_heading_through_heading_name.md` (2026-11-25), read from the code, not
   run: `reviews` and `red_ids` of `crates/cardinal/src/tools/delivered_quality.rs` end `# Tracking` with
   `|l| l.starts_with("# ")`; a `# Tracking` holding a bare `#` line followed by `Code review: 2 findings` counts
   that review in `delivered-quality` only.
@@ -30,4 +30,4 @@ One implementation per rule
 # Resources
 * `crates/cardinal/src/tools/delivered_quality.rs` (`section`, `reviews`, `red_ids`), `crates/cardinal/src/tools/next_issue.rs`
   (`is_heading`).
-* `issues/read_every_section_heading_through_heading_name.md`.
+* `issues/done/read_every_section_heading_through_heading_name.md`.

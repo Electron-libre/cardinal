@@ -48,7 +48,7 @@ Out of scope: reporting the odd spacing (Approach 2), headings of other levels.
    `tests/next_issue.rs` is over the file size limit); makes true CKI-6, NXT-10, NXT-19 (amended). (autonomous)
 2. [x] Fixes of the `high` review: the doc comment of `heading_name` names its two readers, CKI-6 says "names" for
    the required sections and `# Tracking`; the readers left (`delivered_quality.rs`, the `# Specs` note) go to
-   `issues/read_every_section_heading_through_heading_name.md`; verified by `just check`. (autonomous)
+   `issues/done/read_every_section_heading_through_heading_name.md`; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -77,7 +77,7 @@ line, so a spaced `#  Tracking` is read as no tracking there.
 
 ## Summary of deliverable 2
 done: the comment of `heading_name` and the wording of CKI-6 fixed; the two other findings filed as
-`issues/read_every_section_heading_through_heading_name.md` (milestone One implementation per rule, priority low).
+`issues/done/read_every_section_heading_through_heading_name.md` (milestone One implementation per rule, priority low).
 
 | check | result |
 |---|---|

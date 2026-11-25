@@ -10,7 +10,7 @@ different answers from the tools that read the same file. One reader of the text
 the sections of `check-issue`, and the goal and milestone of `next-issue`.
 
 # Findings
-* `high` review of `issues/report_an_open_fence_and_a_blank_title_of_an_issue.md` (2026-11-24), read from the code,
+* `high` review of `issues/done/report_an_open_fence_and_a_blank_title_of_an_issue.md` (2026-11-24), read from the code,
   not run.
 * `next_issue::title_of` reads the text after the `#`, trimmed; `check_issue.rs` compares a section heading with
   `l.trim() == "# Goal"`; `next_issue.rs` (`goal`, the milestone) with `raw.trim_end() == "# Goal"`.
@@ -30,4 +30,4 @@ One implementation per rule
 
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/tools/next_issue.rs`.
-* `issues/report_an_open_fence_and_a_blank_title_of_an_issue.md`.
+* `issues/done/report_an_open_fence_and_a_blank_title_of_an_issue.md`.

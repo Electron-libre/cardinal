@@ -119,7 +119,7 @@ already do; `next-issue` prints `(no title)` for an issue with no title. Out of 
   for a non-UTF-8 issue
 - High review: 6 findings: 4 fixed (empty goal and bare `#` agreement of the three readers, `(no file)` of a non-UTF-8
   file, the nested backticks of CKI-6); 2 filed as
-  [report_an_open_fence_and_a_blank_title_of_an_issue](../report_an_open_fence_and_a_blank_title_of_an_issue.md) (the
+  [report_an_open_fence_and_a_blank_title_of_an_issue](report_an_open_fence_and_a_blank_title_of_an_issue.md) (the
   open fence, the blank title: new requirements).
 - Code review: no findings
 - not verified: none

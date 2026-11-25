@@ -40,9 +40,9 @@ helpers (step 2 of the Approach), already on the shared runner `crate::git` sinc
    `definition_target`, `link_targets`, `relink_links`, `relink_text`, `rewritten`, its CLS-2 test) to
    `close_issue/relink.rs`, re-exported so `release`, `review_gate` and the others keep their paths (~560 lines);
    verified by `cardinal run project-check` unchanged. (autonomous)
-2. [ ] Move the milestones (`listed_issues`, `is_closed`, `done_stem`, `milestones_done`, `roadmap_documents`,
+2. [x] Move the milestones (`listed_issues`, `is_closed`, `done_stem`, `milestones_done`, `roadmap_documents`,
    `set_milestones_done`, its CLS-8 test) to `close_issue/milestones.rs`, re-exported likewise (~320 lines); verified
-   by `cardinal run project-check` unchanged and `cardinal run file-size` listing no `close_issue` file.
+   by `cardinal run project-check` unchanged and `cardinal run file-size` listing no `close_issue` file. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -51,6 +51,14 @@ helpers (step 2 of the Approach), already on the shared runner `crate::git` sinc
 
 ## Summary of deliverable 1
 done: link rewriting moved to `close_issue/relink.rs` (270 lines), re-exported; `close_issue.rs` 846 → 589 lines.
+red: none (a move, no new behaviour)
+Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2
+done: milestones moved to `close_issue/milestones.rs` (162 lines), re-exported; `close_issue.rs` 589 → 446 lines; the
+first doc line of `listed_issues`, dropped by the move of deliverable 1, restored.
 red: none (a move, no new behaviour)
 Code review: no findings
 not verified: none

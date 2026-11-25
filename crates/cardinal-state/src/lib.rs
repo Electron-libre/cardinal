@@ -58,7 +58,8 @@ impl Lock {
 /// Whether the process `pid` runs (`kill -0`); false for an empty or invalid id.
 #[must_use]
 pub fn alive(pid: &str) -> bool {
-    pid.parse::<u32>().is_ok_and(|p| p > 0)
+    // A pid_t is an i32: a larger number wraps to a negative one, which `kill` reads as a process group (-1: all).
+    pid.parse::<i32>().is_ok_and(|p| p > 0)
         && Command::new("kill")
             .args(["-0", pid])
             .stderr(Stdio::null())

@@ -46,9 +46,9 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 1. [x] Sessions module: move `Event`, `tokens`, `timestamp`, `Session`, `is_check`, `SYNTHETIC`, `setup_name`,
    `Models`, `read_sessions`, `session_cells` and the inline QUA-15 test to `delivered_quality/sessions.rs`
    (~260 lines moved, ~550 counted); verified by `cardinal run project-check` unchanged green. (autonomous)
-2. [ ] History module: move `Commit`, `commits`, `issue_commits`, `starts_work`, `reverts`, `unrelated`, `blamed` to
+2. [x] History module: move `Commit`, `commits`, `issue_commits`, `starts_work`, `reverts`, `unrelated`, `blamed` to
    `delivered_quality/history.rs` (~230 moved, ~480 counted); the root left at ~750 lines; verified by
-   `project-check` and `file-size`.
+   `project-check` and `file-size`. (autonomous)
 3. [ ] Test helpers: move `COLUMNS`, `sh`, `commit_at`, `toml`, `ALPHA`, `commits_after_close`, `fixture`, `run`,
    `rows`, `has`, `tool_command` of `tests/delivered_quality.rs` to `tests/delivered_quality_common/mod.rs` (as
    `workspace_lock_common`; ~260 moved, ~540 counted); verified by the tests unchanged green.
@@ -74,6 +74,23 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 | tests, lint, specs (`project-check`) | pass |
 | docs | no change: `docs/architecture.md` names no module of the tool |
 | deliverable-size | 675 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: 0 findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 2
+- done: the commits of the default branch, those of an issue, its reverts and the blamed writers of a later fix moved
+  to `delivered_quality/history.rs`; the root holds the issue files, docs, specs, rows and summary (685 lines).
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | no change: `docs/architecture.md` names no module of the tool |
+| deliverable-size | 453 changed lines, within |
+| file-size | no file over 800 |
 | code review | low |
 
 - red: none (a move, no new test)

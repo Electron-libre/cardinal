@@ -22,6 +22,16 @@ const REQUIRED_PASSAGES: &[(&str, &str, &str)] = &[
         "a shaped milestone turns into issues sized for the workflow",
     ),
     (
+        "create-issue",
+        "names its observed case",
+        "a review finding read from the code alone is not filed: it loops review after review",
+    ),
+    (
+        "issue-workflow",
+        "`not filed: <why>`",
+        "a review finding with no observed case goes to the summary, not to an issue",
+    ),
+    (
         "prioritize-issues",
         "never reorder the milestones",
         "the order of the milestones is the user's call",

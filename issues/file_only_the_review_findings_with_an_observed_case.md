@@ -53,6 +53,10 @@ any tool or check enforcing it (prompt change only, no spec: harness content).
    with the findings of the step 6 summary; `create-issue` step 2 asks an issue born from a review finding to name
    its observed case, reading the code showing where a defect would be, not that it happens; verified by
    `just sync`, `just check` and a reread. (autonomous)
+2. [x] High review fixes: the rule covers the `high` findings outside the issue, step 6 lists and counts the findings
+   not filed, `create-issue` exempts the issues the user asked for or validated (audit skills) and limits `code` to
+   where a defect is, a project-neutral wording replaces "a file of a consumer", `tests/skills.rs` pins both passages;
+   verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -73,3 +77,16 @@ an observed case or a measured cost, else list it `not filed: <why>`.
 
 red: none
 Code review: no findings
+
+## Deliverable 2 summary
+done: the 6 findings of the `high` review of deliverable 1 fixed (2 important, 4 nits).
+
+| check | result |
+|---|---|
+| tests | `project-check` green, `tests/skills.rs` pins the two passages |
+| lint | green |
+| specs | none (harness content) |
+| docs | no doc cites the rule |
+| code review | see below |
+
+red: none (the pinned passages were already in deliverable 1: the test is a guard)

@@ -110,8 +110,8 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    refuses an untracked file, which `git diff` leaves out: mark it intent-to-add with the `git add -N` it prints),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say
    why one is not fixed; a finding outside the requirements of the deliverable is not fixed in this deliverable: it
-   becomes an issue (`skill:create-issue`) only when a real case shows it (a file of a consumer, a run, a report of
-   the user) or its cost is measured; otherwise it is listed `not filed: <why>` with the findings of step 6 (reading
+   becomes an issue (`skill:create-issue`) only when a real case shows it (a real input, a run, a report of the
+   user) or its cost is measured; otherwise it is listed `not filed: <why>` with the findings of step 6 (reading
    the code shows where a defect would be, not that it happens).
    Re-run `cardinal run project-check` after the fixes.
    The native `pre-commit` hook (`cardinal run review-gate native`) enforces it: `git commit` fails while the diff holds a file
@@ -122,7 +122,8 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    review), one line `red:` opening with the ids its tests trace, then the failure message the test of step 3.2 gave before
    the code (`red: ABC-3, ABC-4: <failure>`, `cardinal run delivered-quality` counts a traced id it lacks; `none` for a
    deliverable with no test), then the line `Code review: <n> findings` (`Code review: no findings` if it came back clean; the
-   count first, `cardinal run delivered-quality` reads it) with what was done about each, then the lists `not verified` (state it plainly) and `decisions needed`, empty when nothing applies. Wait for the
+   count first, `cardinal run delivered-quality` reads it, counting the findings not filed) with what was done about
+   each (`not filed: <why>` for one step 3.5 leaves out), then the lists `not verified` (state it plainly) and `decisions needed`, empty when nothing applies. Wait for the
    user's validation. Don't commit before it. In autonomous mode, write this summary in the issue and go on.
 7. **Track**: tick the deliverable in the issue's `# Tracking`, ending its line with who validated it at step 6 (`(validated by
    <name> <<email>> on <YYYY-MM-DD>)`) or `(autonomous)` in autonomous mode, and note decisions or follow-ups.
@@ -135,7 +136,9 @@ nothing: the agent reads that identity too. The spec file is the record of the r
 Then move to the next deliverable (autonomous mode: chain into it). Don't chain into it without saying so if the user asked to stop.
 After the last deliverable, run `skill:update-docs` on the whole issue (`<base>..HEAD`, the base commit recorded in
 `## Decisions`), then invoke `/code-review high <target>` once on it, `<target>` the line `cardinal run review-target <base>` prints; the docs edits and the review fixes are one more
-deliverable, steps 3.2 to 3.8 with their own `low` review (the commit gate only knows the files that review saw).
+deliverable, steps 3.2 to 3.8 with their own `low` review (the commit gate only knows the files that review saw); a
+`high` finding outside the requirements of the issue follows the rule of step 3.5 (filed only with an observed case
+or a measured cost).
 
 ## Autonomous mode
 

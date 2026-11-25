@@ -52,10 +52,10 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 3. [x] Test helpers: move `COLUMNS`, `sh`, `commit_at`, `toml`, `ALPHA`, `commits_after_close`, `fixture`, `run`,
    `rows`, `has`, `tool_command` of `tests/delivered_quality.rs` to `tests/delivered_quality_common/mod.rs` (as
    `workspace_lock_common`; ~260 moved, ~540 counted); verified by the tests unchanged green. (autonomous)
-4. [ ] Session tests: move the transcript checks (`line`…`write`, `session_checks`, `claim_checks`, `modeled`,
+4. [x] Session tests: move the transcript checks (`line`…`write`, `session_checks`, `claim_checks`, `modeled`,
    `setup_fixture`, `setup_checks`, `summary_checks`, QUA-7/8/9/15/16/17, QUA-H2) to
    `tests/delivered_quality_sessions.rs` with a `#[test]` of their own (~400 moved, ~820 counted); verified by the
-   same checks passing in both test binaries.
+   same checks passing in both test binaries. (autonomous)
 5. [ ] Later fix tests: move `blame_fixture`, `blame_checks`, `later_issue_fixture`, `later_issue_checks` (QUA-4) to
    `tests/delivered_quality_later_fixes.rs` (~215 moved, ~450 counted); `tests/delivered_quality.rs` left at ~740
    lines; verified by the tests and `file-size`.
@@ -107,6 +107,22 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 | tests, lint, specs (`project-check`) | pass |
 | docs | no change |
 | deliverable-size | 525 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: 0 findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 4
+- done: the transcript checks (QUA-7, QUA-8, QUA-9, QUA-15, QUA-16, QUA-17, QUA-H2) moved to
+  `tests/delivered_quality_sessions.rs` with a `#[test]` of their own, in the same order.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass, both test binaries green |
+| docs | the module docs of both test files |
+| deliverable-size | 829 changed lines, within |
 | code review | low |
 
 - red: none (a move, no new test)

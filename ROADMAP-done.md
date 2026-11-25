@@ -234,3 +234,17 @@ The released milestones, moved out of the roadmap by `release`, oldest first.
   - [offer_only_the_keys_that_apply_to_the_selection](issues/done/offer_only_the_keys_that_apply_to_the_selection.md)
   - [wrap_the_status_line_of_the_ui_on_a_narrow_terminal](issues/done/wrap_the_status_line_of_the_ui_on_a_narrow_terminal.md)
   - [split_the_screen_of_the_steering_ui_spec](issues/done/split_the_screen_of_the_steering_ui_spec.md)
+
+## Specs and docs true to the code
+
+- Goal: make the specs, their tests and the documents state what the code does: the requirements that contradict
+  the code amended, the refusals of `release` and `rebase-issue` proved and traced, the architecture doc and the
+  tool list named as the code reads them.
+- Why: the code audit of 2026-11-24 found requirements a test would prove wrong, refusals with no test and documents
+  that mislead who changes a key or a tool.
+- State: done
+- Released: v6.3.0
+- Issues:
+  - [amend_rep_14_and_sua_6_to_the_code](issues/done/amend_rep_14_and_sua_6_to_the_code.md)
+  - [prove_the_refusals_of_release_and_rebase_issue](issues/done/prove_the_refusals_of_release_and_rebase_issue.md)
+  - [bring_the_architecture_doc_and_the_tool_list_in_step](issues/done/bring_the_architecture_doc_and_the_tool_list_in_step.md)

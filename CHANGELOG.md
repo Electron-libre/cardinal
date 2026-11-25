@@ -4,6 +4,64 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [6.3.0] - 2026-11-25
+
+### Milestones
+
+- Specs and docs true to the code
+
+### Added
+
+- rebase a diverged issue branch with rebase-issue
+- rebase a diverged branch at the local merge back
+- rebase a diverged branch before its merge with f
+- show the mark of Cardinal on the border of the queue
+- end the waiting session before rebasing its branch
+- select the issue next-issue offers with the key n
+- start the audit of the code with a key
+- file only the review findings with an observed case
+
+### Fixed
+
+- settle only real additions and recheck before the merge
+- draw the mark of Cardinal on the first panel only
+- name the ended session when the check after the merge fails
+- drop the refusal of n once it selects the next issue
+- give the happy path of the audit a free id
+- end a task that panics as a failed one
+- give the terminal back on a second panic of a task
+- let rebase-issue pass a lock whose pid another process took
+- end a measure or a notification that panics as a failure
+- set the panic hook before the measure that starts the screen
+- free a worktree lock whose pid a later process took
+- read a worktree lock whose pid a later process took as ended
+- kill a zellij call that has not answered within 5 seconds
+- address a renamed zellij session by the name zellij records
+- kill what a zellij call leaves behind before its reap
+- release a claim whose pid a later process took
+- count a claim by pid only while its pid was not taken
+- read a claim time only for the claims a hand-over moves
+- end by SIGPIPE when the reader of stdout closes
+- raise SIGPIPE only for a closed stdout
+- name the target in the refusal of worktree close
+- refuse a broken configuration in close-issue
+- refuse a wrong-typed release key and check --relink
+- show the failures git no longer prints to the terminal
+- drop the last copies and the panic of an early clock
+- read the goal of an issue with the shared fence grammar
+- read the title of an issue with the shared fence grammar
+- read the headings of check-issue outside fenced blocks
+- read the milestone of an issue outside its fenced blocks
+- settle the review of the section fence grammar
+- read a blank first heading of an issue as no title
+- report a fenced block left open in an issue
+- read a first `# Goal` heading as the sections do
+- read the headings of an issue through one reader
+- name a section by its heading with or without a note
+- read the sections of delivered-quality by their name
+- take only a note in parentheses after a section name
+- end the tracking of delivered-quality at every heading
+
 ## [6.2.0] - 2026-11-23
 
 ### Milestones

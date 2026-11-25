@@ -41,7 +41,7 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_spec_checker](issues/split_the_spec_checker.md)
   - [split_the_close_issue_tool](issues/done/split_the_close_issue_tool.md)
   - [split_the_cardinal_report_tool](issues/done/split_the_cardinal_report_tool.md)
-  - [split_the_delivered_quality_tool](issues/split_the_delivered_quality_tool.md)
+  - [split_the_delivered_quality_tool](issues/done/split_the_delivered_quality_tool.md)
   - [split_the_rule_breaches_tool](issues/split_the_rule_breaches_tool.md)
   - [split_the_tests_of_the_skills](issues/split_the_tests_of_the_skills.md)
   - [split_the_tests_of_the_review_gate](issues/split_the_tests_of_the_review_gate.md)

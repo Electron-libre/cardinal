@@ -103,7 +103,7 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
 - red: QUA-12: `left: ["0", "1", "0", "0"] right: ["2", "3", "1", "1"]` (`deliverables`, `commits`, `reviews`,
   `review_findings` of an issue with `#  Tracking` and `## Plan (two lines)`).
 - file size: `delivered_quality.rs` grows from 1217 to 1227 lines (the `names` helper); its split is
-  `issues/split_the_delivered_quality_tool.md`.
+  `issues/done/split_the_delivered_quality_tool.md`.
 - Code review: no findings.
 - not verified: none.
 - decisions needed: none.

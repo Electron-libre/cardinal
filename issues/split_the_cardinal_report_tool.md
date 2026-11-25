@@ -51,6 +51,8 @@ issue of its own: with it, the issue counts ~3,400 changed lines, over the limit
    (748-909, 1107-1117, with their two inline tests of VRD-6) to `cardinal_report/verdicts.rs` beside `output.rs`;
    verified by `cardinal run project-check` and `cardinal run file-size` (`cardinal_report.rs` ~550 lines, off the
    list); ~380 changed lines. (autonomous)
+3. [x] Docs and fixes of the `high` review: the module doc of `axes.rs`, a blank line in `verdicts.rs`; verified by
+   `cardinal run project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -75,3 +77,15 @@ issue of its own: with it, the issue counts ~3,400 changed lines, over the limit
 - red: none (a move, no new test; the REP and VRD tests unchanged and green).
 - Code review: no findings
 - not verified: nothing; decisions needed: none.
+
+## Summary of deliverable 3 (docs and fixes of the high review)
+- done: update-docs over `13d4c8c..HEAD` changed nothing (no document names the moved paths); the two nits of the
+  `high` review fixed: the module doc of `axes.rs` names its axes instead of a partial range of REP ids, a blank line
+  before the tests of `verdicts.rs`.
+- checks: project-check ok.
+- red: none (no behaviour changed).
+- Code review: no findings
+- not verified: nothing; decisions needed: none.
+
+Done: the tool is split, every part under the limit; its tests are left to
+[split_the_tests_of_the_cardinal_report_tool](split_the_tests_of_the_cardinal_report_tool.md).

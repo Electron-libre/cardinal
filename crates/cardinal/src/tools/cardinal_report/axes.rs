@@ -1,4 +1,5 @@
-//! The metric of each axis of `cardinal-report` (REP-5 to REP-13, REP-19): one table per axis, its cells per group.
+//! The metric of each axis of `cardinal-report`: efficiency, quality, rules, skills and fixed context, one table per
+//! axis with its cells per group.
 
 use std::collections::{BTreeMap, HashSet};
 

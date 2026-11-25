@@ -185,6 +185,7 @@ fn moved(before: f64, after: f64, direction: &str) -> &'static str {
         "hurt"
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

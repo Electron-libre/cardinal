@@ -198,7 +198,7 @@ pub(super) fn is_heading(line: &str) -> bool {
 }
 
 /// The name of the heading `line` (`is_heading`): its text after the `#`, trimmed, so `#  Goal ` names `Goal`; `None`
-/// when the line is no heading (CKI-6). Every reader of the sections of an issue compares their names through it.
+/// when the line is no heading (CKI-6). `next-issue` and `check-issue` compare the names of the sections through it.
 pub(super) fn heading_name(line: &str) -> Option<&str> {
     is_heading(line).then(|| line[1..].trim())
 }

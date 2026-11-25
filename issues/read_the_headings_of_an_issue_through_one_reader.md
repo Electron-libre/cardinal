@@ -46,6 +46,9 @@ Out of scope: reporting the odd spacing (Approach 2), headings of other levels.
    of `check_issue.rs`; verified by a `check-issue` test of spaced headings (`tests/check_issue.rs`) and a
    `next-issue --json` test of spaced title, goal and milestone (`tests/next_issue_json.rs`, since
    `tests/next_issue.rs` is over the file size limit); makes true CKI-6, NXT-10, NXT-19 (amended). (autonomous)
+2. [x] Fixes of the `high` review: the doc comment of `heading_name` names its two readers, CKI-6 says "names" for
+   the required sections and `# Tracking`; the readers left (`delivered_quality.rs`, the `# Specs` note) go to
+   `issues/read_every_section_heading_through_heading_name.md`; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -71,3 +74,26 @@ not verified: none.
 
 decisions needed: none. Follow-up seen, outside the scope: `delivered_quality.rs` still finds `# Tracking` by an exact
 line, so a spaced `#  Tracking` is read as no tracking there.
+
+## Summary of deliverable 2
+done: the comment of `heading_name` and the wording of CKI-6 fixed; the two other findings filed as
+`issues/read_every_section_heading_through_heading_name.md` (milestone One implementation per rule, priority low).
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clippy clean |
+| specs | CKI-6 reworded, still traced |
+| docs | n/a |
+| code review | `high` on the issue: 3 findings; `low` on this deliverable: no findings |
+
+red: none (wording and comment only).
+
+High review: 3 findings: the `# Specs` note (pre-existing) and `delivered_quality.rs` (outside the requirements of
+this issue) filed as a follow-up issue; the CKI-6 wording and the comment of `heading_name` fixed here.
+
+Code review: no findings
+
+not verified: none.
+
+decisions needed: none.

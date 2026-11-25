@@ -56,9 +56,9 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
    `setup_fixture`, `setup_checks`, `summary_checks`, QUA-7/8/9/15/16/17, QUA-H2) to
    `tests/delivered_quality_sessions.rs` with a `#[test]` of their own (~400 moved, ~820 counted); verified by the
    same checks passing in both test binaries. (autonomous)
-5. [ ] Later fix tests: move `blame_fixture`, `blame_checks`, `later_issue_fixture`, `later_issue_checks` (QUA-4) to
+5. [x] Later fix tests: move `blame_fixture`, `blame_checks`, `later_issue_fixture`, `later_issue_checks` (QUA-4) to
    `tests/delivered_quality_later_fixes.rs` (~215 moved, ~450 counted); `tests/delivered_quality.rs` left at ~740
-   lines; verified by the tests and `file-size`.
+   lines; verified by the tests and `file-size`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -123,6 +123,23 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 | tests, lint, specs (`project-check`) | pass, both test binaries green |
 | docs | the module docs of both test files |
 | deliverable-size | 829 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: 0 findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 5
+- done: the blame and later issue checks (QUA-4) moved to `tests/delivered_quality_later_fixes.rs` with a `#[test]`
+  of their own; `tests/delivered_quality.rs` down to 734 lines, no `delivered_quality` file over 800.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | the module doc of `tests/delivered_quality.rs` |
+| deliverable-size | 465 changed lines, within |
+| file-size `--all` | no `delivered_quality` file listed |
 | code review | low |
 
 - red: none (a move, no new test)

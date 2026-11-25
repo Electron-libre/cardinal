@@ -32,3 +32,51 @@ Files small enough to review
 # Resources
 * `crates/cardinal/tests/delivered_quality.rs`.
 * `crates/cardinal/src/tools/delivered_quality.rs`, `docs/architecture.md` (the module list it may name).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+Split `delivered_quality.rs` (1229 lines) and its test file (1611 lines) by responsibility, every part under 800 lines,
+no change of behaviour: moves only, each in a deliverable of its own. The name `delivered_quality_headings.rs` the
+issue proposes is taken (QUA-12 headings test): the test files are named after the concern they move.
+
+## Plan
+1. [x] Sessions module: move `Event`, `tokens`, `timestamp`, `Session`, `is_check`, `SYNTHETIC`, `setup_name`,
+   `Models`, `read_sessions`, `session_cells` and the inline QUA-15 test to `delivered_quality/sessions.rs`
+   (~260 lines moved, ~550 counted); verified by `cardinal run project-check` unchanged green. (autonomous)
+2. [ ] History module: move `Commit`, `commits`, `issue_commits`, `starts_work`, `reverts`, `unrelated`, `blamed` to
+   `delivered_quality/history.rs` (~230 moved, ~480 counted); the root left at ~750 lines; verified by
+   `project-check` and `file-size`.
+3. [ ] Test helpers: move `COLUMNS`, `sh`, `commit_at`, `toml`, `ALPHA`, `commits_after_close`, `fixture`, `run`,
+   `rows`, `has`, `tool_command` of `tests/delivered_quality.rs` to `tests/delivered_quality_common/mod.rs` (as
+   `workspace_lock_common`; ~260 moved, ~540 counted); verified by the tests unchanged green.
+4. [ ] Session tests: move the transcript checks (`line`…`write`, `session_checks`, `claim_checks`, `modeled`,
+   `setup_fixture`, `setup_checks`, `summary_checks`, QUA-7/8/9/15/16/17, QUA-H2) to
+   `tests/delivered_quality_sessions.rs` with a `#[test]` of their own (~400 moved, ~820 counted); verified by the
+   same checks passing in both test binaries.
+5. [ ] Later fix tests: move `blame_fixture`, `blame_checks`, `later_issue_fixture`, `later_issue_checks` (QUA-4) to
+   `tests/delivered_quality_later_fixes.rs` (~215 moved, ~450 counted); `tests/delivered_quality.rs` left at ~740
+   lines; verified by the tests and `file-size`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: b78fa5b3b883bf522165ad3c1097618ea001d6ee
+- Shared test helpers: `tests/delivered_quality_common/mod.rs`, as `workspace_lock_common` (1 a).
+
+## Deliverable 1
+- done: the transcript sessions and their QUA-15 inline test moved to `delivered_quality/sessions.rs`; `setup_name`
+  and `SYNTHETIC` re-exported from the root for `cardinal-report`.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | no change: `docs/architecture.md` names no module of the tool |
+| deliverable-size | 675 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: 0 findings
+- not verified: nothing
+- decisions needed: none

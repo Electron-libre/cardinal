@@ -49,9 +49,9 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 2. [x] History module: move `Commit`, `commits`, `issue_commits`, `starts_work`, `reverts`, `unrelated`, `blamed` to
    `delivered_quality/history.rs` (~230 moved, ~480 counted); the root left at ~750 lines; verified by
    `project-check` and `file-size`. (autonomous)
-3. [ ] Test helpers: move `COLUMNS`, `sh`, `commit_at`, `toml`, `ALPHA`, `commits_after_close`, `fixture`, `run`,
+3. [x] Test helpers: move `COLUMNS`, `sh`, `commit_at`, `toml`, `ALPHA`, `commits_after_close`, `fixture`, `run`,
    `rows`, `has`, `tool_command` of `tests/delivered_quality.rs` to `tests/delivered_quality_common/mod.rs` (as
-   `workspace_lock_common`; ~260 moved, ~540 counted); verified by the tests unchanged green.
+   `workspace_lock_common`; ~260 moved, ~540 counted); verified by the tests unchanged green. (autonomous)
 4. [ ] Session tests: move the transcript checks (`line`…`write`, `session_checks`, `claim_checks`, `modeled`,
    `setup_fixture`, `setup_checks`, `summary_checks`, QUA-7/8/9/15/16/17, QUA-H2) to
    `tests/delivered_quality_sessions.rs` with a `#[test]` of their own (~400 moved, ~820 counted); verified by the
@@ -91,6 +91,22 @@ issue proposes is taken (QUA-12 headings test): the test files are named after t
 | docs | no change: `docs/architecture.md` names no module of the tool |
 | deliverable-size | 453 changed lines, within |
 | file-size | no file over 800 |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: 0 findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 3
+- done: the fixture repository, the runs of the tool and the reading of its rows moved from
+  `tests/delivered_quality.rs` to `tests/delivered_quality_common/mod.rs`, shared by the test files to come.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | no change |
+| deliverable-size | 525 changed lines, within |
 | code review | low |
 
 - red: none (a move, no new test)

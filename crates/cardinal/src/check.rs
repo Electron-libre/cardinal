@@ -7,10 +7,10 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
+use crate::config::source_and_rev;
 use crate::lock::{fingerprint_of, install_hint, read_lock};
-use crate::{
-    entries, features, format_hint, gate, is_git_url, launcher, settings, source_and_rev, LOCK,
-};
+use crate::source::is_git_url;
+use crate::{entries, features, format_hint, gate, launcher, settings, LOCK};
 
 /// What `check` found: `problems` make it fail, `warnings` do not.
 #[derive(Debug, Default, PartialEq, Eq)]

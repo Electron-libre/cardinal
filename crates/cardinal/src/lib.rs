@@ -39,20 +39,13 @@ const SOURCE_FORMAT: &str = "cardinal-format";
 
 mod budget;
 mod check;
-pub use check::{check, retention_warnings, Checked};
-pub(crate) use check::{config_dir, in_ci};
 mod config;
-pub use budget::warnings as budget_warnings;
-use config::format_of;
-pub(crate) use config::{read_config, readable, set_rev, source_and_rev};
 mod entries;
 mod features;
 mod gate;
 mod git;
 mod launcher;
 mod lock;
-use lock::{fingerprint, fingerprint_of, is_inside, read_lock, write_lock, Lock};
-pub(crate) use lock::{hash, is_executable, managed_files};
 mod markdown;
 mod memory;
 mod migration;
@@ -60,13 +53,23 @@ mod project_table;
 pub mod run;
 mod settings;
 mod source;
+pub mod tools;
+
+pub use budget::warnings as budget_warnings;
+pub use check::{check, retention_warnings, Checked};
 pub use source::upgrade;
+
+pub(crate) use check::{config_dir, in_ci};
+pub(crate) use config::{read_config, readable, set_rev, source_and_rev};
+pub(crate) use lock::{hash, is_executable, managed_files};
 pub(crate) use source::{
     cache_dir, checkout, clone_dir, fetch, git_output, is_full_hash, is_git_url, is_scp_like,
     resolve_in, resolved,
 };
+
+use config::format_of;
+use lock::{fingerprint, fingerprint_of, is_inside, read_lock, write_lock, Lock};
 use source::{cache_or_default, git};
-pub mod tools;
 
 /// The configuration of the project at `root`.
 #[must_use]

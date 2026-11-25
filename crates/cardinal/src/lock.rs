@@ -10,7 +10,8 @@ use std::path::{Component, Path};
 use anyhow::{bail, Context, Result};
 use sha2::{Digest, Sha256};
 
-use crate::{entries, launcher, source_and_rev, write, FORMAT, LOCK};
+use crate::config::source_and_rev;
+use crate::{entries, launcher, write, FORMAT, LOCK};
 
 /// Hash of `bytes`, followed by `+x` for an executable file: a mode change is a change.
 pub(crate) fn fingerprint(bytes: &[u8], executable: bool) -> String {

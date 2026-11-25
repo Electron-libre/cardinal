@@ -45,6 +45,9 @@ Moving `source` and `config` alone leaves ~990 lines, so the lock and `check` mo
    (`Checked`, `check`, `in_ci`, `retention_warnings`, `config_dir`, `check_with`) to `src/check.rs`, name the modules
    in the crate doc; verified by `cardinal run project-check` green and `cardinal run file-size` no longer listing
    `lib.rs`; ~600 counted lines. (autonomous)
+3. [x] Fixes of the `high` review of the issue: the module block of `lib.rs` grouped (declarations, then
+   re-exports), the new modules import their neighbours from the module that defines them; verified by
+   `cardinal run project-check` green. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -87,3 +90,29 @@ Code review: no findings
 
 not verified: nothing
 decisions needed: none
+
+## Summary of deliverable 3
+done: `update-docs` on the whole issue (n/a beyond the crate doc: no document names the moved items), then the fixes
+of the `high` review.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | clippy `-D warnings` clean |
+| specs | no change |
+| docs | n/a: no document names the moved items |
+| code review | `high` on the issue: 4 nits, 2 fixed |
+
+red: none (imports only)
+Code review: 4 findings
+- `source.rs` imports the module `git` beside a function `git`: not filed: `{self}` is needed (the root re-imports the
+  function under the same name), renaming the function would edit a moved body.
+- the new modules reached their neighbours through the root: fixed, imported from the defining module.
+- `in_ci` and `config_dir` live in `check.rs` although other tools use them: not filed: they sat in the section of
+  `check` of the root before the move; no change made it harder to find them.
+- `lib.rs` interleaved the `mod` lines and the re-exports: fixed, grouped.
+
+not verified: nothing
+decisions needed: none
+
+The `low` review of these fixes: no findings.

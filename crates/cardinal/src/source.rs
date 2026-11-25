@@ -8,7 +8,8 @@ use std::path::{Component, Path, PathBuf};
 use anyhow::{bail, Context, Result};
 
 use crate::git::{self};
-use crate::{hash, is_executable, launcher, run};
+use crate::lock::{hash, is_executable};
+use crate::{launcher, run};
 
 // A plain suffix test, not `Path::extension`: `/x/.git` is a repository and `X.GIT` or `x.git/` a
 // directory (SYN-49).

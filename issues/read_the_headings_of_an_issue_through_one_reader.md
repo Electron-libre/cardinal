@@ -31,3 +31,43 @@ One implementation per rule
 # Resources
 * `crates/cardinal/src/tools/check_issue.rs`, `crates/cardinal/src/tools/next_issue.rs`.
 * `issues/done/report_an_open_fence_and_a_blank_title_of_an_issue.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+One reader gives the name of a heading (its text after the `#`, trimmed); the title, the sections of `check-issue`
+and the goal and milestone of `next-issue` compare names through it, so `#  Goal ` reads as `# Goal` everywhere.
+Out of scope: reporting the odd spacing (Approach 2), headings of other levels.
+
+## Plan
+1. [x] One heading reader: `next_issue::heading_name` used by `title_of`, `goal`, `milestone` and the section checks
+   of `check_issue.rs`; verified by a `check-issue` test of spaced headings (`tests/check_issue.rs`) and a
+   `next-issue --json` test of spaced title, goal and milestone (`tests/next_issue_json.rs`, since
+   `tests/next_issue.rs` is over the file size limit); makes true CKI-6, NXT-10, NXT-19 (amended). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: fe42db8a526d48dc6232f77e7472d6040aecc636
+
+## Summary of deliverable 1
+done: `next_issue::heading_name` names a heading (its text after `#`, trimmed); the title, the goal, the milestone and
+the sections of `check-issue` compare names through it.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clippy clean |
+| specs | CKI-6, NXT-10, NXT-19 amended and traced, both specs `accepted` |
+| docs | n/a: no user page describes the spacing of a heading |
+| code review | `low`: no findings |
+
+red: CKI-6, NXT-10, NXT-19: `check-issue` reported ``missing section `# Goal` `` and `` `# Resources` `` for `#  Goal` and `#   Resources`; `next-issue --json` gave `goal` `null` for `#  Goal`.
+
+Code review: no findings
+
+not verified: none.
+
+decisions needed: none. Follow-up seen, outside the scope: `delivered_quality.rs` still finds `# Tracking` by an exact
+line, so a spaced `#  Tracking` is read as no tracking there.

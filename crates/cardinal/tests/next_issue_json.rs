@@ -385,3 +385,21 @@ fn a_blank_first_heading_is_no_title() {
         "{out}{err}"
     );
 }
+
+// spec: NXT-19
+// spec: NXT-10
+/// A heading names its section by its text after the `#`, trimmed: spaced headings give the title, the goal and the
+/// milestone as `# Goal` and `# Milestone` would.
+#[test]
+fn spaced_headings_give_the_title_the_goal_and_the_milestone() {
+    let r = repo_with_roadmap(&[(
+        "a",
+        "---\npriority: high\n---\n#  Fix it \n\n#  Goal\n\nDo it.\n\n#  Milestone \nOne\n",
+    )]);
+    let (doc, code, err) = document(r.path());
+    assert_eq!(code, Some(0), "{err}");
+    let a = issue(&doc, "a");
+    assert_eq!(a["title"], "Fix it");
+    assert_eq!(a["goal"], "Do it.");
+    assert_eq!(a["milestone"], "One");
+}

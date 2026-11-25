@@ -24,12 +24,12 @@ fn heading(dir: &Path, stem: &str) -> Option<String> {
     title_of(&text).map(str::to_string)
 }
 
-/// The text after the `#` of the first heading of the issue `text` (`is_heading`, after its front matter and outside a
-/// fenced code block, QUA-12), trimmed; `None` when it has none or that text is blank (CKI-6, NXT-19).
+/// The name of the first heading of the issue `text` (`heading_name`, after its front matter and outside a fenced
+/// code block, QUA-12); `None` when it has none or that name is blank (CKI-6, NXT-19).
 pub(super) fn title_of(text: &str) -> Option<&str> {
     crate::markdown::fenced(body(text).lines())
-        .find(|&(l, fenced)| !fenced && is_heading(l))
-        .map(|(l, _)| l[1..].trim())
+        .filter(|&(_, fenced)| !fenced)
+        .find_map(|(l, _)| heading_name(l))
         .filter(|t| !t.is_empty())
 }
 
@@ -46,11 +46,11 @@ fn goal(dir: &Path, stem: &str) -> Option<String> {
             continue;
         }
         let line = raw.trim();
-        if is_heading(raw) {
+        if let Some(name) = heading_name(raw) {
             if inside {
                 break;
             }
-            inside = raw.trim_end() == "# Goal";
+            inside = name == "Goal";
             continue;
         }
         if !inside {
@@ -197,6 +197,12 @@ pub(super) fn is_heading(line: &str) -> bool {
     line.starts_with("# ") || line.trim_end() == "#"
 }
 
+/// The name of the heading `line` (`is_heading`): its text after the `#`, trimmed, so `#  Goal ` names `Goal`; `None`
+/// when the line is no heading (CKI-6). Every reader of the sections of an issue compares their names through it.
+pub(super) fn heading_name(line: &str) -> Option<&str> {
+    is_heading(line).then(|| line[1..].trim())
+}
+
 /// The text of the issue `text` after its front matter (all of it when it opens none): where its headings are read.
 pub(super) fn body(text: &str) -> &str {
     &text[split_front_matter(text).map_or(0, |(_, _, body)| body)..]
@@ -288,9 +294,8 @@ pub(super) fn depends_on(text: &str) -> Option<Vec<String>> {
 fn milestone(text: &str) -> Option<String> {
     let mut lines = crate::markdown::fenced(body(text).lines()).filter(|&(_, fenced)| !fenced);
     // the heading of the template of `skill:create-issue` carries a note: `# Milestone (optional; ...)`
-    lines.by_ref().find(|(l, _)| {
-        let l = l.trim_end();
-        l == "# Milestone" || l.starts_with("# Milestone ")
+    lines.by_ref().find(|&(l, _)| {
+        heading_name(l).is_some_and(|n| n == "Milestone" || n.starts_with("Milestone "))
     })?;
     lines
         .map(|(l, _)| l)

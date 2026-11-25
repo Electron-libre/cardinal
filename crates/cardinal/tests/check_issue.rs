@@ -347,12 +347,19 @@ fn a_fence_left_open_is_reported_before_the_sections_it_hides() {
 }
 
 // spec: CKI-6
-/// A first heading `#  Goal` is a title, not the `# Goal` section: the goal is reported missing, never both.
+/// A heading names its section by its text after the `#`, trimmed: spaced headings are the sections they name, and a
+/// first heading `#  Goal` is the goal, not a title.
 #[test]
-fn a_spaced_goal_heading_is_read_once() {
-    let text =
-        "---\npriority: low\n---\n#  Goal\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
-    let (ok, out) = check_front_matter(text);
-    assert!(!ok && out.contains("missing section `# Goal`"), "{out}");
-    assert!(!out.contains("first heading must be the title"), "{out}");
+fn a_spaced_heading_names_its_section() {
+    let spaced = "---\npriority: low\n---\n# Fix it\n\n#  Goal\n\nMake it work.\n\n# Approach \n\n1. Do it.\n\n#   Resources\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(spaced);
+    assert!(ok && out.is_empty(), "{out}");
+
+    let first = "---\npriority: low\n---\n#  Goal\n\nMake it work.\n\n# Approach\n\n1. Do it.\n\n# Resources\n\n* `a.rs`\n";
+    let (ok, out) = check_front_matter(first);
+    assert!(
+        !ok && out.contains("first heading must be the title, not `# Goal`"),
+        "{out}"
+    );
+    assert!(!out.contains("missing section `# Goal`"), "{out}");
 }

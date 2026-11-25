@@ -17,13 +17,13 @@ fn is_heading(&(line, fenced): &(&str, bool)) -> bool {
     !fenced && next_issue::is_heading(line)
 }
 
-/// True when the section exists and holds no text outside a fenced code block before the next heading, as the goal
-/// of `next-issue` reads it (CKI-6).
-fn section_is_empty(lines: &[(&str, bool)], heading: &str) -> bool {
+/// True when the section `name` exists and holds no text outside a fenced code block before the next heading, as the
+/// goal of `next-issue` reads it (CKI-6).
+fn section_is_empty(lines: &[(&str, bool)], name: &str) -> bool {
     let mut lines = lines.iter();
     lines
         .by_ref()
-        .any(|l| is_heading(l) && l.0.trim() == heading)
+        .any(|l| is_heading(l) && next_issue::heading_name(l.0) == Some(name))
         && lines
             .take_while(|l| !is_heading(l))
             .all(|&(l, fenced)| fenced || l.trim().is_empty())
@@ -100,31 +100,31 @@ fn problems(path: &Path, text: &str) -> Vec<String> {
         out.push(format!("line {n}: fenced code block left open"));
     }
     let lines = lines(text);
+    // the names of the headings, read as `next-issue` reads the title, the goal and the milestone (CKI-6)
     let headings: Vec<&str> = lines
         .iter()
         .filter(|l| is_heading(l))
-        .map(|l| l.0)
+        .filter_map(|l| next_issue::heading_name(l.0))
         .collect();
-    // the title is read as `next-issue` reads it, `# Goal` as the sections are (CKI-6)
     if next_issue::title_of(text).is_none() {
         out.push("no `# <Title>` heading".to_string());
-    } else if headings.first().is_some_and(|t| t.trim() == "# Goal") {
+    } else if headings.first() == Some(&"Goal") {
         out.push("first heading must be the title, not `# Goal`".to_string());
     }
-    for required in ["# Goal", "# Approach", "# Resources"] {
-        if !headings.iter().any(|h| h.trim() == required) {
-            out.push(format!("missing section `{required}`"));
+    for required in ["Goal", "Approach", "Resources"] {
+        if !headings.contains(&required) {
+            out.push(format!("missing section `# {required}`"));
         }
     }
     out.extend(front_matter_problems(&dir, stem, text));
-    if headings.iter().any(|h| h.trim() == "# Tracking") {
+    if headings.contains(&"Tracking") {
         out.push("`# Tracking` is written by issue-workflow".to_string());
     }
-    if section_is_empty(&lines, "# Goal") {
+    if section_is_empty(&lines, "Goal") {
         out.push("`# Goal` is empty".to_string());
     }
     // `# Specs` is optional, but when present it must name something.
-    if section_is_empty(&lines, "# Specs") {
+    if section_is_empty(&lines, "Specs") {
         out.push(
             "`# Specs` is empty: name the spec and requirement ids, or drop the section"
                 .to_string(),

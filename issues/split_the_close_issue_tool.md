@@ -25,3 +25,33 @@ Files small enough to review
 
 # Resources
 * `crates/cardinal/src/tools/close_issue.rs`, `docs/architecture.md` (the module list it may name).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+Split `close_issue.rs` (846 lines) by responsibility, each part under 800, behaviour unchanged. Out of scope: the git
+helpers (step 2 of the Approach), already on the shared runner `crate::git` since `share_one_git_runner_across_the_tools`;
+`git_literal` and `worktree_of` stay as thin close-issue wrappers. Means: two modules, not one, each moved in its own deliverable.
+
+## Plan
+1. [x] Move the link rewriting (`RepoPath`, `components`, `resolve`, `relative`, `relink_target`, `destination`,
+   `definition_target`, `link_targets`, `relink_links`, `relink_text`, `rewritten`, its CLS-2 test) to
+   `close_issue/relink.rs`, re-exported so `release`, `review_gate` and the others keep their paths (~560 lines);
+   verified by `cardinal run project-check` unchanged. (autonomous)
+2. [ ] Move the milestones (`listed_issues`, `is_closed`, `done_stem`, `milestones_done`, `roadmap_documents`,
+   `set_milestones_done`, its CLS-8 test) to `close_issue/milestones.rs`, re-exported likewise (~320 lines); verified
+   by `cardinal run project-check` unchanged and `cardinal run file-size` listing no `close_issue` file.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 63d7d30d816c6b9f6c8a628d399b64ad4f8d8f69
+- Approach step 2 out of scope (git helpers already on `crate::git`); moved items re-exported from `close_issue.rs` (1 a, 2 a).
+
+## Summary of deliverable 1
+done: link rewriting moved to `close_issue/relink.rs` (270 lines), re-exported; `close_issue.rs` 846 → 589 lines.
+red: none (a move, no new behaviour)
+Code review: no findings
+not verified: none
+decisions needed: none

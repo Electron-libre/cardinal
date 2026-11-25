@@ -31,3 +31,28 @@ Files small enough to review
 # Resources
 * `crates/cardinal/tests/cardinal_report.rs`.
 * `crates/cardinal/src/tools/cardinal_report.rs`, `docs/architecture.md` (the module list it may name).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+Split `crates/cardinal/src/tools/cardinal_report.rs` (1162 lines) by responsibility, each part under 800 lines, with no
+change of behaviour: the metrics of the axes in `cardinal_report/axes.rs`, the verdicts and floors in
+`cardinal_report/verdicts.rs`. The split of `crates/cardinal/tests/cardinal_report.rs` (1604 lines) is proposed as an
+issue of its own: with it, the issue counts ~3,400 changed lines, over the limit of 3,000.
+
+## Plan
+1. [ ] Axes: move `efficiency`, `quality`, `rules`, `skills`, `fixed_context` and their helpers (319-746, with
+   `QUALITY_RATIOS` and the inline test of VRD-1 on it) to `cardinal_report/axes.rs`, `pub(super)` on what the parent
+   reads; verified by `cardinal run project-check` (the REP and VRD tests unchanged and green) and `cardinal run
+   file-size`; ~880 changed lines.
+2. [ ] Verdicts: move `metric_value`, `dominant`, `ADVISOR_METRICS`, `Floors`, `too_few_values`, `verdicts` and `moved`
+   (748-909, 1107-1117, with their two inline tests of VRD-6) to `cardinal_report/verdicts.rs` beside `output.rs`;
+   verified by `cardinal run project-check` and `cardinal run file-size` (`cardinal_report.rs` ~550 lines, off the
+   list); ~380 changed lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 13d4c8c5585b13c138b0e99391583aba1d581593
+- Split: the tests of the report (Approach 3) moved to [split_the_tests_of_the_cardinal_report_tool](split_the_tests_of_the_cardinal_report_tool.md), their helpers in `tests/cardinal_report_common/` (answers 1 a, 2 a).

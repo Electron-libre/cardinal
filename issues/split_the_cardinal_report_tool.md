@@ -43,10 +43,10 @@ change of behaviour: the metrics of the axes in `cardinal_report/axes.rs`, the v
 issue of its own: with it, the issue counts ~3,400 changed lines, over the limit of 3,000.
 
 ## Plan
-1. [ ] Axes: move `efficiency`, `quality`, `rules`, `skills`, `fixed_context` and their helpers (319-746, with
+1. [x] Axes: move `efficiency`, `quality`, `rules`, `skills`, `fixed_context` and their helpers (319-746, with
    `QUALITY_RATIOS` and the inline test of VRD-1 on it) to `cardinal_report/axes.rs`, `pub(super)` on what the parent
    reads; verified by `cardinal run project-check` (the REP and VRD tests unchanged and green) and `cardinal run
-   file-size`; ~880 changed lines.
+   file-size`; ~880 changed lines. (autonomous)
 2. [ ] Verdicts: move `metric_value`, `dominant`, `ADVISOR_METRICS`, `Floors`, `too_few_values`, `verdicts` and `moved`
    (748-909, 1107-1117, with their two inline tests of VRD-6) to `cardinal_report/verdicts.rs` beside `output.rs`;
    verified by `cardinal run project-check` and `cardinal run file-size` (`cardinal_report.rs` ~550 lines, off the
@@ -56,3 +56,12 @@ issue of its own: with it, the issue counts ~3,400 changed lines, over the limit
 - Mode: autonomous
 - Base commit: 13d4c8c5585b13c138b0e99391583aba1d581593
 - Split: the tests of the report (Approach 3) moved to [split_the_tests_of_the_cardinal_report_tool](split_the_tests_of_the_cardinal_report_tool.md), their helpers in `tests/cardinal_report_common/` (answers 1 a, 2 a).
+
+## Summary of deliverable 1
+- done: the metrics of the axes moved to `cardinal_report/axes.rs` (454 lines), with the inline test of VRD-1 on
+  `QUALITY_RATIOS`; `cardinal_report.rs` down to 726 lines; the module doc names `axes.rs`; the docs map gains the
+  row of a source move; the milestone of `ROADMAP.md` lists the issue of the tests.
+- checks: project-check ok, clippy -D warnings ok, deliverable-size 901 (limit 1000), file-size: the file left the list.
+- red: none (a move, no new test; the REP and VRD tests unchanged and green).
+- Code review: no findings
+- not verified: nothing; decisions needed: none.

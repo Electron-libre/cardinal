@@ -45,6 +45,8 @@ includes a bare `#`, and it must also stop at a `##` sibling.
 1. [x] End `# Tracking` at every heading: `reviews` and `red_ids` take `next_issue::is_heading` as their end; verified by
    a binary test of `delivered-quality` whose tracking holds a bare `#` line between two reviews and before a `red:`
    item (~60 lines); makes true QUA-6, QUA-11. (autonomous)
+2. [x] Settle the `high` review of the issue: the test also proves a fenced bare `#` and one with trailing spaces,
+   the QUA-6/QUA-11 scenario names its citation; verified by `delivered_quality_headings`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -64,6 +66,33 @@ includes a bare `#`, and it must also stop at a `##` sibling.
 | code review | low: no findings |
 
 - red: QUA-6, QUA-11: `left: ["2", "3", "1", "0"]`, `right: ["1", "1", "1", "1"]` (the review and the `red:` item after the bare `#` were counted)
+- Code review: no findings
+- not verified: none
+- decisions needed: none
+
+## High review (base..62f74c9)
+
+Code review: 5 findings
+1. The scenario of QUA-6/QUA-11 named no citation of ABC-1: fixed.
+2. The test did not prove a bare `#` inside a fence nor one with trailing spaces: added to it (dropping the fence guard
+   of `section` now fails it).
+3. `section` reads the front matter, CKI-6 does not (pre-existing): `issues/read_the_sections_of_delivered_quality_after_the_front_matter.md`.
+4. `is_heading` ignores a heading indented by 1-3 spaces (pre-existing): `issues/read_a_heading_indented_by_three_spaces_at_most.md`.
+5. `deliverables` ends `## Plan` at any line starting with `#`, `#42` included (pre-existing): kept by decision 1 a.
+
+## Deliverable 2
+
+- done: the fixes of the `high` review, two follow-up issues.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass |
+| docs | n/a |
+| code review | low: no findings |
+
+- red: none (the added cases pass with the fix of deliverable 1; removing the fence guard fails them)
 - Code review: no findings
 - not verified: none
 - decisions needed: none

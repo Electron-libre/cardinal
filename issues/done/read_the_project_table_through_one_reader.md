@@ -130,7 +130,7 @@ is `accepted`.
 | specs | CLS-10 traced, spec `accepted` |
 | docs | `//!` of `close_issue.rs` names the refusal |
 | code review | low, see below |
-| file size | `close_issue.rs` 841 -> 855 lines: not split here, `issues/split_the_close_issue_tool.md` splits it |
+| file size | `close_issue.rs` 841 -> 855 lines: not split here, `issues/done/split_the_close_issue_tool.md` splits it |
 
 red: CLS-10: `"[project\n" issues/foo.md: left: Some(0) right: Some(1)` (close-issue closed the issue on an invalid file)
 Code review: no findings

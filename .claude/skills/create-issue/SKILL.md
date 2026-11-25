@@ -13,7 +13,9 @@ This skill writes it; `cardinal run check-issue` enforces the mechanical rules. 
 1. **Check for duplicates**: `ls issues issues/done` and skim the titles close to the subject. If one already
    covers it, propose extending it instead of creating a new file.
 2. **Gather the facts** from what was actually observed (logs, smoke runs, code, `git log`, the `roadmap` documents of `.claude/cardinal.toml`). Don't invent
-   findings; if a fact is missing, say so in the issue or ask the user.
+   findings; if a fact is missing, say so in the issue or ask the user. An issue born from a review finding names
+   its observed case in `# Findings` (a file of a consumer, a run, a report of the user, a measured cost): reading
+   the code shows where a defect would be, not that it happens; with no such case, don't file it.
 3. **Write the file** in English, with this template:
 
    ```markdown

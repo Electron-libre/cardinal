@@ -109,8 +109,10 @@ nothing: the agent reads that identity too. The spec file is the record of the r
    `cardinal run review-target` prints (the diff without `issues/` nor the managed copies; always name the level; it
    refuses an untracked file, which `git diff` leaves out: mark it intent-to-add with the `git add -N` it prints),
    and wait for its findings; reread the docs you changed. Fix the findings on the deliverable's own change, or say
-   why one is not fixed; a finding outside the requirements of the deliverable becomes an issue
-   (`skill:create-issue`), not a fix in this deliverable.
+   why one is not fixed; a finding outside the requirements of the deliverable is not fixed in this deliverable: it
+   becomes an issue (`skill:create-issue`) only when a real case shows it (a file of a consumer, a run, a report of
+   the user) or its cost is measured; otherwise it is listed `not filed: <why>` with the findings of step 6 (reading
+   the code shows where a defect would be, not that it happens).
    Re-run `cardinal run project-check` after the fixes.
    The native `pre-commit` hook (`cardinal run review-gate native`) enforces it: `git commit` fails while the diff holds a file
    the last review never saw, so write the tracking and the summary of steps 6 and 7 in the issue **before**

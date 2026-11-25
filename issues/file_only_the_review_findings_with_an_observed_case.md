@@ -37,3 +37,39 @@ consumer, a run, a report of the user) or its cost is measured, and list the oth
 
 # Hints
 * `files/` is the source: run `just sync` after editing it; a commit may carry `Expected-effect:` (CLAUDE.md).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+A review finding outside the deliverable is filed as an issue only with an observed case (a consumer's file, a run, a
+report of the user) or a measured cost; the others are listed `not filed: <why>` in the step 6 summary. Out of scope:
+any tool or check enforcing it (prompt change only, no spec: harness content).
+
+## Plan
+1. [x] Observed-case rule: `issue-workflow` step 3.5 (which the `high` review's fix deliverable runs too) files a
+   finding outside the deliverable only with an observed case or a measured cost, else lists it `not filed: <why>`
+   with the findings of the step 6 summary; `create-issue` step 2 asks an issue born from a review finding to name
+   its observed case, reading the code showing where a defect would be, not that it happens; verified by
+   `just sync`, `just check` and a reread. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 6e7c897242f585c795d9d0373e0b26b5647e4ce1
+- Approach 3 (route a chained finding to the user): dropped, the observed-case rule already breaks the chain.
+
+## Deliverable 1 summary
+done: `issue-workflow` step 3.5 and `create-issue` step 2 file a review finding outside the deliverable only with
+an observed case or a measured cost, else list it `not filed: <why>`.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | green |
+| specs | none (harness content) |
+| docs | no doc cites the rule |
+| code review | see below |
+
+red: none
+Code review: no findings

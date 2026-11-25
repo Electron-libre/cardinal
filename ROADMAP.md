@@ -36,7 +36,7 @@ The work done before this file existed is in `issues/done/`.
   - [read_the_title_of_an_issue_with_the_shared_fence_grammar](issues/done/read_the_title_of_an_issue_with_the_shared_fence_grammar.md)
   - [read_the_sections_of_an_issue_with_the_shared_fence_grammar](issues/done/read_the_sections_of_an_issue_with_the_shared_fence_grammar.md)
   - [report_an_open_fence_and_a_blank_title_of_an_issue](issues/done/report_an_open_fence_and_a_blank_title_of_an_issue.md)
-  - [read_the_headings_of_an_issue_through_one_reader](issues/read_the_headings_of_an_issue_through_one_reader.md)
+  - [read_the_headings_of_an_issue_through_one_reader](issues/done/read_the_headings_of_an_issue_through_one_reader.md)
   - [read_every_section_heading_through_heading_name](issues/read_every_section_heading_through_heading_name.md)
   - [drop_the_dead_code_allowance_of_the_transcripts](issues/done/drop_the_dead_code_allowance_of_the_transcripts.md)
   - [exit_quietly_when_the_reader_of_stdout_closes](issues/done/exit_quietly_when_the_reader_of_stdout_closes.md)

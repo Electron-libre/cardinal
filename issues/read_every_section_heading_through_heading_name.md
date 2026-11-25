@@ -10,7 +10,7 @@ CKI-6). Two readers of the same issue files still compare their headings otherwi
 answers from the tools: give them the same reader, and one rule for a heading that carries a note after its name.
 
 # Findings
-* `high` review of `issues/read_the_headings_of_an_issue_through_one_reader.md` (2026-11-25), read from the code, not
+* `high` review of `issues/done/read_the_headings_of_an_issue_through_one_reader.md` (2026-11-25), read from the code, not
   run.
 * `delivered_quality.rs` finds `# Tracking` and `## Plan` by an exact line (`section()`, its callers for QUA-2, QUA-3,
   QUA-6 and QUA-11): an issue whose heading is `#  Tracking` is a tracking for `check-issue`, none for
@@ -35,4 +35,4 @@ One implementation per rule
 # Resources
 * `crates/cardinal/src/tools/next_issue.rs` (`heading_name`, `milestone`), `crates/cardinal/src/tools/check_issue.rs`,
   `crates/cardinal/src/tools/delivered_quality.rs`.
-* `issues/read_the_headings_of_an_issue_through_one_reader.md`.
+* `issues/done/read_the_headings_of_an_issue_through_one_reader.md`.

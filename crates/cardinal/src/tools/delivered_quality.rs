@@ -323,7 +323,7 @@ fn deliverables(text: &str) -> Option<usize> {
 /// ones; a line that gives no count is a review of unknown findings, left out of the sum; `None` for the three when
 /// the section is unread (QUA-12).
 fn reviews(text: &str) -> Option<(usize, usize, usize)> {
-    let tracking = readable(text, "# Tracking", |l| l.starts_with("# "))?;
+    let tracking = readable(text, "# Tracking", super::next_issue::is_heading)?;
     let lines: Vec<String> = tracking
         .iter()
         .filter(|l| !l.trim_start().starts_with('|'))
@@ -547,7 +547,7 @@ fn doc_spec_lines(
 /// word that is not an id (`red: ABC-3, ABC-4: <failure>` names ABC-3 and ABC-4, `red: none (ABC-3)` none); `None`
 /// when the section is unread (QUA-12).
 fn red_ids(text: &str) -> Option<BTreeSet<String>> {
-    let tracking = readable(text, "# Tracking", |l| l.starts_with("# "))?;
+    let tracking = readable(text, "# Tracking", super::next_issue::is_heading)?;
     let unmarked = |line: &str| {
         let line = line.trim();
         let line = line.trim_start_matches(['-', '*', '+']);

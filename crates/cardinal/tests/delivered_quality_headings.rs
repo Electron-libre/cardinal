@@ -1,5 +1,6 @@
 //! Behavior test for the headings of an issue file as `cardinal tool delivered-quality` reads them (QUA-12): a
-//! heading names its section as `check-issue` names one (CKI-6), spaced or followed by a note.
+//! heading names its section as `check-issue` names one (CKI-6), spaced or followed by a note, and every heading it
+//! reads, a bare `#` included, ends `# Tracking` (QUA-6, QUA-11).
 
 use std::path::Path;
 use std::process::Command;
@@ -123,4 +124,35 @@ fn a_spaced_or_noted_heading_names_its_section() {
         "{a:?}"
     );
     assert_eq!(cell(&row(repo, "b"), "deliverables"), "0");
+}
+
+const BARE: &str = "# D\n\n# Goal\n\nDo it.\n\n# Tracking\n\nCode review: 1 finding\n\n#\n\nCode review: 2 findings\nred: ABC-1: assertion failed\n";
+
+// spec: QUA-6, QUA-11
+/// A bare `#` line ends the `# Tracking` section, as `check-issue` reads it (CKI-6): the review and the `red:` item
+/// after it are not the issue's.
+#[test]
+fn a_bare_hash_line_ends_the_tracking() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path();
+    git(repo, &["init", "-q", "-b", "main", "."]);
+    commit(
+        repo,
+        "feat: d",
+        &[
+            ("issues/d.md", Some(BARE)),
+            ("tests/d.rs", Some("// spec: ABC-1\nfn d() {}\n")),
+        ],
+    );
+    commit(
+        repo,
+        "docs: close d",
+        &[("issues/d.md", None), ("issues/done/d.md", Some(BARE))],
+    );
+    let d = row(repo, "d");
+    assert_eq!(
+        ["reviews", "review_findings", "traced", "traced_without_red"].map(|c| cell(&d, c)),
+        ["1", "1", "1", "1"],
+        "{d:?}"
+    );
 }

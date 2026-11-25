@@ -31,3 +31,39 @@ One implementation per rule
 * `crates/cardinal/src/tools/delivered_quality.rs` (`section`, `reviews`, `red_ids`), `crates/cardinal/src/tools/next_issue.rs`
   (`is_heading`).
 * `issues/done/read_every_section_heading_through_heading_name.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-25
+
+## Understanding
+`reviews` and `red_ids` end `# Tracking` at the headings `next_issue::is_heading` reads (`# ` or a bare `#`), their
+fence reading kept (QUA-12). The `## Plan` section of QUA-3 keeps its end: any line starting with `#` already
+includes a bare `#`, and it must also stop at a `##` sibling.
+
+## Plan
+1. [x] End `# Tracking` at every heading: `reviews` and `red_ids` take `next_issue::is_heading` as their end; verified by
+   a binary test of `delivered-quality` whose tracking holds a bare `#` line between two reviews and before a `red:`
+   item (~60 lines); makes true QUA-6, QUA-11. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: 2919681e9715e0abed2089eacd05688a246aad2b
+- 1 a: QUA-3 keeps its own end of `## Plan` (a superset of the heading end).
+
+## Deliverable 1
+
+- done: `reviews` and `red_ids` end `# Tracking` at `next_issue::is_heading`; QUA-6 and QUA-11 amended, spec accepted.
+
+| check | result |
+|---|---|
+| tests | pass (`cardinal run project-check`) |
+| lint | pass |
+| specs | pass, `delivered-quality` accepted |
+| docs | n/a: the spec is the only document of the rule |
+| code review | low: no findings |
+
+- red: QUA-6, QUA-11: `left: ["2", "3", "1", "0"]`, `right: ["1", "1", "1", "1"]` (the review and the `red:` item after the bare `#` were counted)
+- Code review: no findings
+- not verified: none
+- decisions needed: none

@@ -46,11 +46,11 @@ fn goal(dir: &Path, stem: &str) -> Option<String> {
             continue;
         }
         let line = raw.trim();
-        if let Some(name) = heading_name(raw) {
+        if is_heading(raw) {
             if inside {
                 break;
             }
-            inside = name == "Goal";
+            inside = names_section(raw, "Goal");
             continue;
         }
         if !inside {
@@ -203,12 +203,15 @@ pub(super) fn heading_name(line: &str) -> Option<&str> {
     is_heading(line).then(|| line[1..].trim())
 }
 
-/// Whether the heading `line` names the section `name` (CKI-6): its `heading_name` is `name` alone, or followed by a
-/// space and a note, as the template of `skill:create-issue` writes `# Specs (optional; ...)`.
+/// Whether the heading `line` names the section `name` (CKI-6): its `heading_name` is `name` alone, or followed by
+/// spaces and a note in parentheses, as the template of `skill:create-issue` writes `# Specs (optional; ...)`; a
+/// title in prose, `# Tracking down a leak`, names none.
 pub(super) fn names_section(line: &str, name: &str) -> bool {
     heading_name(line).is_some_and(|n| {
-        n.strip_prefix(name)
-            .is_some_and(|rest| rest.is_empty() || rest.starts_with(' '))
+        n.strip_prefix(name).is_some_and(|rest| {
+            rest.is_empty()
+                || (rest.starts_with(char::is_whitespace) && rest.trim_start().starts_with('('))
+        })
     })
 }
 

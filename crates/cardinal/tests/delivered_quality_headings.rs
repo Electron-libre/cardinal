@@ -71,7 +71,8 @@ const DONE: &str = "# A\n\n# Goal\n\nDo it.\n\n#  Tracking\n\n## Plan (two lines
 
 // spec: QUA-12
 /// `#  Tracking` and `## Plan (two lines)` are the tracking and the plan of the issue, and the commit that adds the
-/// spaced heading starts its work (QUA-2); `## Planning` is no plan.
+/// spaced heading starts its work (QUA-2); `## Planning`, `## Plan of attack` and a title `# Tracking down a leak` are
+/// none.
 #[test]
 fn a_spaced_or_noted_heading_names_its_section() {
     let dir = tempfile::tempdir().unwrap();
@@ -100,6 +101,20 @@ fn a_spaced_or_noted_heading_names_its_section() {
             "issues/done/b.md",
             Some("# B\n\n# Tracking\n\n## Planning\n1. [x] one\n"),
         )],
+    );
+    commit(
+        repo,
+        "docs: close c",
+        &[(
+            "issues/done/c.md",
+            Some("# Tracking down a leak\n\n# Approach\n\n## Plan of attack\n1. [ ] look\n2. [ ] fix\n\n# Tracking\n\n## Plan\n1. [x] one\n\nCode review: 2 findings\n"),
+        )],
+    );
+    let c = row(repo, "c");
+    assert_eq!(
+        ["deliverables", "reviews", "review_findings"].map(|col| cell(&c, col)),
+        ["1", "1", "2"],
+        "{c:?}"
     );
     let a = row(repo, "a");
     assert_eq!(

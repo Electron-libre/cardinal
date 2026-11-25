@@ -384,3 +384,13 @@ fn a_heading_with_a_note_names_its_section() {
     let (ok, out) = check_front_matter(&GOOD.replace("# Goal", "# Goals"));
     assert!(!ok && out.contains("missing section `# Goal`"), "{out}");
 }
+
+// spec: CKI-6
+/// A note is written in parentheses: a title that starts with a section name and goes on in prose names no section.
+#[test]
+fn a_title_in_prose_names_no_section() {
+    for title in ["# Tracking down a leak", "# Goal setting"] {
+        let (ok, out) = check_front_matter(&GOOD.replace("# Fix the thing", title));
+        assert!(ok && out.is_empty(), "{title}: {out}");
+    }
+}

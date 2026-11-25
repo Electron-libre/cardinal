@@ -55,10 +55,16 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
 2. [x] `delivered_quality::section` takes a level and a name and finds its heading through `heading_name` and the
    rule of 1, its fence reading kept; verified by a new `tests/delivered_quality_headings.rs` (`#  Tracking`,
    `## Plan (two lines)`, QUA-2 start); makes true QUA-12. (autonomous)
+3. [x] Review fixes of the `high` review: a note is in parentheses (a title `# Tracking down a leak`, a
+   `## Plan of attack` name no section), the goal of `next-issue --json` read through `names_section`, `names`
+   guarded; verified by `tests/check_issue.rs`, `tests/next_issue_json.rs`, `tests/delivered_quality_headings.rs`;
+   makes true CKI-6, NXT-10, NXT-19, QUA-12. (autonomous)
 
 ## Decisions
 - Mode: autonomous
 - Base commit: 57ea1fa75c3f43c8f2a15781eae7135bb2781e03
+- High review, question 1 (a), user 2026-11-25: a note follows the name in parentheses only (a title in prose
+  names no section).
 - Question 1 (a): the name-and-note rule applies to the sections `delivered-quality` reads too.
 - File size: `delivered_quality.rs` (1217 lines) is changed in place, net ~0 lines; its new tests go to a file of their
   own, `tests/delivered_quality_headings.rs`, since `tests/delivered_quality.rs` (1611) is over the limit.
@@ -98,6 +104,27 @@ scope: the lines that end a section in `delivered-quality` (QUA-3, QUA-6) stay a
   `review_findings` of an issue with `#  Tracking` and `## Plan (two lines)`).
 - file size: `delivered_quality.rs` grows from 1217 to 1227 lines (the `names` helper); its split is
   `issues/split_the_delivered_quality_tool.md`.
+- Code review: no findings.
+- not verified: none.
+- decisions needed: none.
+
+## Deliverable 3
+- done: the `high` review findings. A note after a section name is in parentheses only; `goal()` of `next-issue`
+  reads `# Goal (why)`; `delivered_quality::names` returns false for a heading with no `#`.
+
+| check | result |
+|---|---|
+| tests | `project-check` green |
+| lint | clippy clean |
+| specs | CKI-6, NXT-10, NXT-19 scenario, QUA-12 amended and traced; specs `accepted` |
+| docs | n/a: the rule is stated only in the specs |
+| code review | no findings |
+
+- red: CKI-6, NXT-19, QUA-12: `# Tracking down a leak: issues/a.md: `# Tracking` is written by issue-workflow`;
+  `goal` `Null` for `# Goal (why)`; `reviews` 0 for an issue titled `# Tracking down a leak`.
+- High review: 7 findings. F1 (goal), F2 and F3 (prose titles), F5 (tab), F6 (guard) fixed here; F4 (an empty
+  `# Specs (optional; ...)` reported) is the intent of this issue, not changed; F7 (pre-existing, a bare `#` does
+  not end `# Tracking` in `delivered-quality`) filed as `issues/end_the_sections_of_delivered_quality_at_every_heading.md`.
 - Code review: no findings.
 - not verified: none.
 - decisions needed: none.

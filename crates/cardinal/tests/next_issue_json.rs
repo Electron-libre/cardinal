@@ -403,3 +403,16 @@ fn spaced_headings_give_the_title_the_goal_and_the_milestone() {
     assert_eq!(a["goal"], "Do it.");
     assert_eq!(a["milestone"], "One");
 }
+
+// spec: NXT-19
+/// A goal heading with a note in parentheses is the goal, as `check-issue` reads it (CKI-6).
+#[test]
+fn a_goal_heading_with_a_note_gives_the_goal() {
+    let r = repo_with_roadmap(&[(
+        "a",
+        "---\npriority: high\n---\n# Fix it\n\n# Goal (why)\n\nDo it.\n",
+    )]);
+    let (doc, code, err) = document(r.path());
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(issue(&doc, "a")["goal"], "Do it.");
+}

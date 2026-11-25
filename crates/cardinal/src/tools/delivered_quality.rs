@@ -255,8 +255,10 @@ enum Section<'a> {
 /// `check-issue` names one (`next_issue::names_section`, CKI-6): `#  Tracking ` or `## Plan (notes)` (QUA-12).
 fn names(line: &str, heading: &str) -> bool {
     let name = heading.trim_start_matches('#');
-    // the `#` of a level beyond the first, `##` keeping one for `names_section`
-    let deeper = &heading[..heading.len() - name.len() - 1];
+    // the `#` of a level beyond the first, `##` keeping one for `names_section`; none for a heading with no `#`
+    let Some(deeper) = heading[..heading.len() - name.len()].strip_suffix('#') else {
+        return false;
+    };
     line.strip_prefix(deeper)
         .is_some_and(|rest| super::next_issue::names_section(rest, name.trim()))
 }

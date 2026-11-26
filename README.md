@@ -150,3 +150,7 @@ just check-cardinal   # fails when a copy drifted
 - [docs/architecture.md](docs/architecture.md): how Cardinal is built.
 - [specs/](specs/): what each capability must do; [docs/adr/](docs/adr/): why it is so.
 - [CLAUDE.md](CLAUDE.md): the conventions of this repository (commits, tests, formats and migrations).
+
+# License
+
+[MIT](LICENSE)

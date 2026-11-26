@@ -283,21 +283,22 @@ The top border of the queue ends with the mark ` ✦ Cardinal ` in `accent`, on 
 the panel is too narrow to hold it next to its title.
 
 The usage limits of the Claude plan (the 5-hour and the weekly one) come from Claude Code alone, which hands them to
-its status line command ([specs/status-line.md](../specs/status-line.md)): name `cardinal run status-line` as the
-`statusLine` of your user settings (`~/.claude/settings.json`), once for every project:
+its status line command ([specs/status-line.md](../specs/status-line.md)): name `cardinal tool status-line` (the
+installed binary, which runs in any directory, a project of Cardinal or not) as the `statusLine` of your user
+settings (`~/.claude/settings.json`), once for every project:
 
 ```json
-"statusLine": { "type": "command", "command": "cardinal run status-line" }
+"statusLine": { "type": "command", "command": "cardinal tool status-line" }
 ```
 
-After each answer of a session in a project Cardinal manages, it prints `5h 42% · 7d 13%` in Claude Code and records
-both limits in `~/.cache/cardinal-ui/usage.json` (under `XDG_CACHE_HOME` when it is absolute), one file for every
-project since the limits belong to the account; an input with no limit (no subscription, no answer yet) leaves the
-file as it was. It reads no credential and reaches no network. The top border of the worktrees panel ends with them,
+After each answer of a session, it prints `5h 42% · 7d 13%` in Claude Code and records both limits in `~/.cache/cardinal-ui/usage.json` (under `XDG_CACHE_HOME` when it is absolute), one file for every
+project since the limits belong to the account, never moving a limit back to the older answer of another session; an
+input with no limit (no subscription, no answer yet) leaves the file as it was. It reads no credential and reaches no network. The top border of the worktrees panel ends with them,
 read again with the project, on the screen and in `--print`:
-`5h used 42% · resets 14:30 · 7d used 13% · resets 2026-11-30 09:00 · read 12:40` (local time, the date before a time
-that is not today, `read` the time the file was written); a limit the file lacks or whose reset has passed reads
-`5h unknown`, a missing or unreadable file `limits unknown`, and a border too narrow for them shows its title alone.
+`5h used 42% · resets 14:30 · 7d used 13% · resets Mon 09:00 · read 12:40` (local time, the weekday before a reset
+that is not today, `read` the time the file was written, its date before it when not today); a limit the file lacks
+or whose reset has passed reads `5h unknown`, a missing or unreadable file `limits unknown`; a border too narrow for
+them leaves out the `read` time, then shows its title alone, and `--print` widens to hold them.
 
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `i` unfolds, between the queue and the worktrees, a panel titled

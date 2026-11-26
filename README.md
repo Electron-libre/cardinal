@@ -96,7 +96,7 @@ running `claude /prioritize-issues`, the review of the order of the queue; `a` a
 or `idea`, opens a tab named after it there running `claude "/create-issue cut the milestone <name> into issues"`; the help line offers only the keys
 that would act on the selection, and `:` opens a palette of every command that would act, filtered by typing its name. No release binary yet:
 `cargo install --git https://github.com/Electron-libre/cardinal.git cardinal-ui` (or `just install-ui` in a clone).
-`cardinal run status-line`, named as the `statusLine` of the user settings of Claude Code, records the usage limits of
+`cardinal tool status-line`, named as the `statusLine` of the user settings of Claude Code, records the usage limits of
 the Claude plan, which it shows on the border of the worktrees. Details: [docs/usage.md](docs/usage.md#steering-ui).
 
 ## Daily flow

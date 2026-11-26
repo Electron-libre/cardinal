@@ -435,7 +435,7 @@ pub fn panels(state: &State) -> ([Panel; 3], Vec<(Row, usize)>) {
     let panels = [
         queue,
         Panel {
-            corner: Some(state.limits.clone()),
+            corner: Some(state.limits.clone()).filter(|l| !l.is_empty()),
             ..panel("Worktrees", &state.worktrees, |ws| {
                 ws.iter().map(worktree).collect()
             })

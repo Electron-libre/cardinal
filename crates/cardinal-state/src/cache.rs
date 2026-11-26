@@ -1,4 +1,4 @@
-//! The cache directory of `cardinal-ui` (STU-18), which `cardinal run status-line` writes the usage limits into
+//! The cache directory of `cardinal-ui` (STU-18), which `cardinal tool status-line` writes the usage limits into
 //! (STL-3).
 
 use std::path::PathBuf;

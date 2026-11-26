@@ -1,5 +1,5 @@
 //! The usage limits of the Claude plan at the right end of the top border of the worktrees panel (STU-37): read at
-//! each read of the project from the usage file `cardinal run status-line` writes (STL-3), worded
+//! each read of the project from the usage file `cardinal tool status-line` writes (STL-3), worded
 //! `5h used <n>% · resets <HH:MM> · 7d used <n>% · resets <HH:MM> · read <HH:MM>`.
 
 use ratatui::buffer::Buffer;
@@ -43,13 +43,13 @@ fn line(text: &str, now: i64) -> String {
             let limit = &usage[key];
             match (
                 limit["used_percentage"].as_f64(),
-                limit["resets_at"].as_i64(),
+                seconds(&limit["resets_at"]),
             ) {
                 (Some(used), Some(resets)) if resets > now => {
                     format!(
                         "{name} used {:.0}% · resets {}",
                         used.round(),
-                        clock(resets)
+                        reset(resets)
                     )
                 }
                 _ => format!("{name} unknown"),
@@ -60,40 +60,69 @@ fn line(text: &str, now: i64) -> String {
     parts.join(" · ")
 }
 
+/// The whole seconds of `v`, a decimal number cut to its whole seconds (STU-37).
+#[allow(clippy::cast_possible_truncation)] // `as` saturates: a time far out of range is never a live reset
+fn seconds(v: &Value) -> Option<i64> {
+    v.as_i64().or_else(|| v.as_f64().map(|f| f as i64))
+}
+
+/// The local time `HH:MM` of a reset, `<weekday> HH:MM` when it is not today: a window resets within the week.
+fn reset(seconds: i64) -> String {
+    let Some(t) = chrono::DateTime::from_timestamp(seconds, 0) else {
+        return "?".to_string();
+    };
+    let t = t.with_timezone(&chrono::Local);
+    let today = t.date_naive() == chrono::Local::now().date_naive();
+    t.format(if today { "%H:%M" } else { "%a %H:%M" })
+        .to_string()
+}
+
 /// Draws the limits `p` carries against the right corner of its top border over `area`, when the border holds its
-/// title, the limits and one cell of border between them (STU-37, as SUS-6 places the mark).
+/// title, the limits and one cell of border between them, else without their `read` time when that fits (STU-37, as
+/// SUS-6 places the mark).
 pub(crate) fn draw(p: &Panel, area: Rect, buf: &mut Buffer, theme: &Theme) {
-    if let Some(limits) = &p.corner {
-        corner(&format!(" {limits} "), p, area, buf, theme.fg(Role::Muted));
+    let Some(limits) = &p.corner else {
+        return;
+    };
+    let style = theme.fg(Role::Muted);
+    if !corner(&format!(" {limits} "), p, area, buf, style) {
+        if let Some((short, _)) = limits.rsplit_once(" · read ") {
+            corner(&format!(" {short} "), p, area, buf, style);
+        }
     }
 }
 
+/// The width of a border that holds the title of `p`, its corner text and one cell of border between them (STU-37).
+pub(crate) fn needed(p: &Panel) -> usize {
+    p.corner
+        .as_ref()
+        .map_or(0, |c| needed_for(p, Line::raw(c.as_str()).width() + 2))
+}
+
+/// The two corners, ` <title> `, one cell of border and a text `width` wide.
+fn needed_for(p: &Panel, width: usize) -> usize {
+    Line::raw(p.title.as_ref()).width() + 2 + 3 + width
+}
+
 /// Draws `text` against the right corner of the top border of `p` over `area` in `style`, when the border holds
-/// the title of `p`, `text` and one cell of border between them (SUS-6, STU-37).
+/// the title of `p`, `text` and one cell of border between them (SUS-6, STU-37); whether it drew it.
 pub(crate) fn corner(
     text: &str,
     p: &Panel,
     area: Rect,
     buf: &mut Buffer,
     style: ratatui::style::Style,
-) {
-    if area.height == 0 {
-        return;
+) -> bool {
+    let line = Line::raw(text);
+    let width = line.width();
+    if area.height == 0 || usize::from(area.width) < needed_for(p, width) {
+        return false;
     }
-    let text = Line::raw(text);
-    let width = u16::try_from(text.width()).unwrap_or(u16::MAX);
-    // the two corners, ` <title> `, one cell of border and the text
-    let title = u16::try_from(Line::raw(p.title.as_ref()).width()).unwrap_or(u16::MAX);
-    let needed = title
-        .saturating_add(2)
-        .saturating_add(3)
-        .saturating_add(width);
-    if area.width < needed {
-        return;
-    }
+    let width = u16::try_from(width).unwrap_or(u16::MAX);
     let x = area.right() - 1 - width;
-    text.style(style)
+    line.style(style)
         .render(Rect::new(x, area.y, width, 1), buf);
+    true
 }
 
 #[cfg(test)]
@@ -113,7 +142,42 @@ mod tests {
         assert_eq!(line(r#"{"version":1}"#, 5), UNKNOWN);
     }
 
-    // spec: STU-37 (internal: the width of a terminal, which `--print` never narrows below 100 columns)
+    // spec: STU-37 (internal: a `resets_at` Claude Code has never been seen to write as a decimal)
+    #[test]
+    fn a_decimal_reset_is_read_as_its_whole_seconds() {
+        let text =
+            r#"{"version":1,"written_at":0,"five_hour":{"used_percentage":40,"resets_at":10.5}}"#;
+        assert!(
+            line(text, 5).starts_with("5h used 40% · resets "),
+            "{}",
+            line(text, 5)
+        );
+    }
+
+    // spec: STU-37 (internal: the width of a terminal, which `--print` widens to hold the limits)
+    #[test]
+    fn a_border_too_narrow_for_the_read_time_leaves_it_out() {
+        let p = Panel {
+            title: "Worktrees".into(),
+            lines: Vec::new(),
+            marks: Vec::new(),
+            headings: Vec::new(),
+            failed: false,
+            corner: Some(
+                "5h used 42% · resets 14:30 · 7d used 13% · resets Mon 09:00 · read 12:40"
+                    .to_string(),
+            ),
+        };
+        let mut buf = Buffer::empty(Rect::new(0, 0, 80, 1));
+        draw(&p, Rect::new(0, 0, 80, 1), &mut buf, &Theme::default());
+        let row: String = (0..80).map(|x| buf[(x, 0)].symbol()).collect();
+        assert!(
+            row.ends_with(" 5h used 42% · resets 14:30 · 7d used 13% · resets Mon 09:00  "),
+            "{row:?}"
+        );
+    }
+
+    // spec: STU-37 (internal: the width of a terminal, which `--print` widens to hold the limits)
     #[test]
     fn a_border_too_narrow_shows_its_title_alone() {
         let p = Panel {

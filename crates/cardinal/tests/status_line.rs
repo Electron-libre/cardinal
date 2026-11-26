@@ -8,8 +8,14 @@ use std::process::{Command, Stdio};
 /// Runs `cardinal tool status-line` with `input` on stdin and `cache` as `XDG_CACHE_HOME`; returns (exit code,
 /// stdout, stderr).
 fn run(cache: &Path, input: &str) -> (Option<i32>, String, String) {
+    run_in(cache, Path::new("."), input)
+}
+
+/// [`run`] with `dir` as the current directory.
+fn run_in(cache: &Path, dir: &Path, input: &str) -> (Option<i32>, String, String) {
     let mut child = Command::new(env!("CARGO_BIN_EXE_cardinal"))
         .args(["tool", "status-line"])
+        .current_dir(dir)
         .env("XDG_CACHE_HOME", cache)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -147,4 +153,59 @@ fn a_cache_that_cannot_be_written_still_prints_the_line() {
         (code, out.as_str(), err.as_str()),
         (Some(0), "5h 42% · 7d 13%\n", "")
     );
+}
+
+// spec: STL-1
+#[test]
+fn a_directory_outside_any_project_records_the_limits() {
+    let dir = tempfile::tempdir().unwrap();
+    let elsewhere = tempfile::tempdir().unwrap();
+    let (code, out, err) = run_in(dir.path(), elsewhere.path(), BOTH);
+    assert_eq!(
+        (code, out.as_str(), err.as_str()),
+        (Some(0), "5h 42% · 7d 13%\n", "")
+    );
+    assert_eq!(usage(dir.path())["five_hour"]["used_percentage"], 41.6);
+}
+
+/// An input whose 5-hour limit is `used` resetting at `resets`, and no weekly one.
+fn five_hour(used: f64, resets: u64) -> String {
+    format!(
+        r#"{{"rate_limits":{{"five_hour":{{"used_percentage":{used},"resets_at":{resets}}}}}}}"#
+    )
+}
+
+// spec: STL-5
+#[test]
+fn an_older_answer_of_the_same_window_never_moves_the_file_back() {
+    let dir = tempfile::tempdir().unwrap();
+    run(dir.path(), &five_hour(55.0, 1_790_000_000));
+    let (_, out, _) = run(dir.path(), &five_hour(40.0, 1_790_000_000));
+    assert_eq!(out, "5h 40%\n");
+    assert_eq!(usage(dir.path())["five_hour"]["used_percentage"], 55.0);
+    // an answer of the window before also leaves it
+    run(dir.path(), &five_hour(90.0, 1_789_982_000));
+    assert_eq!(usage(dir.path())["five_hour"]["resets_at"], 1_790_000_000);
+}
+
+// spec: STL-5
+#[test]
+fn a_later_window_replaces_the_recorded_one() {
+    let dir = tempfile::tempdir().unwrap();
+    run(dir.path(), &five_hour(55.0, 1_790_000_000));
+    run(dir.path(), &five_hour(3.0, 1_790_018_000));
+    let file = usage(dir.path());
+    assert_eq!(file["five_hour"]["used_percentage"], 3.0);
+    assert_eq!(file["five_hour"]["resets_at"], 1_790_018_000);
+}
+
+// spec: STL-5
+#[test]
+fn a_limit_the_input_lacks_keeps_the_recorded_one() {
+    let dir = tempfile::tempdir().unwrap();
+    run(dir.path(), BOTH);
+    run(dir.path(), &five_hour(50.0, 1_790_000_000));
+    let file = usage(dir.path());
+    assert_eq!(file["five_hour"]["used_percentage"], 50.0);
+    assert_eq!(file["seven_day"]["used_percentage"], 13);
 }

@@ -1,5 +1,5 @@
 //! Behavior test for `cardinal-ui --print`: the usage limits of the Claude plan on the top border of the worktrees
-//! panel (STU-37), read from the usage file `cardinal run status-line` writes (STL-3) under a fake cache, in UTC.
+//! panel (STU-37), read from the usage file `cardinal tool status-line` writes (STL-3) under a fake cache, in UTC.
 
 mod common;
 
@@ -18,12 +18,21 @@ fn now() -> i64 {
 
 /// The `HH:MM` (UTC) of `seconds`, its date before it when it is not today, as STU-13 words it.
 fn clock(seconds: i64) -> String {
+    format_utc(seconds, "%Y-%m-%d %H:%M")
+}
+
+/// The `HH:MM` (UTC) of the reset `seconds`, its weekday before it when it is not today (STU-37).
+fn reset(seconds: i64) -> String {
+    format_utc(seconds, "%a %H:%M")
+}
+
+/// `seconds` as `HH:MM` when today, else in `other`.
+fn format_utc(seconds: i64, other: &str) -> String {
     let t = chrono::DateTime::from_timestamp(seconds, 0).unwrap();
-    let today = chrono::Utc::now().date_naive();
-    if t.date_naive() == today {
+    if t.date_naive() == chrono::Utc::now().date_naive() {
         t.format("%H:%M").to_string()
     } else {
-        t.format("%Y-%m-%d %H:%M").to_string()
+        t.format(other).to_string()
     }
 }
 
@@ -64,8 +73,8 @@ fn both_limits_their_resets_and_the_time_they_were_read_end_the_worktrees_border
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     let expected = format!(
         " 5h used 42% · resets {} · 7d used 13% · resets {} · read {} ┐",
-        clock(five),
-        clock(week),
+        reset(five),
+        reset(week),
         clock(read)
     );
     assert!(border(&out).ends_with(&expected), "{out}");
@@ -117,7 +126,7 @@ fn a_limit_that_reset_or_that_the_file_lacks_reads_unknown() {
     let (_, out, _) = ui(&p.repo, &cardinal, &["--print"]);
     let expected = format!(
         " 5h unknown · 7d used 14% · resets {} · read {} ┐",
-        clock(week),
+        reset(week),
         clock(read)
     );
     assert!(border(&out).ends_with(&expected), "{out}");

@@ -50,6 +50,10 @@ Show the used share and the reset time of the 5-hour and weekly limits in `cardi
    line), drawn at the right end of the top border of the worktrees panel on the screen and in `--print`
    (`panels.rs` is at 798 lines: it only calls the module); verified by `--print` tests with a fake cache; makes true
    STU-37 (~400 lines). (autonomous)
+3. [x] Docs and fixes of the `high` review of the issue: the status line runs the installed `cardinal tool
+   status-line` (no project needed), a session never moves the usage file back (STL-5), resets as `<weekday> HH:MM`,
+   the `read` time dropped on a narrow border and `--print` widened for the limits, a decimal `resets_at`, no empty
+   corner; verified by tests of STL-1, STL-5 and STU-37; makes true STL-5. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -100,5 +104,36 @@ failed in the 4 tests)
 Code review: no findings
 
 not verified: the colors of the limits on a real terminal (drawn in `muted`, checked only through `--print`).
+
+decisions needed: none
+
+## Deliverable 3
+- done: the six findings of the `high` review fixed (spec STL-5 added, STL-1 and STU-37 amended, docs on
+  `cardinal tool status-line`).
+
+| check | result |
+|---|---|
+| tests | pass (`tests/status_line.rs` 11, `tests/print_limits.rs` 4, `limits.rs` 4 internal) |
+| lint | pass |
+| specs | pass, both accepted |
+| docs | `docs/usage.md`, `README.md`, `docs/architecture.md` |
+| code review | low, no findings |
+
+red: STL-5: `assertion left == right failed: left: Number(40.0) right: 55.0` (the file moved back to the older
+answer), and the test of the recorded `seven_day`; STU-37: none observed, its tests and code changed together
+
+High review of the issue: 6 findings, all on the issue's own change, all fixed here:
+- the documented `cardinal run status-line` needed a Cardinal project and its pinned revision: now `cardinal tool
+  status-line`;
+- the limits dropped off a border under ~106 columns when a date showed: weekday resets, `read` dropped first,
+  `--print` widened;
+- the happy path test failed between 23:00 and 24:00 UTC: fixed by the widened `--print`;
+- an idle session could overwrite fresher limits: STL-5;
+- a decimal `resets_at` read as `unknown` (nit): read as whole seconds;
+- an empty limits string drew a gap in the border (nit): no corner then.
+
+Code review: no findings
+
+not verified: a live Claude Code session running the status line; the colors of the limits on a real terminal.
 
 decisions needed: none

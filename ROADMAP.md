@@ -103,4 +103,4 @@ The work done before this file existed is in `issues/done/`.
   - [read_the_markdown_documents_from_the_ui](issues/read_the_markdown_documents_from_the_ui.md)
   - [chart_the_sessions_of_each_issue_over_time](issues/chart_the_sessions_of_each_issue_over_time.md)
   - [draw_the_sessions_of_each_issue_on_the_charts_screen](issues/draw_the_sessions_of_each_issue_on_the_charts_screen.md)
-  - [show_the_claude_usage_limits_in_the_ui](issues/show_the_claude_usage_limits_in_the_ui.md)
+  - [show_the_claude_usage_limits_in_the_ui](issues/done/show_the_claude_usage_limits_in_the_ui.md)

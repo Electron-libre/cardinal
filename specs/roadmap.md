@@ -33,7 +33,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 | `state` | the value of its first `State:` line as RMP-1 reads it, with no ` (unknown)` nor ` (on hold)`; `null` when it has none |
 | `on_hold` | the reason of its `On hold:` field (RMP-6), `""` when empty, `null` when it has none |
 | `released` | the value of its `Released:` line, `null` when it has none |
-| `goal` | the value of its first `Goal:` field as its `State:` line is read, followed by the indented lines right under it, each trimmed, joined by one space; `null` when it has none |
+| `goal` | the value of its first `Goal:` field as its `State:` line is read, followed by the non-blank lines right under it indented deeper than it that open no list item (`- `, `* `, `+ `), each trimmed, joined by one space; `null` when it has none |
 | `why` | its `Why:` field, read as its `goal` |
 | `document` | the document, as the configuration writes it |
 | `issues` | one object `{"path", "stem", "open": true or false}` per issue file RMP-2 counts, sorted by path, each once: its path from the project root (`/` between the components), its file name without `.md`, and whether RMP-2 counts it open |
@@ -65,6 +65,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 
 - (RMP-8) Given milestone `Next` with `- State: paused`, `- On hold: later` and listing `issues/b.md` and `issues/done/a.md` (both existing), when `roadmap --json` runs, then its row reads `"state":"paused"`, `"on_hold":"later"`, `"released":null` and `issues` `[{"path":"issues/b.md","stem":"b","open":true},{"path":"issues/done/a.md","stem":"a","open":false}]`.
 - (RMP-8) Given milestone `Next` with `- Goal: make a` then the indented line `  work well <!-- soon -->`, then `- State: shaped`, and no `Why:` line, when `roadmap --json` runs, then its row reads `"goal":"make a work well"` and `"why":null`.
+- (RMP-8) Given milestone `A` with the indented items `  - Goal: ship it`, `  - Why: users` and `  - State: shaped`, and milestone `B` with `- Goal:` then the lines `  make it work` and `  - not this`, when `roadmap --json` runs, then `A` reads `"goal":"ship it"` and `"why":"users"`, and `B` `"goal":"make it work"`.
 - (RMP-8) Given milestone `Next` listing `issues/a.md` and `issues/sub/a.md`, when `roadmap --json` runs, then `issues` holds both, told apart by their `path`.
 - (RMP-7) Given `Old` released and `Next` not, when `roadmap --json --open` runs, then `milestones` holds `Next` only.
 - (RMP-7) Given no milestone, when `roadmap --json` runs, then it prints `{"version":1,"milestones":[]}` and exits 0.

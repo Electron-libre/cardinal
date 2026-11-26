@@ -325,6 +325,19 @@ fn json_gives_the_goal_and_the_why_continued_on_their_indented_lines() {
     assert_eq!(doc["milestones"][1]["why"], "it  helps them");
 }
 
+// spec: RMP-8
+#[test]
+fn json_stops_the_goal_at_the_next_item_and_trims_an_empty_first_line() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## A\n\n  - Goal: ship it\n  - Why: users\n  - State: shaped\n\n## B\n\n- Goal:\n  make it work\n  - not this\n",
+    )]);
+    let doc = document(root.path(), &["--json"]);
+    assert_eq!(doc["milestones"][0]["goal"], "ship it");
+    assert_eq!(doc["milestones"][0]["why"], "users");
+    assert_eq!(doc["milestones"][1]["goal"], "make it work");
+}
+
 // spec: RMP-7
 #[test]
 fn json_with_open_leaves_out_the_released_milestones() {

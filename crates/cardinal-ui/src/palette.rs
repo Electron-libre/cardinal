@@ -258,13 +258,12 @@ mod tests {
         assert_eq!(commands(Some(&v), queue, false)[1].action, Action::Start);
         let mut milestone = every_key();
         milestone.rows[0] = crate::keys::Row::Milestone("Two".to_string());
-        milestone.summaries[0] = None;
         milestone.keys.start = vec![false];
         milestone.keys.merge = vec![false];
         milestone.keys.cut = vec![true];
         assert_eq!(
-            labels(&commands(Some(&milestone), queue, false))[..2],
-            ["c cut", "E end merged"]
+            labels(&commands(Some(&milestone), queue, false))[..3],
+            ["i summary", "c cut", "E end merged"]
         );
     }
 

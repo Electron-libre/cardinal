@@ -238,7 +238,11 @@ mod tests {
     fn a_milestone_to_cut_offers_c() {
         let mut v = view(&["foo"], &[]);
         v.rows.insert(0, Row::Milestone("Two".to_string()));
-        v.summaries.insert(0, None);
+        let two = crate::summary::Summary {
+            title: "Two".to_string(),
+            text: "state: shaped\nno goal\nno why".to_string(),
+        };
+        v.summaries.insert(0, Some(two));
         v.keys = Keys {
             start: vec![false, true],
             merge: vec![false, false],
@@ -248,11 +252,11 @@ mod tests {
         let always = ": commands  ↑↓ select  tab panel  q quit";
         assert_eq!(
             line(&v, on(Focus::Queue, 0, 0), false),
-            format!("{always}  c cut")
+            format!("{always}  i summary  c cut")
         );
         assert_eq!(
             line(&v, on(Focus::Queue, 0, 0), true),
-            always,
+            format!("{always}  i summary"),
             "a task runs"
         );
         assert_eq!(

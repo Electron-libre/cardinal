@@ -95,7 +95,7 @@ fn a_merge_pending_issue_offers_its_merge_and_the_keys_of_the_whole_project_stay
 
 // spec: SUA-15
 #[test]
-fn in_zellij_an_empty_queue_offers_only_the_keys_that_always_work() {
+fn in_zellij_an_empty_queue_offers_the_summary_of_its_milestone_heading() {
     let p = project();
     let empty = r#"{"version":1,"next":null,"issues":[]}"#;
     let cardinal = p.cardinal(&ok(empty), &ok(ROADMAP));

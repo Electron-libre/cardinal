@@ -45,6 +45,8 @@ sharing the one fold state of the issue summary. Out of scope: the issues of the
 2. [x] Summary of a milestone: `source` reads `goal`, `why` and the hold reason, `summary::of` builds the summary of
    a heading (state, goal, why paragraphs), the help line offers `i summary` on it; verified by screen tests of
    `summary.rs` and `help.rs`; makes true SUQ-6, SUQ-7, SUA-15 (amended). (autonomous)
+3. [x] Docs of the whole issue and fixes of its `high` review: a goal stops at the next list item and an empty first
+   line adds no space; verified by a test of `tests/roadmap.rs`; makes true RMP-8 (amended). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -87,3 +89,34 @@ Code review: 1 finding
   string or `null`, the same `roadmap --json` the UI reads (VERSION 1).
 
 not verified: the screen in a real terminal (the tests draw it on a test backend). decisions needed: none.
+
+## Deliverable 3
+done: `docs/usage.md` gives the new JSON fields; a goal or why stops at a line indented no deeper than its field or
+opening a list item and takes no leading space; the help and palette fixtures give a heading its summary.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | `check-specs` clean, RMP-8 amended with its scenario |
+| docs | `docs/usage.md` |
+| code review | high on the issue, then low on this deliverable |
+
+red: RMP-8: `left: "ship it - Why: users - State: shaped", right: "ship it"`
+
+Code review (high, whole issue): 7 findings
+- an indented field list glued onto the goal: fixed.
+- leading space under an empty `- Goal:`: fixed.
+- the test name `..._offers_only_the_keys_that_always_work` contradicted its assertion: renamed.
+- the help and palette fixtures gave a heading no summary: fixed, they expect `i summary`.
+- two milestones of one name in two documents show the first one's summary: not filed: no real roadmap holds two,
+  and the selection, `c` and the release already key a heading by its name (STU-14).
+- an older `cardinal` without the fields reads `no goal`: not filed: `cardinal` and `cardinal-ui` ship from one
+  revision, the fields add to version 1 of RMP-8.
+- `uncommented` cuts at a `<!--` in a code span (pre-existing, the rule of every field): not filed: no roadmap has one.
+
+Code review (low, deliverable 3): no findings
+
+not verified: none. decisions needed: none.
+
+Done: every deliverable committed; nothing left.

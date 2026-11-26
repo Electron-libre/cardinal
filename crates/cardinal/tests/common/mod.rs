@@ -32,6 +32,11 @@ pub fn source() -> TempDir {
 /// The programs of the system the binary and the fakes run.
 const SYSTEM: [&str; 6] = ["git", "cat", "cp", "mkdir", "chmod", "pwd"];
 
+/// The root of this repository, the source the tests of the shared content read.
+pub fn repo_root() -> PathBuf {
+    fs::canonicalize(Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")).unwrap()
+}
+
 pub fn put(dir: &Path, rel: &str, text: &str) {
     let path = dir.join(rel);
     fs::create_dir_all(path.parent().unwrap()).unwrap();

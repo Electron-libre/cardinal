@@ -53,8 +53,8 @@ Means: three columns on the rows of QUA-1 (left out of the summary, so `cardinal
 1. [x] Rows per issue: `tool_calls`, `duration_s`, `changed_lines` on the rows of `delivered-quality`, the summary
    unchanged, and `--rows <file>`; verified by tests of `crates/cardinal/tests/delivered_quality*.rs`; makes true
    QUA-20, QUA-21, QUA-22, QUA-23, QUA-H4. (autonomous)
-2. [ ] The measure keeps them: `cardinal-ui` passes `--rows` and writes `issues.tsv` with the other files of a
-   measure, under its temporary name; verified by a test of `crates/cardinal-ui`; makes true STU-17.
+2. [x] The measure keeps them: `cardinal-ui` passes `--rows` and writes `issues.tsv` with the other files of a
+   measure, under its temporary name; verified by a test of `crates/cardinal-ui`; makes true STU-17. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -85,3 +85,23 @@ Means: three columns on the rows of QUA-1 (left out of the summary, so `cardinal
 - not verified: the columns on the real transcripts of this repository (the measure of deliverable 2 runs them).
 - decisions needed: none
 - follow-up: `issues/split_the_transcript_columns_out_of_the_delivered_quality_spec.md`.
+
+## Deliverable 2
+
+- done: a measure runs `delivered-quality <main> --summary --rows <issues.tsv>` and renames `issues.tsv` into the cache
+  with the other files; the fake `cardinal` of the UI tests writes the rows file as the real one does; `docs/usage.md`
+  and the SUC-4 scenario (six files) updated.
+
+| check | result |
+|---|---|
+| tests | pass (`crates/cardinal-ui/tests/measures.rs`) |
+| lint | pass |
+| specs | pass (STU-17 traced by the measure tests) |
+| docs | updated |
+| code review | low, clean |
+
+- red: STU-17: `measures: cannot write ...: bad call: run delivered-quality <repo> --summary` (the fake answered only
+  the call with `--rows`).
+- Code review: no findings
+- not verified: a measure on the real transcripts (the next `m` of the UI writes `issues.tsv`).
+- decisions needed: none

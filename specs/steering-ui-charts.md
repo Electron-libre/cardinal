@@ -39,7 +39,7 @@ holds the table of the measures, so the panels keep their rows for the queue and
   take 20 and 40 cells.
 - (SUC-4) Given a last measure with no `revisions.json`, when the charts are drawn, then the groups of revisions are
   those of `efficiency.json`.
-- (SUC-4) Given a measure whose `cardinal-report --last 12` fails, then the five files of the last measure are
+- (SUC-4) Given a measure whose `cardinal-report --last 12` fails, then the six files of the last measure are
   unchanged and the charts screen opens on the error line of STU-19.
 - (SUC-1) Given the charts screen, when the user presses `s`, then no session is started.
 - (STU-1, STU-4) Given a measure cached, then the first screen of `cardinal-ui` shows no `Measures` panel, and

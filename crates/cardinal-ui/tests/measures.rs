@@ -58,7 +58,7 @@ impl Project {
             metrics
         };
         let script = format!(
-            "#!/bin/sh\necho \"$*\" >> '{calls}'\ncase \"$*\" in\n  'run next-issue --json') echo '{{\"version\":1,\"next\":null,\"issues\":[]}}'; exit 0 ;;\n  'run roadmap --open --json') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics') {metrics} ;;\n  'run delivered-quality {repo} --summary') echo 'quality-rows'; exit 0 ;;\n  'run cardinal-report '*'--by milestone'*) echo '{MILESTONES}'; exit 0 ;;\n  'run cardinal-report '*'--last 12'*) if [ -f '{trend}' ]; then cat '{trend}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\n  'run cardinal-report '*) if [ -f '{report}' ]; then cat '{report}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\necho \"$*\" >> '{calls}'\ncase \"$*\" in\n  'run next-issue --json') echo '{{\"version\":1,\"next\":null,\"issues\":[]}}'; exit 0 ;;\n  'run roadmap --open --json') echo '{{\"version\":1,\"milestones\":[]}}'; exit 0 ;;\n  'run session-metrics') {metrics} ;;\n  'run delivered-quality {repo} --summary --rows '*) echo 'issue-rows' > \"$6\"; echo 'quality-rows'; exit 0 ;;\n  'run cardinal-report '*'--by milestone'*) echo '{MILESTONES}'; exit 0 ;;\n  'run cardinal-report '*'--last 12'*) if [ -f '{trend}' ]; then cat '{trend}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\n  'run cardinal-report '*) if [ -f '{report}' ]; then cat '{report}'; else echo '{EFFICIENCY}'; fi; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             calls = self.path("calls").display(),
             repo = self.repo.display(),
             report = self.path("report-answer").display(),
@@ -106,6 +106,7 @@ impl Project {
         for name in [
             "sessions.tsv",
             "quality.tsv",
+            "issues.tsv",
             "efficiency.json",
             "milestones.json",
             "revisions.json",
@@ -191,8 +192,13 @@ fn the_user_reads_the_trend_and_the_quality_per_milestone() {
     for name in ["sessions.tsv", "quality.tsv", "milestones.json"] {
         assert!(cache.join(name).is_file(), "{name}");
     }
+    // the rows per issue of the same run of delivered-quality, beside the others
+    assert_eq!(
+        std::fs::read_to_string(cache.join("issues.tsv")).unwrap(),
+        "issue-rows\n"
+    );
     let left: Vec<_> = std::fs::read_dir(&cache).unwrap().collect();
-    assert_eq!(left.len(), 5, "no temporary file left");
+    assert_eq!(left.len(), 6, "no temporary file left");
     // within the hour, the measure is shown at once
     std::fs::remove_file(p.path("calls")).unwrap();
     let (code, again) = p.print();
@@ -247,7 +253,7 @@ fn a_linked_worktree_measures_the_issues_of_the_main_one() {
     let calls = p.calls();
     assert!(
         calls.contains(&format!(
-            "run delivered-quality {} --summary",
+            "run delivered-quality {} --summary --rows ",
             p.repo.display()
         )),
         "{calls}{}",
@@ -370,7 +376,7 @@ fn a_measure_removes_the_temporary_files_of_an_ended_one() {
         .flatten()
         .map(|e| e.file_name().to_string_lossy().into_owned())
         .collect();
-    assert_eq!(names.len(), 5, "{names:?}");
+    assert_eq!(names.len(), 6, "{names:?}");
 }
 
 // spec: STU-17
@@ -415,7 +421,7 @@ fn a_separate_git_directory_is_its_own_project() {
     let calls = p.calls();
     assert!(
         calls.contains(&format!(
-            "run delivered-quality {} --summary",
+            "run delivered-quality {} --summary --rows ",
             work.display()
         )) && calls.contains("--project work "),
         "{calls}{}",

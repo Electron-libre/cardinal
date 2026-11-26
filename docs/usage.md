@@ -325,7 +325,7 @@ sends one desktop notification, `<branch> waits` with the reason as its body, th
 program that fails, or a notification that panics (`notify: the notification panicked: <message>`), shows
 `notify: <cause>` on the status line the first time only. `--print` notifies nothing.
 
-A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to) into
+A measure runs `cardinal run session-metrics` and `delivered-quality <main worktree> --summary` (the repository its sessions resolve to), its rows per issue kept in `issues.tsv`, into
 `$XDG_CACHE_HOME/cardinal-ui/<project>-<hash of its path>` (under `~/.cache` when unset), outside the project since the
 rows name projects and issues, then `cardinal-report --project <project> --last 4 --json`, the same with `--last 12`
 for the charts (`revisions.json`) and `cardinal-report --by milestone --json` beside them. The readers take about a minute each on a long history of

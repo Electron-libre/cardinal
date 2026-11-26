@@ -96,7 +96,7 @@ fn print(p: &Project, issues: &[String]) -> String {
     let roadmap = r#"{"version":1,"milestones":[]}"#;
     let cardinal = p.root.path().join("cardinal");
     let script = format!(
-        "#!/bin/sh\ncase \"$*\" in\n  'run next-issue --json') printf '%s\\n' '{queue}' ;;\n  'run roadmap --open --json') printf '%s\\n' '{roadmap}' ;;\n  'run session-metrics' | 'run delivered-quality '*) ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}' ;;\n  *) echo \"bad call: $*\" >&2; exit 9 ;;\nesac\n"
+        "#!/bin/sh\ncase \"$*\" in\n  'run next-issue --json') printf '%s\\n' '{queue}' ;;\n  'run roadmap --open --json') printf '%s\\n' '{roadmap}' ;;\n  'run session-metrics') ;;\n  'run delivered-quality '*) for rows; do :; done; : > \"$rows\" ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}' ;;\n  *) echo \"bad call: $*\" >&2; exit 9 ;;\nesac\n"
     );
     std::fs::write(&cardinal, script).unwrap();
     std::fs::set_permissions(&cardinal, std::fs::Permissions::from_mode(0o755)).unwrap();

@@ -1,5 +1,5 @@
-//! The measures of the project (STU-16 to STU-19): `session-metrics` and `delivered-quality --summary` run into the
-//! cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
+//! The measures of the project (STU-16 to STU-19): `session-metrics` and `delivered-quality --summary`, its rows per
+//! issue kept beside, run into the cache directory of the user, outside the project, then `cardinal-report --json` per group of revisions and per
 //! milestone, and the last 12 groups of revisions for the charts (SUC-4). The readers take about a minute each on a large history of transcripts, so the screen shows the last
 //! measure at once, measures again when it starts and the last one is over an hour old and on `m` (SUC-1), on a thread of its
 //! own, a panic of it ending as a failed measure (SUS-8).
@@ -16,9 +16,10 @@ pub const STALE: Duration = Duration::from_secs(3600);
 
 /// The files of a measure, `efficiency.json` last: its modification time dates the measure (STU-18), so a rename
 /// that fails before it leaves the last measure dated as it was.
-const FILES: [&str; 5] = [
+const FILES: [&str; 6] = [
     "sessions.tsv",
     "quality.tsv",
+    "issues.tsv",
     "milestones.json",
     "revisions.json",
     "efficiency.json",
@@ -148,7 +149,15 @@ fn steps(root: &Path, dir: &Path) -> Result<(), String> {
         &sessions,
         false,
     )?;
-    let summary = ["delivered-quality", main.as_str(), "--summary"];
+    // the rows per issue of the same run, for the sessions of each issue over time (STU-17, QUA-23)
+    let issues = path("issues.tsv");
+    let summary = [
+        "delivered-quality",
+        main.as_str(),
+        "--summary",
+        "--rows",
+        &issues,
+    ];
     step("delivered-quality", &summary, root, &quality, false)?;
     let inputs = [
         "cardinal-report",

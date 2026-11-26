@@ -103,7 +103,7 @@ impl Project {
             )
         };
         let script = format!(
-            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\n{}  'run session-metrics' | 'run delivered-quality '*) exit 0 ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
+            "#!/bin/sh\n# the tools run at the root of the work tree (STU-5)\n[ -e .git ] || {{ echo \"not at the root: $PWD\" >&2; exit 9; }}\ncase \"$*\" in\n  'run next-issue --json') {} ;;\n  'run roadmap --open --json') {} ;;\n{}  'run session-metrics') exit 0 ;;\n  'run delivered-quality '*) for rows; do :; done; : > \"$rows\"; exit 0 ;;\n  'run cardinal-report '*) echo '{{\"version\":1,\"tables\":[]}}'; exit 0 ;;\nesac\necho \"bad call: $*\" >&2; exit 9\n",
             arm(queue),
             arm(roadmap),
             release.map_or_else(String::new, |r| format!(

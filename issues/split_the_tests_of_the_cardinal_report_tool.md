@@ -116,3 +116,7 @@ red: none (a move, no new test)
 Code review: no findings
 not verified: none
 decisions needed: none
+
+## Close
+Done: `update-docs` over `426cc32..HEAD` found nothing to change (no document names the moved files); the `high`
+review came back with no findings, so no fix deliverable. Left: nothing.

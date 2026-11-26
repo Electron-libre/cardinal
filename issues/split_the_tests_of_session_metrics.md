@@ -28,3 +28,47 @@ Files small enough to review
 
 # Resources
 * `crates/cardinal/tests/session_metrics.rs`, `crates/cardinal/tests/common/`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+Split `crates/cardinal/tests/session_metrics.rs` (1107 lines) by responsibility, every part under 800 lines, the
+checks and their `// spec:` lines unchanged. Out of scope: any change of a check or of the tool. Means: the helpers go
+to `tests/session_metrics_common/mod.rs`, as `rule_breaches_common/` does, rather than the crate-wide `tests/common`.
+
+## Plan
+1. [x] Shared helpers: move the column constants, the transcript builders (`line` … `error_result`, the block
+   constants), `rows`, `git_repo`, `tool_command`, `cell_of` and a `assert_checks` runner (the loop of
+   `session_metrics()`) to `session_metrics_common/mod.rs`; verified by `just check`, same checks passing; ~350 lines. (autonomous)
+2. [ ] Advisor and archive checks: move `advised`, the advisor constants, `advisor_fixture`, `advisor_checks` to
+   `session_metrics_advisor.rs`, and `archived_sessions`, `archive_checks`, `advisor_archive_checks` to
+   `session_metrics_archive.rs`, each with its own `#[test]` over `assert_checks`; verified by `just check`; ~650 lines.
+3. [ ] Revision checks: move `commit_at`, `new_repo`, `toml`, `pinned_repo`, `migrated_repo`, `revision_checks` to
+   `session_metrics_revision.rs`; verified by `just check`, `cardinal run file-size --all` no longer listing the
+   file; ~460 lines.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f45372987454c8bfab483f022c0e227e31291da3
+- Helpers in `session_metrics_common/` (1 a).
+
+## Summary of deliverable 1
+done: the column header, the transcript builders, `rows`, `git_repo`, `tool_command` and `cell_of` moved to
+`tests/session_metrics_common/mod.rs`, with `assert_checks`, the loop of `session_metrics()`.
+
+| check | result |
+|---|---|
+| tests | `session_metrics`: 3 passed, 65 named checks ok, as before |
+| lint | clippy clean |
+| specs | `check-specs` ok |
+| docs | none to change (test helpers) |
+| code review | low, see below |
+
+red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none

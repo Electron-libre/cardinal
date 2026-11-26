@@ -46,6 +46,9 @@ moves to `tests/common/mod.rs`.
 2. [x] Features to `tests/skills_features.rs`: move the tests of `features.toml` (attribution, commit convention,
    hook-only, file-only, review gate, with `walkdir`, ~265 lines), leaving `skills.rs` at ~790 lines; verified by
    `cardinal run project-check` and `cardinal run file-size` no longer listing `skills.rs`; makes true no requirement. (autonomous)
+3. [x] Fixes of the `high` review: the FEA-34 test, a check of the `issue-workflow` text, moves from the recipes file
+   to `skills_features.rs` (back in `skills.rs` it would push it over 800 lines); `docs/architecture.md` names the
+   two new files; verified by `cardinal run project-check`; makes true no requirement. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -84,5 +87,25 @@ done: the 5 feature tests and `walkdir` moved to `tests/skills_features.rs`; `sk
 
 red: none (a move, no new test)
 Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 3
+done: the FEA-34 test moved to `tests/skills_features.rs`; `docs/architecture.md` names the two new test files.
+
+| check | result |
+|---|---|
+| tests | 17 = 6 (`skills`) + 6 (`skills_features`) + 5 (`skills_recipes`), all pass |
+| lint | clippy clean |
+| specs | traces unchanged (FEA-34 moved with its test) |
+| docs | `docs/architecture.md` updated; `update-docs` over the issue: no other document names the files |
+| code review | high over the issue: 3 findings; low on this deliverable, see below |
+
+red: none (a move, no new test)
+Code review: 3 findings
+- FEA-34 test in the recipes file: fixed, moved to `skills_features.rs`.
+- `docs/architecture.md` named only `tests/skills.rs`: fixed.
+- `session_scratch.rs` keeps its own `repo_root`: not filed: pre-existing and outside this move, no case of drift
+  observed (the same one-line path).
 not verified: none
 decisions needed: none

@@ -63,23 +63,6 @@ fn the_ci_checks_the_specs_only_when_the_recipe_exists() {
     );
 }
 
-// spec: FEA-34
-/// `issue-workflow` keys its spec steps, writing one and tracing a test to it, on `specs/README.md`, which the
-/// feature `specs` leaves out.
-#[test]
-fn the_issue_workflow_writes_specs_only_with_the_specs_readme() {
-    let skill =
-        fs::read_to_string(repo_root().join("files/.claude/skills/issue-workflow/SKILL.md"))
-            .unwrap();
-    let flat = skill.split_whitespace().collect::<Vec<_>>().join(" ");
-    for passage in [
-        "**Spec**, when the issue changes what a capability does, in a project that has `specs/README.md`",
-        "When the capability has a spec and the project has `specs/README.md`, the test proves",
-    ] {
-        assert!(flat.contains(passage), "issue-workflow lacks: {passage}");
-    }
-}
-
 // spec: FEA-19
 /// The recipes of each part a feature may leave out live in a file of their own, which `cardinal/cardinal.just` imports
 /// optionally: `just` loads every recipe with all the files, and the others with any one missing.

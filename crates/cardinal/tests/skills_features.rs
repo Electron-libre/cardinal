@@ -1,5 +1,5 @@
 //! Checks of the features of `features.toml` against the managed content: each feature is the files and the entries
-//! it declares, and a rule a feature may turn off lives in its files alone.
+//! it declares, a rule a feature may turn off lives in its files alone, and a skill keys its steps on a feature file.
 
 mod common;
 
@@ -268,4 +268,21 @@ fn the_review_gate_feature_is_its_hooks_deny_rules_and_waiver_recipe() {
     declared.sort();
     assert_eq!(strings("entries"), declared);
     assert_eq!(strings("files"), ["cardinal/review.just"]);
+}
+
+// spec: FEA-34
+/// `issue-workflow` keys its spec steps, writing one and tracing a test to it, on `specs/README.md`, which the
+/// feature `specs` leaves out.
+#[test]
+fn the_issue_workflow_writes_specs_only_with_the_specs_readme() {
+    let skill =
+        fs::read_to_string(repo_root().join("files/.claude/skills/issue-workflow/SKILL.md"))
+            .unwrap();
+    let flat = skill.split_whitespace().collect::<Vec<_>>().join(" ");
+    for passage in [
+        "**Spec**, when the issue changes what a capability does, in a project that has `specs/README.md`",
+        "When the capability has a spec and the project has `specs/README.md`, the test proves",
+    ] {
+        assert!(flat.contains(passage), "issue-workflow lacks: {passage}");
+    }
 }

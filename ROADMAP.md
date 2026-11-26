@@ -97,10 +97,10 @@ The work done before this file existed is in `issues/done/`.
 - Why: the needs the user listed on 2026-11-24: a milestone is known by its name only, a document is read or edited
   from another terminal, the charts give medians but not how each issue went, and a session started near a limit
   stops half done.
-- State: in issues
+- State: done
 - Issues:
   - [show_the_details_of_a_selected_milestone](issues/done/show_the_details_of_a_selected_milestone.md)
   - [read_the_markdown_documents_from_the_ui](issues/done/read_the_markdown_documents_from_the_ui.md)
   - [chart_the_sessions_of_each_issue_over_time](issues/done/chart_the_sessions_of_each_issue_over_time.md)
-  - [draw_the_sessions_of_each_issue_on_the_charts_screen](issues/draw_the_sessions_of_each_issue_on_the_charts_screen.md)
+  - [draw_the_sessions_of_each_issue_on_the_charts_screen](issues/done/draw_the_sessions_of_each_issue_on_the_charts_screen.md)
   - [show_the_claude_usage_limits_in_the_ui](issues/done/show_the_claude_usage_limits_in_the_ui.md)

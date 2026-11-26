@@ -9,6 +9,8 @@
 //! With `--project <name>`, only the sessions of that project count (BRE-23).
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
+//! Modules: `transcript` (the calls and events of a transcript file), `commits` (the commit messages checked against
+//! the attribution and convention rules).
 
 use super::language::Language;
 use super::scratch_writes;

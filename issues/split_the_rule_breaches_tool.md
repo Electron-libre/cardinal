@@ -57,8 +57,8 @@ test file needs the language and routing checks moved besides the commit ones to
 5. [x] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
    BRE-18) to `tests/rule_breaches_routing.rs` (~165 moved, ~350 counted); `tests/rule_breaches.rs` left at ~680
    lines; verified by the tests and `file-size --all` listing no `rule_breaches` file. (autonomous)
-6. [ ] Docs and high review: the module docs list the modules and the test files; the fixes of the `high` review;
-   verified by `project-check`.
+6. [x] Docs and high review: the module docs list the modules and the test files; the fixes of the `high` review;
+   verified by `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -145,3 +145,20 @@ test file needs the language and routing checks moved besides the commit ones to
 - Code review: no findings (the `low` level skips test hunks: the move checked line by line against the base instead)
 - not verified: nothing
 - decisions needed: none
+
+## Deliverable 6 (docs and high review)
+- done: the module doc of the root lists its modules; the `high` review found the move faithful.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs (`update-docs` on `base..HEAD`) | the module doc of the root; no document names the moved files |
+| code review | high on the issue, low on this deliverable |
+
+- red: none (no new test)
+- Code review: 1 finding (high), pre-existing: `Call::commits` reads any `Bash` call holding the words `git` and
+  `commit` as a commit (BRE-4, BRE-5); not filed: read from the code only, no run or report shows a false finding
+- not verified: nothing
+- decisions needed: none
+
+All deliverables done; nothing left.

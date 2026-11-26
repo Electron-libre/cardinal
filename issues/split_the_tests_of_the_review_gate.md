@@ -45,9 +45,9 @@ and their `// spec:` lines unchanged. Out of scope: any change of a check or of 
 2. [x] Close checks: move `close_passes`, `replace_in`, `close_checks` and the test
    `issues_are_code_with_the_issue_files_off` (it calls `close_passes`) to `review_gate_close.rs`, run by a
    `#[test] review_gate_close`; verified by `just check`; ~470 lines. (autonomous)
-3. [ ] Native checks: move `native_waiver_checks`, `native_checks`, `native_hook_checks`, `native_worktree_checks`
+3. [x] Native checks: move `native_waiver_checks`, `native_checks`, `native_hook_checks`, `native_worktree_checks`
    to `review_gate_native.rs`, run by a `#[test] review_gate_native`; verified by `just check`, `cardinal run
-   file-size --all` no longer listing the file (~640 lines left); ~560 lines.
+   file-size --all` no longer listing the file (~640 lines left); ~560 lines. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -84,6 +84,26 @@ done: `close_passes`, `replace_in`, `close_checks` and the test `issues_are_code
 | lint | clippy clean |
 | specs | `check-specs` ok, `// spec: REV-20` and `FEA-36` moved with their checks |
 | docs | none to change (no document names the test file) |
+| code review | low, see below |
+
+red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 3
+done: `native_waiver_checks`, `native_checks`, `native_hook_checks` and `native_worktree_checks` moved to
+`review_gate_native.rs`, run by `review_gate_native` over `assert_checks`; `review_gate.rs` down to 730 lines, no
+file of the review gate listed by `cardinal run file-size --all`.
+
+| check | result |
+|---|---|
+| tests | the three files: 162 named checks ok, the same names as before the split |
+| lint | clippy clean |
+| specs | `check-specs` ok, `// spec: REV-9`, `REV-10`, `REV-H1` and `REV-11` moved with their checks |
+| docs | none to change |
 | code review | low, see below |
 
 red: none (a move with no new test)

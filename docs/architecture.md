@@ -274,6 +274,8 @@ flowchart LR
   ui -->|"cardinal run roadmap --open --json,<br/>release --json (a milestone done)"| milestones["milestones, awaiting release"]
   ui -->|"git worktree list,<br/>git-path cardinal-session, cardinal-waiting"| worktrees["worktrees, locks, waits"]
   ui -->|"zellij action list-tabs --json"| tabs["tabs of the issues"]
+  statusline["cardinal run status-line<br/>(statusLine of Claude Code)"] -->|"rate_limits"| usage[("cache of the user<br/>cardinal-ui/usage.json")]
+  ui -->|"read with the project"| usage
   ui -->|"notify-send or CARDINAL_UI_NOTIFY<br/>(a new wait)"| desktop["desktop notification"]
   ui -->|"session-metrics, delivered-quality,<br/>cardinal-report --json (at start when over an hour old,<br/>on m of the charts and the measures)"| cache[("cache of the user<br/>cardinal-ui/&lt;project&gt;-&lt;hash&gt;")]
   ui -->|"git merge --ff-only, cardinal check<br/>in the main worktree (merge pending)"| trunk["trunk"]
@@ -283,6 +285,7 @@ flowchart LR
   ui -->|"zellij action new-tab<br/>claude /audit-code (a)"| audit["audit tab in the main worktree"]
   ui -->|"roadmap --open --json, zellij action new-tab<br/>claude /create-issue (c on a milestone)"| cut["tab of the milestone in the main worktree"]
   cache --> screen
+  usage --> screen
   tabs --> screen
   queue --> screen["one screen, read again every 2 s"]
   milestones --> screen

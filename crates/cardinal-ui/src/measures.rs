@@ -289,7 +289,7 @@ pub fn lines(dir: Option<&Path>) -> Vec<String> {
     let seconds = when
         .duration_since(SystemTime::UNIX_EPOCH)
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX));
-    let mut out = vec![format!("measured {}", crate::panels::clock(seconds))];
+    let mut out = vec![format!("measured {}", crate::clock::clock(seconds))];
     out.push("by revision:".to_string());
     out.extend(
         table(&dir.join("efficiency.json"), "Efficiency")

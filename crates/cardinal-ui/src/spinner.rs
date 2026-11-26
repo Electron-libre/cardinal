@@ -68,6 +68,7 @@ mod tests {
             ],
             headings: Vec::new(),
             failed: false,
+            corner: None,
         }
     }
 

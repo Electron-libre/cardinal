@@ -46,10 +46,10 @@ Show the used share and the reset time of the 5-hour and weekly limits in `cardi
    input in `<cache>/cardinal-ui/usage.json` and prints `5h <n>% · 7d <n>%`; README says how to name it as the
    `statusLine` of the user settings; verified by tests through `cardinal run status-line` with a fake `HOME`; makes
    true STL-1 to STL-4 (~400 lines). (autonomous)
-2. [ ] The limits on the worktrees border: a module `crates/cardinal-ui/src/limits.rs` (reads `usage.json`, words the
+2. [x] The limits on the worktrees border: a module `crates/cardinal-ui/src/limits.rs` (reads `usage.json`, words the
    line), drawn at the right end of the top border of the worktrees panel on the screen and in `--print`
    (`panels.rs` is at 798 lines: it only calls the module); verified by `--print` tests with a fake cache; makes true
-   STU-37 (~400 lines).
+   STU-37 (~400 lines). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -78,5 +78,27 @@ Code review: no findings
 
 not verified: a real Claude Code session running `cardinal run status-line` (the input format was read from the
 binary of Claude Code 2.1.332, not observed live).
+
+decisions needed: none
+
+## Deliverable 2
+- done: the worktrees panel ends its top border with the usage limits read from `usage.json` at each read
+  (`limits.rs`), drawn as the mark of SUS-6 through one shared `corner` drawing; `clock` moves to `clock.rs` so
+  `panels.rs` stays under 800 lines.
+
+| check | result |
+|---|---|
+| tests | pass (`tests/print_limits.rs`, 4; 2 internal in `limits.rs`) |
+| lint | pass |
+| specs | pass, `specs/steering-ui.md` accepted again |
+| docs | `docs/usage.md`, `README.md`, `docs/architecture.md` (flow diagram) |
+| code review | low, no findings |
+
+red: STU-H10, STU-37: the top border of the worktrees panel did not end with the limits (`border(&out).ends_with`
+failed in the 4 tests)
+
+Code review: no findings
+
+not verified: the colors of the limits on a real terminal (drawn in `muted`, checked only through `--print`).
 
 decisions needed: none

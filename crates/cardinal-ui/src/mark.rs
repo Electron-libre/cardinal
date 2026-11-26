@@ -2,8 +2,6 @@
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::text::Line;
-use ratatui::widgets::Widget;
 
 use crate::panels::{Panel, QUEUE};
 use crate::theme::{Role, Theme};
@@ -14,23 +12,10 @@ const MARK: &str = " ✦ Cardinal ";
 /// Draws the mark against the right corner of the top border of `p`, the first panel of the screen, over `area` when
 /// `p` is the queue panel and its border holds its title, the mark and one cell of border between them (SUS-6).
 pub(crate) fn draw(p: &Panel, area: Rect, buf: &mut Buffer, theme: &Theme) {
-    if p.title != QUEUE || area.height == 0 {
+    if p.title != QUEUE {
         return;
     }
-    let mark = Line::raw(MARK);
-    let width = u16::try_from(mark.width()).unwrap_or(u16::MAX);
-    // the two corners, ` <title> `, one cell of border and the mark
-    let title = u16::try_from(Line::raw(p.title.as_ref()).width()).unwrap_or(u16::MAX);
-    let needed = title
-        .saturating_add(2)
-        .saturating_add(3)
-        .saturating_add(width);
-    if area.width < needed {
-        return;
-    }
-    let x = area.right() - 1 - width;
-    mark.style(theme.fg(Role::Accent))
-        .render(Rect::new(x, area.y, width, 1), buf);
+    crate::limits::corner(MARK, p, area, buf, theme.fg(Role::Accent));
 }
 
 #[cfg(test)]
@@ -49,6 +34,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         }
     }
 

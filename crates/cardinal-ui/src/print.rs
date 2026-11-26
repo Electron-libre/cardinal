@@ -66,6 +66,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let help = format!("q quit  {}  g charts", "k key".repeat(30));
         let out = text(

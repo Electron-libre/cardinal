@@ -106,6 +106,8 @@ pub struct State {
     pub measure_error: Option<String>,
     /// The charts of the last measure (SUC-2).
     pub charts: [crate::charts::Chart; 4],
+    /// The usage limits of the Claude plan (STU-37).
+    pub limits: String,
 }
 
 /// The `cardinal` to run: `CARDINAL_UI_CARDINAL`, else `cardinal` on the `PATH` (STU-5).
@@ -458,6 +460,7 @@ pub fn read(dir: &Path, measuring: bool, measure_error: Option<String>) -> State
         measuring,
         measure_error,
         charts: crate::charts::charts(cache.as_deref()),
+        limits: crate::limits::read(chrono::Utc::now().timestamp()),
     }
 }
 

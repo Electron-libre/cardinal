@@ -490,6 +490,7 @@ pub(crate) mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         View {
             panels: [panel("Queue"), panel("Worktrees"), panel("Measures")],

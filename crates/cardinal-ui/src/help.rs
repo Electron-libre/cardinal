@@ -289,6 +289,7 @@ mod tests {
             measuring: false,
             measure_error: None,
             charts: crate::charts::charts(None),
+            limits: String::new(),
         };
         let rows: Vec<Row> = ["One", "Two", "Three", "Ghost"]
             .iter()
@@ -361,6 +362,7 @@ mod tests {
             measuring: false,
             measure_error: None,
             charts: crate::charts::charts(None),
+            limits: String::new(),
         };
         let issue = crate::source::Issue {
             stem: "a".into(),

@@ -230,6 +230,7 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
         marks,
         headings: Vec::new(),
         failed: false,
+        corner: None,
     }
 }
 
@@ -250,6 +251,7 @@ pub(crate) fn head(p: &Panel) -> Panel {
         marks: p.marks.iter().filter(|m| m.line < n).cloned().collect(),
         headings: Vec::new(),
         failed: p.failed,
+        corner: None,
     }
 }
 
@@ -427,6 +429,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         render_charts(
             area,
@@ -506,6 +509,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let area = Rect::new(0, 0, 140, 30);
         let mut buf = Buffer::empty(area);
@@ -572,6 +576,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         assert_eq!(head(&panel).lines, ["measured 09:05"]);
     }

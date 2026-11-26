@@ -74,6 +74,7 @@ pub(crate) fn panels<'a>(
         marks: Vec::new(),
         headings: Vec::new(),
         failed: false,
+        corner: None,
     };
     let mut room = usize::from(area.height / 3).max(1);
     let mut panels = vec![shown[0].clone(), summary(room), shown[1].clone()];

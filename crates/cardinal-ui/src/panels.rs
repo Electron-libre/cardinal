@@ -7,6 +7,7 @@ use std::ops::Range;
 
 use ratatui::text::Line;
 
+use crate::clock::clock;
 use crate::keys::Row;
 use crate::source::{Milestone, Milestones, Queue, State, Taken, Worktree};
 use crate::theme::Role;
@@ -25,6 +26,8 @@ pub struct Panel {
     pub headings: Vec<usize>,
     /// Whether it shows the error of STU-6, instead of its content or above it.
     pub failed: bool,
+    /// The text at the right end of its top border: the usage limits of the worktrees panel (STU-37).
+    pub corner: Option<String>,
 }
 
 /// The bytes `range` of the line `line` of a panel, drawn in `role` (SUS-1).
@@ -102,6 +105,7 @@ impl Panel {
             marks: Vec::new(),
             headings: Vec::new(),
             failed,
+            corner: None,
         };
         for (n, line) in lines.into_iter().enumerate() {
             if line.heading {
@@ -366,20 +370,6 @@ fn queue(
     (Panel::of(QUEUE, lines, !errors.is_empty()), selectable)
 }
 
-/// The local time `HH:MM` of `seconds` since the Unix epoch, its date before it when it is not today (STU-13).
-pub fn clock(seconds: i64) -> String {
-    let Some(t) = chrono::DateTime::from_timestamp(seconds, 0) else {
-        return "?".to_string();
-    };
-    let t = t.with_timezone(&chrono::Local);
-    let format = if t.date_naive() == chrono::Local::now().date_naive() {
-        "%H:%M"
-    } else {
-        "%Y-%m-%d %H:%M"
-    };
-    t.format(format).to_string()
-}
-
 fn worktree(w: &Worktree) -> Styled {
     let mut line = Styled::plain(format!(
         "{}  {}",
@@ -444,9 +434,12 @@ pub fn panels(state: &State) -> ([Panel; 3], Vec<(Row, usize)>) {
     let (queue, rows) = queue(&state.milestones, &state.queue, worktrees);
     let panels = [
         queue,
-        panel("Worktrees", &state.worktrees, |ws| {
-            ws.iter().map(worktree).collect()
-        }),
+        Panel {
+            corner: Some(state.limits.clone()),
+            ..panel("Worktrees", &state.worktrees, |ws| {
+                ws.iter().map(worktree).collect()
+            })
+        },
         measures(
             &state.measure,
             state.measuring,

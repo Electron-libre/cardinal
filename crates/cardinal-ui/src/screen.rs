@@ -84,6 +84,7 @@ pub(crate) fn render(
     for (n, (p, area)) in panels.iter().zip(areas.iter()).enumerate() {
         let line = selected.and_then(|(panel, line)| (panel == n).then_some(line));
         draw_panel(p, *area, buf, line, theme);
+        crate::limits::draw(p, *area, buf, theme);
     }
     // the queue is the first panel of the screen: a summary titled `Queue` lower down bears no mark (SUS-6)
     if let (Some(p), Some(area)) = (panels.first(), areas.first()) {
@@ -236,6 +237,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let panels = [
             panel("Queue", &["> b", "  a"]),
@@ -273,6 +275,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let panels = [panel("Queue"), panel("Worktrees"), panel("Measures")];
         let mut status = Status::default();
@@ -309,6 +312,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let panels = [
             panel("Queue", &["> b", "  a"]),
@@ -342,6 +346,7 @@ mod tests {
             marks,
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let ready = crate::panels::Mark {
             line: 0,
@@ -415,6 +420,7 @@ mod tests {
                 Vec::new()
             },
             failed: false,
+            corner: None,
         };
         let ready = |line| crate::panels::Mark {
             line,
@@ -497,6 +503,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let queue = (1..=40).map(|i| format!("  issue{i:02}")).collect();
         let panels = [
@@ -546,6 +553,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let panels = [
             panel("Queue", &["> b"]),
@@ -578,6 +586,7 @@ mod tests {
             marks: Vec::new(),
             headings: Vec::new(),
             failed: false,
+            corner: None,
         };
         let worktrees = (1..=20).map(|i| format!("/ws{i:02}")).collect();
         let panels = [

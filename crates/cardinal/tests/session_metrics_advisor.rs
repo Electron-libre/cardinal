@@ -164,7 +164,7 @@ fn advisor_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 }
 
 #[test]
-fn advisor_columns() {
+fn session_metrics_advisor() {
     let dir = std::path::PathBuf::from("/tools");
     let scratch = tempfile::tempdir().unwrap();
     let tmp = scratch.path().to_path_buf();

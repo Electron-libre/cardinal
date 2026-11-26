@@ -163,7 +163,7 @@ fn advisor_archive_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 }
 
 #[test]
-fn archive() {
+fn session_metrics_archive() {
     let dir = std::path::PathBuf::from("/tools");
     let scratch = tempfile::tempdir().unwrap();
     let tmp = scratch.path().to_path_buf();

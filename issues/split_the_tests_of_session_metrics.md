@@ -47,7 +47,9 @@ to `tests/session_metrics_common/mod.rs`, as `rule_breaches_common/` does, rathe
    `session_metrics_archive.rs`, each with its own `#[test]` over `assert_checks`; verified by `just check`; ~650 lines. (autonomous)
 3. [x] Revision checks: move `commit_at`, `new_repo`, `toml`, `pinned_repo`, `migrated_repo`, `revision_checks` to
    `session_metrics_revision.rs`; verified by `just check`, `cardinal run file-size --all` no longer listing the
-   file; ~460 lines.
+   file; ~460 lines. (autonomous)
+4. [x] Fixes of the `high` review: the tests of the new files named `session_metrics_advisor`, `_archive` and
+   `_revision`, so `cargo test session_metrics` still runs every check; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -105,6 +107,33 @@ done: the revision checks and their pinned repositories moved to `session_metric
 | code review | low, see below |
 
 red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Docs of the whole issue
+`update-docs` on `f453729..HEAD`: n/a, the map row "test code moved or split" applies and no document names the moved
+file.
+
+## High review
+Code review: 2 findings, both fixed in deliverable 4: the new tests escaped the `cargo test session_metrics` filter,
+and `archive` named no tool. Its count of 66 checks came from a filtered run that also caught one check of another
+test file; the four files run 65, as before the split.
+
+## Summary of deliverable 4
+done: the three new tests renamed after their files.
+
+| check | result |
+|---|---|
+| tests | 65 named checks ok, all run by `cargo test session_metrics` |
+| lint | clippy clean |
+| specs | `check-specs` ok |
+| docs | none to change |
+| code review | low, see below |
+
+red: none (a rename with no new test)
 Code review: no findings (`low` skips the test files, the whole of this change)
 
 not verified: none

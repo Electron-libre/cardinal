@@ -237,7 +237,7 @@ fn revision_checks(dir: &Path, tmp: &Path) -> Vec<(&'static str, bool)> {
 }
 
 #[test]
-fn revision_column() {
+fn session_metrics_revision() {
     let dir = std::path::PathBuf::from("/tools");
     let scratch = tempfile::tempdir().unwrap();
     let tmp = scratch.path().to_path_buf();

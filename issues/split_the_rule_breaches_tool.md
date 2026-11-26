@@ -54,9 +54,9 @@ test file needs the language and routing checks moved besides the commit ones to
    (~270 moved, ~560 counted); verified by the same checks passing there. (autonomous)
 4. [x] Language tests: move `FRENCH`, `ENGLISH`, `AN_AS`, `HINT`, `language_checks`, `personal_language_checks`,
    `language_kind_checks` (BRE-10, BRE-13, BRE-14) to `tests/rule_breaches_language.rs` (~205 moved, ~430 counted). (autonomous)
-5. [ ] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
+5. [x] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
    BRE-18) to `tests/rule_breaches_routing.rs` (~165 moved, ~350 counted); `tests/rule_breaches.rs` left at ~680
-   lines; verified by the tests and `file-size --all` listing no `rule_breaches` file.
+   lines; verified by the tests and `file-size --all` listing no `rule_breaches` file. (autonomous)
 6. [ ] Docs and high review: the module docs list the modules and the test files; the fixes of the `high` review;
    verified by `project-check`.
 
@@ -122,6 +122,23 @@ test file needs the language and routing checks moved besides the commit ones to
 | tests, lint, specs (`project-check`) | pass, the 8 language checks green in their own binary |
 | docs | the module docs of both test files |
 | deliverable-size | 437 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings (the `low` level skips test hunks: the move checked line by line against the base instead)
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 5
+- done: the routing checks (BRE-15 to BRE-18) moved to `tests/rule_breaches_routing.rs` with a `#[test]` of their
+  own; `tests/rule_breaches.rs` down to 659 lines, no `rule_breaches` file over 800.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass, the 3 routing checks green in their own binary |
+| docs | the module docs of both test files |
+| deliverable-size | 361 changed lines, within |
+| file-size `--all` | no `rule_breaches` file listed |
 | code review | low |
 
 - red: none (a move, no new test)

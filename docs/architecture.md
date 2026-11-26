@@ -261,7 +261,7 @@ actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), th
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. The lock of each worktree it reads itself, through the rules it shares with `cardinal` in the std-only crate
 `crates/cardinal-state` (the `key value` lines, the stale rule of WSL-1 and STU-7, the main worktree of `git worktree
-list`), so the two never disagree on which
+list`, the cache directory of STU-18 that `cardinal run status-line` writes the usage limits into), so the two never disagree on which
 session holds a worktree ([ADR 0033](adr/0033-the-cli-and-the-ui-share-the-rules-of-the-worktree-state.md)). It drives zellij from outside to start a session on an issue ([ADR
 0031](adr/0031-the-steering-ui-drives-zellij-from-outside.md)), and runs `git merge --ff-only` in the main worktree to
 merge an issue closed on its branch (SUM-1), after `cardinal run rebase-issue` and `project-check` when the branch diverged (SUM-3), its waiting session ended first (SUM-4), then ends the session, the tab and the worktree that issue left (SUE-3), or

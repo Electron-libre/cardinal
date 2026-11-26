@@ -1,7 +1,9 @@
 //! The rules `cardinal` and `cardinal-ui` both apply to the state of a worktree on disk (ADR 0033): the `key value`
 //! lines of a lock, a claim or a mark, and whether the session that wrote a lock or a claim still runs (WSL-1, CLM-11,
-//! STU-7). Runs no git: each binary runs it through its own runner. Depends on nothing but `std`.
+//! STU-7), and the cache directory of `cardinal-ui` (STU-18, STL-3). Runs no git: each binary runs it through its own
+//! runner. Depends on nothing but `std`.
 
+pub mod cache;
 pub mod worktree;
 
 use std::path::Path;

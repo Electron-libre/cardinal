@@ -31,3 +31,52 @@ Cardinal UI
 
 # Hints
 * Never read nor copy the OAuth credentials of Claude Code.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+Show the used share and the reset time of the 5-hour and weekly limits in `cardinal-ui`. Measured on Claude Code
+2.1.332: the status line input carries `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`,
+`resets_at`), so source 1 of the Approach is taken; `/usage` and the transcript estimate are out of scope.
+
+## Plan
+1. [x] `cardinal run status-line`: a tool of `crates/cardinal/src/tools/status_line.rs` that records the limits of its
+   input in `<cache>/cardinal-ui/usage.json` and prints `5h <n>% · 7d <n>%`; README says how to name it as the
+   `statusLine` of the user settings; verified by tests through `cardinal run status-line` with a fake `HOME`; makes
+   true STL-1 to STL-4 (~400 lines). (autonomous)
+2. [ ] The limits on the worktrees border: a module `crates/cardinal-ui/src/limits.rs` (reads `usage.json`, words the
+   line), drawn at the right end of the top border of the worktrees panel on the screen and in `--print`
+   (`panels.rs` is at 798 lines: it only calls the module); verified by `--print` tests with a fake cache; makes true
+   STU-37 (~400 lines).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 229fbcaec1eb63013c3b09405d83294960492456
+- Install: the user names `cardinal run status-line` as the `statusLine` of `~/.claude/settings.json` (README); `sync`
+  never manages it.
+- Place: the right end of the top border of the worktrees panel, as the mark of SUS-6.
+- No chaining of another status line command (non-goal of STL).
+
+## Deliverable 1
+- done: `cardinal run status-line` records the 5-hour and 7-day limits of the status line input in
+  `<cache>/cardinal-ui/usage.json` and prints `5h <n>% · 7d <n>%`; `cardinal_state::cache` holds the cache directory
+  rule both binaries use (the measures of the UI now read it there).
+
+| check | result |
+|---|---|
+| tests | pass (`tests/status_line.rs`, 7; 1 internal) |
+| lint | pass |
+| specs | pass, `specs/status-line.md` accepted |
+| docs | `docs/usage.md`, `README.md`, `docs/architecture.md`, `CLAUDE.md` |
+| code review | low, no findings |
+
+red: STL-H1, STL-1, STL-2, STL-3, STL-4: `cardinal: unknown tool `status-line``, exit 3
+
+Code review: no findings
+
+not verified: a real Claude Code session running `cardinal run status-line` (the input format was read from the
+binary of Claude Code 2.1.332, not observed live).
+
+decisions needed: none

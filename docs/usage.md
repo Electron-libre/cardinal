@@ -282,6 +282,19 @@ project of the current directory (the root of its work tree) in one terminal scr
 The top border of the queue ends with the mark ` ✦ Cardinal ` in `accent`, on the screen and in `--print`, left out when
 the panel is too narrow to hold it next to its title.
 
+The usage limits of the Claude plan (the 5-hour and the weekly one) come from Claude Code alone, which hands them to
+its status line command ([specs/status-line.md](../specs/status-line.md)): name `cardinal run status-line` as the
+`statusLine` of your user settings (`~/.claude/settings.json`), once for every project:
+
+```json
+"statusLine": { "type": "command", "command": "cardinal run status-line" }
+```
+
+After each answer of a session in a project Cardinal manages, it prints `5h 42% · 7d 13%` in Claude Code and records
+both limits in `~/.cache/cardinal-ui/usage.json` (under `XDG_CACHE_HOME` when it is absolute), one file for every
+project since the limits belong to the account; an input with no limit (no subscription, no answer yet) leaves the
+file as it was. It reads no credential and reaches no network.
+
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `i` unfolds, between the queue and the worktrees, a panel titled
 with the title of the selected issue that holds its goal (the `# Goal` section of the issue file of this work tree,

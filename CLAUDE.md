@@ -17,7 +17,7 @@ Cardinal, the shared agent harness (skills, hooks, scripts, recipes, CI) of the 
 - `features.toml`: the features of the managed content a project may turn off (`disabled`, `specs/features.md`).
 - `crates/cardinal/`: the `cardinal` binary (`init`, `sync`, `check`, `update`, `upgrade`, `run` for the tools of `src/tools/`).
 - `crates/cardinal-state/`: the rules `cardinal` and `cardinal-ui` share on the state of a worktree (lock lines, stale
-  rule, `git worktree list` and its main worktree), ADR 0033.
+  rule, `git worktree list` and its main worktree, the cache directory of `cardinal-ui`), ADR 0033.
 - `fixtures/replay/`: the project `just replay <rev> <runs>` copies to run headless (`claude -p`, billed) against a
   revision and grade: its issue is handed with a validated plan, its held-out test is in `grade/` (`skipped_dirs`).
 - `specs/`: what the tool and its shared hooks must do (one file per capability, see `specs/README.md`), traced to

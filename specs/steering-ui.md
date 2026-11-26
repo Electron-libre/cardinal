@@ -1,6 +1,6 @@
 ---
 id: STU
-status: accepted
+status: draft
 adrs: [0011, 0022, 0023, 0030, 0031]
 ---
 
@@ -34,6 +34,8 @@ run several commands nor open each worktree. It changes the project only through
 - **STU-34** (deterministic) withdrawn: moved to SUS-2.
 - **STU-35** (deterministic) withdrawn: moved to SUS-3.
 - **STU-4** (deterministic) `cardinal-ui --print` must print the screen of STU-1 then the panel `Measures` of STU-16 once as text, whole whatever its number of lines, 100 columns wide or as wide as its longest line needs (in display columns), and exit, so a script or a test reads what the user would see.
+
+- **STU-37** (deterministic) The screen of STU-1 and `--print` must show the usage limits of the Claude plan at the right end of the top border of the worktrees panel, as SUS-6 places the mark: `5h used <n>% · resets <HH:MM> · 7d used <n>% · resets <HH:MM> · read <HH:MM>`, from the usage file of STL-3 read at each read of STU-2, `<n>` the `used_percentage` rounded to the nearest integer, the resets its `resets_at` and `read` its `written_at`, in local time, each with its date `<YYYY-MM-DD>` before it when it is not today (as STU-13); a limit the file lacks, or whose `resets_at` has passed, reads `<5h|7d> unknown`, and a usage file that is missing, cannot be read, is not JSON or whose `version` is not `1` reads `limits unknown`; a border too narrow to hold its title, the limits and one cell of border between them shows its title alone.
 
 ### Contract
 
@@ -76,6 +78,9 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - **STU-H9** (happy; STU-29, STU-30) Given `cardinal-ui` running and a session in the worktree of branch `foo`, when
   its turn ends, then within one read the desktop shows `foo waits` with the body `stop`, once, however many reads
   follow while it waits.
+- **STU-H10** (happy; STU-37) Given a session that answered at 12:40 with the 5-hour limit used at 42% until
+  14:30 and the weekly one at 13% until Monday 09:00, when the user looks at `cardinal-ui`, then the worktrees panel
+  reads `5h used 42% · resets 14:30 · 7d used 13% · resets <Monday's date> 09:00 · read 12:40`.
 - (STU-1) Given an issue claimed by a session whose process ended, when `cardinal-ui --print` runs, then the queue shows its claim as ended.
 - (STU-1) Given a milestone with `- On hold: later`, when `cardinal-ui --print` runs, then its row says `on hold`.
 - (STU-6) Given a `cardinal` that exits 3 with `cannot run the tool` on stderr for `roadmap`, when `cardinal-ui --print` runs, then the queue panel reads `roadmap: exit 3: cannot run the tool` above the issues, grouped by the milestones `next-issue` names, the worktrees are shown, and it exits 1.
@@ -155,6 +160,8 @@ The happy paths STU-H2 and STU-H5 to STU-H8 moved to SUA-H1 to SUA-H5 of `specs/
 - (STU-29) Given a waiting worktree that one read could not read, when the next read finds the same mark, then no
   second notification is sent.
 - (STU-29) Given a mark naming another session than the lock's, then no notification is sent.
+- (STU-37) Given no usage file, then the worktrees panel reads `limits unknown`.
+- (STU-37) Given a usage file whose 5-hour limit reset an hour ago, then it reads `5h unknown` before the weekly one.
 - (STU-30) Given a `CARDINAL_UI_NOTIFY` that exits 3 with `no bus` on stderr, when two waits are notified, then the
   status line reads `notify: exit 3: no bus` after the first only.
 

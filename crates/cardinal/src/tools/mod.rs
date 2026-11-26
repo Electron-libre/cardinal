@@ -41,6 +41,7 @@ mod session_scratch;
 mod session_wait;
 mod shell;
 mod spec_coverage;
+mod status_line;
 mod transcripts;
 mod update_notice;
 mod waive_review;
@@ -202,6 +203,11 @@ pub const TOOLS: &[Tool] = &[
         name: "spec-coverage",
         about: "[root]: the test files that cite no requirement of an accepted spec, largest first",
         main: spec_coverage::main,
+    },
+    Tool {
+        name: "status-line",
+        about: "the status line command of Claude Code that records the usage limits of the Claude plan for cardinal-ui",
+        main: status_line::main,
     },
     Tool {
         name: "update-notice",

@@ -26,17 +26,14 @@ const FILES: [&str; 5] = [
 
 /// The cache directory of the measures of the project at `root` (STU-18); `None` without a home directory.
 pub fn directory(root: &Path) -> Option<PathBuf> {
-    let base = std::env::var_os("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .filter(|p| p.is_absolute())
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))?;
+    let base = cardinal_state::cache::ui_dir()?;
     let main = main_worktree(root);
     let key = format!(
         "{}-{:016x}",
         project(root),
         fnv(main.to_string_lossy().as_bytes())
     );
-    Some(base.join("cardinal-ui").join(key))
+    Some(base.join(key))
 }
 
 /// The 64-bit FNV-1a hash of `bytes`: stable across builds, so a project keeps its cache directory (STU-18).

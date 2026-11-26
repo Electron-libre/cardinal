@@ -47,6 +47,10 @@ Out of scope: jumping to the heading of a milestone, a CLI flag.
    `O` (and `o open`, `O edit` in the palette) hand the terminal to it, take it back and show its failure, also while a
    task runs; verified by internal tests on temp dirs with fake programs and a smoke run in a pseudo-terminal; makes
    true SUD-1 to SUD-8 (SUP-1 amended); sets SUD and SUP `accepted`. (autonomous)
+2. [x] Fixes of the `high` review of the issue: the screen ignores `Ctrl+C` and `Ctrl+\\` while the program runs and
+   shows the cursor to it; the documents found at the read, so a draw stats no file; the test scripts written by a
+   child (ETXTBSY); SUD-H2 driven through a milestone; verified by a test whose program signals the screen; makes
+   true SUD-7 (amended), SUD-3, SUD-H2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -72,6 +76,36 @@ red: SUD-4, SUD-5, SUD-6: `error[E0609]: no field document on type &Milestone` (
 Code review: no findings
 
 not verified: a real `glow` (not installed here) and a real `$EDITOR` in the terminal loop.
+
+decisions needed: none.
+
+## Summary of deliverable 2
+done: fixes of the `high` review: the Ctrl+C of the program no longer kills the screen, the cursor is shown to it, the documents are found at the read.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passed (117 UI unit tests) |
+| lint | clippy -D warnings clean; `libc` added to `cardinal-ui` for `signal` |
+| specs | SUD-7 amended (signals) with its scenario, SUD accepted |
+| docs | docs/usage.md (the Ctrl+C of the program) |
+| smoke | the `script` pty run of deliverable 1 again: same path, `<viewer>: exit 3` |
+| code review | `/code-review low` on the fixes: clean |
+
+red: SUD-7: the test process died, `signal: 2, SIGINT: terminal interrupt signal`
+
+Code review: no findings
+
+Findings of the `high` review of `c1e215c..5c2ab9c` (8):
+- Ctrl+C in the program kills the screen: fixed (`Ignored`, after the spawn so the program keeps its own).
+- the hidden cursor in the editor: fixed (`cursor::Show` before the program).
+- ETXTBSY of the test scripts: fixed (written through `cp`).
+- the stat of the document at each draw: fixed (found at the read, checked again at the key).
+- SUD-H2 tested on an issue: fixed (a milestone and `document::of`).
+- a worktree removed between two reads opens no root file until the next read: not filed: it lasts 2 s at most, the next read finds the root file (code read only).
+- two milestones of the same name in two `roadmap` documents open the first: not filed: pre-existing in the rows keyed by name (summary too), no real roadmap holds one.
+- quoted values of `EDITOR`: not filed: SUD-5 splits at whitespace on purpose, no observed value needs quotes.
+
+not verified: a real `glow` and a real `$EDITOR` in the terminal loop; the cursor fix (no editor without its own cnorm at hand).
 
 decisions needed: none.
 

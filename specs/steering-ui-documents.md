@@ -25,7 +25,7 @@ screen for another terminal to do so.
 - **SUD-4** (deterministic) The document of an issue `<stem>` must be `issues/<stem>.md` in the worktree that the claim or the branch that takes it names (NXT-19), when that file exists there, else `issues/<stem>.md` in the root of the project read (STU-5); that of a milestone the `document` of `roadmap --json` (RMP-8) in that root; when it is not a file, `o` and `O` run nothing and say `<path>: no such file` on the status line, and `<name>: no document` for a milestone `roadmap` does not list.
 - **SUD-5** (deterministic) The viewer must be the command of `CARDINAL_UI_VIEWER` when it is set and not blank, else `glow -p` when `glow` is found on the `PATH`, else the command of `PAGER` when it is set and not blank, else `less` when it is found on the `PATH`, the path of the document appended as its last argument (a command split at its whitespace, its first word the program); when none applies, `o` says `o: no viewer: install glow or set CARDINAL_UI_VIEWER` and runs nothing.
 - **SUD-6** (deterministic) The editor must be the command of `VISUAL` when it is set and not blank, else that of `EDITOR`, else `xdg-open` when it is found on the `PATH`, the path appended as SUD-5 says; when none applies, `O` says `O: no editor: set VISUAL or EDITOR` and runs nothing.
-- **SUD-7** (deterministic) A viewer or an editor that exits non-zero must leave on the status line `<program>: exit <n>`, one that cannot start `<program>: cannot run: <error>`, the screen drawn again in both cases; one that exits 0 leaves the status line as it was.
+- **SUD-7** (deterministic) A viewer or an editor that exits non-zero must leave on the status line `<program>: exit <n>`, one that cannot start `<program>: cannot run: <error>`, the screen drawn again in both cases, also after a `Ctrl+C` or a `Ctrl+\` typed in the program, which never reaches the screen; one that exits 0 leaves the status line as it was.
 - **SUD-8** (deterministic) `o` and `O` must act also while a task runs (SUA-6), which goes on meanwhile: its result is shown on the status line, or printed once the terminal is given back when the user quit during it, as if no program had run.
 
 ## Scenarios
@@ -50,6 +50,8 @@ screen for another terminal to do so.
 - (SUD-6) Given `VISUAL` unset and `EDITOR="code --wait"`, then `O` runs `code --wait <path>`; given neither and no
   `xdg-open`, it says `O: no editor: set VISUAL or EDITOR`.
 - (SUD-7) Given a viewer that exits 2, when it ends, then the status line reads `<program>: exit 2` over the panels.
+- (SUD-7) Given a task running and `less` open, when the user presses `Ctrl+C` in it, then `less` handles it and
+  the screen and its task go on.
 - (SUD-3) Given the selection on a worktree, then the palette lists neither `o open` nor `O edit`; given an issue
   selected and a merge running, it lists `i summary`, `o open` and `O edit` and no task.
 - (SUD-8) Given a start running, when the user presses `o`, reads for a while and quits the viewer, then the status

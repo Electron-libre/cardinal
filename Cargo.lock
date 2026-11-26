@@ -129,6 +129,7 @@ version = "0.1.0"
 dependencies = [
  "cardinal-state",
  "chrono",
+ "libc",
  "ratatui",
  "serde_json",
  "tempfile",

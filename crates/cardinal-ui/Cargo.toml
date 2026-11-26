@@ -8,6 +8,7 @@ description = "Cardinal UI: the state of a project driven by Cardinal in one ter
 [dependencies]
 cardinal-state = { path = "../cardinal-state" }
 chrono = "0.4"
+libc = "0.2"
 ratatui = "0.29"
 serde_json = "1"
 

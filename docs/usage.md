@@ -312,7 +312,8 @@ issue file, in the worktree of the session that takes it when it holds one, or t
 milestone), and `O` to an editor, the screen drawn again once the program exits, a task running meanwhile ([ADR
 0034](adr/0034-the-steering-ui-hands-its-terminal-to-the-viewer-and-the-editor.md)): the viewer is the command of
 `CARDINAL_UI_VIEWER`, else `glow -p`, else `$PAGER`, else `less`; the editor `$VISUAL`, else `$EDITOR`, else
-`xdg-open`; one that exits non-zero leaves `<program>: exit <n>` on the status line. `cardinal-ui --print`
+`xdg-open`; one that exits non-zero leaves `<program>: exit <n>` on the status line, and a `Ctrl+C` typed in it stays
+its own. `cardinal-ui --print`
 prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of

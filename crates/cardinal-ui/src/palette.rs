@@ -300,8 +300,6 @@ mod tests {
             !crate::help::line(&v, queue, false).contains("open"),
             "the help line lists neither"
         );
-        std::fs::remove_file(&doc).unwrap();
-        assert!(!labels(&commands(Some(&v), queue, false)).contains(&"O edit".to_string()));
         v.documents = vec![Err("One: no document".to_string())];
         assert!(!labels(&commands(Some(&v), queue, false)).contains(&"o open".to_string()));
     }

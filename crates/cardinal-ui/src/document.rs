@@ -47,7 +47,15 @@ pub(crate) fn command(
 /// when it exits 0 (SUD-7).
 pub(crate) fn run(words: &[String]) -> Option<Status> {
     let (program, args) = words.split_first()?;
-    let line = match std::process::Command::new(program).args(args).status() {
+    let ran = std::process::Command::new(program)
+        .args(args)
+        .spawn()
+        .and_then(|mut child| {
+            // after the spawn, so the program keeps its own Ctrl+C
+            let _ignored = Ignored::signals();
+            child.wait()
+        });
+    let line = match ran {
         Ok(status) if status.success() => return None,
         Ok(status) => match status.code() {
             Some(code) => format!("{program}: exit {code}"),
@@ -58,7 +66,28 @@ pub(crate) fn run(words: &[String]) -> Option<Status> {
     Some(Status::new(line, Kind::Error))
 }
 
-/// The documents of the rows `rows` of the queue, in their order: the path of each, or why it has none (SUD-4).
+/// The Ctrl+C and Ctrl+\\ of the terminal ignored by the screen while it lives, as `system(3)` does: the program the
+/// terminal is handed to shares its foreground group, so their signals reach the screen too (SUD-7).
+struct Ignored([libc::sighandler_t; 2]);
+
+impl Ignored {
+    fn signals() -> Self {
+        // SAFETY: `signal` with `SIG_IGN` installs no handler of ours; the previous ones are restored on drop
+        Self([libc::SIGINT, libc::SIGQUIT].map(|s| unsafe { libc::signal(s, libc::SIG_IGN) }))
+    }
+}
+
+impl Drop for Ignored {
+    fn drop(&mut self) {
+        for (s, before) in [libc::SIGINT, libc::SIGQUIT].into_iter().zip(self.0) {
+            // SAFETY: puts back the disposition `signals` replaced
+            unsafe { libc::signal(s, before) };
+        }
+    }
+}
+
+/// The documents of the rows `rows` of the queue, in their order: the path of each, or why it has none, a path that
+/// is no file included (SUD-4); the palette offers `o` and `O` on the found ones (SUD-3), the key checks again.
 pub(crate) fn of(
     root: &Path,
     queue: Option<&Queue>,
@@ -87,6 +116,7 @@ pub(crate) fn of(
                     .ok_or_else(|| format!("{name}: no document"))
             }
         })
+        .map(|found| existing(&found).map(Path::to_path_buf))
         .collect()
 }
 
@@ -249,7 +279,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn milestone(name: &str, document: Option<&str>) -> Milestone {
+    pub(crate) fn milestone(name: &str, document: Option<&str>) -> Milestone {
         Milestone {
             name: name.to_string(),
             state: None,
@@ -299,46 +329,54 @@ pub(crate) mod tests {
             .map(|s| Row::Issue((*s).to_string()))
             .chain(["One", "Two", "Ghost"].map(|m| Row::Milestone(m.to_string())))
             .collect();
-        let found = of(root.path(), Some(&queue), &ms, &rows);
         let r = root.path();
+        std::fs::create_dir(r.join("issues")).unwrap();
+        for file in ["issues/bar.md", "issues/baz.md", "ROADMAP.md"] {
+            std::fs::write(r.join(file), "# x\n").unwrap();
+        }
         assert_eq!(
-            found,
+            of(r, Some(&queue), &ms, &rows),
             [
                 Ok(w.path().join("issues/foo.md")),
                 Ok(r.join("issues/bar.md")),
                 Ok(r.join("issues/baz.md")),
-                Ok(r.join("issues/qux.md")),
+                Err(format!(
+                    "{}: no such file",
+                    r.join("issues/qux.md").display()
+                )),
                 Ok(r.join("ROADMAP.md")),
                 Err("Two: no document".to_string()),
                 Err("Ghost: no document".to_string()),
             ]
         );
+        let gone = Ok(r.join("issues/gone.md"));
         assert_eq!(
-            existing(&found[0]),
-            Ok(w.path().join("issues/foo.md").as_path())
-        );
-        assert_eq!(
-            existing(&found[3]),
+            existing(&gone),
             Err(format!(
                 "{}: no such file",
-                r.join("issues/qux.md").display()
-            ))
+                r.join("issues/gone.md").display()
+            )),
+            "checked again at the key"
         );
-        assert_eq!(existing(&found[5]), Err("Two: no document".to_string()));
     }
 
     /// A script `name` in `dir` that writes its arguments to `<dir>/<name>.args` and exits `code`.
     pub(crate) fn recorder(dir: &Path, name: &str, code: i32) -> String {
         let file = dir.join(name);
         let args = dir.join(format!("{name}.args"));
-        std::fs::write(
-            &file,
-            format!(
-                "#!/bin/sh\necho \"$@\" > '{}'\nexit {code}\n",
-                args.display()
-            ),
-        )
-        .unwrap();
+        // written by a child, so no fork of a parallel test inherits an open write of it (ETXTBSY at its exec)
+        let draft = dir.join(format!("{name}.draft"));
+        let script = format!(
+            "#!/bin/sh\necho \"$@\" > '{}'\nexit {code}\n",
+            args.display()
+        );
+        std::fs::write(&draft, script).unwrap();
+        let copied = std::process::Command::new("cp")
+            .arg(&draft)
+            .arg(&file)
+            .status()
+            .unwrap();
+        assert!(copied.success());
         std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755)).unwrap();
         file.display().to_string()
     }
@@ -364,6 +402,17 @@ pub(crate) mod tests {
         assert_eq!(
             line,
             Status::new(format!("{missing}: cannot run: {error}"), Kind::Error)
+        );
+    }
+
+    // spec: SUD-7 (internal: the signals of the terminal reach the screen only in a real terminal)
+    #[test]
+    fn the_ctrl_c_of_the_program_does_not_kill_the_screen() {
+        let words = ["sh", "-c", "kill -INT $PPID; kill -QUIT $PPID; exit 4"].map(str::to_string);
+        assert_eq!(
+            run(&words),
+            Some(Status::new("sh: exit 4", Kind::Error)),
+            "the screen lived through the signals of its terminal"
         );
     }
 

@@ -166,6 +166,8 @@ fn hand_over<T>(
 ) -> std::io::Result<T> {
     use ratatui::crossterm::{execute, terminal as tty};
     ratatui::restore();
+    // the draws hid it, and an editor that does not show it again would hide where it edits
+    execute!(std::io::stdout(), ratatui::crossterm::cursor::Show)?;
     let ran = run();
     tty::enable_raw_mode()?;
     execute!(std::io::stdout(), tty::EnterAlternateScreen)?;
@@ -447,9 +449,13 @@ mod tests {
 
     // spec: SUD-H2 (internal: the program takes the terminal of a screen that needs a real terminal)
     #[test]
-    fn the_palette_edits_the_document_in_the_editor() {
+    fn the_palette_edits_the_roadmap_document_of_the_selected_milestone() {
         let dir = tempfile::tempdir().unwrap();
-        let v = with_document(dir.path());
+        std::fs::write(dir.path().join("ROADMAP.md"), "## One\n").unwrap();
+        let mut v = view(&[], &[]);
+        v.rows = vec![crate::keys::Row::Milestone("One".to_string())];
+        let one = crate::document::tests::milestone("One", Some("ROADMAP.md"));
+        v.documents = crate::document::of(dir.path(), None, &[one], &v.rows);
         let vi = crate::document::tests::recorder(dir.path(), "vi", 0);
         let vars = crate::document::Vars {
             editor: Some(vi),
@@ -470,6 +476,9 @@ mod tests {
         let words = crate::document::command(&action, Selection::default(), Some(&v), &vars);
         assert_eq!(crate::document::run(&words.unwrap().unwrap()), None);
         let args = std::fs::read_to_string(dir.path().join("vi.args")).unwrap();
-        assert_eq!(args.trim(), dir.path().join("foo.md").display().to_string());
+        assert_eq!(
+            args.trim(),
+            dir.path().join("ROADMAP.md").display().to_string()
+        );
     }
 }

@@ -45,7 +45,7 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_rule_breaches_tool](issues/done/split_the_rule_breaches_tool.md)
   - [split_the_tests_of_the_skills](issues/split_the_tests_of_the_skills.md)
   - [split_the_tests_of_the_review_gate](issues/split_the_tests_of_the_review_gate.md)
-  - [split_the_tests_of_session_metrics](issues/split_the_tests_of_session_metrics.md)
+  - [split_the_tests_of_session_metrics](issues/done/split_the_tests_of_session_metrics.md)
   - [split_the_tests_of_the_cardinal_report_tool](issues/split_the_tests_of_the_cardinal_report_tool.md)
 
 ## User control

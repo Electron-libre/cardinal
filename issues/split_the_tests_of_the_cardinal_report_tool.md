@@ -54,10 +54,10 @@ Means: the issue's; each new file gets its own `#[test]` that chains its checks,
    `verdict_edge_checks`, `issue_floor_checks`, `ratio_floor_checks`, `shape_floor_checks`, `advisor_verdict_checks`
    and a `cardinal_verdicts` test (~410 lines, ~850 changed); verified by `cardinal run project-check`; makes true no
    requirement. (autonomous)
-3. [ ] REP-14 to REP-18 checks to `tests/cardinal_report_groups.rs`: `setup_sessions`, `setup_inputs`, `setup_checks`,
+3. [x] REP-14 to REP-18 checks to `tests/cardinal_report_groups.rs`: `setup_sessions`, `setup_inputs`, `setup_checks`,
    `last_checks`, `project_checks` and a `cardinal_report_groups` test (~280 lines, ~580 changed), leaving
    `cardinal_report.rs` at ~580 lines; verified by `cardinal run project-check` and `cardinal run file-size --all` no
-   longer listing it; makes true no requirement.
+   longer listing it; makes true no requirement. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -91,6 +91,25 @@ them; `cardinal_report.rs` at 839 lines.
 | lint | clippy clean |
 | specs | traces unchanged (VRD-1, VRD-5, VRD-6, VRD-7, VRD-9, VRD-10 to VRD-14, VRD-H2 moved with their checks) |
 | docs | nothing to change |
+| code review | low, see below |
+
+red: none (a move, no new test)
+Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 3
+done: `setup_sessions`, `setup_inputs` and the REP-14 to REP-18 checks moved to `tests/cardinal_report_groups.rs` (305
+lines) with a `cardinal_report_groups` test; `cardinal_report.rs` at 556 lines; the doc comment of the common module
+names the three files.
+
+| check | result |
+|---|---|
+| tests | 87 checks = `cardinal_report` + `cardinal_verdicts` + `cardinal_report_groups`, all `ok` |
+| lint | clippy clean |
+| specs | traces unchanged (REP-14 to REP-18 moved with their checks) |
+| docs | nothing else cites these files |
+| file size | `cardinal_report.rs` no longer listed by `cardinal run file-size --all` |
 | code review | low, see below |
 
 red: none (a move, no new test)

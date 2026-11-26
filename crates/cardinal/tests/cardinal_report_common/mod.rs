@@ -1,5 +1,5 @@
-//! Helpers of the tests of `cardinal tool cardinal-report` (`cardinal_report.rs`): the fixture TSV files, the runs of
-//! the tool and the tables of its report.
+//! Helpers of the tests of `cardinal tool cardinal-report` (`cardinal_report.rs`, `cardinal_verdicts.rs`,
+//! `cardinal_report_groups.rs`): the fixture TSV files, the runs of the tool and the tables of its report.
 #![allow(dead_code)]
 
 use std::collections::HashMap;

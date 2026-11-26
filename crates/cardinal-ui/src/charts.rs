@@ -236,7 +236,7 @@ pub fn panel(chart: &Chart, width: usize) -> Panel {
 }
 
 /// The help line under the charts (SUC-1).
-const CHARTS_HELP: &str = "q quit  r refresh  m measure  g measures";
+const CHARTS_HELP: &str = "q quit  r refresh  m measure  t series  g measures";
 
 /// The lines of the `Measures` panel `p` before its groups: the error of the last measure, `measured` or `measuring…`
 /// (SUC-2).
@@ -593,6 +593,65 @@ mod tests {
         assert!(one.contains("2 issues"), "{one}");
         assert!(screen.contains("1.71 7 reviews"), "{screen}");
         assert!(rows.last().unwrap().contains("g measures"), "{screen}");
+    }
+
+    /// The charts of `screen_measure()` rendered in 140 by `rows` cells, the band from the series `first`.
+    fn short_screen(rows: u16, first: usize) -> Vec<String> {
+        let dir = screen_measure();
+        let head = Panel {
+            title: "Measures".into(),
+            lines: vec!["measured 19:23".to_string()],
+            marks: Vec::new(),
+            headings: Vec::new(),
+            failed: false,
+            corner: None,
+        };
+        let area = Rect::new(0, 0, 140, rows);
+        let mut buf = Buffer::empty(area);
+        let issues = timeline::read(Some(dir.path()));
+        let charts = (&charts(Some(dir.path())), &issues, first);
+        render_charts(
+            area,
+            &mut buf,
+            &head,
+            charts,
+            &Status::default(),
+            &Theme::default(),
+        );
+        rows_of(&buf)
+    }
+
+    // spec: SUC-H2, SUC-9 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn t_shows_the_next_series_when_the_band_holds_one() {
+        use crate::keys::{action, screen_key, Action, Screen};
+        let screen = short_screen(20, 0).join("\n");
+        assert!(screen.contains("time  max 1h00m  last 15m"), "{screen}");
+        assert!(screen.contains("2026-11-24 2026-11-26"), "{screen}");
+        assert!(!screen.contains("input tokens"), "one series: {screen}");
+        assert!(screen.contains("t series"), "{screen}");
+        let press = ratatui::crossterm::event::KeyEvent::new(
+            ratatui::crossterm::event::KeyCode::Char('t'),
+            ratatui::crossterm::event::KeyModifiers::NONE,
+        );
+        let (shown, key) = screen_key(Screen::Charts, action(&press));
+        assert_eq!((shown, key), (Screen::Charts, Action::Series));
+        let screen = short_screen(20, timeline::next(0)).join("\n");
+        assert!(screen.contains("input tokens  max -  last -"), "{screen}");
+        assert!(!screen.contains("time  max"), "{screen}");
+        assert_eq!(
+            timeline::next(timeline::COUNT - 1),
+            0,
+            "after findings, time"
+        );
+    }
+
+    // spec: SUC-9 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn the_charts_give_up_their_rows_to_one_series() {
+        let screen = short_screen(14, 3).join("\n");
+        assert!(screen.contains("fixes after  max -  last -"), "{screen}");
+        assert!(screen.contains("findings per review"), "{screen}");
     }
 
     // spec: SUC-2, SUC-7 (internal: the charts screen is drawn only in the terminal)

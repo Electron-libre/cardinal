@@ -86,6 +86,11 @@ pub fn fitting(rows: u16) -> usize {
     (usize::from(rows).saturating_sub(3) / SERIES_ROWS).clamp(1, COUNT)
 }
 
+/// The series picked after `first`: after the last one, the first (SUC-9).
+pub fn next(first: usize) -> usize {
+    (first + 1) % COUNT
+}
+
 /// `value` as its series writes it (SUC-8).
 fn shown(value: Option<f64>, unit: Unit) -> String {
     let Some(v) = value else {

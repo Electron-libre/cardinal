@@ -46,9 +46,9 @@ Means: the bars are columns of eighths drawn by hand (as SUC-3), not a ratatui `
    in eighths, `·` for an empty cell, `max`/`last` in units, closing days); `render_charts` puts it under the charts,
    all the series that fit from `time`; verified by internal tests of `timeline.rs` and of the charts screen; makes
    true SUC-2, SUC-7, SUC-8. (~450 lines) (autonomous)
-2. [ ] The pick of the series: `t` on the charts screen picks the next series, the band showing it first then the
+2. [x] The pick of the series: `t` on the charts screen picks the next series, the band showing it first then the
    following ones, the charts giving up rows for at least one series, `t series` on the help line; verified by tests
-   of `keys.rs` and of the charts screen; makes true SUC-1, SUC-9, SUC-H2; the spec `accepted`. (~200 lines)
+   of `keys.rs` and of the charts screen; makes true SUC-1, SUC-9, SUC-H2; the spec `accepted`. (~200 lines) (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -75,4 +75,24 @@ Means: the bars are columns of eighths drawn by hand (as SUC-3), not a ratatui `
 - Code review: 1 finding: a count from 999,500 to 999,999 tokens written `1000k` (fixed: written `1.0M`).
 - not verified: the band in a real terminal (drawn from the real `issues.tsv` of this repository in a test buffer:
   297 issues, the 120 newest shown).
+- decisions needed: none
+
+## Deliverable 2
+
+- done: `t` on the charts screen picks the next series of the band (after `findings`, `time`), kept over the reads;
+  `t series` on the help line; the spec `accepted`; `docs/usage.md`, `docs/architecture.md` updated.
+
+| check | result |
+|---|---|
+| tests | pass (`keys.rs`, `charts.rs`) |
+| lint | pass |
+| specs | pass (SUC-1, SUC-9, SUC-H2 traced; spec accepted) |
+| docs | updated |
+| code review | low |
+
+- red: SUC-1, SUC-9, SUC-H2: `no variant ... named Series found for enum keys::Action`, `cannot find function next in
+  module timeline`.
+- Code review: no findings
+- not verified: `t` in a real terminal (the key path is tested through `action` and `screen_key`, the drawing in a
+  test buffer).
 - decisions needed: none

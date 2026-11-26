@@ -134,6 +134,8 @@ pub enum Action {
     Cut,
     Measure,
     Charts,
+    /// `t`: picks the next series of the band by issue of the charts (SUC-9).
+    Series,
     /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
     Summary,
     /// `o`: reads the document of the selected row in the viewer (SUD-1).
@@ -246,6 +248,7 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('c') => Action::Cut,
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
+        KeyCode::Char('t') => Action::Series,
         KeyCode::Char('i') => Action::Summary,
         KeyCode::Char('o') => Action::Open,
         KeyCode::Char('O') => Action::Edit,
@@ -264,16 +267,17 @@ pub(crate) enum Screen {
 
 /// The screen shown after `action` on `shown`, and what it then does (SUC-1): `g` goes from the panels to the charts,
 /// to the measures and back to the panels; on the charts and the measures `Esc` goes back to the panels and only the
-/// keys of the reads and of the measures act, so the selection and the tasks wait; on the panels `Esc` quits and
-/// `m` does nothing.
+/// keys of the reads and of the measures act, and `t` on the charts, so the selection and the tasks wait; on the
+/// panels `Esc` quits and `m` and `t` do nothing.
 pub(crate) fn screen_key(shown: Screen, action: Action) -> (Screen, Action) {
     match (shown, action) {
         (Screen::Panels, Action::Charts) => (Screen::Charts, Action::Nothing),
         (Screen::Charts, Action::Charts) => (Screen::Measures, Action::Nothing),
+        (Screen::Charts, Action::Series) => (Screen::Charts, Action::Series),
         (Screen::Panels, Action::Back) => (Screen::Panels, Action::Quit),
         // back to the panels from the last screen of `g` or on `Esc`; no measure from the panels
         (Screen::Measures, Action::Charts)
-        | (Screen::Panels, Action::Measure)
+        | (Screen::Panels, Action::Measure | Action::Series)
         | (_, Action::Back) => (Screen::Panels, Action::Nothing),
         (s, a @ (Action::Quit | Action::Refresh | Action::Measure)) => (s, a),
         (Screen::Panels, a) => (Screen::Panels, a),
@@ -541,6 +545,12 @@ pub(crate) mod tests {
             screen_key(Measures, Action::Charts),
             (Panels, Action::Nothing)
         );
+        // `t` picks a series on the charts only (SUC-9)
+        assert_eq!(action(&press(KeyCode::Char('t'))), Action::Series);
+        assert_eq!(screen_key(Charts, Action::Series), (Charts, Action::Series));
+        for shown in [Panels, Measures] {
+            assert_eq!(screen_key(shown, Action::Series), (shown, Action::Nothing));
+        }
         for shown in [Charts, Measures] {
             for idle in [
                 Action::Start,

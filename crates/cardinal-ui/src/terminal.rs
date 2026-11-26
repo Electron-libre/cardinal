@@ -228,6 +228,8 @@ pub fn run(
         let mut busy = false;
         let mut quitting = false;
         let mut shown = Screen::Panels;
+        // the series the band by issue shows first, kept over the reads (SUC-9)
+        let mut series = 0;
         let mut unfolded = false;
         let mut palette = None;
         let started = Instant::now();
@@ -254,7 +256,7 @@ pub fn run(
                 // the mark at work turns at each tick, a read or not (SUQ-4)
                 spinner::turn(&mut v.panels[0], spinner::frame(started.elapsed()));
             }
-            let state = (selected, shown, busy, unfolded, palette.as_ref());
+            let state = (selected, shown, busy, unfolded, palette.as_ref(), series);
             terminal.draw(|f| draw(f, view.as_ref(), state, &status, &theme))?;
             if event::poll(TICK)? {
                 if let Event::Key(key) = event::read()? {
@@ -277,6 +279,7 @@ pub fn run(
                     match key {
                         Action::Quit | Action::Charts => {}
                         Action::Refresh => schedule.asked = true,
+                        Action::Series => series = crate::timeline::next(series),
                         Action::Palette if view.is_some() => palette = Some(Palette::default()),
                         Action::Next => next(view.as_ref(), &mut selected, &mut status),
                         Action::Summary => {

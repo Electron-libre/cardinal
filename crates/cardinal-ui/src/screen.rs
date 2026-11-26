@@ -176,7 +176,14 @@ fn offset(selected: usize, rows: u16) -> u16 {
 pub(crate) fn draw(
     f: &mut ratatui::Frame,
     view: Option<&View>,
-    (selected, shown, busy, unfolded, palette): (Selection, Screen, bool, bool, Option<&Palette>),
+    (selected, shown, busy, unfolded, palette, series): (
+        Selection,
+        Screen,
+        bool,
+        bool,
+        Option<&Palette>,
+        usize,
+    ),
     status: &Status,
     theme: &Theme,
 ) {
@@ -185,7 +192,7 @@ pub(crate) fn draw(
         let buf = f.buffer_mut();
         match shown {
             Screen::Charts => {
-                let charts = (&v.charts, &v.issues, 0);
+                let charts = (&v.charts, &v.issues, series);
                 render_charts(area, buf, &head(&v.panels[2]), charts, status, theme);
             }
             Screen::Measures => {
@@ -639,7 +646,7 @@ mod tests {
                 draw(
                     f,
                     Some(&v),
-                    (selected, shown, false, false, None),
+                    (selected, shown, false, false, None, 0),
                     &Status::default(),
                     &Theme::default(),
                 );

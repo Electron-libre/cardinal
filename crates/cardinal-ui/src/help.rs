@@ -96,7 +96,7 @@ fn cuttable(state: &State, row: &Row) -> bool {
 }
 
 /// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
-/// action, in the order of SUA-15: `i summary` with the selection on an issue of the queue (SUQ-6), `n next` while
+/// action, in the order of SUA-15: `i summary` with the selection on an issue or a milestone of the queue (SUQ-6), `n next` while
 /// the issue `next-issue` offers is not selected (STU-36), then the keys of the tasks that would act, none while one
 /// runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
 pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str, Action)> {
@@ -268,7 +268,9 @@ mod tests {
         let m = |name: &str, state: &str| Milestone {
             name: name.to_string(),
             state: Some(state.to_string()),
-            on_hold: false,
+            on_hold: None,
+            goal: None,
+            why: None,
             open: 0,
             listed: 0,
             awaits_release: false,
@@ -341,7 +343,9 @@ mod tests {
         let milestone = || Milestone {
             name: "New".into(),
             state: Some("done".into()),
-            on_hold: false,
+            on_hold: None,
+            goal: None,
+            why: None,
             open: 0,
             listed: 1,
             awaits_release: true,

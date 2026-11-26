@@ -509,7 +509,7 @@ pub(crate) mod tests {
                 .map(|s| {
                     Some(crate::summary::Summary {
                         title: (*s).to_string(),
-                        goal: None,
+                        text: "no goal".to_string(),
                     })
                 })
                 .collect(),

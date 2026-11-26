@@ -62,7 +62,8 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     let (panels, rows) = panels::panels(&state);
     let (rows, row_lines): (Vec<keys::Row>, _) = rows.into_iter().unzip();
     let keys = help::Keys::of(&state, &rows, source::in_zellij());
-    let summaries = summary::of(state.queue.as_ref().ok(), &rows);
+    let milestones = state.milestones.as_ref().map_or(&[][..], |m| &m.list[..]);
+    let summaries = summary::of(state.queue.as_ref().ok(), milestones, &rows);
     screen::View {
         panels,
         rows,

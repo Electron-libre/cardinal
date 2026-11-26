@@ -101,9 +101,10 @@ fn in_zellij_an_empty_queue_offers_only_the_keys_that_always_work() {
     let cardinal = p.cardinal(&ok(empty), &ok(ROADMAP));
     let zellij = p.zellij("[]", 0);
     let (_, out, _) = ui_in(&p.repo, &cardinal, Some(&zellij), &["--print"]);
+    // the selection rests on the heading of `One`, whose summary `i` unfolds (SUQ-6)
     assert_eq!(
         help(&out),
-        ": commands  ↑↓ select  tab panel  q quit",
+        ": commands  ↑↓ select  tab panel  q quit  i summary",
         "{out}"
     );
 }

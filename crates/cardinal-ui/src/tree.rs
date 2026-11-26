@@ -173,7 +173,9 @@ mod tests {
         Milestone {
             name: name.to_string(),
             state: Some("in issues".to_string()),
-            on_hold: false,
+            on_hold: None,
+            goal: None,
+            why: None,
             open: 0,
             listed: 0,
             awaits_release: false,

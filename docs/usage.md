@@ -303,8 +303,10 @@ them leaves out the `read` time, then shows its title alone, and `--print` widen
 It reads the project again every 2 seconds and on `r`, on a thread of its own so a slow `cardinal run` (a build of
 a local source) never keeps a key from being answered, and quits on `q`, `Esc` (from the panels) or `Ctrl+C`. `i` unfolds, between the queue and the worktrees, a panel titled
 with the title of the selected issue that holds its goal (the `# Goal` section of the issue file of this work tree,
-its code blocks left out, a row per paragraph and list item, wrapped, at most a third of the screen) and folds it again; folded when the screen starts, it follows the selection
-and waits while the selection is in the worktrees or on a milestone. `cardinal-ui --print`
+its code blocks left out, a row per paragraph and list item, wrapped, at most a third of the screen), or, on the heading
+of a milestone, titled with its name and holding its state (with the reason of its hold), its `Goal:` and its `Why:`,
+and folds it again; folded when the screen starts, it follows the selection and waits while the selection is in the
+worktrees. `cardinal-ui --print`
 prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
@@ -402,7 +404,7 @@ then `cardinal run project-check` in the worktree of the branch, and merges only
 the rebase aborted, and a failing project check keeps the rebase but merges nothing. The status line says what was merged or
 why nothing was; `s`, `f`, `e`, `c`, `E`, `v`, `p` and `a` start nothing, and show no refusal, while a start, a merge, an end, a release start, a review start, an audit start or a cut start runs, and `q` then quits once it
 ended, printing the result of that task. The next
-read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue of the queue, `n` while the issue `next-issue` offers is not selected, and only
+read drops the claim (CLM-6). The help line under the panels offers `: commands`, the arrows, `Tab` and `q`, then `i` on an issue or a milestone of the queue, `n` while the issue `next-issue` offers is not selected, and only
 the keys of the tasks that would act on what is selected: `s` on an issue it would start (in zellij), `f` on an issue `merge
 pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the issue
 the screen opens on. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone

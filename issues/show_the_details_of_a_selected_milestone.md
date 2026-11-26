@@ -42,9 +42,9 @@ sharing the one fold state of the issue summary. Out of scope: the issues of the
 ## Plan
 1. [x] `roadmap --json` goal and why: each milestone gains `goal` and `why`, a field continued by its indented lines;
    verified by a test of `tests/roadmap.rs` through the binary; makes true RMP-8 (amended), RMP-7. (autonomous)
-2. [ ] Summary of a milestone: `source` reads `goal`, `why` and the hold reason, `summary::of` builds the summary of
+2. [x] Summary of a milestone: `source` reads `goal`, `why` and the hold reason, `summary::of` builds the summary of
    a heading (state, goal, why paragraphs), the help line offers `i summary` on it; verified by screen tests of
-   `summary.rs` and `help.rs`; makes true SUQ-6, SUQ-7, SUA-15 (amended).
+   `summary.rs` and `help.rs`; makes true SUQ-6, SUQ-7, SUA-15 (amended). (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -67,3 +67,23 @@ red: RMP-7, RMP-8: `left: Null, right: "make a work well"` (no `goal` field)
 Code review: no findings
 
 not verified: none. decisions needed: none.
+
+## Deliverable 2
+done: `i` on a milestone heading unfolds its summary (name, state with the hold reason, goal, why), one fold state
+for issues and headings; the help line offers `i summary` on a heading; the three specs `accepted`.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | `check-specs` clean, RMP, SUQ, SUA accepted |
+| docs | README, `docs/usage.md`, `docs/architecture.md` |
+| code review | low, see below |
+
+red: SUQ-H4, SUQ-6, SUA-15: `not implemented` (the milestone summary stub of `summary.rs`)
+
+Code review: 1 finding
+- `source.rs`: `on_hold` read as a string loses a hold written as another JSON type: not fixed, RMP-8 makes it a
+  string or `null`, the same `roadmap --json` the UI reads (VERSION 1).
+
+not verified: the screen in a real terminal (the tests draw it on a test backend). decisions needed: none.

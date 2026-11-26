@@ -17,7 +17,11 @@ const VERSION: u64 = 1;
 pub struct Milestone {
     pub name: String,
     pub state: Option<String>,
-    pub on_hold: bool,
+    /// The reason of its hold, `""` when it gives none, `None` when it is not on hold (RMP-8).
+    pub on_hold: Option<String>,
+    /// Its goal and its why, for its summary (SUQ-6).
+    pub goal: Option<String>,
+    pub why: Option<String>,
     pub open: usize,
     pub listed: usize,
     /// Whether `release --json` lists it (STU-1).
@@ -271,7 +275,9 @@ fn milestones(dir: &Path) -> Result<Milestones, String> {
             Milestone {
                 name: string(&m["name"]).unwrap_or_default(),
                 state: string(&m["state"]),
-                on_hold: !m["on_hold"].is_null(),
+                on_hold: string(&m["on_hold"]),
+                goal: string(&m["goal"]),
+                why: string(&m["why"]),
                 open: issues.iter().filter(|i| i["open"] == true).count(),
                 listed: issues.len(),
                 awaits_release: awaits(m),

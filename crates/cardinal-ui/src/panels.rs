@@ -141,7 +141,7 @@ fn milestone(m: &Milestone) -> Styled {
         m.name,
         m.state.as_deref().unwrap_or("(none)")
     ));
-    if m.on_hold {
+    if m.on_hold.is_some() {
         line.push(" ");
         line.mark("(on hold)", Role::Warn);
     }
@@ -618,7 +618,9 @@ mod tests {
         let m = Milestone {
             name: "One".to_string(),
             state: Some("done".to_string()),
-            on_hold: true,
+            on_hold: Some(String::new()),
+            goal: None,
+            why: None,
             open: 0,
             listed: 1,
             awaits_release: true,
@@ -670,7 +672,9 @@ mod tests {
         let m = |name: &str| Milestone {
             name: name.to_string(),
             state: Some("done".to_string()),
-            on_hold: false,
+            on_hold: None,
+            goal: None,
+            why: None,
             open: 0,
             listed: 1,
             awaits_release: false,

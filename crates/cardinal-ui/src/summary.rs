@@ -1,6 +1,7 @@
-//! The summary of the issue selected in the queue (SUQ-6, SUQ-7): a panel under the queue, titled with the title of
-//! the issue and holding its goal wrapped at the words, that `i` unfolds and folds; it is folded when the screen
-//! starts and only shown while the selection is on an issue of the queue.
+//! The summary of the row selected in the queue (SUQ-6, SUQ-7): a panel under the queue, titled with the title of
+//! the issue and holding its goal, or with the name of the milestone and holding its state, goal and why, wrapped at
+//! the words, that `i` unfolds and folds; it is folded when the screen starts and only shown while the selection is
+//! in the queue.
 
 use std::borrow::Cow;
 
@@ -9,36 +10,59 @@ use ratatui::layout::Rect;
 use crate::keys::{Focus, Row, Selection};
 use crate::panels::Panel;
 use crate::screen::{layout, View};
-use crate::source::Queue;
+use crate::source::{Milestone, Queue};
 use crate::status::Status;
 use crate::status::{columns, split};
 
-/// What the summary of an issue shows: its title, its stem when it has none, and its goal (NXT-19).
+/// What the summary of a row shows: its title and its text, wrapped at the words (SUQ-6, SUQ-7).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Summary {
     pub title: String,
-    pub goal: Option<String>,
+    pub text: String,
 }
 
-/// The summaries of the rows `rows` of `queue`, in their order, none on a milestone.
-pub fn of(queue: Option<&Queue>, rows: &[Row]) -> Vec<Option<Summary>> {
+/// The summaries of the rows `rows` of `queue` and of the milestones `milestones` of `roadmap`, in their order.
+pub fn of(queue: Option<&Queue>, milestones: &[Milestone], rows: &[Row]) -> Vec<Option<Summary>> {
     let issues = queue.map_or(&[][..], |q| &q.issues[..]);
     rows.iter()
-        .map(|row| {
-            let Row::Issue(stem) = row else { return None };
-            let issue = issues.iter().find(|i| &i.stem == stem);
-            Some(Summary {
-                title: issue
-                    .and_then(|i| i.title.clone())
-                    .unwrap_or_else(|| stem.clone()),
-                goal: issue.and_then(|i| i.goal.clone()),
-            })
+        .map(|row| match row {
+            Row::Issue(stem) => {
+                let issue = issues.iter().find(|i| &i.stem == stem);
+                Some(Summary {
+                    title: issue
+                        .and_then(|i| i.title.clone())
+                        .unwrap_or_else(|| stem.clone()),
+                    text: issue
+                        .and_then(|i| i.goal.clone())
+                        .unwrap_or_else(|| "no goal".to_string()),
+                })
+            }
+            Row::Milestone(name) => milestones.iter().find(|m| &m.name == name).map(milestone),
         })
         .collect()
 }
 
-/// The summary of the issue `sel` selects in `v`: none while the selection is in the worktrees or on a milestone
-/// (STU-14), or the queue holds no issue (an empty queue, or a `next-issue` that cannot be read, STU-6); the help line offers `i` on it (SUA-15).
+/// The summary of the milestone `m`: its name over its state, its goal and its why (SUQ-6).
+fn milestone(m: &Milestone) -> Summary {
+    let hold = match m.on_hold.as_deref() {
+        Some("") => ", on hold".to_string(),
+        Some(reason) => format!(", on hold: {reason}"),
+        None => String::new(),
+    };
+    let state = format!("state: {}{hold}", m.state.as_deref().unwrap_or("(none)"));
+    let field = |name, value: &Option<String>| {
+        value
+            .as_ref()
+            .map_or_else(|| format!("no {name}"), |v| format!("{name}: {v}"))
+    };
+    Summary {
+        title: m.name.clone(),
+        text: [state, field("goal", &m.goal), field("why", &m.why)].join("\n"),
+    }
+}
+
+/// The summary of the issue or the milestone `sel` selects in `v`: none while the selection is in the worktrees, or
+/// the queue holds no row the selection stops on (STU-14) (an empty queue, or a `next-issue` that cannot be read, STU-6); the help line offers `i` on it (SUA-15).
 pub(crate) fn selected(v: &View, sel: Selection) -> Option<&Summary> {
     if sel.focus == Focus::Queue {
         v.summaries.get(sel.row).and_then(Option::as_ref)
@@ -48,12 +72,12 @@ pub(crate) fn selected(v: &View, sel: Selection) -> Option<&Summary> {
 }
 
 /// Whether the summary is unfolded after `i` pressed with `sel` selected in the read `v`, `unfolded` before it: the
-/// key acts only with the selection on an issue of the queue.
+/// key acts only with the selection on a row of the queue.
 pub(crate) fn toggle(unfolded: bool, sel: Selection, v: Option<&View>) -> bool {
     unfolded ^ v.and_then(|v| selected(v, sel)).is_some()
 }
 
-/// The panels of the screen over `area`, with `status` under them: the queue, the summary of the selected issue when
+/// The panels of the screen over `area`, with `status` under them: the queue, the summary of the selected row when
 /// it is `unfolded`, then the worktrees; its rows of text at most a third of the screen and no more than the layout
 /// gives it, so its `…` stays shown (SUQ-7).
 pub(crate) fn panels<'a>(
@@ -67,10 +91,9 @@ pub(crate) fn panels<'a>(
         return Cow::Borrowed(shown);
     };
     let width = usize::from(area.width.saturating_sub(2).max(1));
-    let goal = s.goal.as_deref().unwrap_or("no goal");
     let summary = |room| Panel {
         title: Cow::Owned(s.title.clone()),
-        lines: rows(goal, width, room),
+        lines: rows(&s.text, width, room),
         marks: Vec::new(),
         headings: Vec::new(),
         failed: false,
@@ -90,11 +113,11 @@ pub(crate) fn panels<'a>(
     Cow::Owned(panels)
 }
 
-/// `goal` wrapped at the words to `width` columns, a wider word cut across the rows, each paragraph from a row of
+/// `text` wrapped at the words to `width` columns, a wider word cut across the rows, each paragraph from a row of
 /// its own, at most `room` rows, the last ending with `…` when it needs more (SUQ-7).
-fn rows(goal: &str, width: usize, room: usize) -> Vec<String> {
+fn rows(text: &str, width: usize, room: usize) -> Vec<String> {
     let mut rows = Vec::new();
-    for paragraph in goal.split('\n') {
+    for paragraph in text.split('\n') {
         let mut row = String::new();
         for word in paragraph.split_whitespace() {
             if !row.is_empty() && columns(&row) + 1 + columns(word) <= width {
@@ -171,8 +194,41 @@ mod tests {
             ],
             ..Queue::default()
         };
-        v.summaries = of(Some(&queue), &v.rows);
+        v.summaries = of(Some(&queue), &[], &v.rows);
         v
+    }
+
+    /// The read of `queue_view` with the heading of the milestone `One` above its issues, `one` its milestone.
+    fn milestone_view(one: Milestone) -> View {
+        let mut v = queue_view();
+        v.panels[0].lines.insert(0, "■ One".to_string());
+        v.rows.insert(0, Row::Milestone("One".to_string()));
+        v.row_lines = vec![0, 1, 2];
+        let issues = |v: &View| v.summaries.clone();
+        let mut summaries = of(None, &[one], &v.rows[..1]);
+        summaries.extend(issues(&v));
+        v.summaries = summaries;
+        v
+    }
+
+    fn one(
+        state: Option<&str>,
+        on_hold: Option<&str>,
+        goal: Option<&str>,
+        why: Option<&str>,
+    ) -> Milestone {
+        let text = |s: Option<&str>| s.map(str::to_string);
+        Milestone {
+            name: "One".to_string(),
+            state: text(state),
+            on_hold: text(on_hold),
+            goal: text(goal),
+            why: text(why),
+            open: 2,
+            listed: 2,
+            awaits_release: false,
+            proposed: None,
+        }
     }
 
     /// The rows of the panels of `v` with `sel` selected and the summary `unfolded`, drawn 80 columns wide.
@@ -249,19 +305,66 @@ mod tests {
             !toggle(false, Selection::default(), Some(&empty)),
             "no issue"
         );
-        let mut milestone = queue_view();
-        milestone.rows[0] = Row::Milestone("One".to_string());
-        milestone.summaries = of(None, &milestone.rows);
-        assert!(
-            !toggle(false, Selection::default(), Some(&milestone)),
-            "no summary on a milestone (STU-14)"
-        );
-        assert!(!crate::help::line(&milestone, Selection::default(), false).contains("i summary"));
         assert!(!toggle(false, Selection::default(), None), "no read yet");
         assert_eq!(
             screen_key(Screen::Charts, Action::Summary),
             (Screen::Charts, Action::Nothing)
         );
+    }
+
+    // spec: SUQ-H4, SUQ-6, SUA-15 (internal: the screen needs a real terminal)
+    #[test]
+    fn i_on_a_milestone_unfolds_its_state_goal_and_why_and_the_fold_follows_the_selection() {
+        let v = milestone_view(one(
+            Some("in issues"),
+            Some("after v2"),
+            Some("make it work"),
+            Some("it helps"),
+        ));
+        let mut sel = Selection::default();
+        assert!(crate::help::line(&v, sel, false).contains("i summary"));
+        let unfolded = toggle(false, sel, Some(&v));
+        let drawn = screen(&v, sel, unfolded, 20);
+        let rows: Vec<&str> = drawn.lines().collect();
+        let title = rows
+            .iter()
+            .position(|r| r.contains("┌ One "))
+            .unwrap_or_else(|| panic!("a summary titled One: {drawn}"));
+        assert!(
+            rows[title + 1].contains("state: in issues, on hold: after v2"),
+            "{drawn}"
+        );
+        assert!(rows[title + 2].contains("goal: make it work"), "{drawn}");
+        assert!(rows[title + 3].contains("why: it helps"), "{drawn}");
+        sel.apply(&Action::Down, &v);
+        let a = screen(&v, sel, unfolded, 20);
+        assert!(a.contains("┌ Do a ") && !a.contains("┌ One "), "{a}");
+        sel.apply(&Action::Up, &v);
+        assert!(
+            screen(&v, sel, unfolded, 20).contains("┌ One "),
+            "back on the heading"
+        );
+        assert!(!toggle(unfolded, sel, Some(&v)), "i again folds it");
+    }
+
+    // spec: SUQ-6 (internal: the screen needs a real terminal)
+    #[test]
+    fn a_milestone_with_no_fields_reads_none_and_a_bare_hold() {
+        let text = |m| {
+            of(None, &[m], &[Row::Milestone("One".to_string())])[0]
+                .clone()
+                .unwrap()
+                .text
+        };
+        assert_eq!(
+            text(one(None, None, None, None)),
+            "state: (none)\nno goal\nno why"
+        );
+        assert_eq!(
+            text(one(Some("shaped"), Some(""), None, Some("y"))),
+            "state: shaped, on hold\nno goal\nwhy: y"
+        );
+        assert_eq!(of(None, &[], &[Row::Milestone("One".to_string())]), [None]);
     }
 
     // spec: SUQ-7 (internal: the screen needs a real terminal)
@@ -273,12 +376,10 @@ mod tests {
         assert_eq!(rows("aaaa bbbb", 4, 1), ["aaa…"]);
         assert_eq!(rows("ab cd", 1, 1), ["…"]);
         let mut v = queue_view();
-        v.summaries[0].as_mut().unwrap().goal = Some(
-            (1..=10)
-                .map(|n| format!("line {n}"))
-                .collect::<Vec<_>>()
-                .join("\n"),
-        );
+        v.summaries[0].as_mut().unwrap().text = (1..=10)
+            .map(|n| format!("line {n}"))
+            .collect::<Vec<_>>()
+            .join("\n");
         let drawn = screen(&v, Selection::default(), true, 15);
         let rows: Vec<&str> = drawn.lines().collect();
         let title = rows.iter().position(|r| r.contains("┌ Do a ")).unwrap();
@@ -294,12 +395,10 @@ mod tests {
     fn on_a_short_screen_the_last_row_shown_keeps_its_ellipsis() {
         let mut v = queue_view();
         v.panels[1].lines = (1..=8).map(|n| format!("/ws{n}")).collect();
-        v.summaries[0].as_mut().unwrap().goal = Some(
-            (1..=20)
-                .map(|n| format!("line {n}"))
-                .collect::<Vec<_>>()
-                .join("\n"),
-        );
+        v.summaries[0].as_mut().unwrap().text = (1..=20)
+            .map(|n| format!("line {n}"))
+            .collect::<Vec<_>>()
+            .join("\n");
         let drawn = screen(&v, Selection::default(), true, 15);
         let rows: Vec<&str> = drawn.lines().collect();
         let title = rows.iter().position(|r| r.contains("┌ Do a ")).unwrap();

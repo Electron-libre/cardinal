@@ -38,7 +38,7 @@ The work done before this file existed is in `issues/done/`.
 - State: in issues
 - Issues:
   - [split_the_crate_root_of_cardinal](issues/done/split_the_crate_root_of_cardinal.md)
-  - [split_the_spec_checker](issues/split_the_spec_checker.md)
+  - [split_the_spec_checker](issues/done/split_the_spec_checker.md)
   - [split_the_close_issue_tool](issues/done/split_the_close_issue_tool.md)
   - [split_the_cardinal_report_tool](issues/done/split_the_cardinal_report_tool.md)
   - [split_the_delivered_quality_tool](issues/done/split_the_delivered_quality_tool.md)

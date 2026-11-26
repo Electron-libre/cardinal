@@ -1,6 +1,6 @@
 ---
 id: RMP
-status: accepted
+status: draft
 adrs: []
 ---
 
@@ -17,7 +17,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 
 - **RMP-1** (deterministic) `roadmap` must print one row per milestone (a `## <name>` heading outside code blocks and HTML comments, its section read without the lines inside them, REL-9, both read as CommonMark reads them: a code block is fenced or indented, inside a quote or a list item or not, its fences included; a comment runs, in an HTML block, from a `<!--` to its first `-->` after the `<!` (`<!-->` and `<!--->` are whole comments) or to the end of the block, or is an inline `<!--...-->` of a paragraph or a heading, a backtick inside it opening no code span; a `<!--` inside a code span, or that no `-->` closes in its paragraph, is text; a line is inside a code block or a comment when its first character, the markers of its quotes and list items aside, is) of the `roadmap` documents of `.claude/cardinal.toml` of the current directory, in the order of the documents then of the milestones in each, as a Markdown table of the columns `milestone`, `state`, `released`, `issues` and `document`: its name, the value of its first `State:` line, the value of its `Released:` line (empty when it has none), each read without a trailing HTML comment and with a `|` written `\|`, the issues of RMP-2 and the document as the configuration writes it.
 - **RMP-2** (deterministic) The `issues` cell of a milestone must read `<open>/<listed> open`, where `<listed>` counts the distinct issue files its `Issues:` list links in the `issues` directory (an anchor of the target aside) (a URL, an anchor or another document aside, resolved against the directory of the document as CLS-8 resolves them) and `<open>` those of them that do not designate an existing file directly under `issues/done/`; a milestone with no such link reads an empty cell.
-- **RMP-7** (deterministic) With `--json` (alone or with `--open`), `roadmap` must print instead of the table, or of `No milestone.`, one JSON document (RMP-8) that a program reads: the milestones of RMP-1 and RMP-4, each with its state, hold, release, document and the issues it lists, open or not, so a tool shows them without parsing the table.
+- **RMP-7** (deterministic) With `--json` (alone or with `--open`), `roadmap` must print instead of the table, or of `No milestone.`, one JSON document (RMP-8) that a program reads: the milestones of RMP-1 and RMP-4, each with its state, hold, release, goal, why, document and the issues it lists, open or not, so a tool shows them without parsing the table.
 
 ### Contract
 
@@ -33,6 +33,8 @@ the user and the agent need not read every section of the roadmap. It reads the 
 | `state` | the value of its first `State:` line as RMP-1 reads it, with no ` (unknown)` nor ` (on hold)`; `null` when it has none |
 | `on_hold` | the reason of its `On hold:` field (RMP-6), `""` when empty, `null` when it has none |
 | `released` | the value of its `Released:` line, `null` when it has none |
+| `goal` | the value of its first `Goal:` field as its `State:` line is read, followed by the indented lines right under it, each trimmed, joined by one space; `null` when it has none |
+| `why` | its `Why:` field, read as its `goal` |
 | `document` | the document, as the configuration writes it |
 | `issues` | one object `{"path", "stem", "open": true or false}` per issue file RMP-2 counts, sorted by path, each once: its path from the project root (`/` between the components), its file name without `.md`, and whether RMP-2 counts it open |
 
@@ -62,6 +64,7 @@ the user and the agent need not read every section of the roadmap. It reads the 
 - (RMP-5) Given a configuration naming a missing `ROADMAP-done.md` and a `ROADMAP.md` with no milestone, when `roadmap` runs, then it prints `No milestone.` and exits 0.
 
 - (RMP-8) Given milestone `Next` with `- State: paused`, `- On hold: later` and listing `issues/b.md` and `issues/done/a.md` (both existing), when `roadmap --json` runs, then its row reads `"state":"paused"`, `"on_hold":"later"`, `"released":null` and `issues` `[{"path":"issues/b.md","stem":"b","open":true},{"path":"issues/done/a.md","stem":"a","open":false}]`.
+- (RMP-8) Given milestone `Next` with `- Goal: make a` then the indented line `  work well <!-- soon -->`, then `- State: shaped`, and no `Why:` line, when `roadmap --json` runs, then its row reads `"goal":"make a work well"` and `"why":null`.
 - (RMP-8) Given milestone `Next` listing `issues/a.md` and `issues/sub/a.md`, when `roadmap --json` runs, then `issues` holds both, told apart by their `path`.
 - (RMP-7) Given `Old` released and `Next` not, when `roadmap --json --open` runs, then `milestones` holds `Next` only.
 - (RMP-7) Given no milestone, when `roadmap --json` runs, then it prints `{"version":1,"milestones":[]}` and exits 0.
@@ -69,5 +72,5 @@ the user and the agent need not read every section of the roadmap. It reads the 
 ## Non-goals
 
 - Checking the milestones: a wrong state is shown, not reported as an error, and the exit code says nothing of it.
-- Dates, goals or the titles of the issues: the row stays one line.
+- Dates, goals or the titles of the issues in the table: the row stays one line (`--json` holds the goal and the why).
 - Changing a state: `close-issue` sets `done` (CLS-8), `release` sets `Released:` (REL-9).

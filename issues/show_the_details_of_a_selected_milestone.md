@@ -30,3 +30,40 @@ Cardinal UI
 
 # Resources
 * `crates/cardinal-ui/src/summary.rs`, `crates/cardinal/src/tools/roadmap.rs`, `specs/steering-ui-queue.md`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+`i` on a selected milestone heading unfolds the summary panel with its name, state (and hold reason), goal and why,
+sharing the one fold state of the issue summary. Out of scope: the issues of the milestone, the table of `roadmap`.
+
+## Plan
+1. [x] `roadmap --json` goal and why: each milestone gains `goal` and `why`, a field continued by its indented lines;
+   verified by a test of `tests/roadmap.rs` through the binary; makes true RMP-8 (amended), RMP-7. (autonomous)
+2. [ ] Summary of a milestone: `source` reads `goal`, `why` and the hold reason, `summary::of` builds the summary of
+   a heading (state, goal, why paragraphs), the help line offers `i summary` on it; verified by screen tests of
+   `summary.rs` and `help.rs`; makes true SUQ-6, SUQ-7, SUA-15 (amended).
+
+## Decisions
+- Mode: autonomous
+- Base commit: 737c5662b10670fe0e3503fe273d06f53f91494e
+- The state of a milestone is a `state: …` paragraph first in its summary, not in its title (answer 1 a).
+
+## Deliverable 1
+done: `roadmap --json` gives each milestone its `goal` and `why`, a field continued by its indented lines.
+
+| check | result |
+|---|---|
+| tests | `just check` green |
+| lint | clean |
+| specs | `check-specs` clean on the amended specs (draft) |
+| docs | no doc lists the fields of `roadmap --json` but its spec |
+| code review | low, see below |
+
+red: RMP-7, RMP-8: `left: Null, right: "make a work well"` (no `goal` field)
+
+Code review: no findings
+
+not verified: none. decisions needed: none.

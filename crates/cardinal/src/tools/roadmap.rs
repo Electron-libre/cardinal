@@ -43,6 +43,11 @@ pub(super) fn milestones(lines: &[&str]) -> Vec<Milestone> {
 /// The states of a milestone the seeded roadmap documents (`seed/ROADMAP.md`).
 pub(super) const STATES: [&str; 4] = ["idea", "shaped", "in issues", "done"];
 
+/// `text` without its trailing HTML comment, trimmed.
+fn uncommented(text: &str) -> &str {
+    text[..text.find("<!--").unwrap_or(text.len())].trim()
+}
+
 /// Whether `line` is the field `key` of a milestone (`- State: done`).
 pub(super) fn is_field(line: &str, key: &str) -> bool {
     line.trim_start_matches(['-', ' ']).starts_with(key)
@@ -65,7 +70,27 @@ impl Milestone {
             .iter()
             .find(|&&i| is_field(lines[i], key))
             .and_then(|&i| lines[i].split_once(':'))
-            .map(|(_, v)| v[..v.find("<!--").unwrap_or(v.len())].trim().to_string())
+            .map(|(_, v)| uncommented(v).to_string())
+    }
+
+    /// Its first field `key` (`Goal:`) read as `field` reads it, followed by the non-blank indented lines of its
+    /// body right under it, each trimmed, joined by one space (RMP-8).
+    pub(super) fn paragraph(&self, lines: &[&str], key: &str) -> Option<String> {
+        let at = self.body.iter().position(|&i| is_field(lines[i], key))?;
+        let mut text = self.field(lines, key)?;
+        // the body skips the hidden lines: a line under the field is the next index
+        let under = self.body[at + 1..].iter().zip(self.body[at] + 1..);
+        for line in under
+            .take_while(|(i, next)| *i == next)
+            .map(|(&i, _)| lines[i])
+        {
+            if !line.starts_with([' ', '\t']) || line.trim().is_empty() {
+                break;
+            }
+            text.push(' ');
+            text.push_str(uncommented(line));
+        }
+        Some(text)
     }
 
     /// The reason of its `On hold:` field, if it has one (NXT-16, RMP-6).

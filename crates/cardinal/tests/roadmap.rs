@@ -281,7 +281,8 @@ fn a_program_reads_each_milestone_and_its_issues() {
     assert_eq!(
         doc["milestones"][0],
         serde_json::json!({
-            "name": "Next", "state": "in issues", "on_hold": null, "released": null, "document": "ROADMAP.md",
+            "name": "Next", "state": "in issues", "on_hold": null, "released": null, "goal": null, "why": null,
+            "document": "ROADMAP.md",
             "issues": [
                 {"path": "issues/b.md", "stem": "b", "open": true},
                 {"path": "issues/done/a.md", "stem": "a", "open": false}
@@ -307,6 +308,21 @@ fn json_gives_the_reason_of_a_hold() {
     assert_eq!(doc["milestones"][0]["state"], "shaped");
     assert_eq!(doc["milestones"][0]["on_hold"], "later");
     assert_eq!(doc["milestones"][1]["on_hold"], "");
+}
+
+// spec: RMP-8
+#[test]
+fn json_gives_the_goal_and_the_why_continued_on_their_indented_lines() {
+    let root = project(&[(
+        "ROADMAP.md",
+        "## Next\n\n- Goal: make a\n  work well <!-- soon -->\n- State: shaped\n\n## Two\n\n- Why: it  helps\n\tthem\n\n  later\n",
+    )]);
+    let doc = document(root.path(), &["--json"]);
+    assert_eq!(doc["milestones"][0]["goal"], "make a work well");
+    assert_eq!(doc["milestones"][0]["why"], serde_json::Value::Null);
+    assert_eq!(doc["milestones"][0]["state"], "shaped");
+    assert_eq!(doc["milestones"][1]["goal"], serde_json::Value::Null);
+    assert_eq!(doc["milestones"][1]["why"], "it  helps them");
 }
 
 // spec: RMP-7

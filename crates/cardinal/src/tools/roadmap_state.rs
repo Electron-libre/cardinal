@@ -1,6 +1,6 @@
 //! Print the milestones of the `roadmap` documents as a table: name, state, release, open over listed issues and
 //! document (RMP-1), a milestone on hold marked after its state (RMP-6). Reads only; `--open` leaves out the released milestones (RMP-4);
-//! `--json` prints them as one JSON object for a program instead of the table (RMP-7, RMP-8).
+//! `--json` prints them as one JSON object for a program instead of the table, with their goal and why (RMP-7, RMP-8).
 
 use super::{close_issue, roadmap};
 
@@ -13,6 +13,9 @@ struct Row {
     state: Option<String>,
     hold: Option<String>,
     released: Option<String>,
+    /// Its `Goal:` and `Why:` fields with their indented lines (RMP-8).
+    goal: Option<String>,
+    why: Option<String>,
     document: String,
     /// The issue files it lists, sorted by path, each once: the path from the root, its stem and whether it is open.
     issues: Vec<(String, String, bool)>,
@@ -58,6 +61,8 @@ impl Row {
             "state": self.state,
             "on_hold": self.hold,
             "released": self.released,
+            "goal": self.goal,
+            "why": self.why,
             "document": self.document,
             "issues": issues,
         })
@@ -100,6 +105,8 @@ fn rows(root: &Path, document: &str, path: &[String], text: &str, open: bool) ->
                 state: m.field(&lines, "State:"),
                 hold: m.hold(&lines),
                 released,
+                goal: m.paragraph(&lines, "Goal:"),
+                why: m.paragraph(&lines, "Why:"),
                 document: document.to_string(),
                 issues,
                 name: m.name,

@@ -45,7 +45,7 @@ to `tests/session_metrics_common/mod.rs`, as `rule_breaches_common/` does, rathe
 2. [x] Advisor and archive checks: move `advised`, the advisor constants, `advisor_fixture`, `advisor_checks` to
    `session_metrics_advisor.rs`, and `archived_sessions`, `archive_checks`, `advisor_archive_checks` to
    `session_metrics_archive.rs`, each with its own `#[test]` over `assert_checks`; verified by `just check`; ~650 lines. (autonomous)
-3. [ ] Revision checks: move `commit_at`, `new_repo`, `toml`, `pinned_repo`, `migrated_repo`, `revision_checks` to
+3. [x] Revision checks: move `commit_at`, `new_repo`, `toml`, `pinned_repo`, `migrated_repo`, `revision_checks` to
    `session_metrics_revision.rs`; verified by `just check`, `cardinal run file-size --all` no longer listing the
    file; ~460 lines.
 
@@ -83,6 +83,25 @@ done: the advisor checks moved to `session_metrics_advisor.rs`, the archive chec
 | lint | clippy clean |
 | specs | `check-specs` ok, the `// spec:` lines moved with their checks |
 | docs | none to change (no document names the test file) |
+| code review | low, see below |
+
+red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 3
+done: the revision checks and their pinned repositories moved to `session_metrics_revision.rs`;
+`session_metrics.rs` down to 442 lines, no file of the tests listed by `cardinal run file-size --all`.
+
+| check | result |
+|---|---|
+| tests | the four files: 65 named checks ok, as before |
+| lint | clippy clean |
+| specs | `check-specs` ok |
+| docs | none to change |
 | code review | low, see below |
 
 red: none (a move with no new test)

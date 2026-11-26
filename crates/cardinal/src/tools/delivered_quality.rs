@@ -9,8 +9,9 @@
 //! Modules: `history` (the commits of the default branch, those of an issue, its reverts and blamed lines),
 //! `sessions` (the transcript sessions and the columns they give), `milestone` (the milestone of an issue).
 
-use super::check_specs::{
-    citation, citation_list, config_names, is_cited_id, markers, name_matches, shape, spec_patterns,
+use super::check_specs::{is_cited_id, shape};
+use super::citations::{
+    citation, citation_list, config_names, markers, name_matches, spec_patterns,
 };
 use super::transcripts;
 use crate::project_table::ProjectTable;

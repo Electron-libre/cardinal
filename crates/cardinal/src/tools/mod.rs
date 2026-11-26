@@ -11,6 +11,7 @@ mod cardinal_report;
 mod check_commits;
 mod check_issue;
 mod check_specs;
+mod citations;
 mod close_issue;
 mod commit_check;
 mod deliverable_size;
@@ -308,7 +309,7 @@ impl Declared {
             || self
                 .patterns
                 .iter()
-                .any(|p| check_specs::name_matches(p, name))
+                .any(|p| citations::name_matches(p, name))
     }
 }
 

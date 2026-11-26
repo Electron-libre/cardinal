@@ -4,7 +4,8 @@
 //! per file and exits 0: a report, not a check (COV-8); it exits 1 only when git cannot list the files (COV-10). The
 //! files and citations are those `check-specs` reads.
 
-use super::check_specs::{citations, read_specs, test_files};
+use super::check_specs::read_specs;
+use super::citations::{citations, test_files};
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};

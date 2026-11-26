@@ -101,7 +101,7 @@ pub(super) fn left_out(path: &str, issue_files: bool) -> bool {
     issue_files && path.starts_with("issues/")
         || LOCK_FILES
             .iter()
-            .any(|p| super::check_specs::name_matches(p, name))
+            .any(|p| super::citations::name_matches(p, name))
 }
 
 /// The stdout of `git <args>` run in `root`, with `index` as its index and `stdin` as its input, or git's message.

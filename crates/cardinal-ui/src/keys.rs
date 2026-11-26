@@ -136,6 +136,10 @@ pub enum Action {
     Charts,
     /// `i`: folds or unfolds the summary of the selected issue (SUQ-6).
     Summary,
+    /// `o`: reads the document of the selected row in the viewer (SUD-1).
+    Open,
+    /// `O`: edits the document of the selected row (SUD-2).
+    Edit,
     /// `:`: opens the command palette on the panels (SUP-1).
     Palette,
     /// `Esc`: back to the panels from the charts and the measures (SUC-1), else quit (STU-2).
@@ -243,6 +247,8 @@ pub fn action(key: &KeyEvent) -> Action {
         KeyCode::Char('m') => Action::Measure,
         KeyCode::Char('g') => Action::Charts,
         KeyCode::Char('i') => Action::Summary,
+        KeyCode::Char('o') => Action::Open,
+        KeyCode::Char('O') => Action::Edit,
         KeyCode::Char(':') => Action::Palette,
         _ => Action::Nothing,
     }
@@ -504,6 +510,7 @@ pub(crate) mod tests {
             charts: crate::charts::charts(None),
             keys: crate::help::Keys::default(),
             next: None,
+            documents: Vec::new(),
             summaries: stems
                 .iter()
                 .map(|s| {

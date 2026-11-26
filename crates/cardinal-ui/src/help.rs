@@ -96,7 +96,8 @@ fn cuttable(state: &State, row: &Row) -> bool {
 }
 
 /// The commands that would act in `v` with `sel` selected, each its label (its key, a space and its name) and its
-/// action, in the order of SUA-15: `i summary` with the selection on an issue or a milestone of the queue (SUQ-6), `n next` while
+/// action, in the order of SUA-15: `i summary` with the selection on an issue or a milestone of the queue (SUQ-6),
+/// `o open` and `O edit` on a row of the queue whose document is a file, a task running or not (SUD-3), `n next` while
 /// the issue `next-issue` offers is not selected (STU-36), then the keys of the tasks that would act, none while one
 /// runs (`busy`, SUA-6); the help line and the palette (SUP-1) read them.
 pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str, Action)> {
@@ -123,8 +124,14 @@ pub(crate) fn offered(v: &View, sel: Selection, busy: bool) -> Vec<(&'static str
         (keys.prioritize, "p prioritize", Action::Prioritize),
         (keys.audit, "a audit", Action::Audit),
     ];
+    let document = queue
+        && v.documents
+            .get(sel.row)
+            .is_some_and(|d| crate::document::existing(d).is_ok());
     [
         (summary, "i summary", Action::Summary),
+        (document, "o open", Action::Open),
+        (document, "O edit", Action::Edit),
         (next, "n next", Action::Next),
     ]
     .into_iter()
@@ -275,6 +282,7 @@ mod tests {
             on_hold: None,
             goal: None,
             why: None,
+            document: None,
             open: 0,
             listed: 0,
             awaits_release: false,
@@ -350,6 +358,7 @@ mod tests {
             on_hold: None,
             goal: None,
             why: None,
+            document: None,
             open: 0,
             listed: 1,
             awaits_release: true,

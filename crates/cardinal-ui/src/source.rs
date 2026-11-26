@@ -22,6 +22,8 @@ pub struct Milestone {
     /// Its goal and its why, for its summary (SUQ-6).
     pub goal: Option<String>,
     pub why: Option<String>,
+    /// The `roadmap` document that holds it, relative to the root of the project, to open it (SUD-4).
+    pub document: Option<String>,
     pub open: usize,
     pub listed: usize,
     /// Whether `release --json` lists it (STU-1).
@@ -278,6 +280,7 @@ fn milestones(dir: &Path) -> Result<Milestones, String> {
                 on_hold: string(&m["on_hold"]),
                 goal: string(&m["goal"]),
                 why: string(&m["why"]),
+                document: string(&m["document"]),
                 open: issues.iter().filter(|i| i["open"] == true).count(),
                 listed: issues.len(),
                 awaits_release: awaits(m),

@@ -271,7 +271,8 @@ projects directory given, they read the `projects/` of the configuration directo
 [specs/steering-ui-merge.md](../specs/steering-ui-merge.md), the end of a merged worktree in
 [specs/steering-ui-end.md](../specs/steering-ui-end.md), its theme and status line in
 [specs/steering-ui-screen.md](../specs/steering-ui-screen.md), its command palette in
-[specs/steering-ui-palette.md](../specs/steering-ui-palette.md)) shows the
+[specs/steering-ui-palette.md](../specs/steering-ui-palette.md), the documents it opens in
+[specs/steering-ui-documents.md](../specs/steering-ui-documents.md)) shows the
 project of the current directory (the root of its work tree) in one terminal screen, in two panels (the measures have a screen of their own, below):
 
 | Panel | Read from | Each line |
@@ -306,7 +307,12 @@ with the title of the selected issue that holds its goal (the `# Goal` section o
 its code blocks left out, a row per paragraph and list item, wrapped, at most a third of the screen), or, on the heading
 of a milestone, titled with its name and holding its state (with the reason of its hold), its `Goal:` and its `Why:`,
 and folds it again; folded when the screen starts, it follows the selection and waits while the selection is in the
-worktrees. `cardinal-ui --print`
+worktrees. `o` on an issue or the heading of a milestone hands the terminal to a viewer of its Markdown document (the
+issue file, in the worktree of the session that takes it when it holds one, or the `roadmap` document of the
+milestone), and `O` to an editor, the screen drawn again once the program exits, a task running meanwhile ([ADR
+0034](adr/0034-the-steering-ui-hands-its-terminal-to-the-viewer-and-the-editor.md)): the viewer is the command of
+`CARDINAL_UI_VIEWER`, else `glow -p`, else `$PAGER`, else `less`; the editor `$VISUAL`, else `$EDITOR`, else
+`xdg-open`; one that exits non-zero leaves `<program>: exit <n>` on the status line. `cardinal-ui --print`
 prints the screen once as text, the table of the measures under the worktrees (exit 1 when a panel could not be read). A tool that fails, prints no JSON or a
 `version` other than 1 (a project pinned to a revision without `--json`) shows its error in its panel. The `cardinal`
 it runs is the one on the `PATH`, or the program `CARDINAL_UI_CARDINAL` names; `next-issue` still drops the claims of
@@ -409,7 +415,7 @@ the keys of the tasks that would act on what is selected: `s` on an issue it wou
 pending`, `e` on a merged worktree, `c` on a milestone it would cut (in zellij), none of them while a task runs; a key it leaves out still refuses with its reason when pressed, and `--print` shows the line of the issue
 the screen opens on. The keys that act whatever the selection (`E` while a worktree is merged, `v` while a milestone
 awaits its release in zellij, `p` while the queue lists an open issue in zellij, `a` in zellij, `r` and `g`) are listed in the palette.
-`:` opens over the panels the command palette: the commands of the help line, then `E`, `v`, `p` and `a` under the
+`:` opens over the panels the command palette: the commands of the help line, `o open` and `O edit` after `i summary` on a row whose document is found, then `E`, `v`, `p` and `a` under the
 same conditions, then `r refresh`, `g charts` and `q quit`, each with its key; typing filters them by name (whatever the case, `Backspace`
 widens again), the arrows move the highlight (the list scrolls on a short screen), `Enter` runs the highlighted one as its key would, `Esc` closes it; while
 it is open, the letters go to the filter and only `Ctrl+C` quits.

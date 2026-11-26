@@ -5,7 +5,7 @@
 //! the release session of the milestones awaiting it (`release.rs`) or the review of the priorities of the issues
 //! (`prioritize.rs`), the audit of the code (`audit.rs`) or the cut of a milestone into issues (`cut.rs`), each in a tab of its own (`skill_tab.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
-//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`), then their table (`screen.rs`); `:` opens the command palette (`palette.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
+//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`), then their table (`screen.rs`); `:` opens the command palette (`palette.rs`); `o` and `O` open the Markdown document of the selected row in a viewer or an editor (`document.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release | --prioritize | --audit | --cut <milestone>]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
@@ -16,6 +16,7 @@ mod audit;
 mod charts;
 mod clock;
 mod cut;
+mod document;
 mod end;
 mod help;
 mod keys;
@@ -49,7 +50,8 @@ const USAGE: &str =
 
 /// Reads the project, with whether a measure runs and the error of the last one.
 fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
-    let state = source::read(&source::root(Path::new(".")), measuring, measure_error);
+    let root = source::root(Path::new("."));
+    let state = source::read(&root, measuring, measure_error);
     let worktrees = state.worktrees.as_ref().map_or_else(
         |_| Vec::new(),
         |ws| {
@@ -64,7 +66,9 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
     let keys = help::Keys::of(&state, &rows, source::in_zellij());
     let milestones = state.milestones.as_ref().map_or(&[][..], |m| &m.list[..]);
     let summaries = summary::of(state.queue.as_ref().ok(), milestones, &rows);
+    let documents = document::of(&root, state.queue.as_ref().ok(), milestones, &rows);
     screen::View {
+        documents,
         panels,
         rows,
         row_lines,

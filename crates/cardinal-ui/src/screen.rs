@@ -38,6 +38,8 @@ pub struct View {
     pub summaries: Vec<Option<crate::summary::Summary>>,
     /// The stem of the issue `next-issue` offers, `None` when it offers none or the queue could not be read (STU-36).
     pub next: Option<String>,
+    /// The Markdown document of each row of the queue, or why it has none (SUD-4).
+    pub documents: Vec<Result<std::path::PathBuf, String>>,
 }
 
 /// The rows a panel takes: its lines and its two borders.

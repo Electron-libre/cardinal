@@ -176,6 +176,7 @@ mod tests {
             on_hold: None,
             goal: None,
             why: None,
+            document: None,
             open: 0,
             listed: 0,
             awaits_release: false,

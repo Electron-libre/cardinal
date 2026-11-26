@@ -267,6 +267,45 @@ mod tests {
         );
     }
 
+    // spec: SUD-3, SUP-1 (internal: the palette opens only in a screen that needs a real terminal)
+    #[test]
+    fn the_palette_offers_to_open_and_edit_a_document_found_a_task_running_or_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let doc = dir.path().join("foo.md");
+        std::fs::write(&doc, "# Foo\n").unwrap();
+        let mut v = every_key();
+        v.documents = vec![Ok(doc.clone())];
+        let queue = Selection::default();
+        assert_eq!(
+            labels(&commands(Some(&v), queue, false))[..4],
+            ["i summary", "o open", "O edit", "s start"]
+        );
+        assert_eq!(
+            labels(&commands(Some(&v), queue, true)),
+            [
+                "i summary",
+                "o open",
+                "O edit",
+                "r refresh",
+                "g charts",
+                "q quit"
+            ]
+        );
+        let worktree = Selection {
+            focus: Focus::Worktrees,
+            ..queue
+        };
+        assert!(!labels(&commands(Some(&v), worktree, false)).contains(&"o open".to_string()));
+        assert!(
+            !crate::help::line(&v, queue, false).contains("open"),
+            "the help line lists neither"
+        );
+        std::fs::remove_file(&doc).unwrap();
+        assert!(!labels(&commands(Some(&v), queue, false)).contains(&"O edit".to_string()));
+        v.documents = vec![Err("One: no document".to_string())];
+        assert!(!labels(&commands(Some(&v), queue, false)).contains(&"o open".to_string()));
+    }
+
     // spec: SUP-2 (internal: the keys typed in the palette need a real terminal)
     #[test]
     fn typing_filters_the_names_whatever_their_case_and_backspace_widens_again() {

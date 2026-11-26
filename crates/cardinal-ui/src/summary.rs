@@ -224,6 +224,7 @@ mod tests {
             on_hold: text(on_hold),
             goal: text(goal),
             why: text(why),
+            document: None,
             open: 2,
             listed: 2,
             awaits_release: false,

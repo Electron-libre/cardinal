@@ -30,3 +30,48 @@ Cardinal UI
 # Hints
 * A milestone has no file of its own: open its `document` (from `roadmap --json`) at its heading if the viewer allows.
 * An issue being worked on lives in its worktree: open the file the session edits, not the copy of the main worktree.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+From the issue or the milestone selected in the queue, `o` hands the terminal to a viewer (`glow`, else a pager) on its
+Markdown document and `O` to `$VISUAL`/`$EDITOR`, both in the palette. Means: the UI leaves the alternate screen and
+takes it back (ADR 0034), not a zellij pane nor an inline renderer; a new spec SUD, as SUA is at its byte bound.
+Out of scope: jumping to the heading of a milestone, a CLI flag.
+
+## Plan
+1. [x] Read and edit a document: `document.rs` finds the file of a row (the worktree of its claim or branch, else the
+   root; the `document` of a milestone from `roadmap --json`) and the command of the viewer and of the editor; `o` and
+   `O` (and `o open`, `O edit` in the palette) hand the terminal to it, take it back and show its failure, also while a
+   task runs; verified by internal tests on temp dirs with fake programs and a smoke run in a pseudo-terminal; makes
+   true SUD-1 to SUD-8 (SUP-1 amended); sets SUD and SUP `accepted`. (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: c1e215c2026667c5a177c1411f441568ca3ccff3
+- Keys `o` read and `O` edit; the program takes the terminal of the UI everywhere; palette only, not the help line (answers 1 a, 2 a, 3 a).
+- The two deliverables of the validated plan were merged into one: the first alone left its functions unused, which
+  the lint gate refuses (dead code), and both together count 728 changed lines.
+
+## Summary of deliverable 1
+done: `o`/`O` open the document of the selected issue or milestone in the viewer or the editor, the screen taken back after.
+
+| check | result |
+|---|---|
+| tests | `cardinal run project-check` passed (116 UI unit tests) |
+| lint | clippy -D warnings clean (`run` kept under 100 lines by extracting `reader`) |
+| specs | SUD accepted, every requirement and happy path traced; SUP back to accepted |
+| docs | README, docs/usage.md, docs/architecture.md, update-docs map, ADR 0034 and its index |
+| smoke | `script` pty, `CARDINAL_UI_VIEWER` a fake viewer exiting 3: it got the path of the selected issue, the screen came back with `<viewer>: exit 3` |
+| code review | `/code-review low` on the diff: clean |
+
+red: SUD-4, SUD-5, SUD-6: `error[E0609]: no field document on type &Milestone` (the tests of SUD-1, SUD-2, SUD-3, SUD-7, SUD-8 were written after the code, none seen red)
+
+Code review: no findings
+
+not verified: a real `glow` (not installed here) and a real `$EDITOR` in the terminal loop.
+
+decisions needed: none.
+

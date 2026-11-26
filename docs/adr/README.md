@@ -63,3 +63,4 @@ on purpose, anything a future reader would otherwise undo by accident.
 | [0031. The steering UI drives zellij from outside, and a hook marks a waiting session](0031-the-steering-ui-drives-zellij-from-outside.md) | Accepted |
 | [0032. A session continued in another hands it its worktree lock](0032-a-session-continued-in-another-hands-it-its-worktree-lock.md) | Accepted |
 | [0033. The CLI and the UI share the rules of the worktree state](0033-the-cli-and-the-ui-share-the-rules-of-the-worktree-state.md) | Accepted |
+| [0034. The steering UI hands its terminal to the viewer and the editor](0034-the-steering-ui-hands-its-terminal-to-the-viewer-and-the-editor.md) | Accepted |

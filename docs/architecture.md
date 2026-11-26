@@ -256,7 +256,8 @@ actions in [`specs/steering-ui-actions.md`](../specs/steering-ui-actions.md), th
 [`specs/steering-ui-charts.md`](../specs/steering-ui-charts.md), its queue in
 [`specs/steering-ui-queue.md`](../specs/steering-ui-queue.md), its theme and status line in
 [`specs/steering-ui-screen.md`](../specs/steering-ui-screen.md), its command palette in
-[`specs/steering-ui-palette.md`](../specs/steering-ui-palette.md), its calls to zellij in
+[`specs/steering-ui-palette.md`](../specs/steering-ui-palette.md), the documents it opens in
+[`specs/steering-ui-documents.md`](../specs/steering-ui-documents.md), its calls to zellij in
 [`specs/steering-ui-zellij.md`](../specs/steering-ui-zellij.md)): it reads a project only through the JSON
 documents of the tools of its pinned revision (NXT-19, RMP-8, REL-15, REP-21), checked by their `version`, and through
 git. The lock of each worktree it reads itself, through the rules it shares with `cardinal` in the std-only crate
@@ -303,11 +304,12 @@ flowchart LR
 | `screen.rs` | draws the queue and the worktrees, the charts or the table of the measures (Ratatui, the screen `g` cycles) in the roles of the theme |
 | `mark.rs` | the mark ` ✦ Cardinal ` against the right corner of the top border of the queue, in `accent`, left out when the border cannot hold it next to the title (SUS-6) |
 | `summary.rs` | the summary of the selected issue (its title and its goal) or milestone (its name, state, goal and why), wrapped at the words under the queue, that `i` folds and unfolds |
+| `document.rs` | the Markdown document of each row of the queue (the issue file in the worktree of its session when it holds one, else in the root read; the `roadmap` document of a milestone) and the command of the viewer of `o` and the editor of `O`, from the variables of the user and the `PATH`, run once the terminal is handed over ([ADR 0034](adr/0034-the-steering-ui-hands-its-terminal-to-the-viewer-and-the-editor.md)) |
 | `charts.rs` | the charts of the measures behind `g`: four series of the last measure by group of revisions and by milestone, each row a name, a bar from zero, the number and its sample (SUC-1 to SUC-4) |
 | `print.rs` | renders `--print` into a buffer: the queue, the worktrees and the table of the measures, as plain text |
 | `status.rs` | the status line: the messages of the actions, the failed notification and the ignored theme lines, each of its kind (an error, a task done, the others), drawn in its role on rows of its own above the help line, wrapped at the width of the screen (SUS-3) |
 | `theme.rs` | the colors of the roles of the screen, read once from the theme file of the user, the lines it ignored named |
-| `terminal.rs` | the terminal loop: the reads of the project every 2 s and on `r`, one at a time, the keys of the screen, and the starts, the merges, the ends and the release, review, audit and cut starts on threads of `panics.rs` |
+| `terminal.rs` | the terminal loop: the reads of the project every 2 s and on `r`, one at a time, the keys of the screen, and the starts, the merges, the ends and the release, review, audit and cut starts on threads of `panics.rs`; the terminal handed to the viewer or the editor of `o` and `O`, then taken back |
 | `notify.rs` | the waits new since the last read, each notified by `notify-send` (or `CARDINAL_UI_NOTIFY`) on a thread of `panics.rs`, the first failure kept for the status line |
 | `help.rs` | the commands that would act on what the read found and on the selection, which the palette lists; the help line under the panels: `: commands`, the moves and `q`, then those of them that act on the selected issue, milestone or worktree |
 | `panics.rs` | the named threads of a task, a measure and a notification, run under `catch_unwind`, a panic of one given as its failed line, and the panic hook that passes over them so the screen stays drawn (SUS-7, SUS-8) |

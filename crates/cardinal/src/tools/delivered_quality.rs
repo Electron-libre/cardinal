@@ -13,7 +13,7 @@ use super::check_specs::{is_cited_id, shape};
 use super::citations::{
     citation, citation_list, config_names, markers, name_matches, spec_patterns,
 };
-use super::git_diff::is_lock;
+use super::git_diff::left_out;
 use super::transcripts;
 use crate::project_table::ProjectTable;
 
@@ -412,7 +412,7 @@ fn doc_spec_lines(repo: &Path, own: &[&Commit], docs: &DocFiles) -> Option<DiffL
         if is_spec(path) {
             specs.insert(path.to_string());
         }
-        if !path.starts_with("issues/") && !is_lock(path) {
+        if !left_out(path, true) {
             changed += count;
         }
         if spec {

@@ -13,14 +13,6 @@ const LOCK_FILES: &[&str] = &[
     "go.sum",
 ];
 
-/// Whether `path`, from the top of the repository, is a lock file of SIZ-4 as its pathspecs match it: any path
-/// ending in `.lock`, the other names at the top only (QUA-22).
-pub(super) fn is_lock(path: &str) -> bool {
-    // the pathspec `*.lock` is case-sensitive
-    Path::new(path).extension() == Some(std::ffi::OsStr::new("lock"))
-        || LOCK_FILES[1..].contains(&path)
-}
-
 /// The id of the empty tree, the base of a branch with no commit yet.
 pub(super) fn empty_tree(root: &Path) -> Result<String, String> {
     let id = git(

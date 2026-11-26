@@ -23,6 +23,18 @@ enum Event {
     ToolCall(String),
 }
 
+impl Event {
+    /// The id of a message or a tool call, which a resumed session copies (QUA-15, QUA-21).
+    fn id(&self) -> Option<&str> {
+        match self {
+            Event::Tokens(id, _) | Event::ToolCall(id) => {
+                Some(id.as_str()).filter(|i| !i.is_empty())
+            }
+            _ => None,
+        }
+    }
+}
+
 /// The tool calls of a transcript line, by the `id` of each `tool_use` block of an assistant line (QUA-20).
 fn tool_calls(line: &Value) -> impl Iterator<Item = Event> + '_ {
     let blocks = (line["type"] == "assistant")
@@ -255,6 +267,14 @@ pub(super) fn session_cells(
     cells[0] = by_session.len() as u64;
     // a resumed session copies the messages of the one it resumes, ids included: each counts once for the issue
     let (mut messages, mut tool_ids): (HashSet<&str>, HashSet<&str>) = Default::default();
+    // an id two sessions share belongs to the one that ended first: the other copied it when it resumed (QUA-21)
+    let mut owners: HashMap<&str, (DateTime<FixedOffset>, usize)> = HashMap::new();
+    for &k in by_session.keys() {
+        for id in sessions[k].events.iter().filter_map(|(_, e)| e.id()) {
+            let owner = owners.entry(id).or_insert((sessions[k].span.end, k));
+            *owner = (*owner).min((sessions[k].span.end, k));
+        }
+    }
     for (k, dates) in &by_session {
         let session = &sessions[*k];
         let (Some(&first), Some(&last)) = (dates.iter().min(), dates.iter().max()) else {
@@ -270,12 +290,21 @@ pub(super) fn session_cells(
         let inside = |at: &DateTime<FixedOffset>| {
             after.map_or(*at >= session.span.start, |a| *at > a) && *at <= last
         };
+        // the copies a resumed session opens with end at the last event another session owns: its time starts after
+        let copied = session
+            .events
+            .iter()
+            .filter(|(_, e)| e.id().is_some_and(|id| owners[id].1 != *k))
+            .map(|(at, _)| *at)
+            .max();
         // the sub-agents' events follow those of the session: its span of the issue is their earliest to their latest
         let (mut earliest, mut latest) =
             (None::<DateTime<FixedOffset>>, None::<DateTime<FixedOffset>>);
         for (at, event) in session.events.iter().filter(|(at, _)| inside(at)) {
-            earliest = Some(earliest.map_or(*at, |e| e.min(*at)));
-            latest = Some(latest.map_or(*at, |l| l.max(*at)));
+            if copied.is_none_or(|c| *at > c) {
+                earliest = Some(earliest.map_or(*at, |e| e.min(*at)));
+                latest = Some(latest.map_or(*at, |l| l.max(*at)));
+            }
             match event {
                 Event::FailedCheck => cells[1] += 1,
                 Event::Validation => cells[2] += 1,
@@ -287,7 +316,8 @@ pub(super) fn session_cells(
                         }
                     }
                 }
-                Event::ToolCall(id) => cells[8] += u64::from(tool_ids.insert(id)),
+                // a block with no id cannot be a copy: it counts
+                Event::ToolCall(id) => cells[8] += u64::from(id.is_empty() || tool_ids.insert(id)),
             }
         }
         if let (Some(earliest), Some(latest)) = (earliest, latest) {
@@ -400,7 +430,7 @@ mod tests {
         };
         let (cells, _) = session_cells(&log, &[0, 1], "x", &[first, resumed]);
         assert_eq!(cells[8], 3);
-        // 30 minutes in the first, 24 hours from the copy to the last call in the resumed one
-        assert_eq!(cells[7], 1800 + 86_400);
+        // 30 minutes in the first, none in the resumed one: its copy is left out, one call remains
+        assert_eq!(cells[7], 1800);
     }
 }

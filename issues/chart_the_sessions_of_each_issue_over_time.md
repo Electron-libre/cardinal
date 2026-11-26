@@ -55,6 +55,9 @@ Means: three columns on the rows of QUA-1 (left out of the summary, so `cardinal
    QUA-20, QUA-21, QUA-22, QUA-23, QUA-H4. (autonomous)
 2. [x] The measure keeps them: `cardinal-ui` passes `--rows` and writes `issues.tsv` with the other files of a
    measure, under its temporary name; verified by a test of `crates/cardinal-ui`; makes true STU-17. (autonomous)
+3. [x] Fixes of the `high` review: lock files left out at any depth, the copies of a resumed session out of its time,
+   a tool call with no id counted; verified by `delivered_quality_rows` and the resumed-session unit test; makes true
+   QUA-21, QUA-22. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -104,4 +107,29 @@ Means: three columns on the rows of QUA-1 (left out of the summary, so `cardinal
   the call with `--rows`).
 - Code review: no findings
 - not verified: a measure on the real transcripts (the next `m` of the UI writes `issues.tsv`).
+- decisions needed: none
+
+## Deliverable 3 (high review of the issue)
+
+- done: `changed_lines` leaves out the lock files of SIZ-4 at any depth (`left_out` of `git_diff.rs`, as
+  `deliverable-size`); `duration_s` of a resumed session starts after the events it copies (QUA-21 amended); a
+  `tool_use` with no id counts instead of merging with the others.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (QUA-21 and its QUA-22 scenario amended) |
+| docs | n/a (the columns are unchanged) |
+| code review | high on `c7c741e..HEAD`, then low on the fixes |
+
+- red: QUA-21, QUA-22: `cells[7]` 88200 for 30 minutes of work and one resumed call; `changed_lines` 5 with
+  `web/package-lock.json` changed.
+- Code review (high): 4 findings: nested lock files counted (fixed); the copies of a resumed session counted in its
+  time (fixed); a measure fails when the `cardinal` on PATH predates `--rows` (not fixed: the UI already needs a
+  `cardinal` of its version for `roadmap --open --json` and `release --json`, and STU-19 shows the error, `unknown
+  option --rows`, above the last measure, so `just install` from the same clone as `just install-ui` settles it); a
+  `tool_use` with no id merged with the others (fixed).
+- Code review (low, on the fixes): no findings
+- not verified: none
 - decisions needed: none

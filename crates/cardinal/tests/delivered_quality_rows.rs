@@ -43,7 +43,7 @@ fn write(path: &Path, lines: &[String]) {
     std::fs::write(path, lines.concat()).unwrap();
 }
 
-/// A repository where `a` (closed at 09:30, renaming a file unchanged, changing its lock and 3 lines of `src/a.rs`)
+/// A repository where `a` (closed at 09:30, renaming a file unchanged, changing two locks and 3 lines of `src/a.rs`)
 /// then `b` (closed at 10:00) were made in one session on the default branch; `c` has no session.
 fn fixture_rows(tmp: &Path) -> (PathBuf, PathBuf) {
     let repo = tmp.join("proj");
@@ -57,6 +57,7 @@ fn fixture_rows(tmp: &Path) -> (PathBuf, PathBuf) {
             (".claude/harness.toml", Some(&toml("r1"))),
             ("src/old.rs", Some("o1\no2\no3\no4\no5\n")),
             ("Cargo.lock", Some("l1\n")),
+            ("web/package-lock.json", Some("p1\n")),
         ],
     );
     commit_at(
@@ -67,6 +68,7 @@ fn fixture_rows(tmp: &Path) -> (PathBuf, PathBuf) {
             ("src/old.rs", None),
             ("src/new.rs", Some("o1\no2\no3\no4\no5\n")),
             ("Cargo.lock", Some("l2\n")),
+            ("web/package-lock.json", Some("p2\n")),
             ("src/a.rs", Some("a1\na2\na3\n")),
             ("issues/done/a.md", Some("# a\n\n# Tracking\n")),
         ],

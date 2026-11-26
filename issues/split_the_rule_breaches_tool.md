@@ -52,8 +52,8 @@ test file needs the language and routing checks moved besides the commit ones to
 3. [x] Commit tests: move `git_at`, `commit_repo`, `commit_checks`, `claim_checks`, `attribution_off_checks`,
    `convention_off_checks` (BRE-9, FEA-11, FEA-22) to `tests/rule_breaches_commits.rs` with a `#[test]` of their own
    (~270 moved, ~560 counted); verified by the same checks passing there. (autonomous)
-4. [ ] Language tests: move `FRENCH`, `ENGLISH`, `AN_AS`, `HINT`, `language_checks`, `personal_language_checks`,
-   `language_kind_checks` (BRE-10, BRE-13, BRE-14) to `tests/rule_breaches_language.rs` (~205 moved, ~430 counted).
+4. [x] Language tests: move `FRENCH`, `ENGLISH`, `AN_AS`, `HINT`, `language_checks`, `personal_language_checks`,
+   `language_kind_checks` (BRE-10, BRE-13, BRE-14) to `tests/rule_breaches_language.rs` (~205 moved, ~430 counted). (autonomous)
 5. [ ] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
    BRE-18) to `tests/rule_breaches_routing.rs` (~165 moved, ~350 counted); `tests/rule_breaches.rs` left at ~680
    lines; verified by the tests and `file-size --all` listing no `rule_breaches` file.
@@ -106,6 +106,22 @@ test file needs the language and routing checks moved besides the commit ones to
 | tests, lint, specs (`project-check`) | pass, the 6 commit checks green in their own binary |
 | docs | the module docs of both test files |
 | deliverable-size | 576 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings (the `low` level skips test hunks: the move checked line by line against the base instead)
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 4
+- done: the language checks (BRE-10, BRE-13, BRE-14) moved to `tests/rule_breaches_language.rs` with a `#[test]` of
+  their own, in the same order.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass, the 8 language checks green in their own binary |
+| docs | the module docs of both test files |
+| deliverable-size | 437 changed lines, within |
 | code review | low |
 
 - red: none (a move, no new test)

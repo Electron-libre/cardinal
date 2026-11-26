@@ -35,3 +35,48 @@ Files small enough to review
 
 # Resources
 * `crates/cardinal/tests/cardinal_report.rs`, `crates/cardinal/tests/workspace_lock_common/mod.rs`.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+Split `crates/cardinal/tests/cardinal_report.rs` (1604 lines) by responsibility, every part under 800 lines, the checks
+and their `// spec:` traces unchanged. Out of scope: any change of what a check proves, the other files over the limit.
+Means: the issue's; each new file gets its own `#[test]` that chains its checks, as `cardinal_report()` does now.
+
+## Plan
+1. [x] Helpers to `tests/cardinal_report_common/mod.rs`: the constants, `S`, `base`, `sessions`, `write`, `run`,
+   `tables`, `cell`, `tool_command`, the verdict helpers (`hash`, `verdicts`, `two`, `pair`, `change`, `verdict`),
+   `group_names`, `shape_row`, `axes_inputs`, made `pub` (~340 lines, ~700 changed); verified by
+   `cardinal run project-check` (same checks, all `ok`, same spec traces); makes true no requirement (a move). (autonomous)
+2. [ ] VRD checks to `tests/cardinal_verdicts.rs`: `verdict_checks`, `waste_verdict_checks`, `token_verdict_checks`,
+   `verdict_edge_checks`, `issue_floor_checks`, `ratio_floor_checks`, `shape_floor_checks`, `advisor_verdict_checks`
+   and a `cardinal_verdicts` test (~410 lines, ~850 changed); verified by `cardinal run project-check`; makes true no
+   requirement.
+3. [ ] REP-14 to REP-18 checks to `tests/cardinal_report_groups.rs`: `setup_sessions`, `setup_inputs`, `setup_checks`,
+   `last_checks`, `project_checks` and a `cardinal_report_groups` test (~280 lines, ~580 changed), leaving
+   `cardinal_report.rs` at ~580 lines; verified by `cardinal run project-check` and `cardinal run file-size --all` no
+   longer listing it; makes true no requirement.
+
+## Decisions
+- Mode: autonomous
+- Base commit: 426cc32ef010a65bfa525207ca245475f81829bd
+
+## Summary of deliverable 1
+done: the constants, `S`, the fixture, run and table helpers, the verdict helpers, `group_names`, `shape_row`,
+`axes_inputs` and `tool_command` moved to `tests/cardinal_report_common/mod.rs` (358 lines), made `pub`;
+`cardinal_report.rs` at 1256 lines.
+
+| check | result |
+|---|---|
+| tests | `cardinal_report`: 87 checks, all `ok` |
+| lint | clippy clean |
+| specs | traces unchanged (no `// spec:` line moved) |
+| docs | nothing to change |
+| code review | low, see below |
+
+red: none (a move, no new test)
+Code review: no findings
+not verified: none
+decisions needed: none

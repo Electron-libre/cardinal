@@ -112,6 +112,8 @@ pub struct State {
     pub measure_error: Option<String>,
     /// The charts of the last measure (SUC-2).
     pub charts: [crate::charts::Chart; 4],
+    /// The done issues of the last measure (SUC-7).
+    pub issues: crate::timeline::Timeline,
     /// The usage limits of the Claude plan (STU-37).
     pub limits: String,
 }
@@ -469,6 +471,7 @@ pub fn read(dir: &Path, measuring: bool, measure_error: Option<String>) -> State
         measuring,
         measure_error,
         charts: crate::charts::charts(cache.as_deref()),
+        issues: crate::timeline::read(cache.as_deref()),
         limits: crate::limits::read(chrono::Utc::now().timestamp()),
     }
 }

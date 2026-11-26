@@ -508,6 +508,7 @@ pub(crate) mod tests {
                 .collect(),
             waits: Some(Vec::new()),
             charts: crate::charts::charts(None),
+            issues: crate::timeline::Timeline::default(),
             keys: crate::help::Keys::default(),
             next: None,
             documents: Vec::new(),

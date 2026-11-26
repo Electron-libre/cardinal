@@ -32,6 +32,8 @@ pub struct View {
     pub waits: Option<Vec<Wait>>,
     /// The charts of the last measure (SUC-2).
     pub charts: [Chart; 4],
+    /// The done issues of the last measure (SUC-7).
+    pub issues: crate::timeline::Timeline,
     /// The keys of the tasks that would act on each issue and worktree, for the help line (SUA-15).
     pub keys: crate::help::Keys,
     /// The summary of each row of the queue, none on a milestone (SUQ-6).
@@ -183,7 +185,8 @@ pub(crate) fn draw(
         let buf = f.buffer_mut();
         match shown {
             Screen::Charts => {
-                render_charts(area, buf, &head(&v.panels[2]), &v.charts, status, theme);
+                let charts = (&v.charts, &v.issues, 0);
+                render_charts(area, buf, &head(&v.panels[2]), charts, status, theme);
             }
             Screen::Measures => {
                 render(

@@ -17,6 +17,7 @@ use crate::screen::{draw_panel, height, help_line, styled};
 use crate::status::Status;
 use crate::theme::Role;
 use crate::theme::Theme;
+use crate::timeline::{self, Timeline};
 
 /// The group of the milestone report that holds the issues of no milestone, left out of the charts (SUC-2).
 const NO_MILESTONE: &str = "(no milestone)";
@@ -256,12 +257,14 @@ pub(crate) fn head(p: &Panel) -> Panel {
 }
 
 /// Renders the charts screen into `buf` over `area` (SUC-2): the lines of `head`, the charts by revision on the left
-/// and by milestone on the right, each at its height, then the rows of `status` while it shows a message (SUS-2, SUS-3) and the help line, in the roles of `theme`.
+/// and by milestone on the right, each at its height, the band of the `issues` under them from the series `first`
+/// (SUC-7, SUC-9), then the rows of `status` while it shows a message (SUS-2, SUS-3) and the help line, in the roles
+/// of `theme`.
 pub(crate) fn render_charts(
     area: Rect,
     buf: &mut Buffer,
     head: &Panel,
-    charts: &[Chart; 4],
+    (charts, issues, first): (&[Chart; 4], &Timeline, usize),
     status: &Status,
     theme: &Theme,
 ) {
@@ -281,6 +284,34 @@ pub(crate) fn render_charts(
         .map(|(i, l)| styled(l, head.marks.iter().filter(|m| m.line == i), theme))
         .collect();
     Paragraph::new(lines).render(top, buf);
+    let width = usize::from(middle.width.saturating_sub(2));
+    let tallest = charts
+        .chunks(2)
+        .map(|pair| {
+            pair.iter()
+                .map(|c| height(&panel(c, width / 2)))
+                .fold(0u16, u16::saturating_add)
+        })
+        .max()
+        .unwrap_or(0);
+    // the band takes the rows the charts leave, at least those of one series: the charts give up their oldest rows
+    // (SUC-9)
+    let band = middle
+        .height
+        .saturating_sub(tallest)
+        .max(timeline::height(issues, 1))
+        .min(timeline::height(issues, timeline::COUNT))
+        .min(middle.height);
+    let [middle, below] =
+        Layout::vertical([Constraint::Min(0), Constraint::Length(band)]).areas(middle);
+    let series = timeline::fitting(band);
+    draw_panel(
+        &timeline::panel(issues, width, first, series),
+        below,
+        buf,
+        None,
+        theme,
+    );
     let columns = Layout::horizontal([Constraint::Percentage(50); 2]).split(middle);
     for (column, pair) in columns.iter().zip(charts.chunks(2)) {
         let width = usize::from(column.width.saturating_sub(2));
@@ -435,7 +466,7 @@ mod tests {
             area,
             &mut buf,
             &head,
-            &charts(Some(dir.path())),
+            (&charts(Some(dir.path())), &Timeline::default(), 0),
             &Status::default(),
             &Theme::default(),
         );
@@ -496,6 +527,7 @@ mod tests {
     fn screen_measure() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("milestones.json"), r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["(no milestone)","","149","1.17","1.15","358"],["One","","2","1.50","1.71","7"],["Two","","1","0.00","","0"]]}]}"#).unwrap();
+        std::fs::write(dir.path().join("issues.tsv"), "issue\tclosed\tduration_s\na\t2026-11-24T10:00:00+01:00\t3600\nb\t2026-11-26T10:00:00+01:00\t900\n").unwrap();
         std::fs::write(dir.path().join("revisions.json"), r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa","10","5000000","96%"],["self:bbbbbbb","10","10000000","97%"],["self:ccccccc","6","too few","too few"]]}]}"#).unwrap();
         dir
     }
@@ -514,7 +546,15 @@ mod tests {
         let area = Rect::new(0, 0, 140, 30);
         let mut buf = Buffer::empty(area);
         let charts = charts(Some(dir.path()));
-        render_charts(area, &mut buf, &head, &charts, &Status::default(), theme);
+        let issues = timeline::read(Some(dir.path()));
+        render_charts(
+            area,
+            &mut buf,
+            &head,
+            (&charts, &issues, 0),
+            &Status::default(),
+            theme,
+        );
         buf
     }
 
@@ -553,6 +593,24 @@ mod tests {
         assert!(one.contains("2 issues"), "{one}");
         assert!(screen.contains("1.71 7 reviews"), "{screen}");
         assert!(rows.last().unwrap().contains("g measures"), "{screen}");
+    }
+
+    // spec: SUC-2, SUC-7 (internal: the charts screen is drawn only in the terminal)
+    #[test]
+    fn the_band_by_issue_is_drawn_under_the_charts() {
+        let rows = rows_of(&charts_screen(&["measured 19:23"], &Theme::default()));
+        let screen = rows.join("\n");
+        let band = rows
+            .iter()
+            .position(|r| r.contains("by issue"))
+            .expect(&screen);
+        let findings = rows
+            .iter()
+            .position(|r| r.contains("findings per review"))
+            .unwrap();
+        assert!(band > findings, "{screen}");
+        assert!(screen.contains("time  max 1h00m  last 15m"), "{screen}");
+        assert!(screen.contains("2026-11-24 2026-11-26"), "{screen}");
     }
 
     // spec: SUC-2 (internal: the charts screen is drawn only in the terminal)

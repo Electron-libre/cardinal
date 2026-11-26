@@ -300,6 +300,7 @@ mod tests {
             measuring: false,
             measure_error: None,
             charts: crate::charts::charts(None),
+            issues: crate::timeline::Timeline::default(),
             limits: String::new(),
         };
         let rows: Vec<Row> = ["One", "Two", "Three", "Ghost"]
@@ -376,6 +377,7 @@ mod tests {
             measuring: false,
             measure_error: None,
             charts: crate::charts::charts(None),
+            issues: crate::timeline::Timeline::default(),
             limits: String::new(),
         };
         let issue = crate::source::Issue {

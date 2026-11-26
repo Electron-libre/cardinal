@@ -337,7 +337,10 @@ hour old. `g` switches the screen to four bar charts of the last measure, then t
 to the panels ([specs/steering-ui-charts.md](../specs/steering-ui-charts.md)): the charts draw the median input per session and the cached share over
 the last twelve groups of revisions, the fixes after per issue and the findings per review per milestone (the issues
 of no milestone left out), each bar from zero with its number and its sample, a group `too few` unbarred, a chart
-too tall for the terminal showing its newest rows; the table reads `measured <HH:MM>`, then per group of the last four
+too tall for the terminal showing its newest rows; under them, the band `by issue` draws from `issues.tsv` the time,
+input tokens, tool calls, fixes after and findings of each done issue, one column per issue in the order of the closes,
+the newest on the right, with the largest and the last value of each series and the days of the first and last issue
+drawn, an issue with no session a `·`; the table reads `measured <HH:MM>`, then per group of the last four
 groups of revisions of the project its sessions and the medians of input tokens (with the share read from cache),
 output tokens, peak context (with the sessions it rests on) and validations, or `too few`, and per milestone its done
 issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue

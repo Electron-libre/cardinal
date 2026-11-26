@@ -1,6 +1,6 @@
 ---
 id: SUC
-status: accepted
+status: draft
 adrs: [0030]
 ---
 
@@ -9,22 +9,26 @@ adrs: [0030]
 ## Intent
 
 A screen of `cardinal-ui` (STU) that draws the main measures of the project as bars, over the groups of revisions and
-over the milestones, each with its sample, so a trend of the harness stands out without comparing numbers. A second screen
+over the milestones, each with its sample, and a series per done issue, so a trend of the harness or a drift of the
+issues stands out without comparing numbers. A second screen
 holds the table of the measures, so the panels keep their rows for the queue and the worktrees.
 
 ## Requirements
 
 ### Behaviour
 
-- **SUC-1** (deterministic) The key `g` must switch the screen of `cardinal-ui` from its panels to the charts of SUC-2, from the charts to the measures screen of SUC-6, and from there back to the panels, the selection of the panels kept as it was; on the charts and the measures screen, `Esc` goes back to the panels, `q`, `Ctrl+C` and `r` work as on the panels, `m` starts a measure (STU-17) and the other keys do nothing; on the panels, `m` does nothing.
-- **SUC-2** (deterministic) The charts screen must show, from the last measure of STU-17, the line the `Measures` panel opens on (`measured <HH:MM>`, `measuring…`, the error of STU-19), then four charts: `input per session` (the median `input_tokens`) and `cached share` (`cache_read_share`) for each group of the efficiency table of `revisions.json`, oldest first, and `fixes after per issue` (`fixes_after_per_issue`) and `findings per review` (`findings_per_review`) for each milestone of `milestones.json` but `(no milestone)`, in the order of that report; each group one row: its name (a revision without its `self:` prefix), a bar, the number as the report writes it and its sample (`<sessions> sessions`, `<issues> issues`, `<counted_reviews> reviews`); a chart taller than its room shows its last rows, the newest.
+- **SUC-1** (deterministic) The key `g` must switch the screen of `cardinal-ui` from its panels to the charts of SUC-2, from the charts to the measures screen of SUC-6, and from there back to the panels, the selection of the panels kept as it was; on the charts and the measures screen, `Esc` goes back to the panels, `q`, `Ctrl+C` and `r` work as on the panels, `m` starts a measure (STU-17), `t` on the charts picks a series (SUC-9) and the other keys do nothing; on the panels, `m` does nothing.
+- **SUC-2** (deterministic) The charts screen must show, from the last measure of STU-17, the line the `Measures` panel opens on (`measured <HH:MM>`, `measuring…`, the error of STU-19), then four charts: `input per session` (the median `input_tokens`) and `cached share` (`cache_read_share`) for each group of the efficiency table of `revisions.json`, oldest first, and `fixes after per issue` (`fixes_after_per_issue`) and `findings per review` (`findings_per_review`) for each milestone of `milestones.json` but `(no milestone)`, in the order of that report; each group one row: its name (a revision without its `self:` prefix), a bar, the number as the report writes it and its sample (`<sessions> sessions`, `<issues> issues`, `<counted_reviews> reviews`); a chart taller than its room shows its last rows, the newest; under the four charts, the band of SUC-7.
 
 ### Contract
 
 - **SUC-3** (deterministic) The bar of a row must be as long as its number over the largest number of its chart times the width left to the bars, from zero, in eighths of a cell, a group `too few` (REP-4) showing `too few` and its `sessions` instead of a bar and a number, and an empty cell (a ratio over no sample) `-` and no bar, so a group with too few sessions is never drawn as a value.
 - **SUC-4** (deterministic) A measure must also run `cardinal-report --project <project> --last 12 --json` (REP-17) into `revisions.json`, written and kept as the files of STU-17, STU-18 and STU-19 are; a last measure without that file, or whose `revisions.json` is older than its `milestones.json` (left by a measure that did not write it), draws the groups of revisions of `efficiency.json` instead.
 - **SUC-5** (deterministic) The charts screen must draw the bars in `accent`, `too few` and the samples in `muted`, and the rest as SUS-1 draws the panels.
+- **SUC-7** (deterministic) The charts screen must show under its four charts a band `by issue` drawn from the `issues.tsv` of the last measure (QUA-23): one series per metric, `time` (`duration_s`), `input tokens` (`input_tokens`), `tool calls` (`tool_calls`), `fixes after` (`fixes_after`) and `findings` (`review_findings`), in that order, each a line of its name, `max` and the largest value it draws, `last` and the value of the newest issue, then three rows of one column per done issue in the order of the file, the newest last on the right, as many of the newest as the width holds; under the series, the day (`YYYY-MM-DD`) of `closed` of the first and of the last issue drawn; a last measure without `issues.tsv` shows instead the line `no rows per issue: m measures again`.
 - **SUC-6** (deterministic) The measures screen must show the panel `Measures` of STU-16 over the whole screen but the status line of SUS-2 and its help line, in the roles of SUS-1, its first rows when it is taller than its room.
+- **SUC-8** (deterministic) The column of an issue must be as high as its value over the largest value of the issues drawn in its series times its three rows, from zero, in eighths of a cell, in `accent`; an empty cell (an issue with no session) a `·` in `muted` on the lowest row, so it is never drawn as a zero; `time` writes its values as `2h19m`, `12m` or `40s`, `input tokens` as `13.6M`, `950k` or `800`, the others as the file writes them.
+- **SUC-9** (deterministic) When the band of SUC-7 has no room for its five series, it must show the picked series first, then those after it in the order of SUC-7, after `findings` `time`, while room is left; the four charts give up their oldest rows so that at least one series shows; `time` is picked when `cardinal-ui` starts, `t` on the charts screen picks the next series (after `findings`, `time`), the pick kept when the measure is read again, and the help line of the charts names `t series`.
 
 ## Scenarios
 
@@ -32,6 +36,10 @@ holds the table of the measures, so the panels keep their rows for the queue and
   sessions, and two milestones, when the user presses `g`, then the screen shows the two first groups with a bar, their
   median input and `10 sessions`, the third with `too few  6 sessions`, the milestones with their ratios and samples,
   and pressing `g` again shows the panels with the same issue selected.
+- **SUC-H2** (happy; SUC-7, SUC-8, SUC-9) Given a measure whose `issues.tsv` holds three done issues closed on
+  2026-11-24, 2026-11-25 and 2026-11-26 that took 3600, 1800 and 900 seconds, when the user opens the charts on a
+  screen with room for one series, then the band shows `time  max 1h00m  last 15m`, three columns falling from the
+  left to the right and `2026-11-24` and `2026-11-26` under them; pressing `t` shows `input tokens` instead.
 - (SUC-2) Given `(no milestone)` with 149 issues among the milestones, then no chart by milestone draws it.
 - (SUC-3) Given a milestone whose `findings_per_review` is empty (no counted review), then its row reads `-` with no
   bar.
@@ -49,14 +57,28 @@ holds the table of the measures, so the panels keep their rows for the queue and
 - (SUC-1) Given the charts screen, when the user presses `Esc`, then the panels are shown and `cardinal-ui` runs on.
 - (SUC-2) Given twelve groups of revisions and room for eight rows, then the chart shows the last eight.
 - (SUC-2) Given a milestone named `Host self: builds`, then its row reads that name whole.
+- (SUC-7) Given a last measure with no `issues.tsv`, then the band reads `no rows per issue: m measures again`.
+- (SUC-7) Given 300 done issues and 100 columns for the series, then each series draws the 100 newest and the first
+  day under them is the `closed` of the 100th newest.
+- (SUC-8) Given two issues of 1800 and 3600 seconds, then the column of the first fills one row and a half and that of
+  the second the three rows.
+- (SUC-8) Given an issue whose `input_tokens` is empty, then its column of `input tokens` is a `·` in `muted`, and
+  `last` reads `-` when it is the newest.
+- (SUC-9) Given room for two series and `fixes after` picked, then the band shows `fixes after` and `findings`;
+  pressing `t` shows `findings` and `time`.
+- (SUC-9) Given a screen with no room under the four charts, then the band still shows the picked series and the
+  charts show their newest rows.
 - (SUC-4) Given a `revisions.json` older than `milestones.json`, then the groups of revisions are those of
   `efficiency.json`.
 
 ## Non-goals
 
 - The charts in `cardinal-ui --print`: the panels of STU-16 print the same numbers.
-- Line charts, a scale other than one from zero, or other measures than the four of SUC-2: the panel of STU-16 and
+- Line charts, a scale other than one from zero, or other measures than those of SUC-2 and SUC-7: the panel of STU-16 and
   `skill:evaluate-harness` hold the rest.
 - A pass or a fail, a target or a verdict drawn on a chart: the numbers are signals (`docs/evaluation.md`).
 - The order of the roadmap for the milestones: the report orders them by their first done issue, which follows time.
 - The layout of the four charts on the screen, the widths of the names and the characters of the bars.
+- The columns of the issues spaced by the time between their closes, a cursor to read the name or the values of one
+  issue, or the metrics over the changed lines of an issue: the order of the closes shows a drift; `issues.tsv`
+  holds the rest.

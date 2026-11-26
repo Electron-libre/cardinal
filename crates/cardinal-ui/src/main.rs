@@ -5,7 +5,7 @@
 //! the release session of the milestones awaiting it (`release.rs`) or the review of the priorities of the issues
 //! (`prioritize.rs`), the audit of the code (`audit.rs`) or the cut of a milestone into issues (`cut.rs`), each in a tab of its own (`skill_tab.rs`), to merge into the trunk an issue closed on its
 //! branch (`merge.rs`), or to end what a merged issue left (`end.rs`); it notifies the desktop when a worktree starts
-//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`), then their table (`screen.rs`); `:` opens the command palette (`palette.rs`); `o` and `O` open the Markdown document of the selected row in a viewer or an editor (`document.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
+//! to wait for the user (`notify.rs`); `g` shows the charts of the measures (`charts.rs`) over the series of the done issues (`timeline.rs`), then their table (`screen.rs`); `:` opens the command palette (`palette.rs`); `o` and `O` open the Markdown document of the selected row in a viewer or an editor (`document.rs`); `--print` renders as text (`print.rs`). It draws in the colors of the theme file of the user (`theme.rs`).
 //! Usage: `cardinal-ui [--print | --start <stem> | --merge <stem> | --end <stem> | --end-merged | --release | --prioritize | --audit | --cut <milestone>]`: with no argument the
 //! screen runs in the terminal until `q`; `--print` prints it once as text; `--start` starts (or resumes) the session of an issue;
 //! `--merge` merges it; `--end` ends its session and removes its worktree once it is merged; `--end-merged` does so on every
@@ -40,6 +40,7 @@ mod status;
 mod summary;
 mod terminal;
 mod theme;
+mod timeline;
 mod tree;
 mod zellij;
 
@@ -75,6 +76,7 @@ fn read(measuring: bool, measure_error: Option<String>) -> screen::View {
         worktrees,
         waits,
         charts: state.charts,
+        issues: state.issues,
         keys,
         summaries,
         next: state.queue.as_ref().ok().and_then(|q| q.next.clone()),

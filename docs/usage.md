@@ -340,13 +340,13 @@ of no milestone left out), each bar from zero with its number and its sample, a 
 too tall for the terminal showing its newest rows; under them, the band `by issue` draws from `issues.tsv` the time,
 input tokens, tool calls, fixes after and findings of each done issue, one column per issue in the order of the closes,
 the newest on the right, with the largest and the last value of each series and the days of the first and last issue
-drawn, an issue with no session a `·`, as many series as the terminal holds (at least one) from the one `t` picks;
+drawn, an empty cell (no session, or no counted review for the findings) a `·`, as many series as the terminal holds (at least one) from the one `t` picks;
 the table reads `measured <HH:MM>`, then per group of the last four
 groups of revisions of the project its sessions and the medians of input tokens (with the share read from cache),
 output tokens, peak context (with the sessions it rests on) and validations, or `too few`, and per milestone its done
 issues, the fixes after per issue, the findings per review (with the reviews counted) and the input tokens per issue
-(with the issues of known tokens). On both, `Esc` goes back to the panels, `q`, `r` and `m` work and the other keys
-wait; on the panels, `m` does nothing. The numbers are trends with their sample, never a pass or a fail:
+(with the issues of known tokens). On both, `Esc` goes back to the panels, `q`, `r` and `m` work, `t` on the charts, and
+the other keys wait; on the panels, `m` does nothing. The numbers are trends with their sample, never a pass or a fail:
 `skill:evaluate-harness` reads the rest of the report.
 
 What an action did or why it refused, a failed notification and an ignored theme line go on the status line, rows

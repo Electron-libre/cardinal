@@ -49,6 +49,9 @@ Means: the bars are columns of eighths drawn by hand (as SUC-3), not a ratatui `
 2. [x] The pick of the series: `t` on the charts screen picks the next series, the band showing it first then the
    following ones, the charts giving up rows for at least one series, `t series` on the help line; verified by tests
    of `keys.rs` and of the charts screen; makes true SUC-1, SUC-9, SUC-H2; the spec `accepted`. (~200 lines) (autonomous)
+3. [x] Fixes of the `high` review: the five series in their order when all fit, a value above zero at least an
+   eighth, the `·` of an empty cell worded for `findings`, `t` in the keys of the usage doc, the SUC-H2 fixture of
+   three issues; verified by `timeline.rs` and `charts.rs` tests; makes true SUC-7, SUC-8, SUC-9, SUC-H2. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -95,4 +98,28 @@ Means: the bars are columns of eighths drawn by hand (as SUC-3), not a ratatui `
 - Code review: no findings
 - not verified: `t` in a real terminal (the key path is tested through `action` and `screen_key`, the drawing in a
   test buffer).
+- decisions needed: none
+
+## Deliverable 3 (high review of the issue)
+
+- done: the band keeps the order of SUC-7 when the five series fit; a value above zero takes at least one eighth;
+  SUC-8 and `docs/usage.md` word the `·` as an empty cell (no session, or no counted review for `findings`); the usage
+  doc lists `t` among the keys of the charts; the SUC-H2 test draws its three issues and checks their columns.
+
+| check | result |
+|---|---|
+| tests | pass |
+| lint | pass |
+| specs | pass (SUC-8 amended, two scenarios added) |
+| docs | updated |
+| code review | high on `15987a8..HEAD`, then low on the fixes |
+
+- red: SUC-8, SUC-9: `cell(5.0, 300.0, 2)` gave `' '`, not `'▁'`; with room for five and `tool calls` picked, the band
+  read `["tool calls", "fixes after", "findings", "time", "input tokens"]`.
+- Code review (high): 5 findings: the order rotated when all five fit (fixed); the `·` of `findings` read as no
+  session (fixed: worded as an empty cell); a small value drawn as a zero (fixed); `t` missing from the keys of the
+  usage doc (fixed); the SUC-H2 test on two issues, its columns unchecked (fixed).
+- Code review (low, on the fixes): 1 finding: a zero drawn as one eighth (not fixed: a false positive, `cell` returns
+  a blank for a value not above zero before the floor; `cell(0.0, 24.0, 2)` is tested blank).
+- not verified: the screen in a real terminal.
 - decisions needed: none

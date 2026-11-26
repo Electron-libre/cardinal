@@ -120,6 +120,8 @@ fn cell(value: f64, max: f64, row: usize) -> char {
     // within 0..=ROWS*8 by the ratio, so the cast neither truncates nor loses a sign
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     let eighths = ((value / max).min(1.0) * f64::from(cells)).round() as usize;
+    // a value above zero takes at least an eighth, so it is never drawn as a zero (SUC-8)
+    let eighths = eighths.max(1);
     let below = (ROWS - 1 - row) * 8;
     match eighths.saturating_sub(below).min(8) {
         0 => ' ',
@@ -129,7 +131,8 @@ fn cell(value: f64, max: f64, row: usize) -> char {
 }
 
 /// The panel of the band laid out in `width` columns inside its borders (SUC-7 to SUC-9): `count` series from the
-/// series `first`, those after it following, after the last the first one.
+/// series `first`, those after it following, after the last the first one; all of them in their order when `count`
+/// holds them.
 pub fn panel(timeline: &Timeline, width: usize, first: usize, count: usize) -> Panel {
     let mut lines = Vec::new();
     let mut marks = Vec::new();
@@ -137,6 +140,8 @@ pub fn panel(timeline: &Timeline, width: usize, first: usize, count: usize) -> P
         None => lines.push("no rows per issue: m measures again".to_string()),
         Some(issues) => {
             let drawn = &issues[issues.len().saturating_sub(width)..];
+            // with room for all of them, the series keep their order (SUC-7)
+            let first = if count >= COUNT { 0 } else { first };
             for k in 0..count.min(COUNT) {
                 let (name, _, unit) = SERIES[(first + k) % COUNT];
                 let i = (first + k) % COUNT;
@@ -158,7 +163,7 @@ pub fn panel(timeline: &Timeline, width: usize, first: usize, count: usize) -> P
                     for v in &values {
                         let start = line.len();
                         let (c, role) = match v {
-                            // an issue with no session is never drawn as a zero (SUC-8)
+                            // an empty cell (no session, or no counted review) is never drawn as a zero (SUC-8)
                             None if row == ROWS - 1 => ('·', Role::Muted),
                             None => (' ', Role::Accent),
                             Some(v) => (cell(*v, max.unwrap_or(0.0), row), Role::Accent),
@@ -302,6 +307,9 @@ mod tests {
         assert_eq!(&p.lines[1..4], [" █", "▄█", "██"]);
         assert_eq!(cell(1.0, 24.0, 2), '▁');
         assert_eq!(cell(0.0, 24.0, 2), ' ');
+        // a value above zero is never drawn as a zero
+        assert_eq!(cell(5.0, 300.0, 2), '▁');
+        assert_eq!(cell(5.0, 300.0, 1), ' ');
     }
 
     // spec: SUC-8 (internal: the charts screen is drawn only in the terminal, never by `--print`)
@@ -351,6 +359,17 @@ mod tests {
         };
         assert_eq!(names(3, 2), ["fixes after", "findings"]);
         assert_eq!(names(4, 2), ["findings", "time"]);
+        // with room for all five, the order of SUC-7 whatever the pick
+        assert_eq!(
+            names(2, COUNT),
+            [
+                "time",
+                "input tokens",
+                "tool calls",
+                "fixes after",
+                "findings"
+            ]
+        );
         assert_eq!(fitting(0), 1);
         assert_eq!(fitting(height(&three(), 2)), 2);
         assert_eq!(fitting(200), COUNT);

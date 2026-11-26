@@ -527,7 +527,7 @@ mod tests {
     fn screen_measure() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("milestones.json"), r#"{"version":1,"tables":[{"title":"Quality","columns":["group","sessions","issues","fixes_after_per_issue","findings_per_review","counted_reviews"],"rows":[["(no milestone)","","149","1.17","1.15","358"],["One","","2","1.50","1.71","7"],["Two","","1","0.00","","0"]]}]}"#).unwrap();
-        std::fs::write(dir.path().join("issues.tsv"), "issue\tclosed\tduration_s\na\t2026-11-24T10:00:00+01:00\t3600\nb\t2026-11-26T10:00:00+01:00\t900\n").unwrap();
+        std::fs::write(dir.path().join("issues.tsv"), "issue\tclosed\tduration_s\na\t2026-11-24T10:00:00+01:00\t3600\nb\t2026-11-25T10:00:00+01:00\t1800\nc\t2026-11-26T10:00:00+01:00\t900\n").unwrap();
         std::fs::write(dir.path().join("revisions.json"), r#"{"version":1,"tables":[{"title":"Efficiency","columns":["group","sessions","input_tokens","cache_read_share"],"rows":[["self:aaaaaaa","10","5000000","96%"],["self:bbbbbbb","10","10000000","97%"],["self:ccccccc","6","too few","too few"]]}]}"#).unwrap();
         dir
     }
@@ -629,6 +629,14 @@ mod tests {
         assert!(screen.contains("time  max 1h00m  last 15m"), "{screen}");
         assert!(screen.contains("2026-11-24 2026-11-26"), "{screen}");
         assert!(!screen.contains("input tokens"), "one series: {screen}");
+        // three columns falling from the left to the right, at the left of the band
+        let band = short_screen(20, 0);
+        let at = band.iter().position(|r| r.contains("time  max")).unwrap();
+        let columns: Vec<String> = band[at + 1..at + 4]
+            .iter()
+            .map(|r| r.chars().skip(1).take(3).collect())
+            .collect();
+        assert_eq!(columns, ["█  ", "█▄ ", "██▆"], "{screen}");
         assert!(screen.contains("t series"), "{screen}");
         let press = ratatui::crossterm::event::KeyEvent::new(
             ratatui::crossterm::event::KeyCode::Char('t'),

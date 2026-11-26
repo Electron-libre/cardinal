@@ -27,7 +27,7 @@ holds the table of the measures, so the panels keep their rows for the queue and
 - **SUC-5** (deterministic) The charts screen must draw the bars in `accent`, `too few` and the samples in `muted`, and the rest as SUS-1 draws the panels.
 - **SUC-7** (deterministic) The charts screen must show under its four charts a band `by issue` drawn from the `issues.tsv` of the last measure (QUA-23): one series per metric, `time` (`duration_s`), `input tokens` (`input_tokens`), `tool calls` (`tool_calls`), `fixes after` (`fixes_after`) and `findings` (`review_findings`), in that order, each a line of its name, `max` and the largest value it draws, `last` and the value of the newest issue, then three rows of one column per done issue in the order of the file, the newest last on the right, as many of the newest as the width holds; under the series, the day (`YYYY-MM-DD`) of `closed` of the first and of the last issue drawn; a last measure without `issues.tsv` shows instead the line `no rows per issue: m measures again`.
 - **SUC-6** (deterministic) The measures screen must show the panel `Measures` of STU-16 over the whole screen but the status line of SUS-2 and its help line, in the roles of SUS-1, its first rows when it is taller than its room.
-- **SUC-8** (deterministic) The column of an issue must be as high as its value over the largest value of the issues drawn in its series times its three rows, from zero, in eighths of a cell, in `accent`; an empty cell (an issue with no session) a `·` in `muted` on the lowest row, so it is never drawn as a zero; `time` writes its values as `2h19m`, `12m` or `40s`, `input tokens` as `13.6M`, `950k` or `800`, the others as the file writes them.
+- **SUC-8** (deterministic) The column of an issue must be as high as its value over the largest value of the issues drawn in its series times its three rows, from zero, in eighths of a cell, in `accent`; a value above zero at least one eighth; an empty cell (an issue with no session, or with no counted review for `findings`) a `·` in `muted` on the lowest row, so neither is drawn as a zero; `time` writes its values as `2h19m`, `12m` or `40s`, `input tokens` as `13.6M`, `950k` or `800`, the others as the file writes them.
 - **SUC-9** (deterministic) When the band of SUC-7 has no room for its five series, it must show the picked series first, then those after it in the order of SUC-7, after `findings` `time`, while room is left; the four charts give up their oldest rows so that at least one series shows; `time` is picked when `cardinal-ui` starts, `t` on the charts screen picks the next series (after `findings`, `time`), the pick kept when the measure is read again, and the help line of the charts names `t series`.
 
 ## Scenarios
@@ -62,10 +62,12 @@ holds the table of the measures, so the panels keep their rows for the queue and
   day under them is the `closed` of the 100th newest.
 - (SUC-8) Given two issues of 1800 and 3600 seconds, then the column of the first fills one row and a half and that of
   the second the three rows.
+- (SUC-8) Given two issues of 300 and 5 tool calls, then the column of the second is one eighth, not blank.
 - (SUC-8) Given an issue whose `input_tokens` is empty, then its column of `input tokens` is a `·` in `muted`, and
   `last` reads `-` when it is the newest.
 - (SUC-9) Given room for two series and `fixes after` picked, then the band shows `fixes after` and `findings`;
   pressing `t` shows `findings` and `time`.
+- (SUC-9) Given room for the five series and `tool calls` picked, then the band shows them in the order of SUC-7.
 - (SUC-9) Given a screen with no room under the four charts, then the band still shows the picked series and the
   charts show their newest rows.
 - (SUC-4) Given a `revisions.json` older than `milestones.json`, then the groups of revisions are those of

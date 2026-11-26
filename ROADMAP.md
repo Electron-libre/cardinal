@@ -35,7 +35,7 @@ The work done before this file existed is in `issues/done/`.
   behaviour.
 - Why: the code audit of 2026-11-24 found the crate root and five tools too long to review whole, and each change
   grows them.
-- State: in issues
+- State: done
 - Issues:
   - [split_the_crate_root_of_cardinal](issues/done/split_the_crate_root_of_cardinal.md)
   - [split_the_spec_checker](issues/done/split_the_spec_checker.md)
@@ -46,7 +46,7 @@ The work done before this file existed is in `issues/done/`.
   - [split_the_tests_of_the_skills](issues/done/split_the_tests_of_the_skills.md)
   - [split_the_tests_of_the_review_gate](issues/done/split_the_tests_of_the_review_gate.md)
   - [split_the_tests_of_session_metrics](issues/done/split_the_tests_of_session_metrics.md)
-  - [split_the_tests_of_the_cardinal_report_tool](issues/split_the_tests_of_the_cardinal_report_tool.md)
+  - [split_the_tests_of_the_cardinal_report_tool](issues/done/split_the_tests_of_the_cardinal_report_tool.md)
 
 ## User control
 

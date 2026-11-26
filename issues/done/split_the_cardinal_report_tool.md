@@ -57,7 +57,7 @@ issue of its own: with it, the issue counts ~3,400 changed lines, over the limit
 ## Decisions
 - Mode: autonomous
 - Base commit: 13d4c8c5585b13c138b0e99391583aba1d581593
-- Split: the tests of the report (Approach 3) moved to [split_the_tests_of_the_cardinal_report_tool](../split_the_tests_of_the_cardinal_report_tool.md), their helpers in `tests/cardinal_report_common/` (answers 1 a, 2 a).
+- Split: the tests of the report (Approach 3) moved to [split_the_tests_of_the_cardinal_report_tool](split_the_tests_of_the_cardinal_report_tool.md), their helpers in `tests/cardinal_report_common/` (answers 1 a, 2 a).
 
 ## Summary of deliverable 1
 - done: the metrics of the axes moved to `cardinal_report/axes.rs` (454 lines), with the inline test of VRD-1 on
@@ -88,4 +88,4 @@ issue of its own: with it, the issue counts ~3,400 changed lines, over the limit
 - not verified: nothing; decisions needed: none.
 
 Done: the tool is split, every part under the limit; its tests are left to
-[split_the_tests_of_the_cardinal_report_tool](../split_the_tests_of_the_cardinal_report_tool.md).
+[split_the_tests_of_the_cardinal_report_tool](split_the_tests_of_the_cardinal_report_tool.md).

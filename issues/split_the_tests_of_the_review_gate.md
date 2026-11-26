@@ -42,9 +42,9 @@ and their `// spec:` lines unchanged. Out of scope: any change of a check or of 
 1. [x] Shared helpers: move `run`, `review_done`, `commit_attempt`, `sh`, `git_dir_of`, `native_run`,
    `target_fixture` and an `assert_checks` runner (the loop of `review_gate()`) to `review_gate_common/mod.rs`;
    verified by `just check`, same checks passing; ~260 lines. (autonomous)
-2. [ ] Close checks: move `close_passes`, `replace_in`, `close_checks` and the test
+2. [x] Close checks: move `close_passes`, `replace_in`, `close_checks` and the test
    `issues_are_code_with_the_issue_files_off` (it calls `close_passes`) to `review_gate_close.rs`, run by a
-   `#[test] review_gate_close`; verified by `just check`; ~470 lines.
+   `#[test] review_gate_close`; verified by `just check`; ~470 lines. (autonomous)
 3. [ ] Native checks: move `native_waiver_checks`, `native_checks`, `native_hook_checks`, `native_worktree_checks`
    to `review_gate_native.rs`, run by a `#[test] review_gate_native`; verified by `just check`, `cardinal run
    file-size --all` no longer listing the file (~640 lines left); ~560 lines.
@@ -60,10 +60,30 @@ done: `run`, `review_done`, `commit_attempt`, `sh`, `git_dir_of`, `native_run` a
 
 | check | result |
 |---|---|
-| tests | `review_gate`: 3 passed, 160 named checks ok, as before |
+| tests | `review_gate`: 3 passed, 162 named checks ok, as before |
 | lint | clippy clean |
 | specs | `check-specs` ok, `// spec: PAR-9` moved with `git_dir_of` |
 | docs | none to change (test helpers) |
+| code review | low, see below |
+
+red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 2
+done: `close_passes`, `replace_in`, `close_checks` and the test `issues_are_code_with_the_issue_files_off` moved to
+`review_gate_close.rs`, the close checks run by `review_gate_close` over `assert_checks`; `review_gate.rs` down to
+992 lines.
+
+| check | result |
+|---|---|
+| tests | the two files: 162 named checks ok, the same names as before the split |
+| lint | clippy clean |
+| specs | `check-specs` ok, `// spec: REV-20` and `FEA-36` moved with their checks |
+| docs | none to change (no document names the test file) |
 | code review | low, see below |
 
 red: none (a move with no new test)

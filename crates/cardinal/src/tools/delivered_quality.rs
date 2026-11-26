@@ -4,7 +4,7 @@
 //! come from a new need. The sessions that made its commits give the failed checks and the typed messages of its
 //! span, the tokens of its messages, and the lines it changed in the specs and in the docs, and the shape of the specs it changed as of its close (QUA-18). With `--summary`, the columns are summed per Cardinal revision, setup (the main model, alone or advised) and milestone of the `roadmap` documents (QUA-19). No text of a commit, an issue or a message
 //! is printed.
-//! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary]` (default the
+//! Usage: `cardinal run delivered-quality [repo] [--projects <dir>] [--window-days <n>] [--summary] [--rows <file>]` (default the
 //! current directory, the `projects/` of the configuration directory (EVA-15) and 30 days).
 //! Modules: `history` (the commits of the default branch, those of an issue, its reverts and blamed lines),
 //! `sessions` (the transcript sessions and the columns they give), `milestone` (the milestone of an issue).
@@ -13,6 +13,7 @@ use super::check_specs::{is_cited_id, shape};
 use super::citations::{
     citation, citation_list, config_names, markers, name_matches, spec_patterns,
 };
+use super::git_diff::is_lock;
 use super::transcripts;
 use crate::project_table::ProjectTable;
 
@@ -21,7 +22,7 @@ mod milestone;
 mod sessions;
 
 use history::{blamed, commits, issue_commits, reverts, starts_work, unrelated, Commit};
-use sessions::{read_sessions, session_cells, Session};
+use sessions::{read_sessions, session_cells, Session, CELLS};
 pub(super) use sessions::{setup_name, SYNTHETIC};
 
 use chrono::{DateTime, Duration, FixedOffset};
@@ -30,7 +31,7 @@ use std::path::{Path, PathBuf};
 use transcripts::{git, issue_file_stem, projects_root, revision, sorted_entries};
 
 pub(super) const SUMMARY_HEADER: &str = "revision\tsetup\tmilestone\tissues\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\ttoken_issues";
-const HEADER: &str = "issue\trevision\tsetup\tmilestone\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens";
+const HEADER: &str = "issue\trevision\tsetup\tmilestone\tclosed\tdeliverables\tcommits\tfixes_in_issue\tfixes_after\treverts_after\treviews\tcounted_reviews\treview_findings\ttraced\ttraced_without_red\tspec_lines\tdoc_lines\tspecs\tspec_bytes\tspec_requirements\tspec_intent_chars\tspec_happy_paths\tsessions\tfailed_checks\tvalidations\tother_messages\tinput_tokens\tcache_read_tokens\toutput_tokens\tduration_s\ttool_calls\tchanged_lines";
 
 /// The paths whose later fixes say nothing of the issue's work: the issue files, the docs and the lock of the sync.
 const UNRELATED_PREFIXES: &[&str] = &["issues/", "docs/"];
@@ -381,17 +382,14 @@ fn is_spec(path: &str) -> bool {
 }
 
 /// The added and removed lines the commits `own` change in the specs and in the docs (QUA-14): the `.md` files of
-/// `specs/` but its README and template; the doc files of `docs`. Renames are detected, a binary file counts 0.
-/// `None` when git cannot show the diffs.
-fn doc_spec_lines(
-    repo: &Path,
-    own: &[&Commit],
-    docs: &DocFiles,
-) -> Option<(usize, usize, BTreeSet<String>)> {
+/// `specs/` but its README and template; the doc files of `docs`; then the changed specs (QUA-18) and the lines of the
+/// paths outside `issues/` but the lock files (QUA-22). Renames are detected, a binary file counts 0. `None` when git
+/// cannot show the diffs.
+fn doc_spec_lines(repo: &Path, own: &[&Commit], docs: &DocFiles) -> Option<DiffLines> {
     let mut args = vec!["show", "-M", "--numstat", "-z", "--format=%x1e"];
     args.extend(own.iter().map(|c| c.hash.as_str()));
     let stats = git(repo, &args)?;
-    let (mut spec_lines, mut doc_lines, mut specs) = (0, 0, BTreeSet::new());
+    let (mut spec_lines, mut doc_lines, mut specs, mut changed) = (0, 0, BTreeSet::new(), 0);
     // `-z`: `<added>\t<removed>\t<path>\0`, or for a rename `<added>\t<removed>\t\0<old>\0<new>\0`
     let mut fields = stats.split('\0');
     while let Some(field) = fields.next() {
@@ -414,14 +412,20 @@ fn doc_spec_lines(
         if is_spec(path) {
             specs.insert(path.to_string());
         }
+        if !path.starts_with("issues/") && !is_lock(path) {
+            changed += count;
+        }
         if spec {
             spec_lines += count;
         } else if docs.is_doc(path) {
             doc_lines += count;
         }
     }
-    Some((spec_lines, doc_lines, specs))
+    Some((spec_lines, doc_lines, specs, changed))
 }
+
+/// The spec lines, doc lines, changed specs and changed lines of the commits of an issue (QUA-14, QUA-18, QUA-22).
+type DiffLines = (usize, usize, BTreeSet<String>, usize);
 
 /// The requirement and happy path ids recorded as seen failing in an issue file (QUA-11): the list that opens each
 /// `red:` item of its `# Tracking` section, an item running over its indented continuation lines, the list ending at the first
@@ -547,8 +551,10 @@ fn issue_row(
     ];
     cells.extend((0..SHAPES).map(|k| cell(shapes.map(|s| s[k]))));
     // the tokens of an issue no session holds are unknown, not 0 (QUA-15)
+    // and so are its time and tool calls (QUA-20, QUA-21)
     let known = |k: usize| k < TOKENS || transcript.is_some_and(|t| t[0] > 0);
-    cells.extend((0..7).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));
+    cells.extend((0..CELLS).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));
+    cells.push(cell(lines.as_ref().map(|l| l.3)));
     Some(Row {
         issue: stem,
         first: log[first].date,
@@ -559,6 +565,9 @@ fn issue_row(
 
 /// The spec shape columns (QUA-18): `specs`, `spec_bytes`, `spec_requirements`, `spec_intent_chars`, `spec_happy_paths`.
 const SHAPES: usize = 5;
+
+/// The last columns of the rows, left out of the summary (QUA-9): `duration_s`, `tool_calls`, `changed_lines`.
+const ROWS_ONLY: usize = 3;
 
 /// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
 const TOKENS: usize = 4;
@@ -575,7 +584,9 @@ fn summary(rows: &[Row]) -> Vec<String> {
     let mut first_use: HashMap<&str, DateTime<FixedOffset>> = HashMap::new();
     let mut by_key: BTreeMap<(&str, &str, &str), Sums> = BTreeMap::new();
     for row in rows {
-        let values: Vec<Option<u64>> = row.cells[4..].iter().map(|v| v.parse().ok()).collect();
+        // the columns of the rows alone, `duration_s`, `tool_calls` and `changed_lines`, are not summed (QUA-9)
+        let summed = &row.cells[4..row.cells.len() - ROWS_ONLY];
+        let values: Vec<Option<u64>> = summed.iter().map(|v| v.parse().ok()).collect();
         let tokens = values.len() - 3;
         let first = first_use.entry(&row.cells[0]).or_insert(row.first);
         *first = (*first).min(row.first);
@@ -615,6 +626,7 @@ pub(super) fn main(args: &[String]) -> u8 {
     let mut window_days = 30;
     let mut projects_dir = None;
     let mut summed = false;
+    let mut rows_file = None;
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
         match arg.as_str() {
@@ -635,6 +647,14 @@ pub(super) fn main(args: &[String]) -> u8 {
                     projects_dir = Some(dir.clone());
                 } else {
                     eprintln!("--projects needs a directory");
+                    std::process::exit(2);
+                }
+            }
+            "--rows" => {
+                if let Some(file) = rest.next() {
+                    rows_file = Some(file.clone());
+                } else {
+                    eprintln!("--rows needs a file");
                     std::process::exit(2);
                 }
             }
@@ -673,6 +693,20 @@ pub(super) fn main(args: &[String]) -> u8 {
         let name = milestones.get(&row.issue).cloned().unwrap_or_default();
         row.cells.insert(2, name);
     }
+    let printed_rows = || {
+        let lines = rows
+            .iter()
+            .map(|r| format!("{}\t{}\n", r.issue, r.cells.join("\t")));
+        std::iter::once(format!("{HEADER}\n"))
+            .chain(lines)
+            .collect::<String>()
+    };
+    if let Some(file) = &rows_file {
+        if let Err(e) = std::fs::write(file, printed_rows()) {
+            eprintln!("cannot write the rows to {file}: {e}");
+            return 1;
+        }
+    }
     if summed {
         println!("{SUMMARY_HEADER}");
         for line in summary(&rows) {
@@ -680,9 +714,6 @@ pub(super) fn main(args: &[String]) -> u8 {
         }
         return 0;
     }
-    println!("{HEADER}");
-    for row in rows {
-        println!("{}\t{}", row.issue, row.cells.join("\t"));
-    }
+    print!("{}", printed_rows());
     0
 }

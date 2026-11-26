@@ -19,6 +19,20 @@ enum Event {
     FailedCheck,
     /// The `message.id`, input sum (REP-5), cache read and output tokens of an assistant message (QUA-15).
     Tokens(String, [u64; 3]),
+    /// The `id` of a `tool_use` block (QUA-20).
+    ToolCall(String),
+}
+
+/// The tool calls of a transcript line, by the `id` of each `tool_use` block of an assistant line (QUA-20).
+fn tool_calls(line: &Value) -> impl Iterator<Item = Event> + '_ {
+    let blocks = (line["type"] == "assistant")
+        .then(|| line["message"]["content"].as_array())
+        .flatten();
+    blocks
+        .into_iter()
+        .flatten()
+        .filter(|b| b["type"] == "tool_use")
+        .map(|b| Event::ToolCall(b["id"].as_str().unwrap_or_default().to_string()))
 }
 
 /// The tokens of an assistant message line, once per `message.id` (EVA-2, QUA-15): the top-level usage, which adds
@@ -55,6 +69,10 @@ pub(super) struct Session {
     setup: Option<String>,
     events: Vec<(DateTime<FixedOffset>, Event)>,
 }
+
+/// The transcript cells of an issue: `sessions`, `failed_checks`, `validations`, `other_messages`, the three token
+/// columns (QUA-15), `duration_s` and `tool_calls` (QUA-20, QUA-21).
+pub(super) const CELLS: usize = 9;
 
 /// A check of the project: `just` followed by a word starting with `check` or `test`, or `cardinal run project-check`
 /// (QUA-8); not `cardinal check`, the drift check.
@@ -133,6 +151,7 @@ pub(super) fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
                 return;
             };
             events.extend(tokens(line, &mut messages).map(|t| (at, t)));
+            events.extend(tool_calls(line).map(|t| (at, t)));
             if let Some(text) = typed_text(line) {
                 events.push((
                     at,
@@ -177,6 +196,7 @@ pub(super) fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
                     .flatten();
                 if let Some(at) = at {
                     events.extend(tokens(line, &mut messages).map(|t| (at, t)));
+                    events.extend(tool_calls(line).map(|t| (at, t)));
                 }
             });
         }
@@ -205,14 +225,14 @@ pub(super) fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
 }
 
 /// The transcript columns of an issue (QUA-7, QUA-8, QUA-15): its sessions, then the failed checks, validations and
-/// other typed messages of their spans that belong to it, and the input, cache read and output tokens of their messages;
-/// with the setup of its sessions, `mixed` when they differ (QUA-16).
+/// other typed messages of their spans that belong to it, the input, cache read and output tokens of their messages,
+/// their seconds from the first to the last event of the issue and their tool calls (QUA-20, QUA-21); with the setup of its sessions, `mixed` when they differ (QUA-16).
 pub(super) fn session_cells(
     log: &[Commit],
     own: &[usize],
     stem: &str,
     sessions: &[Session],
-) -> ([u64; 7], Option<String>) {
+) -> ([u64; CELLS], Option<String>) {
     let on_branch = |s: &Session| s.span.branches.iter().any(|b| b == stem);
     let mut by_session: BTreeMap<usize, Vec<DateTime<FixedOffset>>> = BTreeMap::new();
     for &i in own {
@@ -231,9 +251,10 @@ pub(super) fn session_cells(
         1 => setups.first().map(|s| (*s).to_string()),
         _ => Some("mixed".to_string()),
     };
-    let mut cells = [by_session.len() as u64, 0, 0, 0, 0, 0, 0];
+    let mut cells = [0; CELLS];
+    cells[0] = by_session.len() as u64;
     // a resumed session copies the messages of the one it resumes, ids included: each counts once for the issue
-    let mut counted: HashSet<&str> = HashSet::new();
+    let (mut messages, mut tool_ids): (HashSet<&str>, HashSet<&str>) = Default::default();
     for (k, dates) in &by_session {
         let session = &sessions[*k];
         let (Some(&first), Some(&last)) = (dates.iter().min(), dates.iter().max()) else {
@@ -249,19 +270,28 @@ pub(super) fn session_cells(
         let inside = |at: &DateTime<FixedOffset>| {
             after.map_or(*at >= session.span.start, |a| *at > a) && *at <= last
         };
-        for (_, event) in session.events.iter().filter(|(at, _)| inside(at)) {
+        // the sub-agents' events follow those of the session: its span of the issue is their earliest to their latest
+        let (mut earliest, mut latest) =
+            (None::<DateTime<FixedOffset>>, None::<DateTime<FixedOffset>>);
+        for (at, event) in session.events.iter().filter(|(at, _)| inside(at)) {
+            earliest = Some(earliest.map_or(*at, |e| e.min(*at)));
+            latest = Some(latest.map_or(*at, |l| l.max(*at)));
             match event {
                 Event::FailedCheck => cells[1] += 1,
                 Event::Validation => cells[2] += 1,
                 Event::Other => cells[3] += 1,
                 Event::Tokens(id, t) => {
-                    if counted.insert(id) {
-                        for (cell, n) in cells[4..].iter_mut().zip(t) {
+                    if messages.insert(id) {
+                        for (cell, n) in cells[4..7].iter_mut().zip(t) {
                             *cell += n;
                         }
                     }
                 }
+                Event::ToolCall(id) => cells[8] += u64::from(tool_ids.insert(id)),
             }
+        }
+        if let (Some(earliest), Some(latest)) = (earliest, latest) {
+            cells[7] += (latest - earliest).num_seconds().unsigned_abs();
         }
     }
     (cells, setup)
@@ -334,6 +364,43 @@ mod tests {
         };
         let (cells, _) = session_cells(&log, &[0, 1], "x", &[first, resumed]);
         assert_eq!(cells[0], 2);
-        assert_eq!(cells[4..], [15, 0, 15]);
+        assert_eq!(cells[4..7], [15, 0, 15]);
+    }
+
+    // the same pair of sessions, with a tool call copied into the resumed one
+    // spec: QUA-20, QUA-21 (internal: the resumed session is built from its structs)
+    #[test]
+    fn a_tool_call_copied_into_a_resumed_session_counts_once() {
+        let log = [
+            commit("2026-01-01T02:00:00Z"),
+            commit("2026-01-02T02:00:00Z"),
+        ];
+        let call = |ts: &str, id: &str| (at(ts), Event::ToolCall(id.to_string()));
+        let span = |start: &str, end: &str| Span {
+            start: at(start),
+            end: at(end),
+            claimed: Vec::new(),
+            branches: vec!["x".to_string()],
+        };
+        let first = Session {
+            span: span("2026-01-01T00:00:01Z", "2026-01-01T03:00:00Z"),
+            setup: None,
+            events: vec![
+                call("2026-01-01T01:00:00Z", "t1"),
+                call("2026-01-01T01:30:00Z", "t2"),
+            ],
+        };
+        let resumed = Session {
+            span: span("2026-01-01T00:00:00Z", "2026-01-02T03:00:00Z"),
+            setup: None,
+            events: vec![
+                call("2026-01-01T01:00:00Z", "t1"),
+                call("2026-01-02T01:00:00Z", "t3"),
+            ],
+        };
+        let (cells, _) = session_cells(&log, &[0, 1], "x", &[first, resumed]);
+        assert_eq!(cells[8], 3);
+        // 30 minutes in the first, 24 hours from the copy to the last call in the resumed one
+        assert_eq!(cells[7], 1800 + 86_400);
     }
 }

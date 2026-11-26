@@ -47,10 +47,10 @@ move too; the split of `tests/check_specs.rs` (1915 lines, ~2300 counted lines o
    `name_matches`, `config_names`, `spec_patterns`, `internal_dirs`, `test_files`, `Cite`, `citations`, `is_managed`,
    `is_internal` to `tools/citations.rs`, which `spec-coverage`, `delivered-quality`, `git_diff` and `mod.rs` use
    directly (~265 moved, ~560 counted, root left at ~860); verified by `project-check` unchanged green. (autonomous)
-2. [ ] Checker modules: move `MARKER`, `question`, `check_markers`, `VAGUE`, `without_quotes`, `check_wording` to
+2. [x] Checker modules: move `MARKER`, `question`, `check_markers`, `VAGUE`, `without_quotes`, `check_wording` to
    `check_specs/clarity.rs` and `bound_warnings`, `warn_accepted`, `boundary_warnings` to `check_specs/warnings.rs`
    (~190 moved, ~400 counted, root left at ~670); verified by `project-check` and `file-size` listing no source file
-   of the checker.
+   of the checker. (autonomous)
 3. [ ] Docs and high review: the module doc of the root lists its modules; the fixes of the `high` review; verified
    by `project-check`.
 
@@ -68,6 +68,23 @@ move too; the split of `tests/check_specs.rs` (1915 lines, ~2300 counted lines o
 | tests, lint, specs (`project-check`) | pass |
 | docs | no change: the module doc of `citations.rs` written; no document names the moved items |
 | deliverable-size | 553 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 2
+- done: the marker and wording checks moved to `check_specs/clarity.rs` (111 lines), the stderr warnings to
+  `check_specs/warnings.rs` (94 lines); `check_specs.rs` down to 679 lines, no source file of the checker over 800.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | the module docs of both new files |
+| deliverable-size | 403 changed lines, within |
+| file-size | no source file of the checker listed |
 | code review | low |
 
 - red: none (a move, no new test)

@@ -10,10 +10,13 @@
 //! (CLR-9, CLR-10), and so is one whose `## Requirements` holds no `### Behaviour` (CLR-11, CLR-12, ADR 0029), or
 //! one over the `spec_max_*` bounds of `.claude/cardinal.toml` (CLR-13 to CLR-16).
 
-use super::citations::{
-    citations, internal_dirs, is_internal, is_managed, spec_patterns, test_files, Cite,
-};
+use super::citations::{citations, internal_dirs, is_managed, spec_patterns, test_files};
 use crate::project_table::ProjectTable;
+use clarity::{check_markers, check_wording};
+use warnings::{bound_warnings, boundary_warnings, warn_accepted};
+
+mod clarity;
+mod warnings;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -174,113 +177,6 @@ fn is_req_id(s: &str) -> bool {
 /// `delivered-quality` reads the citations with it.
 pub(super) fn is_cited_id(s: &str) -> bool {
     parse_id(s).is_some()
-}
-
-const MARKER: &str = "[NEEDS CLARIFICATION:";
-
-/// The text of a marker up to its closing bracket, brackets inside it included.
-fn question(after: &str) -> &str {
-    let mut depth = 1;
-    for (i, c) in after.char_indices() {
-        depth += match c {
-            '[' => 1,
-            ']' => -1,
-            _ => 0,
-        };
-        if depth == 0 {
-            return after[..i].trim();
-        }
-    }
-    after.trim()
-}
-
-/// An open question left in the spec: a problem once `accepted`, a warning while `draft`. A marker cited in a code
-/// span or a code block (fenced or indented) is an example, not a question; one in an HTML comment is still a question.
-/// `prose` holds each line with its code spans blanked (`markdown::blank`), `None` for a line of a code block.
-fn check_markers(
-    file: &str,
-    prose: &[Option<String>],
-    accepted: bool,
-    out: &mut Vec<String>,
-    warn: &mut Vec<String>,
-) {
-    for (i, text) in prose.iter().enumerate() {
-        let Some(text) = text else {
-            continue;
-        };
-        let mut rest = text.as_str();
-        while let Some(start) = rest.find(MARKER) {
-            let after = &rest[start + MARKER.len()..];
-            let question = question(after);
-            if accepted {
-                out.push(format!(
-                    "{file}:{}: `{MARKER} ...]` left in an accepted spec: settle it",
-                    i + 1
-                ));
-            } else {
-                warn.push(format!(
-                    "warning: {file}:{}: needs clarification: {question}",
-                    i + 1
-                ));
-            }
-            rest = after;
-        }
-    }
-}
-
-/// Words that leave the obligation of a requirement open (`etc` stands for `etc.`).
-const VAGUE: [&str; 5] = ["should", "may", "etc", "appropriate", "fast"];
-
-/// `text` without its double-quoted parts, straight or curly: a quoted message is not the requirement's wording. A
-/// quote with no closing one (an inch mark) is kept, so the text after it is still checked.
-fn without_quotes(text: &str) -> String {
-    let mut out = String::new();
-    let mut rest = text;
-    while let Some((start, open)) = rest
-        .char_indices()
-        .find(|(_, c)| matches!(c, '"' | '\u{201c}'))
-    {
-        let after = &rest[start + open.len_utf8()..];
-        let close = if open == '"' { '"' } else { '\u{201d}' };
-        out.push_str(&rest[..start]);
-        if let Some(end) = after.find(close) {
-            rest = &after[end + close.len_utf8()..];
-        } else {
-            out.push(open);
-            rest = after;
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
-/// Warns of a `draft` requirement whose wording `statement`, its code spans blanked, is vague: a word of `VAGUE`, or not exactly one `must`. Warnings
-/// only: the word list has false positives.
-fn check_wording(file: &str, id: &str, statement: &str, warn: &mut Vec<String>) {
-    // `shouldn't` holds `should` and `mustn't` a `must`
-    let text = without_quotes(statement)
-        .to_lowercase()
-        .replace("n't", " not")
-        .replace("n\u{2019}t", " not");
-    let words: Vec<&str> = text
-        .split(|c: char| !c.is_alphanumeric())
-        .filter(|w| !w.is_empty())
-        .collect();
-    let mut warned = BTreeSet::new();
-    for word in words.iter().filter(|w| VAGUE.contains(w)) {
-        if warned.insert(*word) {
-            let shown = if *word == "etc" { "etc." } else { word };
-            warn.push(format!(
-                "warning: {file}: requirement {id}: vague word `{shown}`"
-            ));
-        }
-    }
-    let musts = words.iter().filter(|w| **w == "must").count();
-    if musts != 1 {
-        warn.push(format!(
-            "warning: {file}: requirement {id}: holds {musts} `must`, expected 1"
-        ));
-    }
 }
 
 /// Record the problem `m` of the spec `file` in `out`.
@@ -757,88 +653,6 @@ pub(super) fn problems(root: &Path, strict: bool) -> Vec<String> {
     out.extend(bound_problems);
     bound_warnings(&specs, &bounds);
     out
-}
-
-/// Warn of each `draft` spec over a bound, with its measures (CLR-13), and in one line of the `accepted` ones (CLR-14).
-fn bound_warnings(specs: &[Spec], bounds: &[u64; 3]) {
-    for spec in specs.iter().filter(|s| s.status == "draft") {
-        let over = spec.outgrown(bounds);
-        if !over.is_empty() {
-            eprintln!(
-                "warning: {}: outgrows its capability: {}; split it (skill:write-spec)",
-                spec.file,
-                over.join(", ")
-            );
-        }
-    }
-    warn_accepted(
-        specs,
-        [
-            "outgrows a bound of spec_max_*",
-            "outgrow a bound of spec_max_*",
-        ],
-        |s| s.outgrown(bounds).is_empty(),
-    );
-}
-
-/// Print one warning naming the `accepted` specs `has` rejects, if any, `what` saying of one or several of them what
-/// they lack.
-fn warn_accepted(specs: &[Spec], [one, several]: [&str; 2], has: impl Fn(&Spec) -> bool) {
-    let lacking: Vec<&str> = specs
-        .iter()
-        .filter(|s| s.status == "accepted" && !has(s))
-        .map(|s| s.file.as_str())
-        .collect();
-    if !lacking.is_empty() {
-        let (plural, what) = if lacking.len() == 1 {
-            ("", one)
-        } else {
-            ("s", several)
-        };
-        eprintln!(
-            "warning: {} accepted spec{plural} {what}: {}",
-            lacking.len(),
-            lacking.join(", ")
-        );
-    }
-}
-
-/// Warn, per spec, of the cited requirements whose every citation is internal, one at least giving no reason
-/// (TRC-1 to TRC-4, TRC-6), the internal ones being under a directory named like one of `internal_dirs`.
-fn boundary_warnings(
-    specs: &[Spec],
-    cited: &BTreeMap<String, Vec<Cite>>,
-    internal_dirs: &[String],
-) {
-    let dirs = internal_dirs
-        .iter()
-        .map(|d| format!("`{d}`"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    for spec in specs {
-        let internal: Vec<&str> = spec
-            .requirements
-            .iter()
-            .filter(|r| !r.exempt)
-            .filter(|r| {
-                cited.get(&r.id).is_some_and(|cites| {
-                    cites.iter().all(|c| is_internal(&c.file, internal_dirs))
-                        && cites.iter().any(|c| !c.reasoned)
-                })
-            })
-            .map(|r| r.id.as_str())
-            .collect();
-        if !internal.is_empty() {
-            let plural = if internal.len() == 1 { "" } else { "s" };
-            eprintln!(
-                "warning: {}: {} requirement{plural} proven only by tests under {dirs} with no reason: {} \
-                 (give it as `spec: ID (internal: <reason>)` after the comment marker)",
-                spec.file,
-                internal.len(),
-                internal.join(", ")
-            );
-        }
-    }
 }
 
 pub(super) fn main(args: &[String]) -> u8 {

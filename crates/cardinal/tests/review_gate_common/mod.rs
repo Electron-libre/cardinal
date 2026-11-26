@@ -55,9 +55,7 @@ pub fn sh(project: &Path, args: &[&str]) {
     assert!(ok, "git {args:?} failed");
 }
 
-// spec: PAR-9
-/// A review recorded in one worktree must not cover another: the marker and the waiver live in the git directory
-/// of each worktree.
+/// The absolute git directory of the worktree `dir` is in.
 pub fn git_dir_of(dir: &Path) -> std::path::PathBuf {
     let out = Command::new("git")
         .args(["rev-parse", "--absolute-git-dir"])

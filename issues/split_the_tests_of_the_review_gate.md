@@ -48,6 +48,8 @@ and their `// spec:` lines unchanged. Out of scope: any change of a check or of 
 3. [x] Native checks: move `native_waiver_checks`, `native_checks`, `native_hook_checks`, `native_worktree_checks`
    to `review_gate_native.rs`, run by a `#[test] review_gate_native`; verified by `just check`, `cardinal run
    file-size --all` no longer listing the file (~640 lines left); ~560 lines. (autonomous)
+4. [x] Fixes of the `high` review: `// spec: PAR-9` moved from the helper `git_dir_of` to `worktree_checks`, the
+   check that proves it, and `review_gate()` run by `assert_checks`; verified by `just check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -107,6 +109,37 @@ file of the review gate listed by `cardinal run file-size --all`.
 | code review | low, see below |
 
 red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Docs of the whole issue
+`update-docs` on `51c4924..HEAD`: n/a, the map row "test code moved or split" applies and no document names the moved
+file.
+
+## High review
+Code review: 6 findings, 2 fixed in deliverable 4: `// spec: PAR-9` sat on a shared helper, away from the check that
+proves it, and `review_gate()` kept its own copy of the loop of `assert_checks`. 4 older ones not filed:
+- the module doc names a `harness` binary: not filed: older than the split, a wording no run trips on;
+- `target_fixture` ignores its `_name`: not filed: older than the split, a label with no effect;
+- a panic skips the `remove_dir_all` of the kept temp directories: not filed: older than the split, no leftover observed;
+- the helpers pass the inherited `GIT_*` variables on: not filed: older than the split, no run of the tests from a git
+  hook observed.
+
+## Summary of deliverable 4
+done: the PAR-9 trace on `worktree_checks`, `review_gate()` over `assert_checks`.
+
+| check | result |
+|---|---|
+| tests | 162 named checks ok, the same names as before the split |
+| lint | clippy clean |
+| specs | `check-specs` ok, PAR-9 still traced |
+| docs | none to change |
+| code review | low, see below |
+
+red: none (a fix with no new test)
 Code review: no findings (`low` skips the test files, the whole of this change)
 
 not verified: none

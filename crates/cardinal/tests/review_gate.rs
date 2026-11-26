@@ -9,7 +9,9 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-// spec: REV-15
+// spec: REV-15, PAR-9
+/// A review recorded in one worktree must not cover another: the marker and the waiver live in the git directory
+/// of each worktree.
 fn worktree_checks(hook: &Path) -> Vec<(&'static str, bool)> {
     let root = tempfile::tempdir().unwrap().keep();
     let _ = fs::remove_dir_all(&root);
@@ -602,11 +604,8 @@ fn review_gate() {
     sh(&project, &["add", "-A"]);
     sh(&project, &["commit", "-qm", "init"]);
 
-    let mut failed = false;
-    let mut check = |name: &str, ok: bool| {
-        println!("{} - {name}", if ok { "ok  " } else { "FAIL" });
-        failed |= !ok;
-    };
+    let mut out = Vec::new();
+    let mut check = |name: &'static str, ok: bool| out.push((name, ok));
     let judged = |dir: &Path| native_run(&hook, dir, &[]).0;
 
     check(
@@ -698,7 +697,7 @@ fn review_gate() {
     }
 
     let _ = fs::remove_dir_all(&project);
-    assert!(!failed, "a check failed: see the FAIL lines");
+    assert_checks(out);
 }
 
 // spec: REV-22

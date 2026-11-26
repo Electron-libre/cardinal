@@ -46,9 +46,9 @@ test file needs the language and routing checks moved besides the commit ones to
    `rule_breaches/commits.rs` and `EDIT_TOOLS`, `Call`, `Event`, `Transcript`, `typed_skills`, `skill_name` to
    `rule_breaches/transcript.rs` (~320 moved, ~660 counted, root left at ~710); verified by `project-check` unchanged
    green and `file-size`. (autonomous)
-2. [ ] Test helpers: move `COLUMNS`, `SUMMARY`, `sh`, `commit_at`, `new_repo`, `Transcript`, `bash`, `edit`, `run`,
+2. [x] Test helpers: move `COLUMNS`, `SUMMARY`, `sh`, `commit_at`, `new_repo`, `Transcript`, `bash`, `edit`, `run`,
    `row`, `sorted`, `tool_command` of `tests/rule_breaches.rs` to `tests/rule_breaches_common/mod.rs` (as
-   `delivered_quality_common`; ~170 moved, ~360 counted); verified by the tests unchanged green.
+   `delivered_quality_common`; ~170 moved, ~360 counted); verified by the tests unchanged green. (autonomous)
 3. [ ] Commit tests: move `git_at`, `commit_repo`, `commit_checks`, `claim_checks`, `attribution_off_checks`,
    `convention_off_checks` (BRE-9, FEA-11, FEA-22) to `tests/rule_breaches_commits.rs` with a `#[test]` of their own
    (~270 moved, ~560 counted); verified by the same checks passing there.
@@ -74,6 +74,22 @@ test file needs the language and routing checks moved besides the commit ones to
 | docs | no change: no document names a module of the tool |
 | deliverable-size | 649 changed lines, within |
 | file-size | no `rule_breaches` source file over 800 |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 2
+- done: the fixture repositories, the transcript under construction, the runs of the tool and its rows moved from
+  `tests/rule_breaches.rs` to `tests/rule_breaches_common/mod.rs`, shared by the test files to come.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | no change |
+| deliverable-size | 342 changed lines, within |
 | code review | low |
 
 - red: none (a move, no new test)

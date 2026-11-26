@@ -1,159 +1,13 @@
 //! Behavior test for `cardinal tool rule-breaches` on fixture transcripts and repositories: the findings of each rule, `breach`
 //! apart from `blocked`, their locations, the summary per rule and revision, no message text.
 
+mod rule_breaches_common;
+
+use rule_breaches_common::*;
 use serde_json::json;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-const COLUMNS: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
-const SUMMARY: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
-
-fn sh(dir: &Path, args: &[&str]) {
-    let ok = Command::new("git")
-        .args(args)
-        .current_dir(dir)
-        .output()
-        .is_ok_and(|o| o.status.success());
-    assert!(ok, "git {args:?} failed in {}", dir.display());
-}
-
-/// Commits `files` (path, content) in `repo` at `date`, with `message`; returns the abbreviated hash.
-fn commit_at(repo: &Path, date: &str, message: &str, files: &[(&str, &str)]) -> String {
-    for (path, body) in files {
-        let file = repo.join(path);
-        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
-        std::fs::write(file, body).unwrap();
-    }
-    sh(repo, &["add", "-A", "--force"]);
-    let out = Command::new("git")
-        .args([
-            "-c",
-            "user.name=t",
-            "-c",
-            "user.email=t@t",
-            "commit",
-            "-q",
-            "--allow-empty",
-            "-m",
-            message,
-        ])
-        .env("GIT_AUTHOR_DATE", date)
-        .env("GIT_COMMITTER_DATE", date)
-        .current_dir(repo)
-        .output()
-        .unwrap();
-    assert!(
-        out.status.success(),
-        "commit failed: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let head = Command::new("git")
-        .args(["log", "-1", "--format=%h"])
-        .current_dir(repo)
-        .output()
-        .unwrap();
-    String::from_utf8_lossy(&head.stdout).trim().to_string()
-}
-
-fn new_repo(dir: &Path) -> PathBuf {
-    std::fs::create_dir_all(dir).unwrap();
-    sh(dir, &["init", "-q", "-b", "main"]);
-    dir.to_path_buf()
-}
-
-/// A transcript under construction: each push returns the 1-based line number.
-struct Transcript {
-    cwd: String,
-    ts: String,
-    lines: Vec<String>,
-}
-
-impl Transcript {
-    fn new(cwd: &Path, ts: &str) -> Self {
-        Transcript {
-            cwd: cwd.display().to_string(),
-            ts: ts.to_string(),
-            lines: Vec::new(),
-        }
-    }
-
-    fn push(&mut self, mut line: serde_json::Value) -> usize {
-        line["cwd"] = json!(self.cwd);
-        line["timestamp"] = json!(self.ts);
-        line["sessionId"] = json!("x");
-        self.lines.push(line.to_string());
-        self.lines.len()
-    }
-
-    fn typed(&mut self, text: &str) -> usize {
-        self.push(json!({"type": "user", "gitBranch": "main", "message": {"role": "user", "content": text}}))
-    }
-
-    fn call(&mut self, id: &str, name: &str, input: &serde_json::Value) -> usize {
-        self.push(json!({"type": "assistant", "message": {"id": format!("m{id}"), "content": [{"type": "tool_use", "id": id, "name": name, "input": input}]}}))
-    }
-
-    fn text(&mut self, id: &str, text: &str) -> usize {
-        self.push(json!({"type": "assistant", "message": {"id": id, "content": [{"type": "text", "text": text}]}}))
-    }
-
-    fn result(&mut self, id: &str, error: bool, text: &str) -> usize {
-        self.push(json!({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": id, "is_error": error, "content": text}]}}))
-    }
-
-    /// A call and its result; returns the line of the call.
-    fn run(
-        &mut self,
-        id: &str,
-        name: &str,
-        input: &serde_json::Value,
-        error: Option<&str>,
-    ) -> usize {
-        let at = self.call(id, name, input);
-        self.result(id, error.is_some(), error.unwrap_or("SECRET output"));
-        at
-    }
-
-    fn write(&self, path: &Path) {
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(
-            path,
-            self.lines
-                .iter()
-                .map(|l| l.clone() + "\n")
-                .collect::<String>(),
-        )
-        .unwrap();
-    }
-}
-
-fn bash(command: &str) -> serde_json::Value {
-    json!({"command": command})
-}
-
-fn edit(path: &Path) -> serde_json::Value {
-    json!({"file_path": path, "old_string": "SECRET old", "new_string": "SECRET new"})
-}
-
-fn run(dir: &Path, projects: &Path, summary: bool) -> (bool, String) {
-    let mut cmd = tool_command(dir.join("rule_breaches.rs"));
-    cmd.arg(projects);
-    if summary {
-        cmd.arg("--summary");
-    }
-    let out = cmd.output().unwrap();
-    (
-        out.status.success(),
-        String::from_utf8_lossy(&out.stdout).into_owned(),
-    )
-}
-
-/// A finding row of the session `s` at revision `rev`.
-fn row(s: &str, rev: &str, rule: &str, kind: &str, loc: &str, detail: &str) -> String {
-    format!("{s}\tproj\t{rev}\t{rule}\t{kind}\t{loc}\t{detail}")
-}
-
-/// Writes the session `a` of `repo` (and its subagent) under `proj`; returns its expected finding rows.
 fn session_a(repo: &Path, proj: &Path) -> Vec<String> {
     let in_repo = |p: &str| repo.join(p);
     let mut t = Transcript::new(repo, "2026-02-01T10:00:00.000Z");
@@ -392,11 +246,6 @@ fn fixture(tmp: &Path) -> (PathBuf, Vec<String>) {
     let mut expected = session_a(&repo, &projects.join("-proj"));
     expected.extend(other_sessions(tmp, &repo, &bare, &projects));
     (projects, expected)
-}
-
-fn sorted(mut v: Vec<String>) -> Vec<String> {
-    v.sort();
-    v
 }
 
 // spec: BRE-1, BRE-2, BRE-4, BRE-5, BRE-6, BRE-7, BRE-8, BRE-11, BRE-H1
@@ -1451,17 +1300,4 @@ fn rule_breaches() {
         failed |= !ok;
     }
     assert!(!failed, "a check failed: see the FAIL lines");
-}
-
-/// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).
-fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
-    let stem = script
-        .as_ref()
-        .file_stem()
-        .unwrap()
-        .to_string_lossy()
-        .replace('_', "-");
-    let mut cmd = std::process::Command::new(env!("CARGO_BIN_EXE_cardinal"));
-    cmd.arg("tool").arg(stem);
-    cmd
 }

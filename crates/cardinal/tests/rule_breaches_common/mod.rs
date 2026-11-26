@@ -159,6 +159,7 @@ pub fn sorted(mut v: Vec<String>) -> Vec<String> {
     v
 }
 
+/// `cardinal tool <name>` for the script path the checks were written against (`next_issue.rs` is `next-issue`).
 pub fn tool_command(script: impl AsRef<std::path::Path>) -> std::process::Command {
     let stem = script
         .as_ref()

@@ -49,9 +49,9 @@ test file needs the language and routing checks moved besides the commit ones to
 2. [x] Test helpers: move `COLUMNS`, `SUMMARY`, `sh`, `commit_at`, `new_repo`, `Transcript`, `bash`, `edit`, `run`,
    `row`, `sorted`, `tool_command` of `tests/rule_breaches.rs` to `tests/rule_breaches_common/mod.rs` (as
    `delivered_quality_common`; ~170 moved, ~360 counted); verified by the tests unchanged green. (autonomous)
-3. [ ] Commit tests: move `git_at`, `commit_repo`, `commit_checks`, `claim_checks`, `attribution_off_checks`,
+3. [x] Commit tests: move `git_at`, `commit_repo`, `commit_checks`, `claim_checks`, `attribution_off_checks`,
    `convention_off_checks` (BRE-9, FEA-11, FEA-22) to `tests/rule_breaches_commits.rs` with a `#[test]` of their own
-   (~270 moved, ~560 counted); verified by the same checks passing there.
+   (~270 moved, ~560 counted); verified by the same checks passing there. (autonomous)
 4. [ ] Language tests: move `FRENCH`, `ENGLISH`, `AN_AS`, `HINT`, `language_checks`, `personal_language_checks`,
    `language_kind_checks` (BRE-10, BRE-13, BRE-14) to `tests/rule_breaches_language.rs` (~205 moved, ~430 counted).
 5. [ ] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
@@ -94,5 +94,21 @@ test file needs the language and routing checks moved besides the commit ones to
 
 - red: none (a move, no new test)
 - Code review: no findings
+- not verified: nothing
+- decisions needed: none
+
+## Deliverable 3
+- done: the commit checks (BRE-9, FEA-11, FEA-22) moved to `tests/rule_breaches_commits.rs` with a `#[test]` of their
+  own, in the same order; the doc comments of `session_a` and `tool_command` that deliverable 2 dropped restored.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass, the 6 commit checks green in their own binary |
+| docs | the module docs of both test files |
+| deliverable-size | 576 changed lines, within |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings (the `low` level skips test hunks: the move checked line by line against the base instead)
 - not verified: nothing
 - decisions needed: none

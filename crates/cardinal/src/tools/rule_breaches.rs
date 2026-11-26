@@ -10,33 +10,28 @@
 //! Usage: `cardinal run rule-breaches [projects_dir] [--summary] [--project <name>]`
 //! (default the `projects/` of the configuration directory, EVA-15).
 
-use super::commit_check::{BUILT_IN_SCOPES, TYPES};
-use super::language::{is_hint, Language};
+use super::language::Language;
 use super::scratch_writes;
 use super::shell;
 use super::transcripts;
 use crate::features;
-use crate::project_table::ProjectTable;
 
-use chrono::DateTime;
+mod commits;
+mod transcript;
+
+use commits::check_commits;
+use transcript::{skill_name, Call, Event, Transcript};
+
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Component, Path, PathBuf};
 use transcripts::{
-    commit_config, committed_config, committed_file, for_each_numbered_line, git, project_name,
-    projects, projects_root, repository, result_text, revision, sessions, subagents, user_command,
-    user_turn, Place, Span, LOCKS,
+    committed_config, committed_file, project_name, projects, projects_root, repository, revision,
+    sessions, subagents, Place, Span, LOCKS,
 };
 
 const HEADER: &str = "session\tproject\trevision\trule\tkind\tlocation\tdetail";
 const SUMMARY_HEADER: &str = "rule\trevision\tapplied\tbreached\tbreaches\tblocked\tbytes";
-
-/// The tools that write a file, with the input key of its path.
-const EDIT_TOOLS: &[(&str, &str)] = &[
-    ("Edit", "file_path"),
-    ("Write", "file_path"),
-    ("NotebookEdit", "notebook_path"),
-];
 
 /// Where the files of the validation stop go before the plan is validated (`issue-workflow`, step 1).
 const PLAN_DIRS: &[&str] = &["issues/", "specs/", "docs/adr/"];
@@ -83,192 +78,6 @@ const ROUTED: &[(&str, &str)] = &[
     ("issue-workflow", "skill-routing-issue-workflow"),
     ("write-spec", "skill-routing-write-spec"),
 ];
-
-struct Call {
-    name: String,
-    input: Value,
-    location: String,
-    /// The `cwd` of its line, where its paths are relative to.
-    cwd: String,
-    /// The commands of a `Bash` call, each as its words (`shell::commands`); empty for another tool.
-    commands: Vec<Vec<String>>,
-    /// Whether its result was an error; `None` when no result was read.
-    error: Option<bool>,
-}
-
-impl Call {
-    /// The path a call of a tool of `EDIT_TOOLS` writes; empty for another tool.
-    fn edited_path(&self) -> &str {
-        EDIT_TOOLS
-            .iter()
-            .find(|(tool, _)| *tool == self.name)
-            .and_then(|(_, key)| self.input[*key].as_str())
-            .unwrap_or_default()
-    }
-
-    /// The text an `Edit` or `Write` call puts in its file.
-    fn written_text(&self) -> String {
-        [&self.input["new_string"], &self.input["content"]]
-            .into_iter()
-            .filter_map(Value::as_str)
-            .collect()
-    }
-
-    fn has(&self, word: &str) -> bool {
-        self.commands.iter().flatten().any(|w| w == word)
-    }
-
-    /// Whether a command runs `cardinal run waive-review` or `cardinal tool waive-review`: the agent runs other tools
-    /// of `cardinal run` on the line that names the waiver.
-    fn runs_the_waiver_tool(&self) -> bool {
-        self.commands.iter().any(|words| {
-            words.iter().any(|w| w == "cardinal")
-                && words
-                    .windows(2)
-                    .any(|w| matches!(w[0].as_str(), "run" | "tool") && w[1] == "waive-review")
-        })
-    }
-
-    /// Whether it is a `Bash` call running `git commit`.
-    fn commits(&self) -> bool {
-        self.has("git") && self.has("commit")
-    }
-}
-
-enum Event {
-    Call(usize),
-    /// A message or a command the user typed.
-    Typed,
-    /// A skill the user loaded by typing its command (the session's own transcript only).
-    Loaded(String),
-    /// An error tool result, with the call it answers when known.
-    Error {
-        location: String,
-        text: String,
-        call: Option<usize>,
-    },
-    /// A text block of the agent to the user (the session's own transcript only).
-    Text {
-        location: String,
-        text: String,
-    },
-    /// A hint of the `language-hint` hook: Stop hook feedback or added context (the session's own transcript only).
-    Hint,
-    /// A tool result with the bytes of its text.
-    Result {
-        location: String,
-        bytes: usize,
-    },
-}
-
-/// The events of one transcript file, in order.
-#[derive(Default)]
-struct Transcript {
-    calls: Vec<Call>,
-    events: Vec<Event>,
-}
-
-impl Transcript {
-    fn read(path: &Path, name: &str, main: bool, place: &mut Place) -> Transcript {
-        let mut t = Transcript::default();
-        let mut ids: HashMap<String, usize> = HashMap::new();
-        let read = for_each_numbered_line(path, |n, line| {
-            place.observe(line, main);
-            let location = format!("{name}:{n}");
-            let blocks = line["message"]["content"]
-                .as_array()
-                .map_or_default(Vec::as_slice);
-            match line["type"].as_str() {
-                Some("assistant") => {
-                    if main {
-                        let texts = blocks
-                            .iter()
-                            .filter(|b| b["type"] == "text")
-                            .filter_map(|b| b["text"].as_str());
-                        t.events.extend(texts.map(|text| Event::Text {
-                            location: location.clone(),
-                            text: text.to_string(),
-                        }));
-                    }
-                    for block in blocks.iter().filter(|b| b["type"] == "tool_use") {
-                        ids.insert(
-                            block["id"].as_str().unwrap_or_default().to_string(),
-                            t.calls.len(),
-                        );
-                        t.events.push(Event::Call(t.calls.len()));
-                        let name = block["name"].as_str().unwrap_or_default().to_string();
-                        let commands = if name == "Bash" {
-                            shell::commands(block["input"]["command"].as_str().unwrap_or_default())
-                        } else {
-                            Vec::new()
-                        };
-                        let cwd = line["cwd"].as_str().unwrap_or_default().to_string();
-                        t.calls.push(Call {
-                            name,
-                            input: block["input"].clone(),
-                            location: location.clone(),
-                            cwd,
-                            commands,
-                            error: None,
-                        });
-                    }
-                }
-                Some("user") => {
-                    if main && user_turn(line) {
-                        t.events.push(Event::Typed);
-                    }
-                    if main && user_command(line) {
-                        let text = line["message"]["content"].as_str().unwrap_or_default();
-                        t.events.extend(typed_skills(text).map(Event::Loaded));
-                    }
-                    if main && is_hint(line) {
-                        t.events.push(Event::Hint);
-                    }
-                    for block in blocks.iter().filter(|b| b["type"] == "tool_result") {
-                        let error = block["is_error"].as_bool() == Some(true);
-                        let call = block["tool_use_id"]
-                            .as_str()
-                            .and_then(|id| ids.get(id).copied());
-                        let text = result_text(block);
-                        if let Some(i) = call {
-                            t.calls[i].error = Some(error);
-                        }
-                        t.events.push(Event::Result {
-                            location: location.clone(),
-                            bytes: text.len(),
-                        });
-                        if error {
-                            t.events.push(Event::Error {
-                                location: location.clone(),
-                                text,
-                                call,
-                            });
-                        }
-                    }
-                }
-                Some("attachment") if main && is_hint(line) => t.events.push(Event::Hint),
-                _ => {}
-            }
-        });
-        if let Err(e) = read {
-            eprintln!("cannot read {}: {e}", path.display());
-        }
-        t
-    }
-}
-
-/// The skills of the `<command-name>/<skill>` tags of a command the user typed.
-fn typed_skills(text: &str) -> impl Iterator<Item = String> + '_ {
-    text.split("<command-name>/")
-        .skip(1)
-        .filter_map(|rest| rest.split_once('<'))
-        .map(|(name, _)| skill_name(name).to_string())
-}
-
-/// A skill name without its `<prefix>:` (a directory-scoped or a plugin skill).
-fn skill_name(name: &str) -> &str {
-    name.rsplit(':').next().unwrap_or(name)
-}
 
 struct Finding {
     rule: &'static str,
@@ -701,48 +510,6 @@ fn managed_paths(repo: &Path, start: &str) -> Option<HashSet<String>> {
     )
 }
 
-/// Whether a commit message carries an AI or tool attribution.
-fn attributed(message: &str) -> bool {
-    message.lines().map(str::to_lowercase).any(|l| {
-        l.contains("co-authored-by:")
-            || l.contains("noreply@anthropic.com")
-            || (l.contains("generated with") && l.contains("claude"))
-    })
-}
-
-/// The built-in scope `cardinal` before the rename, still read in the past commits.
-const OLD_SCOPE: &str = "harness";
-
-/// Whether a subject follows `<type>(<scope>): <description>` (scope optional) with one of `scopes`.
-fn conventional(subject: &str, scopes: &[String]) -> bool {
-    let Some((head, description)) = subject.split_once(": ") else {
-        return false;
-    };
-    let (kind, scope) = match head.split_once('(') {
-        Some((kind, rest)) => match rest.strip_suffix(')') {
-            Some(scope) => (kind, Some(scope)),
-            None => return false,
-        },
-        None => (head, None),
-    };
-    subject.chars().count() <= 72
-        && TYPES.contains(&kind)
-        && scope.is_none_or(|s| {
-            s == OLD_SCOPE || BUILT_IN_SCOPES.contains(&s) || scopes.iter().any(|k| k == s)
-        })
-        && !description.is_empty()
-        && !description.starts_with(char::is_uppercase)
-        && !description.ends_with('.')
-}
-
-/// The `commit_scopes` of the configuration of a commit; none when it gives no list of strings (BRE-9).
-fn commit_scopes(config: Option<&toml::Table>) -> Vec<String> {
-    config
-        .and_then(|c| ProjectTable::of(PathBuf::from(crate::CONFIG), c).ok())
-        .and_then(|p| p.list("commit_scopes").ok())
-        .unwrap_or_default()
-}
-
 /// A session checked against the rules, with what places it.
 struct Record {
     id: String,
@@ -751,76 +518,6 @@ struct Record {
     repo: PathBuf,
     span: Span,
     verdict: Verdict,
-}
-
-/// Checks the non-merge commits of the local branches of `repo` against the messages rules, each against the session
-/// of `records` (all of that repository) `session_of` ties it to (BRE-9): a commit the agent rebased keeps the date
-/// the user wrote it, and stashes and notes are on no branch.
-fn check_commits(repo: &Path, records: &mut [&mut Record]) {
-    let Some(log) = git(
-        repo,
-        &[
-            "-c",
-            "core.quotePath=false",
-            "log",
-            "--branches",
-            "--no-merges",
-            "--name-only",
-            "--format=%x1e%h%x1f%H%x1f%aI%x1f%B%x1f",
-        ],
-    ) else {
-        return;
-    };
-    for entry in log.split('\x1e') {
-        let mut fields = entry.splitn(5, '\x1f');
-        let (Some(hash), Some(full), Some(date), Some(message), Some(paths)) = (
-            fields.next(),
-            fields.next(),
-            fields.next(),
-            fields.next(),
-            fields.next(),
-        ) else {
-            continue;
-        };
-        let Ok(at) = DateTime::parse_from_rfc3339(date) else {
-            continue;
-        };
-        // the issues whose file it touches tie it to the session that claimed them (BRE-9)
-        let stems: Vec<&str> = paths
-            .lines()
-            .filter_map(transcripts::issue_file_stem)
-            .collect();
-        let Some(k) = transcripts::session_of(at, &stems, records.iter().map(|r| &r.span)) else {
-            continue;
-        };
-        let record = &mut *records[k];
-        let verdict = &mut record.verdict;
-        let config = commit_config(repo, full);
-        // a project that turned the ban off at that commit has no attribution rule to breach (FEA-11)
-        let off = config
-            .as_ref()
-            .is_some_and(|c| features::turns_off(c, features::NO_AI_ATTRIBUTION));
-        if !off {
-            verdict.applied.insert("commit-attribution");
-            if attributed(message) {
-                verdict.add("commit-attribution", false, "", hash.to_string());
-            }
-        }
-        // nor a format rule when it turned the convention off (FEA-22)
-        if config
-            .as_ref()
-            .is_some_and(|c| features::turns_off(c, features::CONVENTIONAL_COMMITS))
-        {
-            continue;
-        }
-        verdict.applied.insert("commit-format");
-        if !conventional(
-            message.lines().next().unwrap_or_default(),
-            &commit_scopes(config.as_ref()),
-        ) {
-            verdict.add("commit-format", false, "", hash.to_string());
-        }
-    }
 }
 
 /// The record of the session of the transcript `path` (and its subagents), `None` outside a git repository, with no

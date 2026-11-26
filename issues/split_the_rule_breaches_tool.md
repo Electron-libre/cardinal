@@ -30,3 +30,53 @@ Files small enough to review
 # Resources
 * `crates/cardinal/tests/rule_breaches.rs`.
 * `crates/cardinal/src/tools/rule_breaches.rs`, `docs/architecture.md` (the module list it may name).
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-26
+
+## Understanding
+Split `rule_breaches.rs` (1023 lines) and its test file (1467 lines) by responsibility, every part under 800 lines, no
+change of behaviour: moves only. Differs from the issue: `Record`, `record` and `managed_paths` assemble a session, not
+the commit convention, so they stay in the root; the transcript model moves too, else the root stays over 800; the
+test file needs the language and routing checks moved besides the commit ones to fall under the limit.
+
+## Plan
+1. [x] Source modules: move `attributed`, `OLD_SCOPE`, `conventional`, `commit_scopes`, `check_commits` to
+   `rule_breaches/commits.rs` and `EDIT_TOOLS`, `Call`, `Event`, `Transcript`, `typed_skills`, `skill_name` to
+   `rule_breaches/transcript.rs` (~320 moved, ~660 counted, root left at ~710); verified by `project-check` unchanged
+   green and `file-size`. (autonomous)
+2. [ ] Test helpers: move `COLUMNS`, `SUMMARY`, `sh`, `commit_at`, `new_repo`, `Transcript`, `bash`, `edit`, `run`,
+   `row`, `sorted`, `tool_command` of `tests/rule_breaches.rs` to `tests/rule_breaches_common/mod.rs` (as
+   `delivered_quality_common`; ~170 moved, ~360 counted); verified by the tests unchanged green.
+3. [ ] Commit tests: move `git_at`, `commit_repo`, `commit_checks`, `claim_checks`, `attribution_off_checks`,
+   `convention_off_checks` (BRE-9, FEA-11, FEA-22) to `tests/rule_breaches_commits.rs` with a `#[test]` of their own
+   (~270 moved, ~560 counted); verified by the same checks passing there.
+4. [ ] Language tests: move `FRENCH`, `ENGLISH`, `AN_AS`, `HINT`, `language_checks`, `personal_language_checks`,
+   `language_kind_checks` (BRE-10, BRE-13, BRE-14) to `tests/rule_breaches_language.rs` (~205 moved, ~430 counted).
+5. [ ] Routing tests: move `ROUTED_LOCK`, `routing_other_sessions`, `skipped_commits`, `routing_checks` (BRE-15 to
+   BRE-18) to `tests/rule_breaches_routing.rs` (~165 moved, ~350 counted); `tests/rule_breaches.rs` left at ~680
+   lines; verified by the tests and `file-size --all` listing no `rule_breaches` file.
+6. [ ] Docs and high review: the module docs list the modules and the test files; the fixes of the `high` review;
+   verified by `project-check`.
+
+## Decisions
+- Mode: autonomous
+- Base commit: f1735e12e22560857c4282fda31d9a6d8c271534
+
+## Deliverable 1
+- done: the commit message checks moved to `rule_breaches/commits.rs`, the transcript model (calls, events, typed
+  skills) to `rule_breaches/transcript.rs`; the root keeps the rules, the session record and `main` (720 lines).
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs | no change: no document names a module of the tool |
+| deliverable-size | 649 changed lines, within |
+| file-size | no `rule_breaches` source file over 800 |
+| code review | low |
+
+- red: none (a move, no new test)
+- Code review: no findings
+- not verified: nothing
+- decisions needed: none

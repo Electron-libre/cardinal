@@ -50,10 +50,10 @@ Means: the issue's; each new file gets its own `#[test]` that chains its checks,
    `tables`, `cell`, `tool_command`, the verdict helpers (`hash`, `verdicts`, `two`, `pair`, `change`, `verdict`),
    `group_names`, `shape_row`, `axes_inputs`, made `pub` (~340 lines, ~700 changed); verified by
    `cardinal run project-check` (same checks, all `ok`, same spec traces); makes true no requirement (a move). (autonomous)
-2. [ ] VRD checks to `tests/cardinal_verdicts.rs`: `verdict_checks`, `waste_verdict_checks`, `token_verdict_checks`,
+2. [x] VRD checks to `tests/cardinal_verdicts.rs`: `verdict_checks`, `waste_verdict_checks`, `token_verdict_checks`,
    `verdict_edge_checks`, `issue_floor_checks`, `ratio_floor_checks`, `shape_floor_checks`, `advisor_verdict_checks`
    and a `cardinal_verdicts` test (~410 lines, ~850 changed); verified by `cardinal run project-check`; makes true no
-   requirement.
+   requirement. (autonomous)
 3. [ ] REP-14 to REP-18 checks to `tests/cardinal_report_groups.rs`: `setup_sessions`, `setup_inputs`, `setup_checks`,
    `last_checks`, `project_checks` and a `cardinal_report_groups` test (~280 lines, ~580 changed), leaving
    `cardinal_report.rs` at ~580 lines; verified by `cardinal run project-check` and `cardinal run file-size --all` no
@@ -73,6 +73,23 @@ done: the constants, `S`, the fixture, run and table helpers, the verdict helper
 | tests | `cardinal_report`: 87 checks, all `ok` |
 | lint | clippy clean |
 | specs | traces unchanged (no `// spec:` line moved) |
+| docs | nothing to change |
+| code review | low, see below |
+
+red: none (a move, no new test)
+Code review: no findings
+not verified: none
+decisions needed: none
+
+## Summary of deliverable 2
+done: the 8 VRD checks moved to `tests/cardinal_verdicts.rs` (438 lines) with a `cardinal_verdicts` test that chains
+them; `cardinal_report.rs` at 839 lines.
+
+| check | result |
+|---|---|
+| tests | 87 checks = `cardinal_report` + `cardinal_verdicts`, all `ok` |
+| lint | clippy clean |
+| specs | traces unchanged (VRD-1, VRD-5, VRD-6, VRD-7, VRD-9, VRD-10 to VRD-14, VRD-H2 moved with their checks) |
 | docs | nothing to change |
 | code review | low, see below |
 

@@ -42,9 +42,9 @@ to `tests/session_metrics_common/mod.rs`, as `rule_breaches_common/` does, rathe
 1. [x] Shared helpers: move the column constants, the transcript builders (`line` … `error_result`, the block
    constants), `rows`, `git_repo`, `tool_command`, `cell_of` and a `assert_checks` runner (the loop of
    `session_metrics()`) to `session_metrics_common/mod.rs`; verified by `just check`, same checks passing; ~350 lines. (autonomous)
-2. [ ] Advisor and archive checks: move `advised`, the advisor constants, `advisor_fixture`, `advisor_checks` to
+2. [x] Advisor and archive checks: move `advised`, the advisor constants, `advisor_fixture`, `advisor_checks` to
    `session_metrics_advisor.rs`, and `archived_sessions`, `archive_checks`, `advisor_archive_checks` to
-   `session_metrics_archive.rs`, each with its own `#[test]` over `assert_checks`; verified by `just check`; ~650 lines.
+   `session_metrics_archive.rs`, each with its own `#[test]` over `assert_checks`; verified by `just check`; ~650 lines. (autonomous)
 3. [ ] Revision checks: move `commit_at`, `new_repo`, `toml`, `pinned_repo`, `migrated_repo`, `revision_checks` to
    `session_metrics_revision.rs`; verified by `just check`, `cardinal run file-size --all` no longer listing the
    file; ~460 lines.
@@ -64,6 +64,25 @@ done: the column header, the transcript builders, `rows`, `git_repo`, `tool_comm
 | lint | clippy clean |
 | specs | `check-specs` ok |
 | docs | none to change (test helpers) |
+| code review | low, see below |
+
+red: none (a move with no new test)
+Code review: no findings (`low` skips the test files, the whole of this change)
+
+not verified: none
+
+decisions needed: none
+
+## Summary of deliverable 2
+done: the advisor checks moved to `session_metrics_advisor.rs`, the archive checks and the older headers to
+`session_metrics_archive.rs`, each run by its own `#[test]`; `session_metrics.rs` down to 673 lines.
+
+| check | result |
+|---|---|
+| tests | the three files: 65 named checks ok, as before |
+| lint | clippy clean |
+| specs | `check-specs` ok, the `// spec:` lines moved with their checks |
+| docs | none to change (no document names the test file) |
 | code review | low, see below |
 
 red: none (a move with no new test)

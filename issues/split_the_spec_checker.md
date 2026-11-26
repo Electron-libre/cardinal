@@ -51,8 +51,8 @@ move too; the split of `tests/check_specs.rs` (1915 lines, ~2300 counted lines o
    `check_specs/clarity.rs` and `bound_warnings`, `warn_accepted`, `boundary_warnings` to `check_specs/warnings.rs`
    (~190 moved, ~400 counted, root left at ~670); verified by `project-check` and `file-size` listing no source file
    of the checker. (autonomous)
-3. [ ] Docs and high review: the module doc of the root lists its modules; the fixes of the `high` review; verified
-   by `project-check`.
+3. [x] Docs and high review: the module doc of the root lists its modules; the fixes of the `high` review; verified
+   by `project-check`. (autonomous)
 
 ## Decisions
 - Mode: autonomous
@@ -91,3 +91,20 @@ move too; the split of `tests/check_specs.rs` (1915 lines, ~2300 counted lines o
 - Code review: no findings
 - not verified: nothing
 - decisions needed: none
+
+## Deliverable 3 (docs and high review)
+- done: the module doc of the root lists its modules; the two module docs the `high` review found inexact corrected.
+
+| check | result |
+|---|---|
+| tests, lint, specs (`project-check`) | pass |
+| docs (`update-docs` on `base..HEAD`) | the module docs; `specs/spec-clarity.md` and ADR 0009 still true of `check_specs.rs` |
+| code review | high on the issue, low on this deliverable |
+
+- red: none (no new test)
+- Code review: 2 findings (high), both fixed: the doc of `clarity.rs` cited CLR-6 to CLR-8 its callers make true;
+  the doc of `citations.rs` left out `git_diff.rs` and `tools/mod.rs`, readers of `name_matches`
+- not verified: nothing
+- decisions needed: none
+
+All deliverables done; left: the split of `tests/check_specs.rs`, an issue of its own (answer 1 a).

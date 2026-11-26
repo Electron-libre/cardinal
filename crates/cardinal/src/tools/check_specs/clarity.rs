@@ -1,5 +1,6 @@
 //! The clarity of a spec read line by line: its open questions, the `[NEEDS CLARIFICATION: ...]` markers (CLR-1,
-//! CLR-2, CLR-5), and the vague wording of a `draft` requirement (CLR-3 to CLR-8).
+//! CLR-2, CLR-5), and the vague wording of a requirement, its quoted parts left out (CLR-3 to CLR-6); `check_specs.rs`
+//! picks the requirements of a `draft` spec and reads each statement as its paragraph (CLR-6 to CLR-8).
 
 use std::collections::BTreeSet;
 

@@ -1,7 +1,8 @@
 //! The citations of the tests (`// spec: ID`, or the comment marker of the test file's language, TRC-12): the test
 //! files of a root, whatever its layout (TRC-9 to TRC-11), the ids each cites and whether it gives the reason of an
 //! internal proof (TRC-6 to TRC-8), the managed and internal test files (TRC-1, TRC-5, TRC-14). `check-specs`,
-//! `spec-coverage` and `delivered-quality` read them.
+//! `spec-coverage` and `delivered-quality` read them; `name_matches` is also the file-name glob of `git_diff.rs` (the
+//! lock files) and `tools/mod.rs` (the patterns a command acts on).
 
 use super::repo_files;
 use crate::project_table::ProjectTable;

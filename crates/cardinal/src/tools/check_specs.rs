@@ -9,6 +9,8 @@
 //! `- **ID-H<n>** (happy; <ids>)`, are traced like requirements (TRC-17 to TRC-24); a spec without one is a warning
 //! (CLR-9, CLR-10), and so is one whose `## Requirements` holds no `### Behaviour` (CLR-11, CLR-12, ADR 0029), or
 //! one over the `spec_max_*` bounds of `.claude/cardinal.toml` (CLR-13 to CLR-16).
+//! Modules: `clarity` (the markers and the wording of a spec), `warnings` (the warnings on stderr); the citations of
+//! the tests are those of `tools/citations.rs`.
 
 use super::citations::{citations, internal_dirs, is_managed, spec_patterns, test_files};
 use crate::project_table::ProjectTable;

@@ -23,8 +23,10 @@ release_breaking_files = ["cardinal-format"]
 # How a closed issue branch reaches the trunk (issue-workflow, "Merge back"): merged locally in the main worktree,
 # never pushed nor proposed as a pull request.
 merge_back = "local"
-# The documents that hold the milestones, each `## <name>` heading one (`roadmap`, `next-issue`, `close-issue`,
-# `release`, `cardinal-ui`, the issue skills); list other context documents in `root_docs`.
+# The documents that hold the milestones, each `## <name>` heading one (RMP-1), read by the tools `roadmap`,
+# `next-issue`, `close-issue`, `release`, `review-gate`, `delivered-quality`, `cardinal-ui` and the skills
+# `issue-workflow`, `create-issue`, `prioritize-issues`, `audit-code`. Cite a product or vision document from
+# `CLAUDE.md` instead, which every session loads.
 roadmap = ["ROADMAP.md", "ROADMAP-done.md"]
 # The roadmap document `release` moves the released milestones to (created when missing); listed in `roadmap` too.
 roadmap_archive = "ROADMAP-done.md"

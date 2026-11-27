@@ -47,6 +47,8 @@ the tools, nor of the meaning of the key: no spec, no migration.
 1. [x] Reword the comment of `roadmap` in `seed/.claude/cardinal.toml` and `.claude/cardinal.toml`; verified by
    `just check` (seed tests and drift check unchanged). (autonomous)
 
+2. [x] Fixes of the `high` review of the issue; verified by `just check`. (autonomous)
+
 ## Decisions
 - Mode: autonomous
 - Base commit: a78f6e118c5bb4b3d89db7d6e4324a740a8ab9e7
@@ -56,5 +58,15 @@ the tools, nor of the meaning of the key: no spec, no migration.
 - done: the comment of `roadmap` (seed and this repository) names the documents of the milestones; `docs/usage.md`
   says a product document goes to `root_docs` and a project seeded before rewords the comment by hand.
 - red: none (a comment and a doc, no test).
+- Code review: no findings
+- checks: `just check` passed; not verified: none; decisions needed: none.
+
+## Summary of deliverable 2 (high review fixes)
+- done: the comment points product documents at `CLAUDE.md` (the issue skills never read `root_docs`), lists every
+  reader of the key and cites RMP-1; `docs/usage.md` says the same, headings in code blocks and comments excluded.
+- red: none (a comment and a doc, no test).
+- High review: 5 findings; fixed: `root_docs` not read by the issue skills, `root_docs` limited to the root, readers
+  missing from the list, RMP-1 exclusions; not fixed: a `rewrite` migration for projects seeded before, the meaning of
+  the key does not change and raises no format (ADR 0014), decision 1 a.
 - Code review: no findings
 - checks: `just check` passed; not verified: none; decisions needed: none.

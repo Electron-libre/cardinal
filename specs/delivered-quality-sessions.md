@@ -31,6 +31,8 @@ tool calls) with their setup, so the evaluation report compares Cardinal revisio
 - **DQS-H1** (happy; DQS-1, DQS-2, DQS-3) Given a repository of done issues worked in recorded sessions, when the
   user runs `delivered-quality`, then the row of each issue gives the sessions that made its commits, their failed
   checks, the messages the user typed and the tokens they spent on it.
+- **DQS-H2** (happy; DQS-5, DQS-6) Given the same repository, when the measure runs `delivered-quality --rows
+  issues.tsv`, then each row of `issues.tsv` gives the time the sessions of its issue spent on it and their tool calls.
 
 - (DQS-1) Given a session on the branch `alpha` and a later-starting session on another branch both holding a commit of the issue `alpha`, when the row is printed, then the commit counts with the first.
 - (DQS-1) Given two sessions on the default branch both holding a commit of the issue `alpha`, the earlier-starting one having run `cardinal run issue-claim issues/alpha.md`, when the row is printed, then the commit counts with it.
@@ -42,6 +44,8 @@ tool calls) with their setup, so the evaluation report compares Cardinal revisio
 - (DQS-5) Given a session of an issue whose sub-agent makes two tool calls and that a resumed session repeats with
   one more call, when the row is printed, then `tool_calls` counts the main calls, the two of the sub-agent and the
   repeated ones once.
+- (DQS-5, DQS-6) Given an issue with no session, when the row is printed, then `duration_s` and `tool_calls` are
+  empty.
 
 ## Non-goals
 

@@ -1,7 +1,7 @@
 ---
 id: QUA
 status: accepted
-adrs: [0003, 0006, 0010]
+adrs: [0006, 0010]
 ---
 
 # Quality signals of the delivered issues
@@ -9,7 +9,8 @@ adrs: [0003, 0006, 0010]
 ## Intent
 
 `cardinal run delivered-quality` measures what happened to the work of each done issue of a repository
-after it was delivered (fixes, reverts) and while it was made (review findings, failed checks, typed messages), one
+after it was delivered (fixes, reverts) and while it was made (review findings; failed checks and typed messages, read from the transcripts as
+`specs/delivered-quality-sessions.md` says), one
 row of numbers per issue, so the evaluation report compares Cardinal revisions on quality and not only on cost. It
 reports signals, not verdicts: a fix after a feature may come from a new need.
 
@@ -54,10 +55,9 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - **QUA-H3** (happy; QUA-18) Given an issue that wrote a spec and amended another, when the user runs
   `delivered-quality`, then its row gives the size, the requirements, the Intent length and the happy paths of these
   two specs as they stood when the issue closed.
-- **QUA-H4** (happy; QUA-22, QUA-23) Given a repository of done issues worked in recorded sessions, when the measure
-  runs `delivered-quality --summary --rows issues.tsv`, then it prints the summary and `issues.tsv` holds one row per
-  issue, the newest last, with its closing date, the time and the tokens of its sessions, their tool calls, the fixes
-  after it, its review findings and the lines it changed.
+- **QUA-H4** (happy; QUA-22, QUA-23) Given a repository of done issues, when the measure runs
+  `delivered-quality --summary --rows issues.tsv`, then it prints the summary and `issues.tsv` holds one row per
+  issue, the newest last, with its closing date, the fixes after it, its review findings and the lines it changed.
 
 - (QUA-2) Given an issue opened in a `docs` commit, then three commits of its deliverables, then another issue closed by a commit that rewrites a citation in its file, then its own close commit, when the row is printed, then `commits` is 4.
 - (QUA-4) Given an issue closed on day 0 that wrote a line of `src/a.rs`, when a `fix` commit changes that line on day 10 and another fix changes it again on day 40, then `fixes_after` is 1 with the default window.
@@ -104,8 +104,7 @@ reports signals, not verdicts: a fix after a feature may come from a new need.
 - (QUA-18) Given an issue that changes no spec, when the row is printed, then `specs` and the four measures are 0.
 
 - (QUA-22) Given an issue whose commits rename a file unchanged, edit its issue file and `web/package-lock.json` and change 3 lines of
-  `src/a.rs`, when the row is printed, then `changed_lines` is 3; an issue with no session reads empty `duration_s`
-  and `tool_calls`.
+  `src/a.rs`, when the row is printed, then `changed_lines` is 3.
 - (QUA-23) Given `--summary --rows <file>`, then the summary is printed and `<file>` holds the rows; given `--rows`
   with no value, or a `<file>` under a missing directory, then the script exits non-zero with an error.
 - (QUA-9) Given `--summary`, then its header holds no `duration_s`, `tool_calls` nor `changed_lines`.

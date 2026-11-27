@@ -107,7 +107,7 @@ fn fixture_rows(tmp: &Path) -> (PathBuf, PathBuf) {
     (repo, projects)
 }
 
-// spec: DQS-5, DQS-6, QUA-22, QUA-23, QUA-H4
+// spec: DQS-5, DQS-6, QUA-22, QUA-23, QUA-H4, DQS-H2
 fn rows_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (repo, projects) = fixture_rows(tmp);
     let projects_arg = projects.to_str().unwrap();

@@ -29,25 +29,6 @@ The work done before this file existed is in `issues/done/`.
   - [drop_the_dead_code_allowance_of_the_transcripts](issues/done/drop_the_dead_code_allowance_of_the_transcripts.md)
   - [exit_quietly_when_the_reader_of_stdout_closes](issues/done/exit_quietly_when_the_reader_of_stdout_closes.md)
 
-## Files small enough to review
-
-- Goal: split the files over the size limit of `cardinal run file-size` by responsibility, with no change of
-  behaviour.
-- Why: the code audit of 2026-11-24 found the crate root and five tools too long to review whole, and each change
-  grows them.
-- State: done
-- Issues:
-  - [split_the_crate_root_of_cardinal](issues/done/split_the_crate_root_of_cardinal.md)
-  - [split_the_spec_checker](issues/done/split_the_spec_checker.md)
-  - [split_the_close_issue_tool](issues/done/split_the_close_issue_tool.md)
-  - [split_the_cardinal_report_tool](issues/done/split_the_cardinal_report_tool.md)
-  - [split_the_delivered_quality_tool](issues/done/split_the_delivered_quality_tool.md)
-  - [split_the_rule_breaches_tool](issues/done/split_the_rule_breaches_tool.md)
-  - [split_the_tests_of_the_skills](issues/done/split_the_tests_of_the_skills.md)
-  - [split_the_tests_of_the_review_gate](issues/done/split_the_tests_of_the_review_gate.md)
-  - [split_the_tests_of_session_metrics](issues/done/split_the_tests_of_session_metrics.md)
-  - [split_the_tests_of_the_cardinal_report_tool](issues/done/split_the_tests_of_the_cardinal_report_tool.md)
-
 ## User control
 
 - Goal: let the user confirm each irreversible action and answer each question of the agent in a prompt of Claude
@@ -88,19 +69,3 @@ The work done before this file existed is in `issues/done/`.
   - [end_a_task_that_panics_in_the_ui](issues/done/end_a_task_that_panics_in_the_ui.md)
   - [end_a_measure_or_a_notification_that_panics_in_the_ui](issues/done/end_a_measure_or_a_notification_that_panics_in_the_ui.md)
   - [keep_the_ui_working_after_a_zellij_session_is_renamed](issues/done/keep_the_ui_working_after_a_zellij_session_is_renamed.md)
-
-## Cardinal UI
-
-- Goal: let the user read everything they steer from in `cardinal-ui`: the details of a milestone as of an issue,
-  the Markdown documents (issues, roadmap) in a viewer with a way to edit them, the course of the coding sessions of
-  each issue over time, and the share used of the 5-hour and weekly limits of Claude.
-- Why: the needs the user listed on 2026-11-24: a milestone is known by its name only, a document is read or edited
-  from another terminal, the charts give medians but not how each issue went, and a session started near a limit
-  stops half done.
-- State: done
-- Issues:
-  - [show_the_details_of_a_selected_milestone](issues/done/show_the_details_of_a_selected_milestone.md)
-  - [read_the_markdown_documents_from_the_ui](issues/done/read_the_markdown_documents_from_the_ui.md)
-  - [chart_the_sessions_of_each_issue_over_time](issues/done/chart_the_sessions_of_each_issue_over_time.md)
-  - [draw_the_sessions_of_each_issue_on_the_charts_screen](issues/done/draw_the_sessions_of_each_issue_on_the_charts_screen.md)
-  - [show_the_claude_usage_limits_in_the_ui](issues/done/show_the_claude_usage_limits_in_the_ui.md)

@@ -4,6 +4,36 @@ The notable changes of each version, newest first ([Keep a Changelog](https://ke
 [Semantic Versioning](https://semver.org/)). Each section is written by `cardinal run release <version>` from the commits,
 then reread before the release is committed.
 
+## [6.4.0] - 2026-11-27
+
+### Milestones
+
+- Files small enough to review
+- Cardinal UI
+
+### Added
+
+- record the Claude usage limits from the status line
+- show the Claude usage limits on the worktrees border
+- give the goal and why of milestones in roadmap --json
+- show the state, goal and why of a selected milestone
+- open the document of the selected row with o and O
+- give the time and changed lines of each done issue
+- keep the rows of each done issue with the measure
+- draw the done issues as series under the charts
+- pick the series of the issues the charts show first
+
+### Fixed
+
+- reject a pid beyond the range of pid_t
+- run the status line anywhere and never move the limits back
+- stop the goal of a milestone at the next list item
+- keep the screen alive through the Ctrl+C of its viewer
+- count the time and changed lines of an issue as specified
+- keep the order of the series and draw each value above zero
+- describe the roadmap key as the milestone documents
+- cite product documents from CLAUDE.md, not root_docs
+
 ## [6.3.0] - 2026-11-25
 
 ### Milestones

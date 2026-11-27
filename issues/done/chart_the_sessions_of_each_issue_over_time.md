@@ -87,7 +87,7 @@ Means: three columns on the rows of QUA-1 (left out of the summary, so `cardinal
 - Code review: no findings
 - not verified: the columns on the real transcripts of this repository (the measure of deliverable 2 runs them).
 - decisions needed: none
-- follow-up: `issues/split_the_transcript_columns_out_of_the_delivered_quality_spec.md`.
+- follow-up: `issues/done/split_the_transcript_columns_out_of_the_delivered_quality_spec.md`.
 
 ## Deliverable 2
 

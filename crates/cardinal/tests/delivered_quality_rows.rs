@@ -1,5 +1,5 @@
-//! Behavior test for the rows per issue of `cardinal tool delivered-quality` (QUA-20 to QUA-23): the time and the tool
-//! calls of the sessions of each done issue, the lines it changed, and the rows written beside the summary.
+//! Behavior test for the rows per issue of `cardinal tool delivered-quality` (DQS-5, DQS-6, QUA-22, QUA-23): the time
+//! and the tool calls of the sessions of each done issue, the lines it changed, and the rows written beside the summary.
 
 mod delivered_quality_common;
 
@@ -107,7 +107,7 @@ fn fixture_rows(tmp: &Path) -> (PathBuf, PathBuf) {
     (repo, projects)
 }
 
-// spec: QUA-20, QUA-21, QUA-22, QUA-23, QUA-H4
+// spec: DQS-5, DQS-6, QUA-22, QUA-23, QUA-H4
 fn rows_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (repo, projects) = fixture_rows(tmp);
     let projects_arg = projects.to_str().unwrap();

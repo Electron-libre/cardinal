@@ -139,7 +139,7 @@ impl Drop for Temporaries<'_> {
 /// The steps of a measure, each writing its file under its temporary name.
 fn steps(root: &Path, dir: &Path) -> Result<(), String> {
     let path = |name: &str| temporary(dir, name).to_string_lossy().into_owned();
-    // the done issues of the repository the sessions resolve to, so their tokens are found (QUA-7)
+    // the done issues of the repository the sessions resolve to, so their tokens are found (DQS-1)
     let main = main_worktree(root).to_string_lossy().into_owned();
     let (sessions, quality) = (path("sessions.tsv"), path("quality.tsv"));
     step(

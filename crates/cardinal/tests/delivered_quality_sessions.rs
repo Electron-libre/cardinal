@@ -1,4 +1,4 @@
-//! Behavior test for the transcript columns of `cardinal tool delivered-quality` (QUA-7, QUA-8, QUA-9, QUA-15, QUA-16,
+//! Behavior test for the transcript columns of `cardinal tool delivered-quality` (DQS-1 to DQS-4, QUA-9,
 //! QUA-17): the sessions that made the commits of each done issue, their failed checks, typed messages, tokens and
 //! setup, and the summary per revision, setup and milestone.
 
@@ -70,7 +70,7 @@ fn write(path: &Path, lines: &[String]) {
     std::fs::write(path, lines.concat()).unwrap();
 }
 
-// spec: QUA-7, QUA-8, QUA-9, QUA-15
+// spec: DQS-1, DQS-2, DQS-3, QUA-9, DQS-H1
 fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("sessions");
     let repo = fixture(&tmp);
@@ -161,7 +161,7 @@ fn session_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     ]
 }
 
-// spec: QUA-7
+// spec: DQS-1
 fn claim_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let tmp = tmp.join("claims");
     let repo = fixture(&tmp);
@@ -297,7 +297,7 @@ fn setup_fixture(tmp: &Path) -> (PathBuf, PathBuf) {
     (repo, projects)
 }
 
-// spec: QUA-16, QUA-17
+// spec: DQS-4, QUA-17
 fn setup_checks(dir: &Path, tmp: &Path) -> Vec<(String, bool)> {
     let (repo, projects) = setup_fixture(&tmp.join("setups"));
     let projects_arg = projects.to_str().unwrap();

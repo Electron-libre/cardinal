@@ -232,7 +232,7 @@ pub fn issue_file_stem(path: &str) -> Option<&str> {
     (!name.is_empty() && !name.contains('/')).then_some(name)
 }
 
-/// What ties a commit to a session (QUA-7, BRE-9): its span, the issues it claims or closes (EVA-21) and its branches
+/// What ties a commit to a session (DQS-1, BRE-9): its span, the issues it claims or closes (EVA-21) and its branches
 /// other than the default ones (EVA-6).
 pub struct Span {
     pub start: DateTime<FixedOffset>,
@@ -247,7 +247,7 @@ impl Span {
     }
 }
 
-/// The index in `spans` of the session a commit dated `at` of the issues `stems` is tied to (QUA-7, BRE-9): the
+/// The index in `spans` of the session a commit dated `at` of the issues `stems` is tied to (DQS-1, BRE-9): the
 /// latest-starting session whose span holds `at`, taken among those that claim or close one of `stems` when one does,
 /// else among those whose branches hold one of them when one does; `None` when no span holds it.
 pub fn session_of<'a>(
@@ -484,7 +484,7 @@ mod tests {
         }
     }
 
-    // spec: QUA-7, BRE-9 (internal: the order of the tiers needs four overlapping sessions, built from their structs)
+    // spec: DQS-1, BRE-9 (internal: the order of the tiers needs four overlapping sessions, built from their structs)
     #[test]
     fn a_commit_goes_to_the_latest_claimer_then_to_the_latest_on_its_branch() {
         let at = DateTime::parse_from_rfc3339("2026-01-01T11:00:00Z").unwrap();

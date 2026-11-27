@@ -550,8 +550,8 @@ fn issue_row(
         cell(lines.as_ref().map(|l| l.1)),
     ];
     cells.extend((0..SHAPES).map(|k| cell(shapes.map(|s| s[k]))));
-    // the tokens of an issue no session holds are unknown, not 0 (QUA-15)
-    // and so are its time and tool calls (QUA-20, QUA-21)
+    // the tokens of an issue no session holds are unknown, not 0 (DQS-3)
+    // and so are its time and tool calls (DQS-5, DQS-6)
     let known = |k: usize| k < TOKENS || transcript.is_some_and(|t| t[0] > 0);
     cells.extend((0..CELLS).map(|k| cell(transcript.filter(|_| known(k)).map(|t| t[k]))));
     cells.push(cell(lines.as_ref().map(|l| l.3)));
@@ -569,7 +569,7 @@ const SHAPES: usize = 5;
 /// The last columns of the rows, left out of the summary (QUA-9): `duration_s`, `tool_calls`, `changed_lines`.
 const ROWS_ONLY: usize = 3;
 
-/// The index, in the transcript cells of `session_cells`, of the first token column (QUA-15).
+/// The index, in the transcript cells of `session_cells`, of the first token column (DQS-3).
 const TOKENS: usize = 4;
 
 /// Per revision, setup and milestone: its count of issues, the sum of each numeric column and the count of issues of

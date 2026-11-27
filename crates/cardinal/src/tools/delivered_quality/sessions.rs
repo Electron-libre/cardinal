@@ -1,4 +1,4 @@
-//! The transcript sessions of a repository as `delivered-quality` reads them (QUA-7, QUA-8, QUA-15, QUA-16): their
+//! The transcript sessions of a repository as `delivered-quality` reads them (`specs/delivered-quality-sessions.md`): their
 //! span, setup and events, and the transcript columns of an issue.
 
 use super::super::transcripts::{
@@ -17,14 +17,14 @@ enum Event {
     Validation,
     Other,
     FailedCheck,
-    /// The `message.id`, input sum (REP-5), cache read and output tokens of an assistant message (QUA-15).
+    /// The `message.id`, input sum (REP-5), cache read and output tokens of an assistant message (DQS-3).
     Tokens(String, [u64; 3]),
-    /// The `id` of a `tool_use` block (QUA-20).
+    /// The `id` of a `tool_use` block (DQS-5).
     ToolCall(String),
 }
 
 impl Event {
-    /// The id of a message or a tool call, which a resumed session copies (QUA-15, QUA-21).
+    /// The id of a message or a tool call, which a resumed session copies (DQS-3, DQS-6).
     fn id(&self) -> Option<&str> {
         match self {
             Event::Tokens(id, _) | Event::ToolCall(id) => {
@@ -35,7 +35,7 @@ impl Event {
     }
 }
 
-/// The tool calls of a transcript line, by the `id` of each `tool_use` block of an assistant line (QUA-20).
+/// The tool calls of a transcript line, by the `id` of each `tool_use` block of an assistant line (DQS-5).
 fn tool_calls(line: &Value) -> impl Iterator<Item = Event> + '_ {
     let blocks = (line["type"] == "assistant")
         .then(|| line["message"]["content"].as_array())
@@ -47,7 +47,7 @@ fn tool_calls(line: &Value) -> impl Iterator<Item = Event> + '_ {
         .map(|b| Event::ToolCall(b["id"].as_str().unwrap_or_default().to_string()))
 }
 
-/// The tokens of an assistant message line, once per `message.id` (EVA-2, QUA-15): the top-level usage, which adds
+/// The tokens of an assistant message line, once per `message.id` (EVA-2, DQS-3): the top-level usage, which adds
 /// up the executor iterations of an advised message and holds none of the advisor's tokens.
 fn tokens(line: &Value, seen: &mut HashSet<String>) -> Option<Event> {
     let message = &line["message"];
@@ -83,11 +83,11 @@ pub(super) struct Session {
 }
 
 /// The transcript cells of an issue: `sessions`, `failed_checks`, `validations`, `other_messages`, the three token
-/// columns (QUA-15), `duration_s` and `tool_calls` (QUA-20, QUA-21).
+/// columns (DQS-3), `duration_s` and `tool_calls` (DQS-5, DQS-6).
 pub(super) const CELLS: usize = 9;
 
 /// A check of the project: `just` followed by a word starting with `check` or `test`, or `cardinal run project-check`
-/// (QUA-8); not `cardinal check`, the drift check.
+/// (DQS-2); not `cardinal check`, the drift check.
 fn is_check(command: &str) -> bool {
     let words: Vec<&str> = command
         .split(|c: char| c.is_whitespace() || ";&|()".contains(c))
@@ -113,7 +113,7 @@ pub(in crate::tools) fn setup_name(main: &str, advisor: Option<&str>) -> String 
     }
 }
 
-/// The first main model and advisor model of a session's assistant lines, in order of first appearance (QUA-16).
+/// The first main model and advisor model of a session's assistant lines, in order of first appearance (DQS-4).
 #[derive(Default)]
 struct Models {
     main: Option<String>,
@@ -143,7 +143,7 @@ impl Models {
     }
 }
 
-/// The sessions of the projects directory `root` whose repository is `repo` (QUA-7); `None` when `root` cannot be read.
+/// The sessions of the projects directory `root` whose repository is `repo` (DQS-1); `None` when `root` cannot be read.
 pub(super) fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
     std::fs::read_dir(root).ok()?;
     let repo = std::fs::canonicalize(repo).ok();
@@ -236,9 +236,9 @@ pub(super) fn read_sessions(root: &Path, repo: &Path) -> Option<Vec<Session>> {
     Some(found)
 }
 
-/// The transcript columns of an issue (QUA-7, QUA-8, QUA-15): its sessions, then the failed checks, validations and
+/// The transcript columns of an issue (DQS-1, DQS-2, DQS-3): its sessions, then the failed checks, validations and
 /// other typed messages of their spans that belong to it, the input, cache read and output tokens of their messages,
-/// their seconds from the first to the last event of the issue and their tool calls (QUA-20, QUA-21); with the setup of its sessions, `mixed` when they differ (QUA-16).
+/// their seconds from the first to the last event of the issue and their tool calls (DQS-5, DQS-6); with the setup of its sessions, `mixed` when they differ (DQS-4).
 pub(super) fn session_cells(
     log: &[Commit],
     own: &[usize],
@@ -249,7 +249,7 @@ pub(super) fn session_cells(
     let mut by_session: BTreeMap<usize, Vec<DateTime<FixedOffset>>> = BTreeMap::new();
     for &i in own {
         let at = log[i].date;
-        // the latest session that claimed or closed the issue, else on its branch, else of all (QUA-7)
+        // the latest session that claimed or closed the issue, else on its branch, else of all (DQS-1)
         if let Some(k) = session_of(at, &[stem], sessions.iter().map(|s| &s.span)) {
             by_session.entry(k).or_default().push(at);
         }
@@ -267,7 +267,7 @@ pub(super) fn session_cells(
     cells[0] = by_session.len() as u64;
     // a resumed session copies the messages of the one it resumes, ids included: each counts once for the issue
     let (mut messages, mut tool_ids): (HashSet<&str>, HashSet<&str>) = Default::default();
-    // an id two sessions share belongs to the one that ended first: the other copied it when it resumed (QUA-21)
+    // an id two sessions share belongs to the one that ended first: the other copied it when it resumed (DQS-6)
     let mut owners: HashMap<&str, (DateTime<FixedOffset>, usize)> = HashMap::new();
     for &k in by_session.keys() {
         for id in sessions[k].events.iter().filter_map(|(_, e)| e.id()) {
@@ -363,7 +363,7 @@ mod tests {
     }
 
     // a resumed session needs two transcripts sharing a message and a commit in each: shorter built from its structs
-    // spec: QUA-15 (internal: the resumed session is built from its structs)
+    // spec: DQS-3 (internal: the resumed session is built from its structs)
     #[test]
     fn a_message_copied_into_a_resumed_session_counts_once() {
         let log = [
@@ -398,7 +398,7 @@ mod tests {
     }
 
     // the same pair of sessions, with a tool call copied into the resumed one
-    // spec: QUA-20, QUA-21 (internal: the resumed session is built from its structs)
+    // spec: DQS-5, DQS-6 (internal: the resumed session is built from its structs)
     #[test]
     fn a_tool_call_copied_into_a_resumed_session_counts_once() {
         let log = [

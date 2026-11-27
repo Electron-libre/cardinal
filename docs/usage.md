@@ -37,7 +37,9 @@ The seeded `roadmap` key names `ROADMAP.md`, the milestones `skill:create-issue`
 project seeded before names `docs/TODO.md`, which nothing seeds: `sync` copies `ROADMAP.md` when it is missing, and
 the project points its key at it by hand. The seeded `roadmap_archive` names `ROADMAP-done.md`, listed in `roadmap`
 too: `release` moves the released milestones there, so `ROADMAP.md` keeps only the ones still to land; a project
-without the key keeps them where they are.
+without the key keeps them where they are. Every `## <name>` heading of these documents is a milestone: a product or
+vision document goes to `root_docs` or `CLAUDE.md`, never to `roadmap`. A project seeded before keeps the comment that
+described the key as the context of the project, and rewords it by hand.
 
 `cardinal run roadmap` (alias `just roadmap`, [specs/roadmap.md](../specs/roadmap.md)) prints the milestones of the `roadmap`
 documents as a table, in order: state (`(none)` or `(unknown)` when the line is missing or not a seeded state, `(on

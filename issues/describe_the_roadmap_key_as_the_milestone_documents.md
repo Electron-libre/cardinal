@@ -33,3 +33,28 @@ and that other context documents belong elsewhere (`root_docs`, `CLAUDE.md`).
 
 # Hints
 * A wording fix only: the tools need no change, and filtering `## ` sections without `State:` would contradict RMP-3.
+
+# Tracking
+
+Plan: validated by Cedric Brancourt <cedric.brancourt@gmail.com> on 2026-11-27
+
+## Understanding
+Reword the comment of the `roadmap` key, in the seed and in this repository's `.claude/cardinal.toml`, as the
+documents holding the milestones (one per `## ` heading), other context documents going to `root_docs`. No change of
+the tools, nor of the meaning of the key: no spec, no migration.
+
+## Plan
+1. [x] Reword the comment of `roadmap` in `seed/.claude/cardinal.toml` and `.claude/cardinal.toml`; verified by
+   `just check` (seed tests and drift check unchanged). (autonomous)
+
+## Decisions
+- Mode: autonomous
+- Base commit: a78f6e118c5bb4b3d89db7d6e4324a740a8ab9e7
+- 1 a: no `CHANGELOG.md` note by hand; the `fix` commit reaches it through `release`.
+
+## Summary of deliverable 1
+- done: the comment of `roadmap` (seed and this repository) names the documents of the milestones; `docs/usage.md`
+  says a product document goes to `root_docs` and a project seeded before rewords the comment by hand.
+- red: none (a comment and a doc, no test).
+- Code review: no findings
+- checks: `just check` passed; not verified: none; decisions needed: none.
